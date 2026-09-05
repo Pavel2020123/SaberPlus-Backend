@@ -48,7 +48,7 @@ try {
     console.log(`KEY_TABLES_PRESENT=${expectedTablesPresent ? 'YES' : 'NO'}`);
 
     if (
-      Number(migrationState.applied) !== 38 ||
+      Number(migrationState.applied) !== 39 ||
       Number(migrationState.failed) !== 0 ||
       !expectedTablesPresent
     ) {
