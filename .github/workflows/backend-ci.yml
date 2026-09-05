@@ -1,0 +1,43 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      DATABASE_URL: postgresql://ci:ci@127.0.0.1:5432/ci
+      DIRECT_URL: postgresql://ci:ci@127.0.0.1:5432/ci
+
+    steps:
+      - name: Obtener codigo
+        uses: actions/checkout@v6
+
+      - name: Configurar Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24.14.1
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Instalar dependencias reproducibles
+        run: npm ci --include=dev
+
+      - name: Compilar
+        run: npm run build
+
+      - name: Ejecutar pruebas
+        run: npm test -- --runInBand
+
+      - name: Auditar dependencias de produccion
+        run: npm audit --omit=dev

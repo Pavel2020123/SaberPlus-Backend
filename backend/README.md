@@ -1,6 +1,8 @@
 # API de SaberPlus
 
-Backend NestJS de SaberPlus con Prisma y PostgreSQL.
+Backend NestJS de SaberPlus con Prisma y PostgreSQL. El proyecto fija Node
+`24.14.1` y npm `11.11.0` para que el lockfile sea reproducible en Windows y en
+el entorno Linux de Render.
 
 ## Comandos
 
@@ -24,4 +26,3 @@ despliegue. No guardes contrasenas ni cadenas de conexion reales en Git.
 - `npm run db:deploy`: aplica migraciones versionadas.
 
 Flutter consume esta API y nunca se conecta directamente a las tablas.
-
