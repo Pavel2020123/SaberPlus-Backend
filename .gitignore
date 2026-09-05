@@ -1,0 +1,21 @@
+# Dependencias y compilaciones
+**/node_modules/
+**/dist/
+**/build/
+**/coverage/
+
+# Variables y secretos locales
+**/.env
+**/.env.local
+**/.env.*.local
+
+# Archivos generados o temporales
+**/*.log
+**/.tmp/
+**/.temp/
+.DS_Store
+
+# Editores
+.idea/
+.vscode/
+

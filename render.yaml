@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: saberplus-api-staging
+    runtime: node
+    plan: free
+    region: ohio
+    rootDir: backend
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm run start:prod
+    healthCheckPath: /health/ready
+    autoDeployTrigger: off
+    envVars:
+      - key: NODE_VERSION
+        value: 24.14.1
+      - key: NODE_ENV
+        value: production
+      - key: TRUST_PROXY
+        value: "true"
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: RANKING_ALIAS_SECRET
+        generateValue: true
+      - key: FRONTEND_URL
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false

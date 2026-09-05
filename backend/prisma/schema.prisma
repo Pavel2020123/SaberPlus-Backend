@@ -1,0 +1,1159 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  directUrl  = env("DIRECT_URL")
+  extensions = [uuid_ossp(map: "uuid-ossp")]
+}
+
+enum Grado {
+  DECIMO
+  ONCE
+}
+
+enum CalendarioTipo {
+  A
+  B
+}
+
+model CalendarioIcfes {
+  id            String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  anio          Int
+  calendario    CalendarioTipo
+  fechaExamen   DateTime       @db.Date
+  activo        Boolean        @default(false)
+  fechaCreacion DateTime       @default(now()) @db.Timestamp(6)
+
+  @@unique([anio, calendario])
+  @@index([activo, fechaExamen])
+}
+
+model Clase {
+  id              String                @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  nombre          String                @db.VarChar(255)
+  // Campo legado: la aplicación móvil ya no lo expone ni lo acepta.
+  codigoIngreso   String                @unique @db.VarChar(50)
+  grado           Grado
+  institucionId   String                @db.Uuid
+  Institucion     Institucion           @relation(fields: [institucionId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_clase_institucion")
+  ClaseEstudiante ClaseEstudiante[]
+  profesores      ClaseProfesor[]
+  codigos         CodigoTemporalGrupo[]
+}
+
+model ClaseEstudiante {
+  usuarioId           String               @db.Uuid
+  claseId             String               @db.Uuid
+  codigoTemporalId    String?              @db.Uuid
+  aceptacionExplicita Boolean              @default(false)
+  fechaIngreso        DateTime             @default(now()) @db.Timestamp(6)
+  Clase               Clase                @relation(fields: [claseId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_ce_clase")
+  Usuario             Usuario              @relation(fields: [usuarioId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_ce_usuario")
+  codigoTemporal      CodigoTemporalGrupo? @relation(fields: [codigoTemporalId], references: [id], onDelete: SetNull)
+
+  @@id([usuarioId, claseId])
+  @@index([codigoTemporalId])
+}
+
+model ClaseProfesor {
+  claseId         String             @db.Uuid
+  miembroId       String             @db.Uuid
+  fechaAsignacion DateTime           @default(now()) @db.Timestamp(6)
+  clase           Clase              @relation(fields: [claseId], references: [id], onDelete: Cascade)
+  miembro         MiembroInstitucion @relation(fields: [miembroId], references: [id], onDelete: Cascade)
+
+  @@id([claseId, miembroId])
+  @@index([miembroId, fechaAsignacion])
+}
+
+model CodigoTemporalGrupo {
+  id              String             @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  claseId         String             @db.Uuid
+  codigoHash      String             @unique @db.VarChar(64)
+  sufijo          String             @db.VarChar(4)
+  activo          Boolean            @default(true)
+  usos            Int                @default(0)
+  usosMaximos     Int
+  fechaExpiracion DateTime           @db.Timestamp(6)
+  fechaCreacion   DateTime           @default(now()) @db.Timestamp(6)
+  creadoPorId     String             @db.Uuid
+  clase           Clase              @relation(fields: [claseId], references: [id], onDelete: Cascade)
+  creadoPor       MiembroInstitucion @relation(fields: [creadoPorId], references: [id], onDelete: Cascade)
+  vinculaciones   ClaseEstudiante[]
+
+  @@index([claseId, activo, fechaExpiracion])
+  @@index([creadoPorId, fechaCreacion])
+}
+
+model Institucion {
+  id                   String                        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  nombre               String                        @db.VarChar(255)
+  codigoUnico          String                        @unique @db.VarChar(50)
+  planActual           String?                       @default("GRATIS") @db.VarChar(50)
+  logoUrl              String?                       @db.VarChar(255)
+  mensajeBienvenida    String?                       @db.Text
+  imagenPortada        String?                       @db.VarChar(255)
+  limiteGrado10        Int?
+  limiteGrado11        Int?
+  limiteGrupos         Int?
+  limiteEstudiantes    Int?
+  // Calendario ICFES que rige a este colegio (define contra qué fecha
+  // de examen se calcula la vigencia del plan institucional). Punto 6.
+  calendarioIcfes      CalendarioTipo?               @default(A)
+  fechaVencimientoPlan DateTime?                     @db.Timestamp(6)
+  Clase                Clase[]
+  Usuario              Usuario[]
+  anuncios             Anuncio[]
+  miembros             MiembroInstitucion[]
+  solicitudesIngreso   SolicitudIngresoInstitucion[]
+  invitaciones         InvitacionInstitucion[]
+  auditorias           AuditoriaInstitucion[]
+}
+
+model Usuario {
+  id                        String                        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  nombre                    String                        @db.VarChar(255)
+  correo                    String                        @unique @db.VarChar(255)
+  contrasenaHash            String
+  // Cuando el admin crea la cuenta manualmente con una contraseña
+  // temporal (punto 12: institución vía panel de admin), esta bandera
+  // queda en true para forzar que la cambie en su primer login. Se
+  // apaga sola cuando el usuario la cambia por una propia.
+  debeCambiarContrasena     Boolean?                      @default(false)
+  rol                       RolUsuario?                   @default(ESTUDIANTE)
+  xpTotal                   Int?                          @default(0)
+  fechaCreacion             DateTime?                     @default(now()) @db.Timestamp(6)
+  fechaVencimientoPlan      DateTime?                     @db.Timestamp(6)
+  // Calendario ICFES del estudiante individual (A o B). Solo aplica
+  // cuando no pertenece a institución; si pertenece, hereda el de su
+  // colegio. Punto 6.
+  calendarioIcfes           CalendarioTipo?               @default(A)
+  // Verificación de correo (punto 7): evita que alguien reinicie la
+  // prueba gratis de 3 días registrándose con correos falsos.
+  correoVerificado          Boolean?                      @default(false)
+  tokenVerificacion         String?                       @unique @db.VarChar(255)
+  tokenVerificacionExpira   DateTime?                     @db.Timestamp(6)
+  // Recuperación de contraseña (punto 8): token de un solo uso y vida
+  // corta para que quien olvidó su contraseña elija una nueva sin
+  // necesitar acceso previo a la cuenta.
+  tokenRecuperacion         String?                       @unique @db.VarChar(255)
+  tokenRecuperacionExpira   DateTime?                     @db.Timestamp(6)
+  institucionId             String?                       @db.Uuid
+  fotoPerfil                String?
+  descripcion               String?
+  tutorialEstudianteVersion Int                           @default(0)
+  tutorialProfesorVersion   Int                           @default(0)
+  // El grado personaliza contenido y estadísticas, pero no cambia el
+  // producto ni el precio del acceso individual.
+  grado                     Grado?
+  ClaseEstudiante           ClaseEstudiante[]
+  Institucion               Institucion?                  @relation(fields: [institucionId], references: [id], onUpdate: NoAction, map: "fk_institucion")
+  resultados                ResultadoSimulacro[]
+  intentosSimulacro         IntentoSimulacro[]
+  historialRespuestas       HistorialRespuesta[]
+  diagnosticoInicial        DiagnosticoInicial?
+  progresotemas             ProgresoTema[]
+  PagoOrden                 PagoOrden[]
+  codigoReferido            String?                       @unique @db.VarChar(12)
+  saldoReferidosCop         Int                           @default(0)
+  referidosEnviados         Referido[]                    @relation("Referidor")
+  referidoRecibido          Referido?                     @relation("Referido")
+  planesEstudio             PlanEstudioSemanal[]
+  anunciosLeidos            AnuncioLectura[]
+  anunciosCreados           Anuncio[]                     @relation("AutorAnuncio")
+  batallasRetadas           Batalla[]                     @relation("RetadorBatalla")
+  batallasComoRival         Batalla[]                     @relation("RivalBatalla")
+  batallasGanadas           Batalla[]                     @relation("GanadorBatalla")
+  participacionesBatalla    BatallaParticipante[]
+  respuestasBatalla         BatallaRespuesta[]
+  estadisticaBatalla        BatallaEstadistica?
+  bloqueosBatallaCreados    BatallaBloqueo[]              @relation("BloqueadorBatalla")
+  bloqueosBatallaRecibidos  BatallaBloqueo[]              @relation("BloqueadoBatalla")
+  reportesBatallaCreados    BatallaReporte[]              @relation("ReportanteBatalla")
+  reportesBatallaRecibidos  BatallaReporte[]              @relation("ReportadoBatalla")
+  partidasTiraAflojaA       PartidaTiraAfloja[]           @relation("JugadorATiraAfloja")
+  partidasTiraAflojaB       PartidaTiraAfloja[]           @relation("JugadorBTiraAfloja")
+  partidasTiraAflojaGanadas PartidaTiraAfloja[]           @relation("GanadorTiraAfloja")
+  respuestasTiraAfloja      TiraAflojaRespuesta[]
+  intentosTriviaRush        IntentoTriviaRush[]
+  concesionesJuego          ConcesionRecompensaJuego[]
+  cuadernoErrores           CuadernoError[]
+  membresiaInstitucion      MiembroInstitucion?
+  solicitudesInstitucion    SolicitudIngresoInstitucion[] @relation("SolicitanteInstitucion")
+  solicitudesRevisadas      SolicitudIngresoInstitucion[] @relation("RevisorInstitucion")
+  invitacionesCreadas       InvitacionInstitucion[]       @relation("CreadorInvitacionInstitucion")
+  invitacionesAceptadas     InvitacionInstitucion[]       @relation("ReceptorInvitacionInstitucion")
+  auditoriasCreadas         AuditoriaInstitucion[]        @relation("ActorAuditoriaInstitucion")
+  auditoriasRecibidas       AuditoriaInstitucion[]        @relation("AfectadoAuditoriaInstitucion")
+}
+
+enum RolUsuario {
+  ESTUDIANTE
+  PROFESOR
+  ADMIN
+}
+
+enum RolMembresiaInstitucion {
+  PROPIETARIO
+  ADMINISTRADOR
+  PROFESOR
+}
+
+enum EstadoSolicitudIngresoInstitucion {
+  PENDIENTE
+  APROBADA
+  RECHAZADA
+  CANCELADA
+}
+
+enum EstadoInvitacionInstitucion {
+  PENDIENTE
+  ACEPTADA
+  RECHAZADA
+  CANCELADA
+  EXPIRADA
+}
+
+model MiembroInstitucion {
+  id                 String                  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  institucionId      String                  @db.Uuid
+  usuarioId          String                  @unique @db.Uuid
+  rol                RolMembresiaInstitucion @default(PROFESOR)
+  fechaCreacion      DateTime                @default(now()) @db.Timestamp(6)
+  fechaActualizacion DateTime                @default(now()) @updatedAt @db.Timestamp(6)
+  institucion        Institucion             @relation(fields: [institucionId], references: [id], onDelete: Cascade)
+  usuario            Usuario                 @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  clasesAsignadas    ClaseProfesor[]
+  codigosGrupo       CodigoTemporalGrupo[]
+
+  @@unique([institucionId, usuarioId])
+  @@index([institucionId, rol])
+}
+
+model SolicitudIngresoInstitucion {
+  id                 String                            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  institucionId      String                            @db.Uuid
+  solicitanteId      String                            @db.Uuid
+  estado             EstadoSolicitudIngresoInstitucion @default(PENDIENTE)
+  mensaje            String?                           @db.VarChar(500)
+  revisadoPorId      String?                           @db.Uuid
+  fechaCreacion      DateTime                          @default(now()) @db.Timestamp(6)
+  fechaActualizacion DateTime                          @default(now()) @updatedAt @db.Timestamp(6)
+  institucion        Institucion                       @relation(fields: [institucionId], references: [id], onDelete: Cascade)
+  solicitante        Usuario                           @relation("SolicitanteInstitucion", fields: [solicitanteId], references: [id], onDelete: Cascade)
+  revisadoPor        Usuario?                          @relation("RevisorInstitucion", fields: [revisadoPorId], references: [id], onDelete: SetNull)
+
+  @@index([institucionId, estado, fechaCreacion])
+  @@index([solicitanteId, estado, fechaCreacion])
+}
+
+model InvitacionInstitucion {
+  id                 String                      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  institucionId      String                      @db.Uuid
+  correo             String                      @db.VarChar(255)
+  rol                RolMembresiaInstitucion     @default(PROFESOR)
+  estado             EstadoInvitacionInstitucion @default(PENDIENTE)
+  creadoPorId        String                      @db.Uuid
+  aceptadoPorId      String?                     @db.Uuid
+  fechaExpiracion    DateTime                    @db.Timestamp(6)
+  fechaCreacion      DateTime                    @default(now()) @db.Timestamp(6)
+  fechaActualizacion DateTime                    @default(now()) @updatedAt @db.Timestamp(6)
+  institucion        Institucion                 @relation(fields: [institucionId], references: [id], onDelete: Cascade)
+  creadoPor          Usuario                     @relation("CreadorInvitacionInstitucion", fields: [creadoPorId], references: [id], onDelete: Cascade)
+  aceptadoPor        Usuario?                    @relation("ReceptorInvitacionInstitucion", fields: [aceptadoPorId], references: [id], onDelete: SetNull)
+
+  @@index([institucionId, estado, fechaCreacion])
+  @@index([correo, estado, fechaExpiracion])
+}
+
+model AuditoriaInstitucion {
+  id            String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  institucionId String      @db.Uuid
+  accion        String      @db.VarChar(60)
+  actorId       String?     @db.Uuid
+  afectadoId    String?     @db.Uuid
+  detalle       Json?
+  fechaCreacion DateTime    @default(now()) @db.Timestamp(6)
+  institucion   Institucion @relation(fields: [institucionId], references: [id], onDelete: Cascade)
+  actor         Usuario?    @relation("ActorAuditoriaInstitucion", fields: [actorId], references: [id], onDelete: SetNull)
+  afectado      Usuario?    @relation("AfectadoAuditoriaInstitucion", fields: [afectadoId], references: [id], onDelete: SetNull)
+
+  @@index([institucionId, fechaCreacion])
+  @@index([actorId, fechaCreacion])
+}
+
+// --- MÓDULO: LEADS DE VENTAS ---
+
+enum LineaInteres {
+  ONCE
+  BACHILLERATO
+}
+
+model LeadVentas {
+  id                     String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  nombreColegio          String       @db.VarChar(255)
+  nombreContacto         String       @db.VarChar(255)
+  correo                 String       @db.VarChar(255)
+  telefono               String?      @db.VarChar(50)
+  ciudad                 String?      @db.VarChar(100)
+  linea                  LineaInteres
+  plan                   String       @db.VarChar(50)
+  numeroEstudiantesAprox Int?
+  mensaje                String?      @db.Text
+  atendido               Boolean      @default(false)
+  fechaCreacion          DateTime     @default(now()) @db.Timestamp(6)
+
+  @@index([atendido, fechaCreacion])
+}
+
+model ConfiguracionSoporte {
+  id                 String   @id @default("principal") @db.VarChar(30)
+  numeroWhatsapp     String?  @db.VarChar(15)
+  mensajeWhatsapp    String   @default("Hola, necesito ayuda con SaberPlus.") @db.VarChar(300)
+  activo             Boolean  @default(false)
+  fechaActualizacion DateTime @default(now()) @updatedAt @db.Timestamp(6)
+}
+
+enum TipoAnuncio {
+  INFORMACION
+  IMPORTANTE
+  EVENTO
+}
+
+enum AudienciaAnuncio {
+  TODOS
+  ESTUDIANTES
+  PROFESORES
+}
+
+model Anuncio {
+  id            String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  titulo        String           @db.VarChar(120)
+  contenido     String           @db.Text
+  tipo          TipoAnuncio      @default(INFORMACION)
+  audiencia     AudienciaAnuncio @default(TODOS)
+  fechaInicio   DateTime         @default(now()) @db.Timestamp(6)
+  fechaFin      DateTime?        @db.Timestamp(6)
+  activo        Boolean          @default(true)
+  destacado     Boolean          @default(false)
+  fechaCreacion DateTime         @default(now()) @db.Timestamp(6)
+  fechaEdicion  DateTime         @default(now()) @updatedAt @db.Timestamp(6)
+  institucionId String?          @db.Uuid
+  creadoPorId   String?          @db.Uuid
+  institucion   Institucion?     @relation(fields: [institucionId], references: [id], onDelete: Cascade)
+  creadoPor     Usuario?         @relation("AutorAnuncio", fields: [creadoPorId], references: [id], onDelete: SetNull)
+  lecturas      AnuncioLectura[]
+
+  @@index([activo, fechaInicio, fechaFin])
+  @@index([audiencia, destacado])
+  @@index([institucionId, activo, fechaInicio])
+  @@index([creadoPorId])
+}
+
+model AnuncioLectura {
+  anuncioId    String   @db.Uuid
+  usuarioId    String   @db.Uuid
+  fechaLectura DateTime @default(now()) @db.Timestamp(6)
+  anuncio      Anuncio  @relation(fields: [anuncioId], references: [id], onDelete: Cascade)
+  usuario      Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@id([anuncioId, usuarioId])
+  @@index([usuarioId, fechaLectura])
+}
+
+// --- MÓDULO: PASARELA DE PAGO (Wompi) ---
+
+enum EstadoPago {
+  PENDIENTE
+  APROBADA
+  RECHAZADA
+  PENDIENTE_BANCO
+  FALLIDA
+}
+
+enum EstadoReferido {
+  REGISTRADO
+  RECOMPENSADO
+}
+
+// Una orden por cada intento de pago del muro de pago del estudiante
+// individual. Se crea en PENDIENTE antes de mandar al estudiante a
+// ePayco, y el webhook de confirmación la actualiza según el resultado
+// real de la transacción. La factura (`factura`) es el identificador
+// que viaja a ePayco como x_id_invoice y vuelve en el webhook, así que
+// es la llave para encontrar la orden de vuelta sin depender de sesión.
+enum TipoPlan {
+  MENSUAL
+  TEMPORADA_A
+  TEMPORADA_B
+}
+
+model PagoOrden {
+  id                     String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  factura                String          @unique @db.VarChar(50)
+  usuarioId              String          @db.Uuid
+  Usuario                Usuario         @relation(fields: [usuarioId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_pagoorden_usuario")
+  grado                  Grado?
+  tipoPlan               TipoPlan        @default(MENSUAL)
+  calendarioIcfes        CalendarioTipo?
+  fechaVencimientoAcceso DateTime?       @db.Timestamp(6)
+  monto                  Int
+  montoOriginal          Int?
+  creditoReferidosUsado  Int             @default(0)
+  moneda                 String          @default("COP") @db.VarChar(10)
+  estado                 EstadoPago      @default(PENDIENTE)
+  cuponId                String?         @db.Uuid
+  Cupon                  Cupon?          @relation(fields: [cuponId], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "fk_pagoorden_cupon")
+  refPayco               String?         @db.VarChar(50)
+  transaccionId          String?         @unique @db.VarChar(100)
+  motivoRespuesta        String?         @db.Text
+  fechaCreacion          DateTime        @default(now()) @db.Timestamp(6)
+  fechaActualizacion     DateTime        @default(now()) @updatedAt @db.Timestamp(6)
+  referidoRecompensado   Referido?
+
+  @@index([usuarioId])
+  @@index([cuponId])
+}
+
+model Referido {
+  id              String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  referidorId     String         @db.Uuid
+  referidoId      String         @unique @db.Uuid
+  codigoUsado     String         @db.VarChar(12)
+  estado          EstadoReferido @default(REGISTRADO)
+  recompensaCop   Int            @default(0)
+  ordenPagoId     String?        @unique @db.Uuid
+  fechaRegistro   DateTime       @default(now()) @db.Timestamp(6)
+  fechaRecompensa DateTime?      @db.Timestamp(6)
+  referidor       Usuario        @relation("Referidor", fields: [referidorId], references: [id], onDelete: Cascade)
+  referido        Usuario        @relation("Referido", fields: [referidoId], references: [id], onDelete: Cascade)
+  ordenPago       PagoOrden?     @relation(fields: [ordenPagoId], references: [id], onDelete: SetNull)
+
+  @@index([referidorId, estado])
+}
+
+model Cupon {
+  id                  String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  codigo              String      @unique @db.VarChar(50)
+  titulo              String?     @db.VarChar(120)
+  esAutomatica        Boolean     @default(false)
+  porcentajeDescuento Int
+  tipoPlan            TipoPlan?
+  fechaExpiracion     DateTime    @db.Timestamp(6)
+  usosMaximos         Int?
+  usosActuales        Int         @default(0)
+  activo              Boolean     @default(true)
+  fechaCreacion       DateTime    @default(now()) @db.Timestamp(6)
+  PagoOrden           PagoOrden[]
+
+  @@index([esAutomatica, activo, fechaExpiracion], map: "Cupon_promocion_activa_idx")
+}
+
+// --- MÓDULO: BANCO INTELIGENTE DE PREGUNTAS ---
+
+enum AreaIcfes {
+  LECTURA_CRITICA
+  MATEMATICAS
+  SOCIALES_CIUDADANAS
+  CIENCIAS_NATURALES
+  INGLES
+}
+
+enum TipoActividadPlan {
+  ESTUDIO
+  SIMULACRO
+  DESCANSO
+  EXAMEN
+}
+
+enum Dificultad {
+  BASICO
+  MEDIO
+  AVANZADO
+}
+
+enum TipoInteractivo {
+  CLOZE
+}
+
+enum EstadoContenido {
+  BORRADOR
+  EN_REVISION
+  PUBLICADO
+  ARCHIVADO
+}
+
+model Tema {
+  id                 String          @id @default(uuid())
+  nombre             String
+  area               AreaIcfes
+  estadoContenido    EstadoContenido @default(BORRADOR)
+  fechaPublicacion   DateTime?       @db.Timestamp(6)
+  fechaActualizacion DateTime        @default(now()) @updatedAt @db.Timestamp(6)
+  subtemas           Subtema[]
+
+  @@index([estadoContenido, area])
+}
+
+model Subtema {
+  id                 String                 @id @default(uuid())
+  nombre             String
+  temaId             String
+  contenido          String?                @db.Text
+  videoUrl           String?
+  imagenUrl          String?
+  tipoInteractivo    TipoInteractivo?
+  datosInteractivo   Json?
+  estadoContenido    EstadoContenido        @default(BORRADOR)
+  fechaPublicacion   DateTime?              @db.Timestamp(6)
+  fechaActualizacion DateTime               @default(now()) @updatedAt @db.Timestamp(6)
+  tema               Tema                   @relation(fields: [temaId], references: [id], onDelete: Cascade)
+  preguntas          Pregunta[]
+  progresotemas      ProgresoTema[]
+  actividadesPlan    PlanEstudioActividad[]
+
+  @@index([estadoContenido, temaId])
+}
+
+model Pregunta {
+  id                     String                  @id @default(uuid())
+  enunciado              String                  @db.Text
+  explicacion            String?                 @db.Text
+  imagenUrl              String?
+  dificultad             Dificultad              @default(MEDIO)
+  porcentajeAciertos     Float                   @default(0.0)
+  tiempoPromedioSegundos Int                     @default(0)
+  subtemaId              String
+  casoId                 String?
+  ordenEnCaso            Int?
+  huellaContenido        String?                 @db.VarChar(64)
+  estadoContenido        EstadoContenido         @default(BORRADOR)
+  fechaPublicacion       DateTime?               @db.Timestamp(6)
+  fechaActualizacion     DateTime                @default(now()) @updatedAt @db.Timestamp(6)
+  subtema                Subtema                 @relation(fields: [subtemaId], references: [id])
+  caso                   CasoPregunta?           @relation(fields: [casoId], references: [id], onDelete: SetNull)
+  respuestas             Respuesta[]
+  historialRespuestas    HistorialRespuesta[]
+  respuestasBatalla      BatallaRespuesta[]
+  preguntasBatalla       BatallaPregunta[]
+  preguntasTiraAfloja    TiraAflojaPregunta[]
+  respuestasTiraAfloja   TiraAflojaRespuesta[]
+  partidasTiraAfloja     PartidaTiraAfloja[]     @relation("PreguntaActualTiraAfloja")
+  preguntasTriviaRush    TriviaRushPregunta[]
+  respuestasTriviaRush   TriviaRushRespuesta[]
+  intentosTriviaActual   IntentoTriviaRush[]     @relation("PreguntaActualTriviaRush")
+  potenciadoresTrivia    TriviaRushPotenciador[]
+  cuadernoErrores        CuadernoError[]
+
+  @@index([casoId, ordenEnCaso])
+  @@index([huellaContenido, estadoContenido])
+  @@index([estadoContenido, subtemaId])
+}
+
+model CasoPregunta {
+  id                 String          @id @default(uuid())
+  titulo             String?
+  contexto           String          @db.Text
+  imagenUrl          String?
+  area               AreaIcfes
+  fechaCreacion      DateTime        @default(now())
+  estadoContenido    EstadoContenido @default(BORRADOR)
+  fechaPublicacion   DateTime?       @db.Timestamp(6)
+  fechaActualizacion DateTime        @default(now()) @updatedAt @db.Timestamp(6)
+  preguntas          Pregunta[]
+
+  @@index([area, fechaCreacion])
+  @@index([estadoContenido, area])
+}
+
+model Respuesta {
+  id                    String                @id @default(uuid())
+  texto                 String                @db.Text
+  explicacion           String?               @db.Text
+  esCorrecta            Boolean               @default(false)
+  preguntaId            String
+  pregunta              Pregunta              @relation(fields: [preguntaId], references: [id], onDelete: Cascade)
+  seleccionesBatalla    BatallaRespuesta[]
+  seleccionesTiraAfloja TiraAflojaRespuesta[]
+  seleccionesTriviaRush TriviaRushRespuesta[]
+}
+
+// --- MODULO: BATALLAS ASINCRONAS ---
+
+enum ModoBatalla {
+  CARRERA_FANTASMA
+  DUELO_RELAMPAGO
+  SUPERVIVENCIA
+}
+
+enum EstadoBatalla {
+  BUSCANDO
+  PENDIENTE
+  ACTIVA
+  FINALIZADA
+  EXPIRADA
+  CANCELADA
+}
+
+enum EstadoParticipanteBatalla {
+  INVITADO
+  LISTO
+  EN_JUEGO
+  FINALIZADO
+}
+
+enum ResultadoParticipanteBatalla {
+  PENDIENTE
+  GANADA
+  PERDIDA
+  EMPATE
+}
+
+enum MotivoReporteBatalla {
+  CONDUCTA_INAPROPIADA
+  NOMBRE_INAPROPIADO
+  TRAMPA
+  OTRO
+}
+
+enum EstadoReporteBatalla {
+  RECIBIDO
+  EN_REVISION
+  RESUELTO
+  DESCARTADO
+}
+
+model Batalla {
+  id                String                @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  modo              ModoBatalla
+  estado            EstadoBatalla         @default(BUSCANDO)
+  area              AreaIcfes?
+  retadorId         String                @db.Uuid
+  rivalId           String?               @db.Uuid
+  ganadorId         String?               @db.Uuid
+  codigoInvitacion  String?               @unique @db.VarChar(8)
+  xpLiquidadoEn     DateTime?             @db.Timestamp(6)
+  expiraEn          DateTime              @db.Timestamp(6)
+  fechaCreacion     DateTime              @default(now()) @db.Timestamp(6)
+  fechaActivacion   DateTime?             @db.Timestamp(6)
+  fechaFinalizacion DateTime?             @db.Timestamp(6)
+  retador           Usuario               @relation("RetadorBatalla", fields: [retadorId], references: [id], onDelete: Cascade)
+  rival             Usuario?              @relation("RivalBatalla", fields: [rivalId], references: [id], onDelete: SetNull)
+  ganador           Usuario?              @relation("GanadorBatalla", fields: [ganadorId], references: [id], onDelete: SetNull)
+  participantes     BatallaParticipante[]
+  preguntas         BatallaPregunta[]
+  respuestas        BatallaRespuesta[]
+  reportes          BatallaReporte[]
+
+  @@index([estado, modo, area, expiraEn])
+  @@index([retadorId, fechaCreacion])
+  @@index([rivalId, fechaCreacion])
+  @@index([ganadorId])
+}
+
+model BatallaPregunta {
+  batallaId     String   @db.Uuid
+  preguntaId    String
+  orden         Int
+  opcionesOrden Json
+  batalla       Batalla  @relation(fields: [batallaId], references: [id], onDelete: Cascade)
+  pregunta      Pregunta @relation(fields: [preguntaId], references: [id], onDelete: Restrict)
+
+  @@id([batallaId, preguntaId])
+  @@unique([batallaId, orden])
+  @@index([preguntaId])
+}
+
+model BatallaParticipante {
+  batallaId           String                       @db.Uuid
+  usuarioId           String                       @db.Uuid
+  estado              EstadoParticipanteBatalla    @default(LISTO)
+  resultado           ResultadoParticipanteBatalla @default(PENDIENTE)
+  iniciadoEn          DateTime?                    @db.Timestamp(6)
+  finalizadoEn        DateTime?                    @db.Timestamp(6)
+  respuestasCorrectas Int                          @default(0)
+  tiempoTotalSegundos Int                          @default(0)
+  vidasRestantes      Int?
+  xpElegible          Boolean                      @default(true)
+  xpGanado            Int                          @default(0)
+  batalla             Batalla                      @relation(fields: [batallaId], references: [id], onDelete: Cascade)
+  usuario             Usuario                      @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  respuestas          BatallaRespuesta[]           @relation("RespuestasParticipanteBatalla")
+
+  @@id([batallaId, usuarioId])
+  @@index([usuarioId, finalizadoEn])
+  @@index([usuarioId, resultado, finalizadoEn])
+}
+
+model BatallaRespuesta {
+  id                      String              @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  batallaId               String              @db.Uuid
+  usuarioId               String              @db.Uuid
+  preguntaId              String
+  respuestaSeleccionadaId String
+  orden                   Int
+  esCorrecta              Boolean
+  tiempoRespuestaSegundos Int
+  respondidaEn            DateTime            @default(now()) @db.Timestamp(6)
+  batalla                 Batalla             @relation(fields: [batallaId], references: [id], onDelete: Cascade)
+  usuario                 Usuario             @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  pregunta                Pregunta            @relation(fields: [preguntaId], references: [id], onDelete: Restrict)
+  respuestaSeleccionada   Respuesta           @relation(fields: [respuestaSeleccionadaId], references: [id], onDelete: Restrict)
+  participante            BatallaParticipante @relation("RespuestasParticipanteBatalla", fields: [batallaId, usuarioId], references: [batallaId, usuarioId], onDelete: Cascade)
+
+  @@unique([batallaId, usuarioId, preguntaId])
+  @@unique([batallaId, usuarioId, orden])
+  @@index([batallaId, usuarioId, respondidaEn])
+  @@index([preguntaId])
+}
+
+model BatallaEstadistica {
+  usuarioId            String   @id @db.Uuid
+  batallasJugadas      Int      @default(0)
+  victorias            Int      @default(0)
+  derrotas             Int      @default(0)
+  empates              Int      @default(0)
+  rachaVictoriasActual Int      @default(0)
+  mejorRachaVictorias  Int      @default(0)
+  victoriasPerfectas   Int      @default(0)
+  xpBatallas           Int      @default(0)
+  fechaActualizacion   DateTime @default(now()) @updatedAt @db.Timestamp(6)
+  usuario              Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+}
+
+model BatallaBloqueo {
+  id            String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  bloqueadorId  String   @db.Uuid
+  bloqueadoId   String   @db.Uuid
+  fechaCreacion DateTime @default(now()) @db.Timestamp(6)
+  bloqueador    Usuario  @relation("BloqueadorBatalla", fields: [bloqueadorId], references: [id], onDelete: Cascade)
+  bloqueado     Usuario  @relation("BloqueadoBatalla", fields: [bloqueadoId], references: [id], onDelete: Cascade)
+
+  @@unique([bloqueadorId, bloqueadoId])
+  @@index([bloqueadoId, fechaCreacion])
+}
+
+model BatallaReporte {
+  id            String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  batallaId     String               @db.Uuid
+  reportanteId  String               @db.Uuid
+  reportadoId   String               @db.Uuid
+  motivo        MotivoReporteBatalla
+  detalle       String?              @db.VarChar(500)
+  estado        EstadoReporteBatalla @default(RECIBIDO)
+  fechaCreacion DateTime             @default(now()) @db.Timestamp(6)
+  batalla       Batalla              @relation(fields: [batallaId], references: [id], onDelete: Cascade)
+  reportante    Usuario              @relation("ReportanteBatalla", fields: [reportanteId], references: [id], onDelete: Cascade)
+  reportado     Usuario              @relation("ReportadoBatalla", fields: [reportadoId], references: [id], onDelete: Cascade)
+
+  @@unique([batallaId, reportanteId])
+  @@index([reportadoId, estado, fechaCreacion])
+}
+
+// --- MODULO: TIRA Y AFLOJA EN TIEMPO REAL ---
+
+enum EstadoPartidaTiraAfloja {
+  BUSCANDO
+  PREPARANDO
+  ACTIVA
+  FINALIZADA
+  CANCELADA
+  EXPIRADA
+}
+
+enum ResultadoPartidaTiraAfloja {
+  JUGADOR_A
+  JUGADOR_B
+  EMPATE
+  CANCELADA
+}
+
+enum TipoEventoTiraAfloja {
+  BUSQUEDA_INICIADA
+  EMPAREJADA
+  RONDA_INICIADA
+  RONDA_RESUELTA
+  FINALIZADA
+  ABANDONO
+  CANCELADA
+}
+
+model PartidaTiraAfloja {
+  id                  String                      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  estado              EstadoPartidaTiraAfloja     @default(BUSCANDO)
+  resultado           ResultadoPartidaTiraAfloja?
+  area                AreaIcfes?
+  jugadorAId          String                      @db.Uuid
+  jugadorBId          String?                     @db.Uuid
+  ganadorId           String?                     @db.Uuid
+  posicionCuerda      Int                         @default(0)
+  rondaActual         Int                         @default(0)
+  version             Int                         @default(0)
+  versionReglas       Int                         @default(1)
+  listoA              Boolean                     @default(false)
+  listoB              Boolean                     @default(false)
+  preguntaActualId    String?
+  rondaIniciaEn       DateTime?                   @db.Timestamp(6)
+  rondaVenceEn        DateTime?                   @db.Timestamp(6)
+  expiraEn            DateTime                    @db.Timestamp(6)
+  fechaCreacion       DateTime                    @default(now()) @db.Timestamp(6)
+  fechaEmparejamiento DateTime?                   @db.Timestamp(6)
+  fechaFinalizacion   DateTime?                   @db.Timestamp(6)
+  jugadorA            Usuario                     @relation("JugadorATiraAfloja", fields: [jugadorAId], references: [id], onDelete: Cascade)
+  jugadorB            Usuario?                    @relation("JugadorBTiraAfloja", fields: [jugadorBId], references: [id], onDelete: SetNull)
+  ganador             Usuario?                    @relation("GanadorTiraAfloja", fields: [ganadorId], references: [id], onDelete: SetNull)
+  preguntaActual      Pregunta?                   @relation("PreguntaActualTiraAfloja", fields: [preguntaActualId], references: [id], onDelete: SetNull)
+  preguntas           TiraAflojaPregunta[]
+  respuestas          TiraAflojaRespuesta[]
+  eventos             TiraAflojaEvento[]
+
+  @@index([estado, area, expiraEn])
+  @@index([jugadorAId, estado])
+  @@index([jugadorBId, estado])
+  @@index([ganadorId])
+}
+
+model TiraAflojaPregunta {
+  partidaId     String            @db.Uuid
+  preguntaId    String
+  orden         Int
+  opcionesOrden Json
+  partida       PartidaTiraAfloja @relation(fields: [partidaId], references: [id], onDelete: Cascade)
+  pregunta      Pregunta          @relation(fields: [preguntaId], references: [id], onDelete: Restrict)
+
+  @@id([partidaId, preguntaId])
+  @@unique([partidaId, orden])
+  @@index([preguntaId])
+}
+
+model TiraAflojaRespuesta {
+  id                      String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  partidaId               String            @db.Uuid
+  ronda                   Int
+  usuarioId               String            @db.Uuid
+  preguntaId              String
+  respuestaSeleccionadaId String
+  esCorrecta              Boolean
+  recibidaEn              DateTime          @default(now()) @db.Timestamp(6)
+  claveIdempotencia       String            @unique @db.Uuid
+  partida                 PartidaTiraAfloja @relation(fields: [partidaId], references: [id], onDelete: Cascade)
+  usuario                 Usuario           @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  pregunta                Pregunta          @relation(fields: [preguntaId], references: [id], onDelete: Restrict)
+  respuestaSeleccionada   Respuesta         @relation(fields: [respuestaSeleccionadaId], references: [id], onDelete: Restrict)
+
+  @@unique([partidaId, ronda, usuarioId])
+  @@index([partidaId, ronda, recibidaEn])
+  @@index([usuarioId, recibidaEn])
+  @@index([preguntaId])
+}
+
+model TiraAflojaEvento {
+  id        String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  partidaId String               @db.Uuid
+  version   Int
+  tipo      TipoEventoTiraAfloja
+  datos     Json
+  fecha     DateTime             @default(now()) @db.Timestamp(6)
+  partida   PartidaTiraAfloja    @relation(fields: [partidaId], references: [id], onDelete: Cascade)
+
+  @@unique([partidaId, version])
+  @@index([partidaId, fecha])
+}
+
+// --- MODULO: TRIVIA RUSH AUTORITATIVO ---
+
+enum EstadoIntentoTriviaRush {
+  ACTIVO
+  FINALIZADO
+  EXPIRADO
+  ABANDONADO
+}
+
+enum TipoPotenciadorTriviaRush {
+  TIEMPO_EXTRA
+  CINCUENTA_CINCUENTA
+  ESCUDO_COMBO
+  SALTAR
+  SEGUNDA_OPORTUNIDAD
+}
+
+enum EstadoConcesionRecompensa {
+  DISPONIBLE
+  CONSUMIDA
+  EXPIRADA
+}
+
+model IntentoTriviaRush {
+  id                       String                  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  usuarioId                String                  @db.Uuid
+  estado                   EstadoIntentoTriviaRush @default(ACTIVO)
+  areas                    AreaIcfes[]
+  duracionBaseSegundos     Int
+  tiempoExtraSegundos      Int                     @default(0)
+  versionReglas            Int                     @default(1)
+  puntaje                  Int                     @default(0)
+  comboActual              Int                     @default(0)
+  mejorCombo               Int                     @default(0)
+  respuestasCorrectas      Int                     @default(0)
+  respuestasIncorrectas    Int                     @default(0)
+  preguntasSaltadas        Int                     @default(0)
+  indiceActual             Int                     @default(0)
+  asistido                 Boolean                 @default(false)
+  escudoComboActivo        Boolean                 @default(false)
+  segundaOportunidadActiva Boolean                 @default(false)
+  preguntaActualId         String?
+  preguntaIniciaEn         DateTime?               @db.Timestamp(6)
+  iniciadoEn               DateTime                @default(now()) @db.Timestamp(6)
+  venceEn                  DateTime                @db.Timestamp(6)
+  finalizadoEn             DateTime?               @db.Timestamp(6)
+  usuario                  Usuario                 @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  preguntaActual           Pregunta?               @relation("PreguntaActualTriviaRush", fields: [preguntaActualId], references: [id], onDelete: SetNull)
+  preguntas                TriviaRushPregunta[]
+  respuestas               TriviaRushRespuesta[]
+  potenciadores            TriviaRushPotenciador[]
+
+  @@index([usuarioId, estado, iniciadoEn])
+  @@index([estado, venceEn])
+  @@index([preguntaActualId])
+}
+
+model TriviaRushPregunta {
+  intentoId     String            @db.Uuid
+  preguntaId    String
+  orden         Int
+  opcionesOrden Json
+  intento       IntentoTriviaRush @relation(fields: [intentoId], references: [id], onDelete: Cascade)
+  pregunta      Pregunta          @relation(fields: [preguntaId], references: [id], onDelete: Restrict)
+
+  @@id([intentoId, preguntaId])
+  @@unique([intentoId, orden])
+  @@index([preguntaId])
+}
+
+model TriviaRushRespuesta {
+  id                      String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  intentoId               String            @db.Uuid
+  preguntaId              String
+  respuestaSeleccionadaId String?
+  numeroIntento           Int
+  esCorrecta              Boolean
+  esFinal                 Boolean
+  puntosOtorgados         Int               @default(0)
+  comboResultante         Int
+  tiempoRespuestaMs       Int
+  claveIdempotencia       String            @unique @db.Uuid
+  respondidaEn            DateTime          @default(now()) @db.Timestamp(6)
+  intento                 IntentoTriviaRush @relation(fields: [intentoId], references: [id], onDelete: Cascade)
+  pregunta                Pregunta          @relation(fields: [preguntaId], references: [id], onDelete: Restrict)
+  respuestaSeleccionada   Respuesta?        @relation(fields: [respuestaSeleccionadaId], references: [id], onDelete: Restrict)
+
+  @@unique([intentoId, preguntaId, numeroIntento])
+  @@index([intentoId, esFinal, respondidaEn])
+  @@index([preguntaId])
+}
+
+model ConcesionRecompensaJuego {
+  id                  String                    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  usuarioId           String                    @db.Uuid
+  proveedor           String                    @db.VarChar(30)
+  referenciaProveedor String                    @unique @db.VarChar(180)
+  estado              EstadoConcesionRecompensa @default(DISPONIBLE)
+  expiraEn            DateTime                  @db.Timestamp(6)
+  fechaCreacion       DateTime                  @default(now()) @db.Timestamp(6)
+  consumidaEn         DateTime?                 @db.Timestamp(6)
+  usuario             Usuario                   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  consumoTrivia       TriviaRushPotenciador?
+
+  @@index([usuarioId, estado, expiraEn])
+}
+
+model TriviaRushPotenciador {
+  id                 String                    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  intentoId          String                    @db.Uuid
+  preguntaId         String?
+  tipo               TipoPotenciadorTriviaRush
+  concesionId        String                    @unique @db.Uuid
+  claveIdempotencia  String                    @unique @db.Uuid
+  opcionesEliminadas Json?
+  activadoEn         DateTime                  @default(now()) @db.Timestamp(6)
+  intento            IntentoTriviaRush         @relation(fields: [intentoId], references: [id], onDelete: Cascade)
+  pregunta           Pregunta?                 @relation(fields: [preguntaId], references: [id], onDelete: Restrict)
+  concesion          ConcesionRecompensaJuego  @relation(fields: [concesionId], references: [id], onDelete: Restrict)
+
+  @@index([intentoId, preguntaId, tipo])
+}
+
+// --- MÓDULO: RESULTADOS DE SIMULACROS ---
+
+enum OrigenRespuesta {
+  SIMULACRO
+  PERSONALIZADO
+  PRACTICA
+  DIAGNOSTICO
+  BATALLA
+  ADAPTATIVO
+  TRIVIA_RUSH
+}
+
+enum EstadoCuadernoError {
+  PENDIENTE
+  REPASANDO
+  DOMINADO
+}
+
+enum NivelDiagnostico {
+  POR_REFORZAR
+  EN_PROCESO
+  FORTALEZA
+}
+
+model DiagnosticoInicial {
+  id                  String                     @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  usuarioId           String                     @unique @db.Uuid
+  preguntaIds         Json
+  iniciadoEn          DateTime                   @default(now()) @db.Timestamp(6)
+  completadoEn        DateTime?                  @db.Timestamp(6)
+  totalPreguntas      Int                        @default(0)
+  respuestasCorrectas Int?
+  porcentaje          Float?
+  nivel               NivelDiagnostico?
+  usuario             Usuario                    @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  resultadosPorArea   DiagnosticoResultadoArea[]
+  planesEstudio       PlanEstudioSemanal[]
+
+  @@index([completadoEn])
+}
+
+model PlanEstudioSemanal {
+  id                     String                 @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  usuarioId              String                 @db.Uuid
+  diagnosticoId          String                 @db.Uuid
+  calendarioIcfes        CalendarioTipo
+  fechaExamen            DateTime               @db.Date
+  inicioSemana           DateTime               @db.Date
+  finSemana              DateTime               @db.Date
+  diasRestantesAlGenerar Int
+  sesionesObjetivo       Int
+  minutosObjetivoSemanal Int
+  fechaCreacion          DateTime               @default(now()) @db.Timestamp(6)
+  usuario                Usuario                @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  diagnostico            DiagnosticoInicial     @relation(fields: [diagnosticoId], references: [id], onDelete: Cascade)
+  actividades            PlanEstudioActividad[]
+
+  @@unique([usuarioId, inicioSemana])
+  @@index([diagnosticoId])
+}
+
+model PlanEstudioActividad {
+  id        String             @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  planId    String             @db.Uuid
+  subtemaId String?
+  fecha     DateTime           @db.Date
+  tipo      TipoActividadPlan
+  area      AreaIcfes?
+  titulo    String             @db.VarChar(180)
+  detalle   String             @db.VarChar(300)
+  minutos   Int                @default(0)
+  orden     Int
+  plan      PlanEstudioSemanal @relation(fields: [planId], references: [id], onDelete: Cascade)
+  subtema   Subtema?           @relation(fields: [subtemaId], references: [id], onDelete: SetNull)
+
+  @@unique([planId, fecha])
+  @@index([subtemaId])
+}
+
+model DiagnosticoResultadoArea {
+  id                  String             @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  diagnosticoId       String             @db.Uuid
+  area                AreaIcfes
+  totalPreguntas      Int
+  respuestasCorrectas Int
+  porcentaje          Float
+  nivel               NivelDiagnostico
+  diagnostico         DiagnosticoInicial @relation(fields: [diagnosticoId], references: [id], onDelete: Cascade)
+
+  @@unique([diagnosticoId, area])
+  @@index([area, nivel])
+}
+
+model ResultadoSimulacro {
+  id                  String    @id @default(uuid())
+  usuarioId           String    @db.Uuid
+  usuario             Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  area                AreaIcfes
+  totalPreguntas      Int
+  respuestasCorrectas Int
+  puntaje             Float // Porcentaje 0-100
+  xpGanado            Int       @default(0)
+  fechaRealizado      DateTime  @default(now())
+}
+
+model IntentoSimulacro {
+  id            String          @id @default(uuid()) @db.Uuid
+  usuarioId     String          @db.Uuid
+  usuario       Usuario         @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  origen        OrigenRespuesta
+  area          AreaIcfes?
+  preguntaIds   Json
+  expira        DateTime        @db.Timestamp(6)
+  consumidoEn   DateTime?       @db.Timestamp(6)
+  fechaCreacion DateTime        @default(now()) @db.Timestamp(6)
+
+  @@index([usuarioId, consumidoEn, expira])
+}
+
+model HistorialRespuesta {
+  id                      String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  sesionId                String          @db.Uuid
+  usuarioId               String          @db.Uuid
+  preguntaId              String
+  respuestaSeleccionadaId String
+  respuestaCorrectaId     String
+  area                    AreaIcfes
+  origen                  OrigenRespuesta
+  esCorrecta              Boolean
+  tiempoRespuestaSegundos Int?
+  fechaRespuesta          DateTime        @default(now()) @db.Timestamp(6)
+  usuario                 Usuario         @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  pregunta                Pregunta        @relation(fields: [preguntaId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId, fechaRespuesta])
+  @@index([usuarioId, esCorrecta, fechaRespuesta])
+  @@index([usuarioId, area, fechaRespuesta])
+  @@index([preguntaId])
+  @@index([sesionId])
+}
+
+model CuadernoError {
+  id                 String              @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  usuarioId          String              @db.Uuid
+  preguntaId         String
+  nota               String?             @db.Text
+  estado             EstadoCuadernoError @default(PENDIENTE)
+  dominadoEn         DateTime?           @db.Timestamp(6)
+  fechaCreacion      DateTime            @default(now()) @db.Timestamp(6)
+  fechaActualizacion DateTime            @default(now()) @updatedAt @db.Timestamp(6)
+  usuario            Usuario             @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  pregunta           Pregunta            @relation(fields: [preguntaId], references: [id], onDelete: Cascade)
+
+  @@unique([usuarioId, preguntaId])
+  @@index([usuarioId, estado, fechaActualizacion])
+}
+
+model ProgresoTema {
+  id         String   @id @default(uuid())
+  usuarioId  String   @db.Uuid
+  subtemaId  String
+  completado Boolean  @default(false)
+  porcentaje Int      @default(0)
+  fechaVisto DateTime @default(now())
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  subtema Subtema @relation(fields: [subtemaId], references: [id], onDelete: Cascade)
+
+  @@unique([usuarioId, subtemaId])
+}

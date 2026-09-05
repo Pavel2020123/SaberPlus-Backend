@@ -1,0 +1,5 @@
+ALTER TABLE "Pregunta"
+ADD COLUMN IF NOT EXISTS "explicacion" TEXT;
+
+ALTER TABLE "Respuesta"
+ADD COLUMN IF NOT EXISTS "explicacion" TEXT;
