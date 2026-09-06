@@ -67,6 +67,57 @@ describe('ContentImportService', () => {
     expect(pregunta.findMany).toHaveBeenCalledTimes(1);
   });
 
+  it('señala clasificación genérica en preguntas y lecciones del archivo', async () => {
+    packageReader.read.mockResolvedValue(
+      packageWithSheets({
+        Preguntas: [
+          QUESTION_IMPORT_COLUMNS,
+          row(QUESTION_IMPORT_COLUMNS, {
+            codigo: 'MAT-001',
+            area: 'MATEMATICAS',
+            tema: 'Banco General',
+            subtema: 'Suma',
+            dificultad: 'MEDIO',
+            enunciado: '¿Dos más dos?',
+            opcion_a: '4',
+            opcion_b: '5',
+            respuesta_correcta: 'A',
+            fuente: 'Equipo SaberPlus',
+            tipo_autorizacion: 'ORIGINAL',
+          }),
+        ],
+        Lecciones: [
+          LESSON_IMPORT_COLUMNS,
+          row(LESSON_IMPORT_COLUMNS, {
+            codigo: 'LEC-001',
+            area: 'INGLES',
+            tema: 'Gramática',
+            subtema: 'Banco General',
+            contenido_markdown: 'Contenido de ejemplo',
+            fuente: 'Equipo SaberPlus',
+            tipo_autorizacion: 'ORIGINAL',
+          }),
+        ],
+      }),
+    );
+    const result = await service.preview(file);
+    expect(result.valido).toBe(false);
+    expect(result.incidencias).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          codigo: 'CLASIFICACION_INVALIDA',
+          hoja: 'Preguntas',
+          columna: 'tema',
+        }),
+        expect.objectContaining({
+          codigo: 'CLASIFICACION_INVALIDA',
+          hoja: 'Lecciones',
+          columna: 'subtema',
+        }),
+      ]),
+    );
+  });
+
   it('detecta recursos ausentes, accesibilidad incompleta y respuesta inválida', async () => {
     packageReader.read.mockResolvedValue(
       packageWithSheets({

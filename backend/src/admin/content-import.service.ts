@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto';
 import { CellValue, SheetData } from 'read-excel-file/node';
 import { PrismaService } from '../prisma/prisma.service';
 import { createQuestionFingerprint } from '../common/question-fingerprint';
+import { validateCatalogName } from './academic-classification';
 import {
   ContentPackageAsset,
   ContentPackageReaderService,
@@ -561,6 +562,13 @@ export class ContentImportService {
       this.validateArea(area, sheet.sheetName, line, issues);
       this.validateRequired(theme, 'tema', sheet.sheetName, line, issues);
       this.validateRequired(subtheme, 'subtema', sheet.sheetName, line, issues);
+      this.validateClassificationNames(
+        theme,
+        subtheme,
+        sheet.sheetName,
+        line,
+        issues,
+      );
       if (!VALID_DIFFICULTIES.has(difficulty as Dificultad)) {
         this.addError(
           issues,
@@ -744,6 +752,13 @@ export class ContentImportService {
       this.validateArea(area, sheet.sheetName, line, issues);
       this.validateRequired(theme, 'tema', sheet.sheetName, line, issues);
       this.validateRequired(subtheme, 'subtema', sheet.sheetName, line, issues);
+      this.validateClassificationNames(
+        theme,
+        subtheme,
+        sheet.sheetName,
+        line,
+        issues,
+      );
       this.validateRequired(
         content,
         'contenido_markdown',
@@ -1196,6 +1211,33 @@ export class ContentImportService {
       assets.get(path.toLocaleLowerCase('es-CO'))?.sha256 ??
       path.toLocaleLowerCase('es-CO')
     );
+  }
+
+  private validateClassificationNames(
+    theme: string,
+    subtheme: string,
+    sheet: string,
+    line: number,
+    issues: IncidenciaImportacion[],
+  ) {
+    for (const [column, value] of [
+      ['tema', theme],
+      ['subtema', subtheme],
+    ]) {
+      if (!value) continue; // Required-field validation already reports this.
+      try {
+        validateCatalogName(value);
+      } catch {
+        this.addError(
+          issues,
+          'CLASIFICACION_INVALIDA',
+          'Usa un nombre específico de 1 a 120 caracteres, sin caracteres invisibles ni Banco General.',
+          sheet,
+          line,
+          column,
+        );
+      }
+    }
   }
 
   private normalizeHeader(value: CellValue | undefined) {

@@ -6,6 +6,10 @@ import {
 import { EstadoContenido } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { createQuestionFingerprint } from '../common/question-fingerprint';
+import {
+  validateAcademicClassification,
+  validateCatalogName,
+} from './academic-classification';
 
 const TRANSICIONES: Record<EstadoContenido, EstadoContenido[]> = {
   [EstadoContenido.BORRADOR]: [
@@ -32,10 +36,8 @@ export class ContentLifecycleService {
     });
     if (!tema) throw new NotFoundException('El tema no existe.');
     this.validarTransicion(tema.estadoContenido, destino, 'tema');
-    if (destino === EstadoContenido.PUBLICADO && !tema.nombre.trim()) {
-      throw new BadRequestException(
-        'El tema necesita un nombre antes de publicarse.',
-      );
+    if (destino === EstadoContenido.PUBLICADO) {
+      validateCatalogName(tema.nombre);
     }
     return this.prisma.tema.update({
       where: { id },
@@ -50,17 +52,13 @@ export class ContentLifecycleService {
         id: true,
         nombre: true,
         estadoContenido: true,
-        tema: { select: { estadoContenido: true } },
+        tema: { select: { nombre: true, estadoContenido: true } },
       },
     });
     if (!subtema) throw new NotFoundException('El subtema no existe.');
     this.validarTransicion(subtema.estadoContenido, destino, 'subtema');
     if (destino === EstadoContenido.PUBLICADO) {
-      if (!subtema.nombre.trim()) {
-        throw new BadRequestException(
-          'El subtema necesita un nombre antes de publicarse.',
-        );
-      }
+      validateAcademicClassification(subtema);
       if (subtema.tema.estadoContenido !== EstadoContenido.PUBLICADO) {
         throw new BadRequestException(
           'Publica primero el tema al que pertenece este subtema.',
@@ -103,8 +101,11 @@ export class ContentLifecycleService {
         respuestas: { select: { texto: true, esCorrecta: true } },
         subtema: {
           select: {
+            nombre: true,
             estadoContenido: true,
-            tema: { select: { estadoContenido: true, area: true } },
+            tema: {
+              select: { nombre: true, estadoContenido: true, area: true },
+            },
           },
         },
         caso: { select: { estadoContenido: true } },
@@ -150,8 +151,9 @@ export class ContentLifecycleService {
     enunciado: string;
     respuestas: { texto: string; esCorrecta: boolean }[];
     subtema: {
+      nombre: string;
       estadoContenido: EstadoContenido;
-      tema: { estadoContenido: EstadoContenido; area: string };
+      tema: { nombre: string; estadoContenido: EstadoContenido; area: string };
     };
     caso: { estadoContenido: EstadoContenido } | null;
   }) {
@@ -176,6 +178,7 @@ export class ContentLifecycleService {
         'La pregunta debe tener exactamente una respuesta correcta.',
       );
     }
+    validateAcademicClassification(pregunta.subtema);
     if (
       pregunta.subtema.estadoContenido !== EstadoContenido.PUBLICADO ||
       pregunta.subtema.tema.estadoContenido !== EstadoContenido.PUBLICADO

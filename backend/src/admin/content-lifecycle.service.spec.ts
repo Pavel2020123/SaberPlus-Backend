@@ -62,7 +62,7 @@ describe('ContentLifecycleService', () => {
       id: 'subtema-1',
       nombre: 'Ecuaciones',
       estadoContenido: EstadoContenido.EN_REVISION,
-      tema: { estadoContenido: EstadoContenido.EN_REVISION },
+      tema: { nombre: 'Álgebra', estadoContenido: EstadoContenido.EN_REVISION },
     });
 
     await expect(
@@ -83,8 +83,10 @@ describe('ContentLifecycleService', () => {
         { texto: '5', esCorrecta: false },
       ],
       subtema: {
+        nombre: 'Suma',
         estadoContenido: EstadoContenido.PUBLICADO,
         tema: {
+          nombre: 'Aritmética',
           estadoContenido: EstadoContenido.PUBLICADO,
           area: 'MATEMATICAS',
         },
@@ -138,8 +140,10 @@ describe('ContentLifecycleService', () => {
         { texto: '5', esCorrecta: false },
       ],
       subtema: {
+        nombre: 'Suma',
         estadoContenido: EstadoContenido.PUBLICADO,
         tema: {
+          nombre: 'Aritmética',
           estadoContenido: EstadoContenido.PUBLICADO,
           area: 'MATEMATICAS',
         },

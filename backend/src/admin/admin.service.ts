@@ -28,6 +28,7 @@ import {
   PlanInstitucional,
 } from '../institucion/institucion-plan.util';
 import { createQuestionFingerprint } from '../common/question-fingerprint';
+import { validateAcademicClassification } from './academic-classification';
 
 @Injectable()
 export class AdminService {
@@ -238,12 +239,6 @@ export class AdminService {
   }
 
   // ─── TEMAS ───────────────────────────────────────────────────
-  async crearTema(nombre: string, area: AreaIcfes) {
-    return this.prisma.tema.create({
-      data: { nombre, area },
-    });
-  }
-
   async obtenerTemas() {
     return this.prisma.tema.findMany({
       include: {
@@ -254,12 +249,6 @@ export class AdminService {
         },
       },
       orderBy: { area: 'asc' },
-    });
-  }
-
-  async crearSubtema(nombre: string, temaId: string) {
-    return this.prisma.subtema.create({
-      data: { nombre, temaId },
     });
   }
 
@@ -313,6 +302,7 @@ export class AdminService {
     videoUrl?: string,
     imagenUrl?: string,
   ) {
+    await this.validarSubtemaParaContenido(subtemaId);
     return this.prisma.subtema.update({
       where: { id: subtemaId },
       data: {
@@ -332,6 +322,7 @@ export class AdminService {
       espacios: { opciones: string[]; correctaIndex: number }[];
     },
   ) {
+    await this.validarSubtemaParaContenido(subtemaId);
     return this.prisma.subtema.update({
       where: { id: subtemaId },
       data: {
@@ -343,6 +334,19 @@ export class AdminService {
   }
 
   // ─── PREGUNTAS ──────────────────────────────────────────────
+  private async validarSubtemaParaContenido(id: string) {
+    const subtema = await this.prisma.subtema.findUnique({
+      where: { id },
+      select: {
+        nombre: true,
+        estadoContenido: true,
+        tema: { select: { nombre: true, estadoContenido: true } },
+      },
+    });
+    if (!subtema) throw new NotFoundException('El subtema no existe.');
+    validateAcademicClassification(subtema);
+  }
+
   listarCasosPreguntas(area?: AreaIcfes) {
     return this.prisma.casoPregunta.findMany({
       where: area ? { area } : undefined,
@@ -465,10 +469,12 @@ export class AdminService {
       where: { id: subtemaId },
       select: {
         nombre: true,
-        tema: { select: { nombre: true, area: true } },
+        estadoContenido: true,
+        tema: { select: { nombre: true, area: true, estadoContenido: true } },
       },
     });
     if (!subtema) throw new BadRequestException('El subtema no existe.');
+    validateAcademicClassification(subtema);
 
     let ordenFinal: number | null = null;
     if (casoId) {
@@ -518,11 +524,9 @@ export class AdminService {
       include: { respuestas: true, caso: true },
     });
   }
-  // ─── PREGUNTAS ALEATORIAS (carga rápida por área) ────────────
-  // No pide subtema: busca (o crea) un tema/subtema "Banco General"
-  // para esa área y mete la pregunta ahí. Así el admin solo elige
-  // el área, escribe la pregunta y las respuestas, y ya.
+  // La carga rápida conserva la dificultad MEDIO, pero no crea Banco General.
   async crearPreguntaAleatoria(
+    subtemaId: string,
     area: AreaIcfes,
     enunciado: string,
     respuestas: {
@@ -535,27 +539,21 @@ export class AdminService {
     casoId?: string,
     ordenEnCaso?: number,
   ) {
-    let tema = await this.prisma.tema.findFirst({
-      where: { nombre: 'Banco General', area },
+    if (!subtemaId?.trim())
+      throw new BadRequestException('Selecciona un subtema específico.');
+    const subtema = await this.prisma.subtema.findUnique({
+      where: { id: subtemaId },
+      select: { tema: { select: { area: true } } },
     });
-    if (!tema) {
-      tema = await this.prisma.tema.create({
-        data: { nombre: 'Banco General', area },
-      });
-    }
-
-    let subtema = await this.prisma.subtema.findFirst({
-      where: { nombre: 'Banco General', temaId: tema.id },
-    });
-    if (!subtema) {
-      subtema = await this.prisma.subtema.create({
-        data: { nombre: 'Banco General', temaId: tema.id },
-      });
+    if (!subtema || subtema.tema.area !== area) {
+      throw new BadRequestException(
+        'El subtema no pertenece al área seleccionada.',
+      );
     }
 
     return this.crearPregunta(
       enunciado,
-      subtema.id,
+      subtemaId,
       'MEDIO',
       respuestas,
       imagenUrl,

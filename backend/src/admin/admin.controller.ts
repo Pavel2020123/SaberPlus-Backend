@@ -16,6 +16,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AdminService } from './admin.service';
+import { AcademicCatalogService } from './academic-catalog.service';
 import { ContentLifecycleService } from './content-lifecycle.service';
 import { ContentImportService } from './content-import.service';
 import { contentImportMulterOptions } from './content-import-upload.config';
@@ -128,6 +129,10 @@ class CrearPreguntaDto {
 }
 
 class CrearPreguntaAleatoriaDto {
+  @IsString()
+  @IsNotEmpty()
+  subtemaId!: string;
+
   @IsEnum(AreaIcfes)
   area!: AreaIcfes;
 
@@ -297,6 +302,7 @@ export class AdminController {
     private readonly adminService: AdminService,
     private readonly contentLifecycle: ContentLifecycleService,
     private readonly contentImport: ContentImportService,
+    private readonly catalog: AcademicCatalogService,
   ) {}
 
   // Estadísticas
@@ -356,7 +362,7 @@ export class AdminController {
 
   @Post('temas')
   crearTema(@Body() body: CrearTemaDto) {
-    return this.adminService.crearTema(body.nombre, body.area);
+    return this.catalog.crearTema(body.nombre, body.area);
   }
 
   @Patch('temas/:id/estado')
@@ -375,7 +381,7 @@ export class AdminController {
   // Subtemas
   @Post('subtemas')
   crearSubtema(@Body() body: CrearSubtemaDto) {
-    return this.adminService.crearSubtema(body.nombre, body.temaId);
+    return this.catalog.crearSubtema(body.nombre, body.temaId);
   }
 
   @Patch('subtemas/:id/estado')
@@ -416,10 +422,11 @@ export class AdminController {
     );
   }
 
-  // Preguntas aleatorias: carga rápida, solo pide el área (no subtema)
+  // La carga rápida también exige clasificación académica específica.
   @Post('preguntas-aleatorias')
   crearPreguntaAleatoria(@Body() body: CrearPreguntaAleatoriaDto) {
     return this.adminService.crearPreguntaAleatoria(
+      body.subtemaId,
       body.area,
       body.enunciado,
       body.respuestas,
