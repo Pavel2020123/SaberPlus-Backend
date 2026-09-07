@@ -9,6 +9,8 @@ import { AcademicCatalogController } from './academic-catalog.controller';
 import { AcademicCatalogService } from './academic-catalog.service';
 import { LessonEditorService } from './lesson-editor.service';
 import { LessonEditorController } from './lesson-editor.controller';
+import { QuestionEditorService } from './question-editor.service';
+import { QuestionEditorController } from './question-editor.controller';
 
 @Module({
   imports: [PrismaModule],
@@ -17,12 +19,14 @@ import { LessonEditorController } from './lesson-editor.controller';
     AdminController,
     AcademicCatalogController,
     LessonEditorController,
+    QuestionEditorController,
   ],
 
   providers: [
     AdminService,
     AcademicCatalogService,
     LessonEditorService,
+    QuestionEditorService,
     ContentLifecycleService,
     ContentImportService,
     ContentPackageReaderService,

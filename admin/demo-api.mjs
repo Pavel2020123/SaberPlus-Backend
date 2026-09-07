@@ -1,6 +1,7 @@
 import { randomUUID, createHash } from "node:crypto";
 import { lessonFields } from "./public/lesson-fields.mjs";
 import { validateName } from "./public/api.mjs";
+import { createDemoQuestionBank } from "./demo-question-bank.mjs";
 
 // Local-only fixtures. This module has no network or database dependencies.
 const areas = [
@@ -75,6 +76,7 @@ export function createDemoApi() {
     });
     res.end(JSON.stringify(body));
   };
+  const questionBank = createDemoQuestionBank({ themes, subthemes, send });
   const editorView = (kind, row) => {
     const sub = kind === "subtemas";
     const parent = sub ? themes.find((theme) => theme.id === row.temaId) : null;
@@ -155,6 +157,7 @@ export function createDemoApi() {
       send(res, 200, areas);
       return;
     }
+    if (questionBank(req, res, url, body)) return;
     const editorMatch =
       /^\/admin\/editor\/(temas|subtemas)\/([^/]+)(?:\/(nombre|leccion))?$/.exec(
         path,

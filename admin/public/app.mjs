@@ -1,5 +1,6 @@
 import { CatalogApi, PanelError } from "./api.mjs";
 import { LessonEditor } from "./lesson-editor.mjs";
+import { QuestionEditor } from "./question-editor.mjs";
 
 const $ = (id) => document.getElementById(id);
 const config = globalThis.SABERPLUS_CONFIG;
@@ -42,6 +43,20 @@ const editor = new LessonEditor({
     );
   },
 });
+const bank = new QuestionEditor({
+  api,
+  busy: () => state.busy,
+  setBusy: (value) => {
+    state.busy = value;
+    updateControls();
+  },
+});
+function closeEditors() {
+  return editor.close() && bank.close();
+}
+function openLesson(kind, id, parent) {
+  if (bank.close()) void editor.open(kind, id, parent);
+}
 const stateLabels = {
   BORRADOR: "Borrador",
   EN_REVISION: "En revisión",
@@ -77,6 +92,7 @@ function notice(message = "", error = false) {
 }
 function showLogin(message = "") {
   editor.close(true);
+  bank.close(true);
   sessionVersion++;
   api.logout();
   themesVersion++;
@@ -117,6 +133,9 @@ function updateControls() {
     ? "Guardando…"
     : "+ Crear subtema";
   $("refresh").disabled = state.busy;
+  $("area-cases").disabled = state.busy || !state.area;
+  $("editor-questions").disabled =
+    state.busy || !editor.record || editor.kind !== "subtemas";
   $("theme-edit").disabled = state.busy || !state.theme;
   for (const [prefix, page, data] of [
     ["themes", state.themePage, state.themes],
@@ -170,7 +189,7 @@ function renderList(kind, data, message) {
       if (kind === "temas") {
         item.setAttribute("aria-pressed", String(row.id === state.theme?.id));
         item.onclick = () => selectTheme(row);
-      } else item.onclick = () => editor.open("subtemas", row.id, row.temaId);
+      } else item.onclick = () => openLesson("subtemas", row.id, row.temaId);
       item.append(element("span", row.nombre, "item-name"));
       const details = element("span", undefined, "item-details");
       const count = row._count?.[kind === "temas" ? "subtemas" : "preguntas"];
@@ -201,7 +220,7 @@ function renderList(kind, data, message) {
 }
 async function selectArea(area) {
   if (state.busy) return;
-  if (!editor.close()) return;
+  if (!closeEditors()) return;
   state.area = area;
   state.theme = null;
   state.themePage = 1;
@@ -221,7 +240,7 @@ async function selectArea(area) {
 }
 async function loadThemes() {
   if (!state.area || !api.authenticated) return;
-  if (!editor.close()) return;
+  if (!closeEditors()) return;
   const version = ++themesVersion;
   state.themes = null;
   state.theme = null;
@@ -246,7 +265,7 @@ async function loadThemes() {
 }
 async function selectTheme(theme) {
   if (state.busy) return;
-  if (!editor.close()) return;
+  if (!closeEditors()) return;
   state.theme = theme;
   state.subPage = 1;
   $("subtheme-name").value = "";
@@ -256,7 +275,7 @@ async function selectTheme(theme) {
 }
 async function loadSubs() {
   if (!state.theme || !api.authenticated) return;
-  if (!editor.close()) return;
+  if (!closeEditors()) return;
   const version = ++subsVersion;
   state.subs = null;
   renderList("subtemas", null, "Cargando subtemas…");
@@ -303,7 +322,7 @@ async function enter(correo, contrasena) {
 }
 async function create(kind, input) {
   if (state.busy || !api.authenticated) return;
-  if (!editor.close()) return;
+  if (!closeEditors()) return;
   const parent = kind === "temas" ? state.area : state.theme;
   if (!parent) return;
   const session = sessionVersion;
@@ -355,13 +374,26 @@ $("demo-login").onclick = () => {
 };
 $("logout").onclick = () => {
   if (
-    !editor.dirty ||
+    (!editor.dirty && !bank.dirty) ||
     window.confirm("Hay cambios sin guardar. ¿Cerrar sesión y descartarlos?")
   )
     showLogin("Sesión cerrada en esta pestaña.");
 };
 $("theme-edit").onclick = () => {
-  if (state.theme) void editor.open("temas", state.theme.id, state.area.id);
+  if (state.theme) openLesson("temas", state.theme.id, state.area.id);
+};
+$("area-cases").onclick = () => {
+  if (state.area && editor.close())
+    void bank.open("casos", { ...state.area, area: state.area.id });
+};
+$("editor-questions").onclick = () => {
+  const row = editor.record;
+  if (row && editor.kind === "subtemas" && editor.close())
+    void bank.open("preguntas", {
+      id: row.id,
+      area: row.area,
+      nombre: row.nombre,
+    });
 };
 $("theme-form").onsubmit = (event) => {
   event.preventDefault();
@@ -382,14 +414,14 @@ for (const [id, key, delta, load] of [
   ["subthemes-next", "subPage", 1, loadSubs],
 ])
   $(id).onclick = () => {
-    if (!editor.close()) return;
+    if (!closeEditors()) return;
     state[key] += delta;
     notice();
     void load();
   };
 window.addEventListener("pagehide", () => api.logout());
 window.addEventListener("beforeunload", (event) => {
-  if (editor.dirty || state.busy) {
+  if (editor.dirty || bank.dirty || state.busy) {
     event.preventDefault();
     event.returnValue = "";
   }

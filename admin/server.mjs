@@ -5,6 +5,14 @@ import { resolve } from "node:path";
 import { createDemoApi } from "./demo-api.mjs";
 
 const assets = new Map([
+  [
+    "/question-fields.mjs",
+    ["question-fields.mjs", "text/javascript; charset=utf-8"],
+  ],
+  [
+    "/question-editor.mjs",
+    ["question-editor.mjs", "text/javascript; charset=utf-8"],
+  ],
   ["/", ["index.html", "text/html; charset=utf-8"]],
   ["/app.mjs", ["app.mjs", "text/javascript; charset=utf-8"]],
   ["/api.mjs", ["api.mjs", "text/javascript; charset=utf-8"]],

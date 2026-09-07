@@ -549,6 +549,33 @@ input:disabled {
 .lesson-editor {
   margin-top: 24px;
 }
+.bank-options {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.bank-options fieldset {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.bank-options textarea {
+  min-height: 80px;
+}
+.bank-options label {
+  display: block;
+  margin-top: 8px;
+}
+.bank-options input[type="radio"] {
+  width: auto;
+  margin-left: 12px;
+}
+#bank-form select {
+  font: inherit;
+  padding: 10px;
+  max-width: 100%;
+  margin-bottom: 16px;
+}
 .lesson-editor textarea {
   width: 100%;
   resize: vertical;

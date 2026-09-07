@@ -1,4 +1,5 @@
 import { lessonFields } from "./lesson-fields.mjs";
+import { questionFields, caseFields } from "./question-fields.mjs";
 
 export class PanelError extends Error {
   constructor(message, status = 0) {
@@ -212,6 +213,101 @@ export class CatalogApi {
       );
     return data;
   }
+  async bankPage(kind, parent, page = 1) {
+    if (
+      !["preguntas", "casos"].includes(kind) ||
+      !parent ||
+      !Number.isInteger(page) ||
+      page < 1 ||
+      page > 10000
+    )
+      throw new PanelError("Selección editorial inválida.");
+    const query = new URLSearchParams({
+      [kind === "preguntas" ? "subtemaId" : "area"]: parent,
+      pagina: String(page),
+      limite: "20",
+    });
+    const data = await this.#protected(`/admin/editor/${kind}?${query}`);
+    if (
+      !data ||
+      data.pagina !== page ||
+      data.limite !== 20 ||
+      typeof data.hayMas !== "boolean" ||
+      !Array.isArray(data.items) ||
+      data.items.length > 20 ||
+      new Set(data.items.map((row) => row?.id)).size !== data.items.length ||
+      (kind === "preguntas" &&
+        (data.subtema?.id !== parent ||
+          typeof data.subtema.permiteCrear !== "boolean" ||
+          typeof data.subtema.area !== "string")) ||
+      data.items.some(
+        (row) =>
+          !row?.id ||
+          row[kind === "preguntas" ? "subtemaId" : "area"] !== parent ||
+          !["BORRADOR", "EN_REVISION", "PUBLICADO", "ARCHIVADO"].includes(
+            row.estadoContenido,
+          ) ||
+          (kind === "preguntas"
+            ? typeof row.enunciado !== "string"
+            : row.titulo !== null && typeof row.titulo !== "string"),
+      )
+    )
+      throw new PanelError("No pudimos validar la página editorial.");
+    return data;
+  }
+  async bankRecord(kind, parent, id, input) {
+    if (!["preguntas", "casos"].includes(kind) || !parent || (!id && !input))
+      throw new PanelError("Selecciona un registro editorial.");
+    let options;
+    if (input) {
+      if (id && !/^[a-f0-9]{64}$/.test(input.revision))
+        throw new PanelError("Recarga el registro antes de guardar.");
+      const fields =
+        kind === "preguntas" ? questionFields(input) : caseFields(input);
+      if (fields[kind === "preguntas" ? "subtemaId" : "area"] !== parent)
+        throw new PanelError(
+          "No puedes cambiar la clasificación desde este editor.",
+        );
+      options = {
+        method: id ? "PATCH" : "POST",
+        body: { ...fields, ...(id ? { revision: input.revision } : {}) },
+      };
+    }
+    const row = await this.#protected(
+      `/admin/editor/${kind}${id ? `/${encodeURIComponent(id)}` : ""}`,
+      options,
+    );
+    if (
+      !row ||
+      typeof row.id !== "string" ||
+      !row.id ||
+      (id && row.id !== id) ||
+      (input && row.estadoContenido !== "BORRADOR") ||
+      row[kind === "preguntas" ? "subtemaId" : "area"] !== parent ||
+      !/^[a-f0-9]{64}$/.test(row.revision) ||
+      typeof row.editable !== "boolean" ||
+      typeof row.imagenUrl !== "string" ||
+      !["BORRADOR", "EN_REVISION", "PUBLICADO", "ARCHIVADO"].includes(
+        row.estadoContenido,
+      ) ||
+      (kind === "preguntas"
+        ? typeof row.enunciado !== "string" ||
+          typeof row.explicacion !== "string" ||
+          typeof row.casoId !== "string" ||
+          !Array.isArray(row.respuestas) ||
+          row.respuestas.some(
+            (option) =>
+              typeof option?.texto !== "string" ||
+              typeof option.esCorrecta !== "boolean" ||
+              typeof option.explicacion !== "string",
+          )
+        : typeof row.titulo !== "string" || typeof row.contexto !== "string")
+    )
+      throw new PanelError(
+        "No pudimos validar el registro; consulta antes de reenviar.",
+      );
+    return row;
+  }
   #protected(path, options) {
     if (!this.#token)
       throw new PanelError("Inicia sesión para continuar.", 401);
@@ -239,6 +335,36 @@ export class CatalogApi {
       if (generation !== this.#generation)
         throw new PanelError("Solicitud cancelada.");
       if (!response.ok) {
+        if (response.status === 409 && path.startsWith("/admin/editor/")) {
+          let detail;
+          try {
+            detail = await response.json();
+          } catch {
+            /* Use generic conflict below. */
+          }
+          if (generation !== this.#generation)
+            throw new PanelError("Solicitud cancelada.");
+          const messages = {
+            EDITOR_STALE:
+              "El registro cambió. Copia tu texto antes de recargar la versión actual.",
+            DUPLICATE_QUESTION:
+              "Esta pregunta ya está registrada. No se creó otra copia.",
+            CASE_ORDER_TAKEN:
+              "Ese orden ya está ocupado por otra pregunta del caso.",
+            LEGACY_INDEX_REQUIRED:
+              "El banco heredado requiere indexación. No se guardó; consulta al responsable técnico.",
+          };
+          if (Object.hasOwn(messages, detail?.code ?? "")) {
+            const error = new PanelError(messages[detail.code], 409);
+            if (
+              detail.code === "DUPLICATE_QUESTION" &&
+              typeof detail.duplicate?.id === "string" &&
+              detail.duplicate.id.length <= 120
+            )
+              error.message += ` ID existente: ${detail.duplicate.id}.`;
+            throw error;
+          }
+        }
         if ([401, 403].includes(response.status) && this.#token) {
           this.logout();
           this.onSessionExpired();

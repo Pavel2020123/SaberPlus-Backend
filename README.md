@@ -8,8 +8,8 @@ reglas de negocio. La aplicacion Flutter no accede directamente a PostgreSQL.
 
 - `backend/`: API NestJS, Prisma y migraciones versionadas.
 - `render.yaml`: Blueprint del ambiente de staging en Render.
-- `admin/`: panel editorial 7F-C3-B, con acceso ADMIN, catálogo, lecciones en
-  borrador y corrección protegida de nombres. Demo e instrucciones en [admin/README.md](admin/README.md).
+- `admin/`: panel editorial 7F-C3-C, con acceso ADMIN, catálogo, lecciones,
+  preguntas y casos en borrador. Demo e instrucciones en [admin/README.md](admin/README.md).
 
 ## Desarrollo local
 

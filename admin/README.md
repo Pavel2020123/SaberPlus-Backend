@@ -1,10 +1,11 @@
-# Panel editorial de SaberPlus — 7F-C3-B
+# Panel editorial de SaberPlus — 7F-C3-C
 
 Primera entrega funcional: acceso ADMIN, navegación por las cinco áreas ICFES,
 catálogo paginado, estados editoriales y creación de temas/subtemas en borrador.
 No publica, archiva, elimina ni reclasifica contenido desde esta interfaz todavía.
-Ahora incluye editor de lecciones en borrador, vista previa del texto y corrección
-protegida de nombres. Preguntas/casos siguen en C3-C; carga de archivos en C5.
+Ahora incluye lecciones, preguntas y casos en borrador, vista previa del texto,
+corrección protegida de nombres y control de preguntas repetidas. Publicación
+desde el panel sigue en C3-D; carga de archivos en C5.
 El panel usa la API NestJS, nunca tablas ni credenciales de Supabase.
 
 ## Probar sin cuenta ni base de datos
@@ -37,7 +38,7 @@ El puerto puede cambiarse con `ADMIN_PORT` si 4173 está ocupado.
 
 ## Conectar con el backend real
 
-1. Usar un backend que incluya 7F-C3-B y una cuenta editorial ADMIN existente.
+1. Usar un backend que incluya 7F-C3-C y una cuenta editorial ADMIN existente.
    No sirven cuentas de profesor ni administradores de institución. No se crea
    ni promueve automáticamente ningún usuario. Si no tienes cuenta ADMIN, hay
    que preparar ese acceso de forma autorizada antes de probar el flujo real.
@@ -98,7 +99,7 @@ npm test
 ```
 
 Las pruebas usan el servidor demo local y respuestas simuladas del cliente.
-Última ejecución: 23 pruebas aprobadas y comprobación de sintaxis correcta.
+Última ejecución: 31 pruebas aprobadas y comprobación de sintaxis correcta.
 Cubren permisos de acceso del cliente, duplicados, paginación, aislamiento,
 expiración, respuestas tardías, errores de formato, archivos servidos y cabeceras.
 También cubren el editor con dobles DOM: guardado, conflictos, texto pendiente,
@@ -110,7 +111,7 @@ El flujo CI incorpora un trabajo separado del backend para estas comprobaciones.
 ## Siguientes partes de 7F-C3
 
 - **C3-B implementada:** editor de lecciones por subtema, vista previa segura y ajustes de nombres.
-- **C3-C:** editor de preguntas y casos, opciones, explicaciones, clasificación e imágenes referenciadas.
+- **C3-C implementada:** editor de preguntas y casos, opciones de texto, explicaciones, clasificación e imágenes referenciadas en enunciado/caso.
 - **C3-D:** revisión/publicación desde el panel, manejo del legado y prueba editorial de extremo a extremo.
 
 Los recursos persistentes de Supabase Storage siguen en 7F-C5 y la auditoría
@@ -150,4 +151,71 @@ no crea cuentas, no aplica migraciones y no necesita nuevos audios.
 
 No hacen falta nuevas migraciones para este editor. La API real debe desplegar
 estas rutas antes de probarlo con una cuenta ADMIN. No se desplegó en esta entrega.
+
+## Preguntas y casos: 7F-C3-C
+
+Recorrido demo:
+
+1. Selecciona Matemáticas y pulsa **Casos del área**. Ya hay un ejemplo de
+   papelería. Puedes crear otro caso con título, contexto y URL HTTPS opcional.
+2. Cierra esa sección. Abre Proporcionalidad > Porcentajes, pulsa **Preguntas de
+   este subtema** y luego **Crear nuevo borrador**.
+3. Escribe enunciado, 2–6 opciones distintas, marca una correcta y completa la
+   explicación general. Las explicaciones de cada opción son opcionales.
+4. Elige dificultad y, si corresponde, caso y orden libre dentro de él. Los casos
+   se consultan de 20 en 20; no hace falta cargar miles de registros en un selector.
+5. Guarda, vuelve a abrir la pregunta y prueba cambiar su explicación. Intenta
+   crear otra copia con opciones reordenadas: el servidor debe rechazarla.
+6. Para ver los conteos actualizados del catálogo, usa **Actualizar catálogo**.
+
+Rutas nuevas con AdminGuard:
+
+- `GET/POST /admin/editor/preguntas`; GET pagina por `subtemaId`.
+- `GET/PATCH /admin/editor/preguntas/:id`.
+- `GET/POST /admin/editor/casos`; GET pagina por `area`.
+- `GET/PATCH /admin/editor/casos/:id`.
+
+Las listas usan `pagina` y `limite`, con máximo 100 por petición y 20 en la UI.
+No contienen respuestas correctas; el detalle privado ADMIN sí las incluye.
+Cada PATCH exige `revision` del detalle actual; no se permite mover preguntas de
+subtema ni casos de área. Todo se crea en BORRADOR, nunca se publica por guardar.
+
+Reglas:
+
+- Preguntas editables únicamente en borrador, nunca publicadas, con clasificación
+  válida y sin ninguna relación de uso académico: historial, cuaderno, partidas,
+  respuestas de juegos, etc. Las opciones propias no cuentan como uso. Solo en
+  ese estado se reemplazan opciones; no se modifican respuestas históricas.
+- Casos editables solo en borrador, nunca publicados y sin preguntas asociadas.
+  Casos publicados pueden asociarse a nuevas preguntas, pero no editarse aquí.
+  Caso y pregunta deben compartir área; no se admiten casos archivados.
+- El orden del caso es explícito (1–10000) y debe estar libre, incluso si las
+  otras preguntas pertenecen a diferentes subtemas. Para una pregunta independiente
+  no se envía orden. El caso es un contexto compartido; la clasificación sigue
+  perteneciendo a cada pregunta.
+- Límites: enunciado/explicación general 12000 caracteres cada uno, opciones y sus
+  explicaciones 4000, título de caso 200, contexto 20000, referencia HTTPS 2000.
+  También aplica el límite global de tamaño JSON del backend.
+- Las opciones son de texto: el esquema Respuesta todavía no tiene imagenUrl.
+  Imágenes dentro de opciones requieren ampliar modelo, contrato y Flutter en C5.
+  Por ahora se referencian imágenes en el enunciado o caso; no se suben archivos.
+- Duplicados: se reutiliza la huella v1 (área, enunciado, referencia de imagen y
+  opciones normalizados; el orden de opciones no importa). Se revisan todos los
+  estados, incluso archivados, y se muestra el ID coincidente. No es detección
+  semántica/OCR; cambiar una URL puede cambiar la huella y el contexto del caso
+  no forma parte de esa huella. Coincidencias deben revisarse, no evadirse.
+- Se comparan hasta 2000 candidatos, incluyendo preguntas heredadas sin huella.
+  Si hay más, se bloquea el guardado con aviso de indexación pendiente. No se
+  acepta contenido con una comprobación incompleta. El backfill del legado queda
+  en C3-D, antes del ensayo con un banco real grande.
+- Las escrituras de estas rutas comparten bloqueo por área y bloqueos de filas
+  para proteger revisiones, duplicados y orden. Esto **no** es una restricción
+  única de base: las rutas administrativas heredadas aún no usan ese mismo
+  protocolo. No alternar ambas vías; unificación en C3-D antes de habilitar
+  edición concurrente real. No se crean migraciones en esta entrega.
+
+Las pruebas del panel incluyen demo HTTP y dobles DOM; las del backend verifican
+reglas mediante Prisma simulado. No sustituyen una prueba de concurrencia con
+PostgreSQL, JWT real, CORS ni navegación visual. Estas comprobaciones y el
+despliegue están pendientes; no se tocó Render/Supabase ni se requieren audios.
 
