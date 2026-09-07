@@ -1,11 +1,13 @@
-# Panel editorial de SaberPlus — 7F-C3-C
+# Panel editorial de SaberPlus — 7F-C3-D1
 
 Primera entrega funcional: acceso ADMIN, navegación por las cinco áreas ICFES,
 catálogo paginado, estados editoriales y creación de temas/subtemas en borrador.
-No publica, archiva, elimina ni reclasifica contenido desde esta interfaz todavía.
+Incluye revisión y cambios de estado en la demo. Las nuevas escrituras reales
+están desactivadas por defecto hasta unificar las rutas heredadas en D2.
+No elimina ni reclasifica contenido desde esta interfaz todavía.
 Ahora incluye lecciones, preguntas y casos en borrador, vista previa del texto,
-corrección protegida de nombres y control de preguntas repetidas. Publicación
-desde el panel sigue en C3-D; carga de archivos en C5.
+corrección protegida de nombres y control de preguntas repetidas. El cierre
+editorial real sigue en C3-D2/D3; carga de archivos en C5.
 El panel usa la API NestJS, nunca tablas ni credenciales de Supabase.
 
 ## Probar sin cuenta ni base de datos
@@ -99,7 +101,7 @@ npm test
 ```
 
 Las pruebas usan el servidor demo local y respuestas simuladas del cliente.
-Última ejecución: 31 pruebas aprobadas y comprobación de sintaxis correcta.
+Última ejecución: 37 pruebas aprobadas y comprobación de sintaxis correcta.
 Cubren permisos de acceso del cliente, duplicados, paginación, aislamiento,
 expiración, respuestas tardías, errores de formato, archivos servidos y cabeceras.
 También cubren el editor con dobles DOM: guardado, conflictos, texto pendiente,
@@ -112,7 +114,11 @@ El flujo CI incorpora un trabajo separado del backend para estas comprobaciones.
 
 - **C3-B implementada:** editor de lecciones por subtema, vista previa segura y ajustes de nombres.
 - **C3-C implementada:** editor de preguntas y casos, opciones de texto, explicaciones, clasificación e imágenes referenciadas en enunciado/caso.
-- **C3-D:** revisión/publicación desde el panel, manejo del legado y prueba editorial de extremo a extremo.
+- **C3-D1 implementada:** revisión y estados con confirmación; recorrido completo
+  en demo y nuevas escrituras reales apagadas por defecto.
+- **C3-D2 pendiente:** legado, unificación de rutas, revisión especializada de
+  interactivos y prueba de concurrencia PostgreSQL.
+- **C3-D3 pendiente:** despliegue y ensayo editorial con ADMIN y base reales.
 
 Los recursos persistentes de Supabase Storage siguen en 7F-C5 y la auditoría
 completa/versiones en 7F-C6. Esta entrega no modifica contenido académico real,
@@ -218,4 +224,45 @@ Las pruebas del panel incluyen demo HTTP y dobles DOM; las del backend verifican
 reglas mediante Prisma simulado. No sustituyen una prueba de concurrencia con
 PostgreSQL, JWT real, CORS ni navegación visual. Estas comprobaciones y el
 despliegue están pendientes; no se tocó Render/Supabase ni se requieren audios.
+
+## Revisión y publicación: C3-D1
+
+Desde una lección/tema o una pregunta/caso guardado, pulsa **Revisar estado y
+publicación**. Si hay texto pendiente, el panel pide guardarlo primero: la
+revisión siempre muestra el registro guardado y su versión, no el formulario local.
+
+El recorrido es BORRADOR → EN_REVISION → PUBLICADO. Desde revisión se puede
+volver a borrador. Archivar no elimina datos ni archiva dependientes en cascada;
+primero hay que archivar los dependientes publicados. Un registro archivado puede
+volver a borrador, pero conserva su fecha de publicación y las restricciones de
+edición por uso académico. No es una restauración de versiones.
+
+En demo, publica primero el tema, después el subtema, el caso si corresponde y
+finalmente la pregunta. Comprueba que una pregunta sin explicación o con padre
+sin publicar no ofrece Publicar. Las advertencias de derechos, disponibilidad
+de recursos y exactitud requieren revisión humana, no las verifica un algoritmo.
+
+Contrato ADMIN nuevo:
+
+- `GET /admin/editor/revision/:tipo/:id`, tipos `temas`, `subtemas`, `preguntas`, `casos`.
+- `PATCH` a la misma ruta con `revision`, `destino` y `confirmado: true`.
+- Devuelve estado, revisión SHA-256, contenido, bloqueos, advertencias y destinos.
+- La escritura relee bajo bloqueo por área y filas, vuelve a validar dependencias,
+  duplicados y orden. La huella de pregunta se recalcula al publicar.
+- Los candidatos heredados se acotan a 2000. Interactivos CLOZE requieren la
+  revisión especializada pendiente en D2; esta entrega no los publica por esta vía.
+- Los recursos se muestran como texto sin cargarlos; no se verifican licencias,
+  enlaces disponibles ni el comportamiento final de Flutter.
+
+**Bloqueo de lanzamiento:** `EDITORIAL_PUBLICATION_ENABLED` debe permanecer
+ausente o `false` en entornos reales. GET funciona; PATCH devuelve 503 y la UI
+desactiva acciones. No activar hasta C3-D2 y el ensayo autorizado C3-D3. La
+plantilla `.env.example` documenta el valor, pero no se modificaron secretos,
+Render ni Supabase. Esta bandera solo afecta las rutas nuevas; no pretende
+desactivar los endpoints heredados, que aún necesitan unificación.
+
+Verificación: 37 pruebas del panel (HTTP demo y dobles DOM); 359 pruebas en 57
+suites del backend; compilación y lint focalizado correctos. El ensayo demo
+recorre creación, revisión, publicación y archivo jerárquicos. Sigue pendiente
+la prueba real en navegador/PostgreSQL/Flutter. No hubo migraciones ni publicación real.
 

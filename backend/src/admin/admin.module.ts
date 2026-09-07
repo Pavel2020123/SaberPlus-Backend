@@ -11,6 +11,8 @@ import { LessonEditorService } from './lesson-editor.service';
 import { LessonEditorController } from './lesson-editor.controller';
 import { QuestionEditorService } from './question-editor.service';
 import { QuestionEditorController } from './question-editor.controller';
+import { EditorialReviewService } from './editorial-review.service';
+import { EditorialReviewController } from './editorial-review.controller';
 
 @Module({
   imports: [PrismaModule],
@@ -20,6 +22,7 @@ import { QuestionEditorController } from './question-editor.controller';
     AcademicCatalogController,
     LessonEditorController,
     QuestionEditorController,
+    EditorialReviewController,
   ],
 
   providers: [
@@ -27,6 +30,7 @@ import { QuestionEditorController } from './question-editor.controller';
     AcademicCatalogService,
     LessonEditorService,
     QuestionEditorService,
+    EditorialReviewService,
     ContentLifecycleService,
     ContentImportService,
     ContentPackageReaderService,

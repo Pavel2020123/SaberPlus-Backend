@@ -2,6 +2,7 @@ import { randomUUID, createHash } from "node:crypto";
 import { lessonFields } from "./public/lesson-fields.mjs";
 import { validateName } from "./public/api.mjs";
 import { createDemoQuestionBank } from "./demo-question-bank.mjs";
+import { createDemoEditorialReview } from "./demo-editorial-review.mjs";
 
 // Local-only fixtures. This module has no network or database dependencies.
 const areas = [
@@ -77,11 +78,20 @@ export function createDemoApi() {
     res.end(JSON.stringify(body));
   };
   const questionBank = createDemoQuestionBank({ themes, subthemes, send });
+  for (const row of [...themes, ...subthemes])
+    if (row.estadoContenido === "PUBLICADO")
+      row.fechaPublicacion = "2026-09-01T00:00:00Z";
+  const reviewApi = createDemoEditorialReview({
+    themes,
+    subthemes,
+    ...questionBank.records,
+    send,
+  });
   const editorView = (kind, row) => {
     const sub = kind === "subtemas";
     const parent = sub ? themes.find((theme) => theme.id === row.temaId) : null;
     const count = subthemes.filter((item) => item.temaId === row.id).length;
-    const draft = row.estadoContenido === "BORRADOR";
+    const draft = row.estadoContenido === "BORRADOR" && !row.fechaPublicacion;
     const editable = sub && draft && parent.estadoContenido !== "ARCHIVADO";
     const renombrable = sub
       ? editable && !row._count.preguntas
@@ -158,6 +168,7 @@ export function createDemoApi() {
       return;
     }
     if (questionBank(req, res, url, body)) return;
+    if (reviewApi(req, res, url, body)) return;
     const editorMatch =
       /^\/admin\/editor\/(temas|subtemas)\/([^/]+)(?:\/(nombre|leccion))?$/.exec(
         path,

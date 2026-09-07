@@ -6,6 +6,10 @@ import { createDemoApi } from "./demo-api.mjs";
 
 const assets = new Map([
   [
+    "/editorial-review.mjs",
+    ["editorial-review.mjs", "text/javascript; charset=utf-8"],
+  ],
+  [
     "/question-fields.mjs",
     ["question-fields.mjs", "text/javascript; charset=utf-8"],
   ],

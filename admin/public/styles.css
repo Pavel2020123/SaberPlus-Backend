@@ -10,6 +10,16 @@
   color: var(--ink);
   background: #fff;
 }
+.review-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 20px;
+}
+#review-blocks,
+#review-warnings {
+  overflow-wrap: anywhere;
+}
 * {
   box-sizing: border-box;
 }

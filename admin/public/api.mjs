@@ -308,6 +308,59 @@ export class CatalogApi {
       );
     return row;
   }
+  async review(tipo, id, change) {
+    const states = ["BORRADOR", "EN_REVISION", "PUBLICADO", "ARCHIVADO"];
+    if (
+      !["temas", "subtemas", "preguntas", "casos"].includes(tipo) ||
+      typeof id !== "string" ||
+      !id ||
+      id.length > 120
+    )
+      throw new PanelError("Selecciona un registro para revisar.");
+    if (
+      change &&
+      (!/^[a-f0-9]{64}$/.test(change.revision) ||
+        !states.includes(change.destino) ||
+        change.confirmado !== true)
+    )
+      throw new PanelError(
+        "La revisión requiere versión y confirmación explícita.",
+      );
+    const row = await this.#protected(
+      `/admin/editor/revision/${tipo}/${encodeURIComponent(id)}`,
+      change
+        ? {
+            method: "PATCH",
+            body: {
+              revision: change.revision,
+              destino: change.destino,
+              confirmado: true,
+            },
+          }
+        : undefined,
+    );
+    if (
+      !row ||
+      row.tipo !== tipo ||
+      row.id !== id ||
+      !/^[a-f0-9]{64}$/.test(row.revision) ||
+      !states.includes(row.estadoContenido) ||
+      typeof row.habilitado !== "boolean" ||
+      typeof row.area !== "string" ||
+      !["bloqueos", "advertencias", "contenido", "destinos"].every(
+        (key) =>
+          Array.isArray(row[key]) &&
+          row[key].every((value) => typeof value === "string"),
+      ) ||
+      row.destinos.some((state) => !states.includes(state)) ||
+      new Set(row.destinos).size !== row.destinos.length ||
+      (change && row.estadoContenido !== change.destino)
+    )
+      throw new PanelError(
+        "No pudimos validar la revisión; consulta de nuevo antes de reenviar.",
+      );
+    return row;
+  }
   #protected(path, options) {
     if (!this.#token)
       throw new PanelError("Inicia sesión para continuar.", 401);
@@ -377,6 +430,7 @@ export class CatalogApi {
             404: "Este recurso o la versión del catálogo no está disponible en el servidor.",
             409: "El registro cambió o ese nombre ya existe. Conserva tu texto y recarga para revisar antes de guardar de nuevo.",
             429: "Demasiados intentos. Espera un momento antes de volver a intentar.",
+            503: "La operación no está habilitada o el servicio no está disponible. Consulta al responsable del entorno.",
           }[response.status] || "El servidor no pudo completar la solicitud.",
           response.status,
         );

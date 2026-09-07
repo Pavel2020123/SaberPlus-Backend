@@ -1,6 +1,7 @@
 import { CatalogApi, PanelError } from "./api.mjs";
 import { LessonEditor } from "./lesson-editor.mjs";
 import { QuestionEditor } from "./question-editor.mjs";
+import { EditorialReview } from "./editorial-review.mjs";
 
 const $ = (id) => document.getElementById(id);
 const config = globalThis.SABERPLUS_CONFIG;
@@ -52,10 +53,18 @@ const bank = new QuestionEditor({
   },
 });
 function closeEditors() {
-  return editor.close() && bank.close();
+  return editor.close() && bank.close() && review.close();
 }
+const review = new EditorialReview({
+  api,
+  busy: () => state.busy,
+  setBusy: (value) => {
+    state.busy = value;
+    updateControls();
+  },
+});
 function openLesson(kind, id, parent) {
-  if (bank.close()) void editor.open(kind, id, parent);
+  if (bank.close() && review.close()) void editor.open(kind, id, parent);
 }
 const stateLabels = {
   BORRADOR: "Borrador",
@@ -93,6 +102,7 @@ function notice(message = "", error = false) {
 function showLogin(message = "") {
   editor.close(true);
   bank.close(true);
+  review.close(true);
   sessionVersion++;
   api.logout();
   themesVersion++;
@@ -133,6 +143,8 @@ function updateControls() {
     ? "Guardando…"
     : "+ Crear subtema";
   $("refresh").disabled = state.busy;
+  $("lesson-review").disabled = state.busy || !editor.record;
+  $("bank-review").disabled = state.busy || !bank.record;
   $("area-cases").disabled = state.busy || !state.area;
   $("editor-questions").disabled =
     state.busy || !editor.record || editor.kind !== "subtemas";
@@ -383,7 +395,7 @@ $("theme-edit").onclick = () => {
   if (state.theme) openLesson("temas", state.theme.id, state.area.id);
 };
 $("area-cases").onclick = () => {
-  if (state.area && editor.close())
+  if (state.area && editor.close() && review.close())
     void bank.open("casos", { ...state.area, area: state.area.id });
 };
 $("editor-questions").onclick = () => {
@@ -395,6 +407,22 @@ $("editor-questions").onclick = () => {
       nombre: row.nombre,
     });
 };
+function openReview(source) {
+  if (state.busy || !source.record) return;
+  if (source.dirty) {
+    source.message("Guarda los cambios antes de abrir la revisión.", true);
+    notice(
+      "Guarda los cambios antes de abrir la revisión. No se publica texto sin guardar.",
+      true,
+    );
+    return;
+  }
+  const tipo = source.kind,
+    id = source.record.id;
+  if (closeEditors()) void review.open(tipo, id);
+}
+$("lesson-review").onclick = () => openReview(editor);
+$("bank-review").onclick = () => openReview(bank);
 $("theme-form").onsubmit = (event) => {
   event.preventDefault();
   void create("temas", "theme-name");

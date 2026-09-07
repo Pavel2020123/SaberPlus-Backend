@@ -25,7 +25,10 @@ export function createDemoQuestionBank({ themes, subthemes, send }) {
     return {
       ...row,
       preguntas: count,
-      editable: row.estadoContenido === "BORRADOR" && count === 0,
+      editable:
+        row.estadoContenido === "BORRADOR" &&
+        !row.fechaPublicacion &&
+        count === 0,
       revision: hash([row, count]),
     };
   };
@@ -39,12 +42,13 @@ export function createDemoQuestionBank({ themes, subthemes, send }) {
       caso,
       editable:
         row.estadoContenido === "BORRADOR" &&
+        !row.fechaPublicacion &&
         sub.estadoContenido !== "ARCHIVADO" &&
         theme.estadoContenido !== "ARCHIVADO",
       revision: hash([row, sub, theme, caso]),
     };
   };
-  return (req, res, url, body) => {
+  const handler = (req, res, url, body) => {
     const match =
       /^\/api\/admin\/editor\/(preguntas|casos)(?:\/([^/]+))?$/.exec(
         url.pathname,
@@ -97,23 +101,21 @@ export function createDemoQuestionBank({ themes, subthemes, send }) {
         pagina,
         limite,
         hayMas: rows.length > pagina * limite,
-        items: rows
-          .slice((pagina - 1) * limite, pagina * limite)
-          .map((item) =>
-            kind === "preguntas"
-              ? {
-                  id: item.id,
-                  subtemaId: item.subtemaId,
-                  enunciado: item.enunciado,
-                  estadoContenido: item.estadoContenido,
-                }
-              : {
-                  id: item.id,
-                  area: item.area,
-                  titulo: item.titulo,
-                  estadoContenido: item.estadoContenido,
-                },
-          ),
+        items: rows.slice((pagina - 1) * limite, pagina * limite).map((item) =>
+          kind === "preguntas"
+            ? {
+                id: item.id,
+                subtemaId: item.subtemaId,
+                enunciado: item.enunciado,
+                estadoContenido: item.estadoContenido,
+              }
+            : {
+                id: item.id,
+                area: item.area,
+                titulo: item.titulo,
+                estadoContenido: item.estadoContenido,
+              },
+        ),
         ...(sub
           ? {
               subtema: {
@@ -212,4 +214,6 @@ export function createDemoQuestionBank({ themes, subthemes, send }) {
     }
     return true;
   };
+  handler.records = { cases, questions };
+  return handler;
 }

@@ -218,6 +218,9 @@
             <div class="panel-heading">
               <h2 id="editor-title" tabindex="-1">Editor de lección</h2>
               <button id="editor-close" class="secondary">Cerrar editor</button>
+              <button id="lesson-review" class="secondary" disabled>
+                Revisar estado y publicación
+              </button>
               <button id="editor-questions" class="secondary" disabled>
                 Preguntas de este subtema
               </button>
@@ -317,6 +320,9 @@
             <button id="bank-reload" class="secondary" type="button">
               Recargar registro seleccionado
             </button>
+            <button id="bank-review" type="button" class="secondary" disabled>
+              Revisar estado y publicación
+            </button>
             <form id="bank-form" class="create-form" hidden>
               <div id="case-title-field">
                 <label for="bank-title">Título del caso</label
@@ -395,9 +401,34 @@
               <div id="bank-preview" class="lesson-preview"></div>
             </form>
           </section>
+          <section
+            id="review-panel"
+            class="catalog-panel lesson-editor"
+            hidden
+            aria-labelledby="review-heading"
+          >
+            <div class="panel-heading">
+              <h2 id="review-heading" tabindex="-1">Revisión editorial</h2>
+              <button id="review-close" type="button" class="secondary">
+                Cerrar revisión
+              </button>
+            </div>
+            <p id="review-id" class="hint"></p>
+            <p id="review-message" role="status" aria-live="polite"></p>
+            <button id="review-refresh" type="button" class="secondary">
+              Recargar revisión
+            </button>
+            <h3>Controles para publicar</h3>
+            <ul id="review-blocks"></ul>
+            <h3>Advertencias y revisión humana</h3>
+            <ul id="review-warnings"></ul>
+            <h3>Contenido guardado que estás revisando</h3>
+            <div id="review-content" class="lesson-preview"></div>
+            <div id="review-actions" class="review-actions"></div>
+          </section>
           <footer class="workspace-footer">
-            <span>7F-C3-C · Preguntas y casos en borrador</span
-            ><span>Próxima entrega: revisión y publicación</span>
+            <span>7F-C3-D1 · Revisión y publicación editorial</span
+            ><span>Próxima entrega: legado y unificación de rutas</span>
           </footer>
         </div>
       </section>

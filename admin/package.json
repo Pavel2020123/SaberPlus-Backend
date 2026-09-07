@@ -10,6 +10,6 @@
     "start": "node --env-file-if-exists=.env.local server.mjs",
     "demo": "node server.mjs --demo",
     "test": "node --test test/*.test.mjs",
-    "check": "node --check server.mjs && node --check demo-api.mjs && node --check demo-question-bank.mjs && node --check public/api.mjs && node --check public/app.mjs && node --check public/lesson-fields.mjs && node --check public/lesson-editor.mjs && node --check public/question-fields.mjs && node --check public/question-editor.mjs"
+    "check": "node --check server.mjs && node --check demo-api.mjs && node --check demo-question-bank.mjs && node --check demo-editorial-review.mjs && node --check public/api.mjs && node --check public/app.mjs && node --check public/lesson-fields.mjs && node --check public/lesson-editor.mjs && node --check public/question-fields.mjs && node --check public/question-editor.mjs && node --check public/editorial-review.mjs"
   }
 }
