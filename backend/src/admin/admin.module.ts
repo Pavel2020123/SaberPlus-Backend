@@ -14,6 +14,8 @@ import { QuestionEditorController } from './question-editor.controller';
 import { EditorialReviewService } from './editorial-review.service';
 import { EditorialReviewController } from './editorial-review.controller';
 import { LegacyEditorialWriteGuard } from './legacy-editorial-write.guard';
+import { LegacyQuestionIndexController } from './legacy-question-index.controller';
+import { LegacyQuestionIndexService } from './legacy-question-index.service';
 
 @Module({
   imports: [PrismaModule],
@@ -24,6 +26,7 @@ import { LegacyEditorialWriteGuard } from './legacy-editorial-write.guard';
     LessonEditorController,
     QuestionEditorController,
     EditorialReviewController,
+    LegacyQuestionIndexController,
   ],
 
   providers: [
@@ -33,6 +36,7 @@ import { LegacyEditorialWriteGuard } from './legacy-editorial-write.guard';
     QuestionEditorService,
     EditorialReviewService,
     LegacyEditorialWriteGuard,
+    LegacyQuestionIndexService,
     ContentLifecycleService,
     ContentImportService,
     ContentPackageReaderService,

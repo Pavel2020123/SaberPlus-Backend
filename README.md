@@ -14,6 +14,9 @@ reglas de negocio. La aplicacion Flutter no accede directamente a PostgreSQL.
 - **7F-C3-D2-A:** escrituras heredadas retiradas y bloqueo editorial común por
   área. Cambio de compatibilidad HTTP 410; no desplegado automáticamente.
   [Rutas y condiciones de despliegue](backend/EDITORIAL_LEGACY_RETIREMENT.md).
+- **7F-C3-D2-B:** indexación por lotes del legado con vista previa, revisión,
+  confirmación y reportes de duplicados. Escrituras apagadas por defecto; no
+  publica ni reclasifica. [Procedimiento y límites](backend/EDITORIAL_LEGACY_INDEX.md).
 
 ## Desarrollo local
 

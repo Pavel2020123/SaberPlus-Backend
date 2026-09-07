@@ -326,6 +326,24 @@ describe('EditorialReviewService', () => {
     detail = await service.detalle('subtemas', 's1');
     expect(detail.destinos).not.toContain('PUBLICADO');
   });
+  it.each(['false', 'true', 1, false])(
+    'no convierte %j en confirmación editorial',
+    (confirmado) => {
+      expect(
+        validateSync(
+          plainToInstance(
+            EditorialStateDto,
+            {
+              revision: 'a'.repeat(64),
+              destino: 'PUBLICADO',
+              confirmado,
+            },
+            { enableImplicitConversion: true },
+          ),
+        ).length,
+      ).toBeGreaterThan(0);
+    },
+  );
   it('verifica DTO, confirmación explícita, ADMIN y recurso inexistente', async () => {
     expect(
       Reflect.getMetadata(GUARDS_METADATA, EditorialReviewController),

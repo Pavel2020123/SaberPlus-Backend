@@ -1,4 +1,8 @@
-# Panel editorial de SaberPlus — 7F-C3-D2-A
+# Panel editorial de SaberPlus — 7F-C3-D2-B
+
+D2-B incorpora una API ADMIN de indexación por lotes y reportes del legado,
+sin cambios visuales en este panel. No se ha ejecutado contra la base real.
+[Procedimiento y bandera independiente](../backend/EDITORIAL_LEGACY_INDEX.md).
 
 El backend retira las escrituras antiguas con HTTP 410 y concentra las activas
 en los servicios del editor con bloqueo común por área. El panel ya usa esas

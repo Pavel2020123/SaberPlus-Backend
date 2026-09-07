@@ -57,6 +57,9 @@ el protocolo, **no sustituyen la prueba de concurrencia en PostgreSQL**.
    del legado, contrato CLOZE y concurrencia PostgreSQL para cerrar D2.
 4. Ensayar con ADMIN y contenido autorizado en D3 antes de habilitar la operación.
 
+Actualización D2-B: ya está implementada la herramienta de indexación por lotes,
+pero no se ejecutó sobre la base real. Ver [EDITORIAL_LEGACY_INDEX.md](EDITORIAL_LEGACY_INDEX.md).
+
 ## Verificación local
 
 - Pruebas HTTP de las 15 rutas con ADMIN y bandera tanto false como true; ninguna

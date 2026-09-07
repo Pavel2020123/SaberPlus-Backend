@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Param, Patch, UseGuards } from '@nestjs/common';
 import { EstadoContenido } from '@prisma/client';
+import { Transform } from 'class-transformer';
 import {
   Equals,
   IsEnum,
@@ -23,7 +24,11 @@ export class EditorialReviewParams {
 export class EditorialStateDto {
   @IsString() @Matches(/^[a-f0-9]{64}$/) revision!: string;
   @IsEnum(EstadoContenido) destino!: EstadoContenido;
-  @Equals(true) confirmado!: boolean;
+  @Transform(({ obj }: { obj: Record<string, unknown> }) => obj.confirmado, {
+    toClassOnly: true,
+  })
+  @Equals(true)
+  confirmado!: boolean;
 }
 @Controller('admin/editor/revision')
 @UseGuards(AdminGuard)
