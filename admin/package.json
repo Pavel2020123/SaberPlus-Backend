@@ -1,0 +1,15 @@
+{
+  "name": "saberplus-admin",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "start": "node --env-file-if-exists=.env.local server.mjs",
+    "demo": "node server.mjs --demo",
+    "test": "node --test test/*.test.mjs",
+    "check": "node --check server.mjs && node --check demo-api.mjs && node --check public/api.mjs && node --check public/app.mjs"
+  }
+}
