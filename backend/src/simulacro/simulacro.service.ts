@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  GoneException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -892,49 +893,15 @@ export class SimulacroService {
     return { intentoId: intento.id, preguntas: seleccionadas };
   }
 
-  // ─── POBLAR BD CON DATOS DE PRUEBA ─────────────────────────
-  async poblarBaseDeDatos() {
-    // Evitar duplicados
-    const temaExiste = await this.prisma.tema.findFirst({
-      where: { nombre: 'Álgebra', area: 'MATEMATICAS' },
+  // Retired even in development: HTTP demo seeding bypassed editorial rules.
+  poblarBaseDeDatos(): never {
+    throw new GoneException({
+      statusCode: 410,
+      code: 'LEGACY_EDITORIAL_WRITE_RETIRED',
+      message:
+        'La carga de datos de prueba por HTTP fue retirada. Usa la demo aislada del panel o crea borradores mediante el editor ADMIN.',
+      replacement: 'POST /admin/editor/preguntas',
     });
-    if (temaExiste) {
-      return {
-        mensaje: 'La BD ya tiene datos de prueba. No se insertó nada nuevo.',
-      };
-    }
-
-    const temaNuevo = await this.prisma.tema.create({
-      data: {
-        nombre: 'Álgebra',
-        area: 'MATEMATICAS',
-        subtemas: {
-          create: {
-            nombre: 'Ecuaciones de primer grado',
-            preguntas: {
-              create: {
-                enunciado:
-                  'Si Juan compra 3 manzanas y paga con un billete de $10.000, recibiendo $4.000 de cambio, ¿cuál es el precio de cada manzana?',
-                dificultad: 'BASICO',
-                respuestas: {
-                  create: [
-                    { texto: '$1.500', esCorrecta: false },
-                    { texto: '$2.000', esCorrecta: true },
-                    { texto: '$2.500', esCorrecta: false },
-                    { texto: '$3.000', esCorrecta: false },
-                  ],
-                },
-              },
-            },
-          },
-        },
-      },
-    });
-
-    return {
-      mensaje: '¡Pregunta de Matemáticas inyectada con éxito!',
-      datos: temaNuevo,
-    };
   }
   async obtenerTemasPorArea(area: AreaIcfes) {
     const temas = await this.prisma.tema.findMany({

@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { AreaIcfes, EstadoContenido } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { lockEditorialArea } from './editorial-lock';
 import {
   catalogNameKey,
   isGenericCatalogName,
@@ -37,6 +38,7 @@ export class AcademicCatalogService {
       throw new BadRequestException('El área no es válida.');
     return this.prisma.$transaction(async (tx) => {
       // All admin catalog creations in the same scope share this transaction lock.
+      await lockEditorialArea(tx, area);
       await tx.$queryRaw`SELECT 1::int AS locked FROM pg_advisory_xact_lock(hashtext(${`catalogo:area:${area}`}))`;
       const siblings = await tx.tema.findMany({
         where: { area },
@@ -52,14 +54,24 @@ export class AcademicCatalogService {
   async crearSubtema(value: string, temaId: string) {
     const nombre = validateCatalogName(value);
     return this.prisma.$transaction(async (tx) => {
+      const initial = await tx.tema.findUnique({
+        where: { id: temaId },
+        select: { area: true },
+      });
+      if (!initial) throw new NotFoundException('El tema no existe.');
+      await lockEditorialArea(tx, initial.area);
       await tx.$queryRaw`SELECT 1::int AS locked FROM pg_advisory_xact_lock(hashtext(${`catalogo:tema:${temaId}`}))`;
       // Prevent archival/deletion of the parent during this insertion.
       await tx.$queryRaw`SELECT id FROM "Tema" WHERE id = ${temaId} FOR UPDATE`;
       const tema = await tx.tema.findUnique({
         where: { id: temaId },
-        select: { nombre: true, estadoContenido: true },
+        select: { nombre: true, estadoContenido: true, area: true },
       });
       if (!tema) throw new NotFoundException('El tema no existe.');
+      if (tema.area !== initial.area)
+        throw new ConflictException(
+          'La clasificación cambió. Recarga el catálogo.',
+        );
       validateCatalogName(tema.nombre);
       if (tema.estadoContenido === EstadoContenido.ARCHIVADO)
         throw new BadRequestException(

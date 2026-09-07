@@ -17,6 +17,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AdminService } from './admin.service';
 import { AcademicCatalogService } from './academic-catalog.service';
+import { RetiredEditorialWrite } from './legacy-editorial-write.guard';
 import { ContentLifecycleService } from './content-lifecycle.service';
 import { ContentImportService } from './content-import.service';
 import { contentImportMulterOptions } from './content-import-upload.config';
@@ -366,6 +367,7 @@ export class AdminController {
   }
 
   @Patch('temas/:id/estado')
+  @RetiredEditorialWrite('GET/PATCH /admin/editor/revision/temas/:id')
   cambiarEstadoTema(
     @Param('id') id: string,
     @Body() body: CambiarEstadoContenidoDto,
@@ -374,6 +376,7 @@ export class AdminController {
   }
 
   @Delete('temas/:id')
+  @RetiredEditorialWrite('Archivar mediante /admin/editor/revision/temas/:id')
   eliminarTema(@Param('id') id: string) {
     return this.adminService.eliminarTema(id);
   }
@@ -385,6 +388,7 @@ export class AdminController {
   }
 
   @Patch('subtemas/:id/estado')
+  @RetiredEditorialWrite('GET/PATCH /admin/editor/revision/subtemas/:id')
   cambiarEstadoSubtema(
     @Param('id') id: string,
     @Body() body: CambiarEstadoContenidoDto,
@@ -393,6 +397,9 @@ export class AdminController {
   }
 
   @Delete('subtemas/:id')
+  @RetiredEditorialWrite(
+    'Archivar mediante /admin/editor/revision/subtemas/:id',
+  )
   eliminarSubtema(@Param('id') id: string) {
     return this.adminService.eliminarSubtema(id);
   }
@@ -409,6 +416,7 @@ export class AdminController {
   }
 
   @Post('preguntas')
+  @RetiredEditorialWrite('POST /admin/editor/preguntas')
   crearPregunta(@Body() body: CrearPreguntaDto) {
     return this.adminService.crearPregunta(
       body.enunciado,
@@ -424,6 +432,7 @@ export class AdminController {
 
   // La carga rápida también exige clasificación académica específica.
   @Post('preguntas-aleatorias')
+  @RetiredEditorialWrite('POST /admin/editor/preguntas con subtema específico')
   crearPreguntaAleatoria(@Body() body: CrearPreguntaAleatoriaDto) {
     return this.adminService.crearPreguntaAleatoria(
       body.subtemaId,
@@ -446,11 +455,13 @@ export class AdminController {
   }
 
   @Post('casos-preguntas')
+  @RetiredEditorialWrite('POST /admin/editor/casos')
   crearCasoPregunta(@Body() body: CrearCasoPreguntaDto) {
     return this.adminService.crearCasoPregunta(body);
   }
 
   @Patch('casos-preguntas/:id/estado')
+  @RetiredEditorialWrite('GET/PATCH /admin/editor/revision/casos/:id')
   cambiarEstadoCasoPregunta(
     @Param('id') id: string,
     @Body() body: CambiarEstadoContenidoDto,
@@ -459,6 +470,7 @@ export class AdminController {
   }
 
   @Patch('casos-preguntas/:id')
+  @RetiredEditorialWrite('GET/PATCH /admin/editor/casos/:id')
   actualizarCasoPregunta(
     @Param('id') id: string,
     @Body() body: ActualizarCasoPreguntaDto,
@@ -467,11 +479,13 @@ export class AdminController {
   }
 
   @Delete('casos-preguntas/:id')
+  @RetiredEditorialWrite('Archivar mediante /admin/editor/revision/casos/:id')
   eliminarCasoPregunta(@Param('id') id: string) {
     return this.adminService.eliminarCasoPregunta(id);
   }
 
   @Patch('preguntas/:id/caso')
+  @RetiredEditorialWrite('GET/PATCH /admin/editor/preguntas/:id')
   asignarCasoPregunta(
     @Param('id') id: string,
     @Body() body: AsignarCasoPreguntaDto,
@@ -484,6 +498,7 @@ export class AdminController {
   }
 
   @Patch('preguntas/:id/estado')
+  @RetiredEditorialWrite('GET/PATCH /admin/editor/revision/preguntas/:id')
   cambiarEstadoPregunta(
     @Param('id') id: string,
     @Body() body: CambiarEstadoContenidoDto,
@@ -509,11 +524,15 @@ export class AdminController {
   }
 
   @Delete('preguntas/:id')
+  @RetiredEditorialWrite(
+    'Archivar mediante /admin/editor/revision/preguntas/:id',
+  )
   eliminarPregunta(@Param('id') id: string) {
     return this.adminService.eliminarPregunta(id);
   }
 
   @Patch('subtemas/:id/contenido')
+  @RetiredEditorialWrite('GET /admin/editor/subtemas/:id y PATCH de /leccion')
   actualizarContenido(
     @Param('id') id: string,
     @Body() body: ActualizarContenidoDto,
@@ -528,6 +547,9 @@ export class AdminController {
 
   // Ejercicio interactivo (cloze)
   @Patch('subtemas/:id/interactivo')
+  @RetiredEditorialWrite(
+    'Edición CLOZE pendiente del contrato especializado C3-D2',
+  )
   actualizarInteractivo(
     @Param('id') id: string,
     @Body() body: ActualizarInteractivoDto,

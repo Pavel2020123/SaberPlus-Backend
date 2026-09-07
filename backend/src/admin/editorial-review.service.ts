@@ -8,6 +8,7 @@ import {
 import { AreaIcfes, EstadoContenido, Prisma } from '@prisma/client';
 import { createHash } from 'node:crypto';
 import { PrismaService } from '../prisma/prisma.service';
+import { lockEditorialArea } from './editorial-lock';
 import { createQuestionFingerprint } from '../common/question-fingerprint';
 import {
   validateAcademicClassification,
@@ -348,7 +349,7 @@ export class EditorialReviewService {
       );
     return this.prisma.$transaction(async (tx) => {
       const initial = await this.read(tx, tipo, id);
-      await tx.$queryRaw`SELECT 1::int AS locked FROM pg_advisory_xact_lock(hashtext(${`editor:area:${this.area(initial)}`}))`;
+      await lockEditorialArea(tx, this.area(initial));
       const temaId =
         initial.tipo === 'temas'
           ? initial.row.id

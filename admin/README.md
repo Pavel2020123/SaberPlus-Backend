@@ -1,9 +1,13 @@
-# Panel editorial de SaberPlus — 7F-C3-D1
+# Panel editorial de SaberPlus — 7F-C3-D2-A
+
+El backend retira las escrituras antiguas con HTTP 410 y concentra las activas
+en los servicios del editor con bloqueo común por área. El panel ya usa esas
+rutas; no hay cambio visual. [Compatibilidad y pendientes de D2](../backend/EDITORIAL_LEGACY_RETIREMENT.md).
 
 Primera entrega funcional: acceso ADMIN, navegación por las cinco áreas ICFES,
 catálogo paginado, estados editoriales y creación de temas/subtemas en borrador.
 Incluye revisión y cambios de estado en la demo. Las nuevas escrituras reales
-están desactivadas por defecto hasta unificar las rutas heredadas en D2.
+están desactivadas por defecto hasta completar D2 y preparar el ensayo D3.
 No elimina ni reclasifica contenido desde esta interfaz todavía.
 Ahora incluye lecciones, preguntas y casos en borrador, vista previa del texto,
 corrección protegida de nombres y control de preguntas repetidas. El cierre
@@ -258,10 +262,11 @@ Contrato ADMIN nuevo:
 ausente o `false` en entornos reales. GET funciona; PATCH devuelve 503 y la UI
 desactiva acciones. No activar hasta C3-D2 y el ensayo autorizado C3-D3. La
 plantilla `.env.example` documenta el valor, pero no se modificaron secretos,
-Render ni Supabase. Esta bandera solo afecta las rutas nuevas; no pretende
-desactivar los endpoints heredados, que aún necesitan unificación.
+Render ni Supabase. Esta bandera afecta las rutas nuevas; desde D2-A las
+escrituras heredadas se retiran por separado y devuelven 410 incluso con la
+bandera activa. D2 sigue incompleta: legado, CLOZE y concurrencia real pendientes.
 
-Verificación: 37 pruebas del panel (HTTP demo y dobles DOM); 359 pruebas en 57
+Verificación de D1: 37 pruebas del panel (HTTP demo y dobles DOM); 359 pruebas en 57
 suites del backend; compilación y lint focalizado correctos. El ensayo demo
 recorre creación, revisión, publicación y archivo jerárquicos. Sigue pendiente
 la prueba real en navegador/PostgreSQL/Flutter. No hubo migraciones ni publicación real.

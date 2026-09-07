@@ -109,8 +109,10 @@ describe('LessonEditorService', () => {
   it('guarda bajo bloqueo sin publicar ni modificar clasificación', async () => {
     const result = await save();
     expect(result.estadoContenido).toBe('BORRADOR');
-    expect(tx.$queryRaw).toHaveBeenCalledTimes(3);
-    expect(tx.$queryRaw.mock.invocationCallOrder[2]).toBeLessThan(
+    expect(tx.$queryRaw).toHaveBeenCalledTimes(4);
+    expect(tx.$queryRaw.mock.calls[0][1]).toBe('editor:area:MATEMATICAS');
+    expect(tx.$queryRaw.mock.calls[1][1]).toBe('catalogo:tema:t1');
+    expect(tx.$queryRaw.mock.invocationCallOrder[3]).toBeLessThan(
       tx.subtema.update.mock.invocationCallOrder[0],
     );
     expect(tx.subtema.update).toHaveBeenCalledWith({

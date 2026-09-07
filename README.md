@@ -11,6 +11,9 @@ reglas de negocio. La aplicacion Flutter no accede directamente a PostgreSQL.
 - `admin/`: panel editorial 7F-C3-D1, con acceso ADMIN, catálogo, editores y
   revisión/publicación en demo. Nuevas escrituras reales apagadas hasta D2.
   Instrucciones en [admin/README.md](admin/README.md).
+- **7F-C3-D2-A:** escrituras heredadas retiradas y bloqueo editorial común por
+  área. Cambio de compatibilidad HTTP 410; no desplegado automáticamente.
+  [Rutas y condiciones de despliegue](backend/EDITORIAL_LEGACY_RETIREMENT.md).
 
 ## Desarrollo local
 

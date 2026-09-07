@@ -7,6 +7,7 @@ import {
 import { createHash } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { lockEditorialArea } from './editorial-lock';
 import {
   catalogNameKey,
   isGenericCatalogName,
@@ -118,6 +119,10 @@ export class LessonEditorService {
   ) {
     return this.prisma.$transaction(async (tx) => {
       const initial = await this.row(tx, kind, id);
+      await lockEditorialArea(
+        tx,
+        'temaId' in initial ? initial.tema.area : initial.area,
+      );
       const scope =
         'temaId' in initial
           ? `catalogo:tema:${initial.temaId}`

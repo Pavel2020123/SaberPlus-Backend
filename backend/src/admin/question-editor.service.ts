@@ -7,6 +7,7 @@ import {
 import { AreaIcfes, Prisma } from '@prisma/client';
 import { createHash } from 'node:crypto';
 import { PrismaService } from '../prisma/prisma.service';
+import { lockEditorialArea } from './editorial-lock';
 import { createQuestionFingerprint } from '../common/question-fingerprint';
 import { validateAcademicClassification } from './academic-classification';
 import { lessonUrl } from './lesson-editor.service';
@@ -179,7 +180,7 @@ export class QuestionEditorService {
       imagenUrl: lessonUrl(body.imagenUrl),
     };
     return this.prisma.$transaction(async (tx) => {
-      await tx.$queryRaw`SELECT 1::int AS locked FROM pg_advisory_xact_lock(hashtext(${`editor:area:${body.area}`}))`;
+      await lockEditorialArea(tx, body.area);
       if (id) {
         await tx.$queryRaw`SELECT id FROM "CasoPregunta" WHERE id = ${id} FOR UPDATE`;
         const row = await this.case(tx, id);
@@ -248,7 +249,7 @@ export class QuestionEditorService {
       });
       if (!initial) throw new NotFoundException('El subtema no existe.');
       const area = initial.tema.area;
-      await tx.$queryRaw`SELECT 1::int AS locked FROM pg_advisory_xact_lock(hashtext(${`editor:area:${area}`}))`;
+      await lockEditorialArea(tx, area);
       await tx.$queryRaw`SELECT id FROM "Tema" WHERE id = ${initial.temaId} FOR UPDATE`;
       await tx.$queryRaw`SELECT id FROM "Subtema" WHERE id = ${body.subtemaId} FOR UPDATE`;
       const parent = await tx.subtema.findUnique({

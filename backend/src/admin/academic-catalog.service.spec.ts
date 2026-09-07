@@ -86,7 +86,9 @@ describe('AcademicCatalogService', () => {
 
   it('crea el subtema bajo su tema, sin área independiente', async () => {
     await service.crearSubtema('Ecuaciones', 't1');
-    expect(tx.$queryRaw).toHaveBeenCalledTimes(2);
+    expect(tx.$queryRaw).toHaveBeenCalledTimes(3);
+    expect(tx.$queryRaw.mock.calls[0][1]).toBe('editor:area:MATEMATICAS');
+    expect(tx.$queryRaw.mock.calls[1][1]).toBe('catalogo:tema:t1');
     expect(subtema.create).toHaveBeenCalledWith({
       data: { nombre: 'Ecuaciones', temaId: 't1', estadoContenido: 'BORRADOR' },
     });
@@ -104,6 +106,35 @@ describe('AcademicCatalogService', () => {
     expect(subtema.create).not.toHaveBeenCalled();
   });
 
+  it('relee el padre después del bloqueo y no inserta si fue archivado', async () => {
+    tema.findUnique
+      .mockResolvedValueOnce({ area: 'MATEMATICAS' })
+      .mockResolvedValueOnce({
+        nombre: 'Álgebra',
+        area: 'MATEMATICAS',
+        estadoContenido: 'ARCHIVADO',
+      });
+    await expect(service.crearSubtema('Sumas', 't1')).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    expect(tema.findUnique).toHaveBeenCalledTimes(2);
+    expect(subtema.create).not.toHaveBeenCalled();
+  });
+
+  it('rechaza un cambio de área detectado tras adquirir el bloqueo', async () => {
+    tema.findUnique
+      .mockResolvedValueOnce({ area: 'MATEMATICAS' })
+      .mockResolvedValueOnce({
+        nombre: 'Otro',
+        area: 'INGLES',
+        estadoContenido: 'BORRADOR',
+      });
+    await expect(service.crearSubtema('Sumas', 't1')).rejects.toBeInstanceOf(
+      ConflictException,
+    );
+    expect(subtema.create).not.toHaveBeenCalled();
+  });
+
   it('rechaza un padre inexistente', async () => {
     tema.findUnique.mockResolvedValue(null);
     await expect(
@@ -113,8 +144,12 @@ describe('AcademicCatalogService', () => {
   });
 
   it.each([
-    { nombre: 'Álgebra', estadoContenido: 'ARCHIVADO' },
-    { nombre: 'Banco General', estadoContenido: 'PUBLICADO' },
+    { nombre: 'Álgebra', estadoContenido: 'ARCHIVADO', area: 'MATEMATICAS' },
+    {
+      nombre: 'Banco General',
+      estadoContenido: 'PUBLICADO',
+      area: 'MATEMATICAS',
+    },
   ])('rechaza un padre no utilizable: %j', async (parent) => {
     tema.findUnique.mockResolvedValue(parent);
     await expect(

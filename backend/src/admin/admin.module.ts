@@ -13,6 +13,7 @@ import { QuestionEditorService } from './question-editor.service';
 import { QuestionEditorController } from './question-editor.controller';
 import { EditorialReviewService } from './editorial-review.service';
 import { EditorialReviewController } from './editorial-review.controller';
+import { LegacyEditorialWriteGuard } from './legacy-editorial-write.guard';
 
 @Module({
   imports: [PrismaModule],
@@ -31,6 +32,7 @@ import { EditorialReviewController } from './editorial-review.controller';
     LessonEditorService,
     QuestionEditorService,
     EditorialReviewService,
+    LegacyEditorialWriteGuard,
     ContentLifecycleService,
     ContentImportService,
     ContentPackageReaderService,
