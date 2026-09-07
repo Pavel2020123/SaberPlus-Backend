@@ -1,4 +1,5 @@
 import { CatalogApi, PanelError } from "./api.mjs";
+import { LessonEditor } from "./lesson-editor.mjs";
 
 const $ = (id) => document.getElementById(id);
 const config = globalThis.SABERPLUS_CONFIG;
@@ -18,6 +19,28 @@ let themesVersion = 0,
 const api = new CatalogApi(config.apiBase, {
   onSessionExpired: () =>
     showLogin("La sesión terminó o tus permisos cambiaron. Ingresa de nuevo."),
+});
+const editor = new LessonEditor({
+  api,
+  busy: () => state.busy,
+  setBusy: (value) => {
+    state.busy = value;
+    updateControls();
+  },
+  onSaved: (kind, record) => {
+    const page = kind === "temas" ? state.themes : state.subs;
+    const row = page?.items.find((item) => item.id === record.id);
+    if (row) {
+      row.nombre = record.nombre;
+      row.estadoContenido = record.estadoContenido;
+    }
+    if (kind === "temas" && state.theme?.id === record.id)
+      state.theme.nombre = record.nombre;
+    renderList(kind, page);
+    notice(
+      "Cambio guardado en borrador. Actualizar catálogo reordena la lista.",
+    );
+  },
 });
 const stateLabels = {
   BORRADOR: "Borrador",
@@ -53,6 +76,7 @@ function notice(message = "", error = false) {
   $("notice").className = `notice ${error ? "error" : "success"}`;
 }
 function showLogin(message = "") {
+  editor.close(true);
   sessionVersion++;
   api.logout();
   themesVersion++;
@@ -93,6 +117,7 @@ function updateControls() {
     ? "Guardando…"
     : "+ Crear subtema";
   $("refresh").disabled = state.busy;
+  $("theme-edit").disabled = state.busy || !state.theme;
   for (const [prefix, page, data] of [
     ["themes", state.themePage, state.themes],
     ["subthemes", state.subPage, state.subs],
@@ -141,15 +166,11 @@ function renderList(kind, data, message) {
   }
   target.replaceChildren(
     ...data.items.map((row) => {
-      const item = element(
-        kind === "temas" ? "button" : "article",
-        undefined,
-        "item",
-      );
+      const item = element("button", undefined, "item");
       if (kind === "temas") {
         item.setAttribute("aria-pressed", String(row.id === state.theme?.id));
         item.onclick = () => selectTheme(row);
-      }
+      } else item.onclick = () => editor.open("subtemas", row.id, row.temaId);
       item.append(element("span", row.nombre, "item-name"));
       const details = element("span", undefined, "item-details");
       const count = row._count?.[kind === "temas" ? "subtemas" : "preguntas"];
@@ -180,6 +201,7 @@ function renderList(kind, data, message) {
 }
 async function selectArea(area) {
   if (state.busy) return;
+  if (!editor.close()) return;
   state.area = area;
   state.theme = null;
   state.themePage = 1;
@@ -199,6 +221,7 @@ async function selectArea(area) {
 }
 async function loadThemes() {
   if (!state.area || !api.authenticated) return;
+  if (!editor.close()) return;
   const version = ++themesVersion;
   state.themes = null;
   state.theme = null;
@@ -223,6 +246,7 @@ async function loadThemes() {
 }
 async function selectTheme(theme) {
   if (state.busy) return;
+  if (!editor.close()) return;
   state.theme = theme;
   state.subPage = 1;
   $("subtheme-name").value = "";
@@ -232,6 +256,7 @@ async function selectTheme(theme) {
 }
 async function loadSubs() {
   if (!state.theme || !api.authenticated) return;
+  if (!editor.close()) return;
   const version = ++subsVersion;
   state.subs = null;
   renderList("subtemas", null, "Cargando subtemas…");
@@ -278,6 +303,7 @@ async function enter(correo, contrasena) {
 }
 async function create(kind, input) {
   if (state.busy || !api.authenticated) return;
+  if (!editor.close()) return;
   const parent = kind === "temas" ? state.area : state.theme;
   if (!parent) return;
   const session = sessionVersion;
@@ -327,7 +353,16 @@ $("login-form").onsubmit = (event) => {
 $("demo-login").onclick = () => {
   void enter("demo@saberplus.invalid", "solo-demostracion");
 };
-$("logout").onclick = () => showLogin("Sesión cerrada en esta pestaña.");
+$("logout").onclick = () => {
+  if (
+    !editor.dirty ||
+    window.confirm("Hay cambios sin guardar. ¿Cerrar sesión y descartarlos?")
+  )
+    showLogin("Sesión cerrada en esta pestaña.");
+};
+$("theme-edit").onclick = () => {
+  if (state.theme) void editor.open("temas", state.theme.id, state.area.id);
+};
 $("theme-form").onsubmit = (event) => {
   event.preventDefault();
   void create("temas", "theme-name");
@@ -347,11 +382,18 @@ for (const [id, key, delta, load] of [
   ["subthemes-next", "subPage", 1, loadSubs],
 ])
   $(id).onclick = () => {
+    if (!editor.close()) return;
     state[key] += delta;
     notice();
     void load();
   };
 window.addEventListener("pagehide", () => api.logout());
+window.addEventListener("beforeunload", (event) => {
+  if (editor.dirty || state.busy) {
+    event.preventDefault();
+    event.returnValue = "";
+  }
+});
 window.addEventListener("pageshow", (event) => {
   if (event.persisted) showLogin();
 });

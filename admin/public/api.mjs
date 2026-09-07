@@ -1,3 +1,5 @@
+import { lessonFields } from "./lesson-fields.mjs";
+
 export class PanelError extends Error {
   constructor(message, status = 0) {
     super(message);
@@ -157,6 +159,59 @@ export class CatalogApi {
       },
     });
   }
+  async editor(kind, id, parent, update) {
+    if (
+      !["temas", "subtemas"].includes(kind) ||
+      typeof id !== "string" ||
+      !id ||
+      !parent
+    )
+      throw new PanelError("Selección de editor inválida.");
+    let options;
+    let suffix = "";
+    if (update) {
+      if (!/^[a-f0-9]{64}$/.test(update.revision))
+        throw new PanelError("Recarga el registro antes de guardar.");
+      const rename = update.nombre !== undefined;
+      if (!rename && kind !== "subtemas")
+        throw new PanelError("Selecciona una lección.");
+      suffix = rename ? "/nombre" : "/leccion";
+      options = {
+        method: "PATCH",
+        body: {
+          revision: update.revision,
+          ...(rename
+            ? { nombre: validateName(update.nombre) }
+            : lessonFields(update)),
+        },
+      };
+    }
+    const data = await this.#protected(
+      `/admin/editor/${kind}/${encodeURIComponent(id)}${suffix}`,
+      options,
+    );
+    if (
+      !data ||
+      data.id !== id ||
+      data[kind === "temas" ? "area" : "temaId"] !== parent ||
+      typeof data.nombre !== "string" ||
+      !data.nombre.trim() ||
+      !/^[a-f0-9]{64}$/.test(data.revision) ||
+      !["BORRADOR", "EN_REVISION", "PUBLICADO", "ARCHIVADO"].includes(
+        data.estadoContenido,
+      ) ||
+      ["editable", "renombrable"].some(
+        (key) => typeof data[key] !== "boolean",
+      ) ||
+      ["contenido", "videoUrl", "imagenUrl", "motivo"].some(
+        (key) => typeof data[key] !== "string",
+      )
+    )
+      throw new PanelError(
+        "No pudimos validar el registro. Consulta de nuevo antes de reenviar cambios.",
+      );
+    return data;
+  }
   #protected(path, options) {
     if (!this.#token)
       throw new PanelError("Inicia sesión para continuar.", 401);
@@ -194,7 +249,7 @@ export class CatalogApi {
             401: "Credenciales incorrectas o sesión vencida. Inicia sesión nuevamente.",
             403: "No tienes permiso editorial para esta operación.",
             404: "Este recurso o la versión del catálogo no está disponible en el servidor.",
-            409: "Ese nombre ya existe aquí, incluso si está archivado. Revisa el registro existente.",
+            409: "El registro cambió o ese nombre ya existe. Conserva tu texto y recarga para revisar antes de guardar de nuevo.",
             429: "Demasiados intentos. Espera un momento antes de volver a intentar.",
           }[response.status] || "El servidor no pudo completar la solicitud.",
           response.status,

@@ -123,6 +123,9 @@
                 <span class="panel-count" id="themes-count">—</span>
               </div>
               <p class="hint">Selecciona un tema para ver sus subtemas.</p>
+              <button id="theme-edit" class="secondary" disabled>
+                Corregir nombre del tema seleccionado
+              </button>
               <div id="themes-list" class="items" aria-live="polite"></div>
               <div class="pagination">
                 <button
@@ -166,7 +169,7 @@
                 <span class="panel-count" id="subthemes-count">—</span>
               </div>
               <p class="hint">
-                Cada lección y pregunta pertenecerá a un subtema específico.
+                Selecciona un subtema para escribir o consultar su lección.
               </p>
               <div id="subthemes-list" class="items" aria-live="polite"></div>
               <div class="pagination">
@@ -203,9 +206,84 @@
               </form>
             </section>
           </div>
+          <section
+            id="lesson-editor"
+            class="catalog-panel lesson-editor"
+            hidden
+            aria-labelledby="editor-title"
+          >
+            <div class="panel-heading">
+              <h2 id="editor-title" tabindex="-1">Editor de lección</h2>
+              <button id="editor-close" class="secondary">Cerrar editor</button>
+            </div>
+            <p id="editor-policy" class="hint"></p>
+            <p id="editor-message" role="status" aria-live="polite"></p>
+            <button id="editor-reload" class="secondary">
+              Recargar versión del servidor
+            </button>
+            <form id="rename-form" class="create-form">
+              <label for="editor-name">Nombre académico</label>
+              <input id="editor-name" maxlength="120" required />
+              <button id="editor-rename" class="secondary" type="submit">
+                Guardar nombre
+              </button>
+            </form>
+            <div class="catalog-grid">
+              <form id="lesson-form" class="create-form">
+                <h3>Contenido de la lección</h3>
+                <label for="lesson-text">Texto en Markdown</label>
+                <textarea
+                  id="lesson-text"
+                  rows="18"
+                  maxlength="30000"
+                  placeholder="# Título&#10;&#10;Explicación y ejemplos…"
+                ></textarea>
+                <p id="lesson-length" class="hint"></p>
+                <label for="lesson-video"
+                  >URL del video (opcional, HTTPS)</label
+                >
+                <input
+                  id="lesson-video"
+                  type="url"
+                  maxlength="2000"
+                  placeholder="https://…"
+                />
+                <label for="lesson-image"
+                  >URL de la imagen (opcional, HTTPS)</label
+                >
+                <input
+                  id="lesson-image"
+                  type="url"
+                  maxlength="2000"
+                  placeholder="https://…"
+                />
+                <p class="hint">
+                  Dejar una referencia vacía la elimina del borrador. La carga
+                  de archivos llegará en 7F-C5.
+                </p>
+                <button id="lesson-save" class="primary" type="submit">
+                  Guardar lección en borrador
+                </button>
+              </form>
+              <section
+                id="preview-section"
+                class="create-form"
+                aria-labelledby="preview-title"
+              >
+                <h3 id="preview-title">Vista previa del texto</h3>
+                <p class="hint">
+                  Vista simplificada: títulos con #, ##, ### y viñetas con -.
+                  Otros formatos se muestran literalmente; la app usa Markdown
+                  completo. No se cargan imágenes ni videos automáticamente.
+                </p>
+                <div id="lesson-preview" class="lesson-preview"></div>
+                <div id="lesson-references" class="lesson-references"></div>
+              </section>
+            </div>
+          </section>
           <footer class="workspace-footer">
-            <span>7F-C3-A · Acceso y organización del catálogo</span
-            ><span>Próxima entrega: editor de lecciones y preguntas</span>
+            <span>7F-C3-B · Editor de lecciones en borrador</span
+            ><span>Próxima entrega: preguntas y casos</span>
           </footer>
         </div>
       </section>

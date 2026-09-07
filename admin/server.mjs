@@ -8,6 +8,14 @@ const assets = new Map([
   ["/", ["index.html", "text/html; charset=utf-8"]],
   ["/app.mjs", ["app.mjs", "text/javascript; charset=utf-8"]],
   ["/api.mjs", ["api.mjs", "text/javascript; charset=utf-8"]],
+  [
+    "/lesson-fields.mjs",
+    ["lesson-fields.mjs", "text/javascript; charset=utf-8"],
+  ],
+  [
+    "/lesson-editor.mjs",
+    ["lesson-editor.mjs", "text/javascript; charset=utf-8"],
+  ],
   ["/styles.css", ["styles.css", "text/css; charset=utf-8"]],
 ]);
 

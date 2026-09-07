@@ -7,15 +7,22 @@ import { ContentImportService } from './content-import.service';
 import { ContentPackageReaderService } from './content-package-reader.service';
 import { AcademicCatalogController } from './academic-catalog.controller';
 import { AcademicCatalogService } from './academic-catalog.service';
+import { LessonEditorService } from './lesson-editor.service';
+import { LessonEditorController } from './lesson-editor.controller';
 
 @Module({
   imports: [PrismaModule],
 
-  controllers: [AdminController, AcademicCatalogController],
+  controllers: [
+    AdminController,
+    AcademicCatalogController,
+    LessonEditorController,
+  ],
 
   providers: [
     AdminService,
     AcademicCatalogService,
+    LessonEditorService,
     ContentLifecycleService,
     ContentImportService,
     ContentPackageReaderService,

@@ -1,4 +1,6 @@
-import { randomUUID } from "node:crypto";
+import { randomUUID, createHash } from "node:crypto";
+import { lessonFields } from "./public/lesson-fields.mjs";
+import { validateName } from "./public/api.mjs";
 
 // Local-only fixtures. This module has no network or database dependencies.
 const areas = [
@@ -73,19 +75,50 @@ export function createDemoApi() {
     });
     res.end(JSON.stringify(body));
   };
+  const editorView = (kind, row) => {
+    const sub = kind === "subtemas";
+    const parent = sub ? themes.find((theme) => theme.id === row.temaId) : null;
+    const count = subthemes.filter((item) => item.temaId === row.id).length;
+    const draft = row.estadoContenido === "BORRADOR";
+    const editable = sub && draft && parent.estadoContenido !== "ARCHIVADO";
+    const renombrable = sub
+      ? editable && !row._count.preguntas
+      : draft && count === 0;
+    return {
+      id: row.id,
+      nombre: row.nombre,
+      estadoContenido: row.estadoContenido,
+      area: sub ? parent.area : row.area,
+      temaId: sub ? row.temaId : null,
+      contenido: row.contenido ?? "",
+      videoUrl: row.videoUrl ?? "",
+      imagenUrl: row.imagenUrl ?? "",
+      revision: createHash("sha256")
+        .update(JSON.stringify([row, parent, count]))
+        .digest("hex"),
+      editable,
+      renombrable,
+      motivo:
+        editable || renombrable
+          ? ""
+          : "Solo lectura: no es un borrador vacío sin uso académico.",
+    };
+  };
   return async (req, res, url) => {
     let body = {};
-    if (req.method === "POST") {
+    if (["POST", "PATCH"].includes(req.method)) {
       let raw = "";
       for await (const chunk of req) {
         raw += chunk;
-        if (Buffer.byteLength(raw) > 8192) {
+        if (Buffer.byteLength(raw) > 200000) {
           send(res, 413, {});
           return;
         }
       }
       try {
         body = JSON.parse(raw);
+        if (!body || typeof body !== "object" || Array.isArray(body))
+          throw new Error();
       } catch {
         send(res, 400, {});
         return;
@@ -120,6 +153,60 @@ export function createDemoApi() {
     }
     if (path === "/admin/catalogo/areas" && req.method === "GET") {
       send(res, 200, areas);
+      return;
+    }
+    const editorMatch =
+      /^\/admin\/editor\/(temas|subtemas)\/([^/]+)(?:\/(nombre|leccion))?$/.exec(
+        path,
+      );
+    if (editorMatch) {
+      const [, kind, id, action] = editorMatch;
+      const collection = kind === "temas" ? themes : subthemes;
+      const row = collection.find((item) => item.id === decodeURIComponent(id));
+      if (!row) {
+        send(res, 404, {});
+        return;
+      }
+      const current = editorView(kind, row);
+      if (req.method === "GET" && !action) {
+        send(res, 200, current);
+        return;
+      }
+      if (req.method !== "PATCH" || !action) {
+        send(res, 405, {});
+        return;
+      }
+      if (body.revision !== current.revision) {
+        send(res, 409, {});
+        return;
+      }
+      try {
+        if (action === "nombre") {
+          if (!current.renombrable) throw new Error();
+          const nombre = validateName(body.nombre);
+          if (
+            collection.some(
+              (item) =>
+                item.id !== row.id &&
+                key(item.nombre) === key(nombre) &&
+                (kind === "temas"
+                  ? item.area === row.area
+                  : item.temaId === row.temaId),
+            )
+          ) {
+            send(res, 409, {});
+            return;
+          }
+          row.nombre = nombre;
+        } else {
+          if (!current.editable) throw new Error();
+          Object.assign(row, lessonFields(body));
+        }
+        row.editorVersion = randomUUID();
+        send(res, 200, editorView(kind, row));
+      } catch {
+        send(res, 400, {});
+      }
       return;
     }
     if (
@@ -164,12 +251,10 @@ export function createDemoApi() {
         limite: limit,
         hayMas: rows.length > page * limit,
         ...(parent ? { tema: parent } : {}),
-        items: rows
-          .slice((page - 1) * limit, page * limit)
-          .map((row) => ({
-            ...row,
-            requiereClasificacion: key(row.nombre) === "banco general",
-          })),
+        items: rows.slice((page - 1) * limit, page * limit).map((row) => ({
+          ...row,
+          requiereClasificacion: key(row.nombre) === "banco general",
+        })),
       });
       return;
     }
