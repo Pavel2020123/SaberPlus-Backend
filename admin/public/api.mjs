@@ -1,5 +1,18 @@
 import { lessonFields } from "./lesson-fields.mjs";
 import { questionFields, caseFields } from "./question-fields.mjs";
+import {
+  areas as toolAreas,
+  hash,
+  id as toolId,
+  count,
+  states as toolStates,
+  requireValid,
+  clozeFields,
+  clozeDetail,
+  batchDetail,
+  cursorPage,
+  reclassificationDetail,
+} from "./editorial-tool-fields.mjs";
 
 export class PanelError extends Error {
   constructor(message, status = 0) {
@@ -359,6 +372,110 @@ export class CatalogApi {
       throw new PanelError(
         "No pudimos validar la revisión; consulta de nuevo antes de reenviar.",
       );
+    return row;
+  }
+  async cloze(id, parent, change) {
+    requireValid(toolId(id) && toolId(parent), "Selecciona un subtema.");
+    let body;
+    if (change) {
+      requireValid(
+        hash(change.revision),
+        "Recarga el ejercicio antes de guardar.",
+      );
+      if (change.retirar) {
+        requireValid(
+          change.confirmado === true,
+          "Confirma el retiro del ejercicio.",
+        );
+        body = { revision: change.revision, confirmado: true };
+      } else
+        body = {
+          revision: change.revision,
+          datosInteractivo: clozeFields(change.datosInteractivo),
+        };
+    }
+    const row = await this.#protected(
+      `/admin/editor/subtemas/${encodeURIComponent(id)}/cloze${change?.retirar ? "/retirar" : ""}`,
+      body ? { method: "PATCH", body } : undefined,
+    );
+    return clozeDetail(row, id, parent);
+  }
+  async legacyBatch(area, limite = 25, change) {
+    requireValid(
+      toolAreas.includes(area) &&
+        Number.isInteger(limite) &&
+        limite >= 1 &&
+        limite <= 100,
+    );
+    if (change)
+      requireValid(hash(change.revision) && change.confirmado === true);
+    const row = await this.#protected(
+      `/admin/editor/legado/indice/lote${change ? "" : `?${new URLSearchParams({ area, limite })}`}`,
+      change
+        ? {
+            method: "POST",
+            body: { area, limite, revision: change.revision, confirmado: true },
+          }
+        : undefined,
+    );
+    if (!change) return batchDetail(row, area, limite);
+    requireValid(
+      row?.area === area &&
+        count(row.indexadas) &&
+        row.indexadas <= limite &&
+        Array.isArray(row.ids) &&
+        row.ids.length === row.indexadas &&
+        row.ids.every(toolId) &&
+        new Set(row.ids).size === row.ids.length &&
+        count(row.pendientesEnArea) &&
+        typeof row.advertencia === "string",
+    );
+    return row;
+  }
+  async legacyReport(area, fingerprint, after) {
+    requireValid(
+      toolAreas.includes(area) &&
+        (fingerprint === undefined || hash(fingerprint)) &&
+        (after === undefined || (fingerprint ? toolId(after) : hash(after))),
+    );
+    const query = new URLSearchParams({
+      area,
+      limite: fingerprint ? "25" : "10",
+      ...(after ? { despues: after } : {}),
+    });
+    const row = await this.#protected(
+      `/admin/editor/legado/indice/${fingerprint ? `coincidencias/${fingerprint}` : "duplicados"}?${query}`,
+    );
+    return cursorPage(row, area, fingerprint, after);
+  }
+  async reclassify(id, destinoSubtemaId, change) {
+    requireValid(
+      toolId(id) && toolId(destinoSubtemaId),
+      "Selecciona pregunta y destino.",
+    );
+    if (change)
+      requireValid(hash(change.revision) && change.confirmado === true);
+    const row = await this.#protected(
+      `/admin/editor/reclasificacion/preguntas/${encodeURIComponent(id)}${change ? "" : `?${new URLSearchParams({ destinoSubtemaId })}`}`,
+      change
+        ? {
+            method: "PATCH",
+            body: {
+              destinoSubtemaId,
+              revision: change.revision,
+              confirmado: true,
+            },
+          }
+        : undefined,
+    );
+    if (!change) return reclassificationDetail(row, id, destinoSubtemaId);
+    requireValid(
+      row?.pregunta?.id === id &&
+        row.pregunta.subtemaId === destinoSubtemaId &&
+        toolStates.includes(row.pregunta.estadoContenido) &&
+        toolId(row.origenSubtemaId) &&
+        typeof row.mensaje === "string",
+    );
     return row;
   }
   #protected(path, options) {

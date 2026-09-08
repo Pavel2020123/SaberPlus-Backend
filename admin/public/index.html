@@ -104,6 +104,9 @@
               </p>
             </div>
             <button id="refresh" class="secondary">Actualizar catálogo</button>
+            <button id="area-legacy" class="secondary" disabled>
+              Revisar banco antiguo
+            </button>
             <button id="area-cases" class="secondary" disabled>
               Casos del área
             </button>
@@ -221,6 +224,9 @@
               <button id="lesson-review" class="secondary" disabled>
                 Revisar estado y publicación
               </button>
+              <button id="editor-cloze" class="secondary" disabled>
+                Completar espacios (CLOZE)
+              </button>
               <button id="editor-questions" class="secondary" disabled>
                 Preguntas de este subtema
               </button>
@@ -319,6 +325,14 @@
             </button>
             <button id="bank-reload" class="secondary" type="button">
               Recargar registro seleccionado
+            </button>
+            <button
+              id="bank-reclassify"
+              type="button"
+              class="secondary"
+              disabled
+            >
+              Revisar clasificación
             </button>
             <button id="bank-review" type="button" class="secondary" disabled>
               Revisar estado y publicación
@@ -426,9 +440,26 @@
             <div id="review-content" class="lesson-preview"></div>
             <div id="review-actions" class="review-actions"></div>
           </section>
+          <section
+            id="tools-panel"
+            class="catalog-panel lesson-editor"
+            hidden
+            aria-labelledby="tools-heading"
+          >
+            <div class="panel-heading">
+              <h2 id="tools-heading" tabindex="-1">Herramientas editoriales</h2>
+              <button id="tools-close" type="button" class="secondary">
+                Cerrar herramientas
+              </button>
+            </div>
+            <p id="tools-message" role="status" aria-live="polite"></p>
+            <div id="tools-content"></div>
+          </section>
           <footer class="workspace-footer">
-            <span>7F-C3-D1 · Revisión y publicación editorial</span
-            ><span>Próxima entrega: legado y unificación de rutas</span>
+            <span>7F-C3-D2-E · CLOZE y banco antiguo</span
+            ><span
+              >Pendiente: verificación visual, PostgreSQL y ensayo real</span
+            >
           </footer>
         </div>
       </section>

@@ -615,3 +615,33 @@ input:disabled {
   margin-top: 16px;
   overflow-wrap: anywhere;
 }
+#tools-content {
+  overflow-wrap: anywhere;
+}
+#tools-content label {
+  display: block;
+  margin: 12px 0;
+}
+#tools-content label input,
+#tools-content select {
+  display: block;
+  width: 100%;
+  font: inherit;
+  padding: 10px;
+  margin-top: 6px;
+}
+#tools-content button {
+  margin: 6px 6px 6px 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+#tools-content fieldset {
+  min-width: 0;
+  margin: 16px 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+#tools-content fieldset textarea {
+  min-height: 70px;
+}

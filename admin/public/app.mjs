@@ -2,6 +2,7 @@ import { CatalogApi, PanelError } from "./api.mjs";
 import { LessonEditor } from "./lesson-editor.mjs";
 import { QuestionEditor } from "./question-editor.mjs";
 import { EditorialReview } from "./editorial-review.mjs";
+import { EditorialTools } from "./editorial-tools.mjs";
 
 const $ = (id) => document.getElementById(id);
 const config = globalThis.SABERPLUS_CONFIG;
@@ -53,7 +54,7 @@ const bank = new QuestionEditor({
   },
 });
 function closeEditors() {
-  return editor.close() && bank.close() && review.close();
+  return editor.close() && bank.close() && review.close() && tools.close();
 }
 const review = new EditorialReview({
   api,
@@ -64,8 +65,21 @@ const review = new EditorialReview({
   },
 });
 function openLesson(kind, id, parent) {
-  if (bank.close() && review.close()) void editor.open(kind, id, parent);
+  if (bank.close() && review.close() && tools.close())
+    void editor.open(kind, id, parent);
 }
+const tools = new EditorialTools({
+  api,
+  busy: () => state.busy,
+  setBusy: (value) => {
+    state.busy = value;
+    updateControls();
+  },
+  onLesson: (row) => openLesson("subtemas", row.id, row.temaId),
+  onReview: (row) => {
+    if (closeEditors()) void review.open("subtemas", row.id);
+  },
+});
 const stateLabels = {
   BORRADOR: "Borrador",
   EN_REVISION: "En revisión",
@@ -103,6 +117,7 @@ function showLogin(message = "") {
   editor.close(true);
   bank.close(true);
   review.close(true);
+  tools.close(true);
   sessionVersion++;
   api.logout();
   themesVersion++;
@@ -146,6 +161,11 @@ function updateControls() {
   $("lesson-review").disabled = state.busy || !editor.record;
   $("bank-review").disabled = state.busy || !bank.record;
   $("area-cases").disabled = state.busy || !state.area;
+  $("area-legacy").disabled = state.busy || !state.area;
+  $("editor-cloze").disabled =
+    state.busy || !editor.record || editor.kind !== "subtemas";
+  $("bank-reclassify").disabled =
+    state.busy || !bank.record || bank.kind !== "preguntas";
   $("editor-questions").disabled =
     state.busy || !editor.record || editor.kind !== "subtemas";
   $("theme-edit").disabled = state.busy || !state.theme;
@@ -386,7 +406,7 @@ $("demo-login").onclick = () => {
 };
 $("logout").onclick = () => {
   if (
-    (!editor.dirty && !bank.dirty) ||
+    (!editor.dirty && !bank.dirty && !tools.dirty) ||
     window.confirm("Hay cambios sin guardar. ¿Cerrar sesión y descartarlos?")
   )
     showLogin("Sesión cerrada en esta pestaña.");
@@ -395,7 +415,7 @@ $("theme-edit").onclick = () => {
   if (state.theme) openLesson("temas", state.theme.id, state.area.id);
 };
 $("area-cases").onclick = () => {
-  if (state.area && editor.close() && review.close())
+  if (state.area && editor.close() && review.close() && tools.close())
     void bank.open("casos", { ...state.area, area: state.area.id });
 };
 $("editor-questions").onclick = () => {
@@ -423,6 +443,19 @@ function openReview(source) {
 }
 $("lesson-review").onclick = () => openReview(editor);
 $("bank-review").onclick = () => openReview(bank);
+$("editor-cloze").onclick = () => {
+  const row = editor.record;
+  if (row && editor.kind === "subtemas" && closeEditors())
+    void tools.openCloze(row);
+};
+$("area-legacy").onclick = () => {
+  if (state.area && closeEditors()) tools.openLegacy(state.area);
+};
+$("bank-reclassify").onclick = () => {
+  const row = bank.record;
+  if (row && bank.kind === "preguntas" && state.area && closeEditors())
+    tools.openLegacy(state.area, row.id);
+};
 $("theme-form").onsubmit = (event) => {
   event.preventDefault();
   void create("temas", "theme-name");
@@ -449,7 +482,7 @@ for (const [id, key, delta, load] of [
   };
 window.addEventListener("pagehide", () => api.logout());
 window.addEventListener("beforeunload", (event) => {
-  if (editor.dirty || bank.dirty || state.busy) {
+  if (editor.dirty || bank.dirty || tools.dirty || state.busy) {
     event.preventDefault();
     event.returnValue = "";
   }

@@ -6,6 +6,7 @@ import {
 } from "./public/question-fields.mjs";
 import { referenceUrl } from "./public/lesson-fields.mjs";
 import { validateName } from "./public/api.mjs";
+import { clozeFields } from "./public/editorial-tool-fields.mjs";
 
 export function createDemoEditorialReview({
   themes,
@@ -57,10 +58,31 @@ export function createDemoEditorialReview({
           theme.estadoContenido === "PUBLICADO",
           "Publica primero el tema padre.",
         );
-        if (!row.contenido)
+        if (!row.contenido && !row.tipoInteractivo)
           advertencias.push(
             "El subtema no tiene lección; se publicará su estructura.",
           );
+        if (row.tipoInteractivo === "CLOZE") {
+          try {
+            const activity = clozeFields(row.datosInteractivo);
+            contenido.push(`CLOZE: ${activity.textoConEspacios}`);
+            activity.espacios.forEach((blank, i) =>
+              contenido.push(
+                `Espacio ${i + 1}:`,
+                ...blank.opciones.map(
+                  (v, j) =>
+                    `${j + 1}. ${v}${j === blank.correctaIndex ? " [CORRECTA]" : ""}`,
+                ),
+              ),
+            );
+            advertencias.push(
+              "CLOZE es práctica de autocorrección, no una evaluación diagnóstica.",
+            );
+          } catch (error) {
+            bloqueos.push(error.message);
+          }
+        } else if (row.tipoInteractivo || row.datosInteractivo != null)
+          bloqueos.push("Interactivo inválido o datos sin tipo.");
       }
       dependientes =
         tipo === "temas"

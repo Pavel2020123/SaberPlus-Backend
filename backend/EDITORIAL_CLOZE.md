@@ -2,9 +2,9 @@
 
 Implementación local: 7 de septiembre de 2026. API ADMIN, sin pantalla nueva
 en el panel, migración, despliegue ni operación sobre Supabase. D2 sigue abierta.
-El siguiente paso de interfaz es **D2-E: herramientas editoriales en el panel**
-(CLOZE, indexación y reclasificación), con pruebas de interacción/demo. Después
-quedan concurrencia PostgreSQL, operación autorizada y el ensayo real D3.
+Actualización D2-E: [herramientas editoriales integradas en el panel](../admin/EDITORIAL_TOOLS.md)
+(CLOZE, indexación y reclasificación), con pruebas de lógica/interacción demo.
+Quedan revisión visual, concurrencia PostgreSQL, operación autorizada y ensayo D3.
 
 ## Contrato compatible con Flutter
 

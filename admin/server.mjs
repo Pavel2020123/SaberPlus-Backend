@@ -6,6 +6,14 @@ import { createDemoApi } from "./demo-api.mjs";
 
 const assets = new Map([
   [
+    "/editorial-tools.mjs",
+    ["editorial-tools.mjs", "text/javascript; charset=utf-8"],
+  ],
+  [
+    "/editorial-tool-fields.mjs",
+    ["editorial-tool-fields.mjs", "text/javascript; charset=utf-8"],
+  ],
+  [
     "/editorial-review.mjs",
     ["editorial-review.mjs", "text/javascript; charset=utf-8"],
   ],

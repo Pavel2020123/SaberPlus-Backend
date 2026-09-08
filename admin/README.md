@@ -1,10 +1,20 @@
-# Panel editorial de SaberPlus — 7F-C3-D2-D
+# Panel editorial de SaberPlus — 7F-C3-D2-E
+
+**Entrega actual:** formularios CLOZE y banco antiguo (lotes, coincidencias,
+destino por tema/subtema y confirmación) conectados a las API ADMIN existentes.
+Demo con ejemplos propios, 54 pruebas del panel aprobadas; revisión visual pendiente
+por navegador no disponible. [Cómo probar y límites](EDITORIAL_TOOLS.md).
+No se ejecutaron migraciones, despliegues ni cambios en Supabase. Siguen D2-F
+(PostgreSQL/validación visual y operación autorizada) y después ensayo real D3.
+
+Las descripciones D2-B/C/D siguientes corresponden a las entregas de API previas;
+sus herramientas visuales están integradas ahora en D2-E.
 
 D2-D incorpora edición/retiro y revisión de CLOZE en la API ADMIN. Conserva
 el formato Flutter y bloquea ejercicios inválidos al publicar. No hay pantalla
 nueva ni operación en Supabase. [Contrato CLOZE](../backend/EDITORIAL_CLOZE.md).
-Sigue **D2-E: integrar en este panel CLOZE y las herramientas de legado**;
-después quedan pruebas PostgreSQL y ensayo real. Publicación sigue apagada.
+La interfaz D2-E ya las integra; quedan pruebas PostgreSQL y ensayo real.
+Publicación sigue apagada.
 
 D2-C agrega una API ADMIN de reclasificación con destino/revisión/confirmación
 y bloqueo de preguntas con uso registrado. No hay pantalla nueva ni cambios
@@ -22,7 +32,7 @@ Primera entrega funcional: acceso ADMIN, navegación por las cinco áreas ICFES,
 catálogo paginado, estados editoriales y creación de temas/subtemas en borrador.
 Incluye revisión y cambios de estado en la demo. Las nuevas escrituras reales
 están desactivadas por defecto hasta completar D2 y preparar el ensayo D3.
-No elimina ni reclasifica contenido desde esta interfaz todavía.
+No elimina contenido. La reclasificación requiere revisión y habilitación explícita.
 Ahora incluye lecciones, preguntas y casos en borrador, vista previa del texto,
 corrección protegida de nombres y control de preguntas repetidas. El cierre
 editorial real sigue en C3-D2/D3; carga de archivos en C5.
@@ -119,7 +129,7 @@ npm test
 ```
 
 Las pruebas usan el servidor demo local y respuestas simuladas del cliente.
-Última ejecución: 37 pruebas aprobadas y comprobación de sintaxis correcta.
+Última ejecución: 54 pruebas aprobadas y comprobación de sintaxis correcta.
 Cubren permisos de acceso del cliente, duplicados, paginación, aislamiento,
 expiración, respuestas tardías, errores de formato, archivos servidos y cabeceras.
 También cubren el editor con dobles DOM: guardado, conflictos, texto pendiente,
@@ -134,8 +144,8 @@ El flujo CI incorpora un trabajo separado del backend para estas comprobaciones.
 - **C3-C implementada:** editor de preguntas y casos, opciones de texto, explicaciones, clasificación e imágenes referenciadas en enunciado/caso.
 - **C3-D1 implementada:** revisión y estados con confirmación; recorrido completo
   en demo y nuevas escrituras reales apagadas por defecto.
-- **C3-D2 pendiente:** legado, unificación de rutas, revisión especializada de
-  interactivos y prueba de concurrencia PostgreSQL.
+- **C3-D2 parcial:** implementadas API y herramientas del panel D2-A/B/C/D/E;
+  quedan comprobación visual, PostgreSQL y operación autorizada del legado (D2-F).
 - **C3-D3 pendiente:** despliegue y ensayo editorial con ADMIN y base reales.
 
 Los recursos persistentes de Supabase Storage siguen en 7F-C5 y la auditoría
@@ -268,7 +278,7 @@ Contrato ADMIN nuevo:
 - La escritura relee bajo bloqueo por área y filas, vuelve a validar dependencias,
   duplicados y orden. La huella de pregunta se recalcula al publicar.
 - Los candidatos heredados se acotan a 2000. Interactivos CLOZE requieren la
-  revisión especializada pendiente en D2; esta entrega no los publica por esta vía.
+  revisión especializada incorporada en D2-D/E; publicar sigue sujeto al gate real.
 - Los recursos se muestran como texto sin cargarlos; no se verifican licencias,
   enlaces disponibles ni el comportamiento final de Flutter.
 
@@ -278,7 +288,7 @@ desactiva acciones. No activar hasta C3-D2 y el ensayo autorizado C3-D3. La
 plantilla `.env.example` documenta el valor, pero no se modificaron secretos,
 Render ni Supabase. Esta bandera afecta las rutas nuevas; desde D2-A las
 escrituras heredadas se retiran por separado y devuelven 410 incluso con la
-bandera activa. D2 sigue incompleta: legado, CLOZE y concurrencia real pendientes.
+bandera activa. D2 sigue incompleta: comprobación visual, PostgreSQL y operación real pendientes.
 
 Verificación de D1: 37 pruebas del panel (HTTP demo y dobles DOM); 359 pruebas en 57
 suites del backend; compilación y lint focalizado correctos. El ensayo demo

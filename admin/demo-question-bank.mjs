@@ -43,6 +43,9 @@ export function createDemoQuestionBank({ themes, subthemes, send }) {
       editable:
         row.estadoContenido === "BORRADOR" &&
         !row.fechaPublicacion &&
+        !row.usoDemo &&
+        sub.nombre.toLowerCase() !== "banco general" &&
+        theme.nombre.toLowerCase() !== "banco general" &&
         sub.estadoContenido !== "ARCHIVADO" &&
         theme.estadoContenido !== "ARCHIVADO",
       revision: hash([row, sub, theme, caso]),
@@ -198,6 +201,9 @@ export function createDemoQuestionBank({ themes, subthemes, send }) {
           });
           return true;
         }
+        fields.huellaContenido = createHash("sha256")
+          .update(canonical)
+          .digest("hex");
         if (!id) sub._count.preguntas++;
       }
       if (kind === "preguntas" && !fields.casoId) fields.ordenEnCaso = null;

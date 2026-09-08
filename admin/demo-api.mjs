@@ -3,6 +3,7 @@ import { lessonFields } from "./public/lesson-fields.mjs";
 import { validateName } from "./public/api.mjs";
 import { createDemoQuestionBank } from "./demo-question-bank.mjs";
 import { createDemoEditorialReview } from "./demo-editorial-review.mjs";
+import { createDemoEditorialTools } from "./demo-editorial-tools.mjs";
 
 // Local-only fixtures. This module has no network or database dependencies.
 const areas = [
@@ -78,6 +79,41 @@ export function createDemoApi() {
     res.end(JSON.stringify(body));
   };
   const questionBank = createDemoQuestionBank({ themes, subthemes, send });
+  // Dedicated legacy fixtures do not mix with the empty draft lesson used by editors.
+  themes.push({
+    id: "demo-legacy-theme",
+    nombre: "Banco General",
+    area: "MATEMATICAS",
+    estadoContenido: "BORRADOR",
+  });
+  subthemes.push({
+    id: "demo-legacy-sub",
+    nombre: "Banco General",
+    temaId: "demo-legacy-theme",
+    estadoContenido: "BORRADOR",
+    _count: { preguntas: 2 },
+  });
+  for (const [id, estadoContenido] of [
+    ["demo-legacy-q1", "BORRADOR"],
+    ["demo-legacy-q2", "ARCHIVADO"],
+  ]) {
+    questionBank.records.questions.push({
+      id,
+      subtemaId: "demo-legacy-sub",
+      estadoContenido,
+      dificultad: "BASICO",
+      enunciado: "¿Cuál es el 10 % de 200?",
+      explicacion: "Diez de cada cien: el resultado es 20.",
+      imagenUrl: "",
+      casoId: "",
+      ordenEnCaso: null,
+      huellaContenido: null,
+      respuestas: [
+        { texto: "20", esCorrecta: true, explicacion: "" },
+        { texto: "10", esCorrecta: false, explicacion: "" },
+      ],
+    });
+  }
   for (const row of [...themes, ...subthemes])
     if (row.estadoContenido === "PUBLICADO")
       row.fechaPublicacion = "2026-09-01T00:00:00Z";
@@ -92,7 +128,15 @@ export function createDemoApi() {
     const parent = sub ? themes.find((theme) => theme.id === row.temaId) : null;
     const count = subthemes.filter((item) => item.temaId === row.id).length;
     const draft = row.estadoContenido === "BORRADOR" && !row.fechaPublicacion;
-    const editable = sub && draft && parent.estadoContenido !== "ARCHIVADO";
+    const editable =
+      sub &&
+      draft &&
+      parent.estadoContenido !== "ARCHIVADO" &&
+      !row.tipoInteractivo &&
+      row.datosInteractivo == null &&
+      !row.usoDemo &&
+      key(row.nombre) !== "banco general" &&
+      key(parent.nombre) !== "banco general";
     const renombrable = sub
       ? editable && !row._count.preguntas
       : draft && count === 0;
@@ -116,6 +160,13 @@ export function createDemoApi() {
           : "Solo lectura: no es un borrador vacío sin uso académico.",
     };
   };
+  const toolsApi = createDemoEditorialTools({
+    themes,
+    subthemes,
+    ...questionBank.records,
+    editorView,
+    send,
+  });
   return async (req, res, url) => {
     let body = {};
     if (["POST", "PATCH"].includes(req.method)) {
@@ -169,6 +220,7 @@ export function createDemoApi() {
     }
     if (questionBank(req, res, url, body)) return;
     if (reviewApi(req, res, url, body)) return;
+    if (toolsApi(req, res, url, body)) return;
     const editorMatch =
       /^\/admin\/editor\/(temas|subtemas)\/([^/]+)(?:\/(nombre|leccion))?$/.exec(
         path,
