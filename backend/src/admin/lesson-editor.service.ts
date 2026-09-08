@@ -8,6 +8,7 @@ import { createHash } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { lockEditorialArea } from './editorial-lock';
+import { ClozeActivity, validateClozeActivity } from './cloze-activity';
 import {
   catalogNameKey,
   isGenericCatalogName,
@@ -83,7 +84,8 @@ export class LessonEditorService {
       row.tema.estadoContenido !== 'ARCHIVADO' &&
       row._count.progresotemas === 0 &&
       row._count.actividadesPlan === 0 &&
-      !row.tipoInteractivo;
+      !row.tipoInteractivo &&
+      row.datosInteractivo == null;
     const renombrable = isLesson
       ? editable && row._count.preguntas === 0
       : draft && row._count.subtemas === 0;
@@ -109,6 +111,74 @@ export class LessonEditorService {
 
   async detalle(kind: EditorKind, id: string) {
     return this.view(await this.row(this.prisma, kind, id));
+  }
+
+  private clozeView(row: Row) {
+    if (!('temaId' in row))
+      throw new BadRequestException('CLOZE requiere un subtema.');
+    // Keep the same revision as the prose editor, including the stored JSON.
+    const base = this.view(row);
+    const editable =
+      this.view({ ...row, tipoInteractivo: null, datosInteractivo: null })
+        .editable &&
+      (row.tipoInteractivo === null || row.tipoInteractivo === 'CLOZE');
+    let datosInteractivo: ClozeActivity | null = null;
+    const errores: string[] = [];
+    if (row.tipoInteractivo === 'CLOZE') {
+      try {
+        datosInteractivo = validateClozeActivity(row.datosInteractivo);
+      } catch (error) {
+        if (!(error instanceof BadRequestException)) throw error;
+        errores.push(error.message);
+      }
+    } else if (row.tipoInteractivo || row.datosInteractivo != null) {
+      errores.push('Tipo de interactivo no compatible o datos sin tipo.');
+    }
+    return {
+      ...base,
+      editable,
+      motivo: editable
+        ? ''
+        : 'Solo se edita CLOZE en borradores clasificados, nunca publicados y sin uso académico.',
+      tipoInteractivo: row.tipoInteractivo,
+      datosInteractivo,
+      errores,
+    };
+  }
+
+  async detalleCloze(id: string) {
+    return this.clozeView(await this.row(this.prisma, 'subtemas', id));
+  }
+
+  async guardarCloze(id: string, revision: string, value: unknown) {
+    const datosInteractivo = validateClozeActivity(value);
+    return this.clozeView(
+      await this.modify('subtemas', id, revision, async (tx, row) => {
+        if (!this.clozeView(row).editable)
+          throw new BadRequestException('Este interactivo es de solo lectura.');
+        await tx.subtema.update({
+          where: { id },
+          data: { tipoInteractivo: 'CLOZE', datosInteractivo },
+        });
+      }),
+    );
+  }
+
+  async quitarCloze(id: string, revision: string, confirmado: unknown) {
+    if (confirmado !== true)
+      throw new BadRequestException(
+        'Confirma explícitamente el retiro del ejercicio.',
+      );
+    return this.clozeView(
+      await this.modify('subtemas', id, revision, async (tx, row) => {
+        if (!this.clozeView(row).editable)
+          throw new BadRequestException('Este interactivo es de solo lectura.');
+        await tx.subtema.update({
+          where: { id },
+          data: { tipoInteractivo: null, datosInteractivo: Prisma.DbNull },
+        });
+      }),
+    );
   }
 
   private async modify(
@@ -139,7 +209,7 @@ export class LessonEditorService {
           'El registro cambió. Recarga antes de guardar; tu texto no se sobrescribió.',
         );
       await change(tx, current);
-      return this.view(await this.row(tx, kind, id));
+      return this.row(tx, kind, id);
     });
   }
 
@@ -163,11 +233,13 @@ export class LessonEditorService {
       videoUrl: lessonUrl(videoUrl),
       imagenUrl: lessonUrl(imagenUrl),
     };
-    return this.modify('subtemas', id, revision, async (tx, row) => {
-      if (!this.view(row).editable)
-        throw new BadRequestException('Esta lección es de solo lectura.');
-      await tx.subtema.update({ where: { id }, data });
-    });
+    return this.view(
+      await this.modify('subtemas', id, revision, async (tx, row) => {
+        if (!this.view(row).editable)
+          throw new BadRequestException('Esta lección es de solo lectura.');
+        await tx.subtema.update({ where: { id }, data });
+      }),
+    );
   }
 
   async renombrar(
@@ -177,33 +249,35 @@ export class LessonEditorService {
     value: string,
   ) {
     const nombre = validateCatalogName(value);
-    return this.modify(kind, id, revision, async (tx, row) => {
-      if (!this.view(row).renombrable)
-        throw new BadRequestException(
-          'Este nombre ya tiene uso académico o no es un borrador vacío.',
-        );
-      const siblings =
-        'temaId' in row
-          ? await tx.subtema.findMany({
-              where: { temaId: row.temaId, id: { not: id } },
-              select: { nombre: true },
-            })
-          : await tx.tema.findMany({
-              where: { area: row.area, id: { not: id } },
-              select: { nombre: true },
-            });
-      if (
-        siblings.some(
-          (sibling) =>
-            catalogNameKey(sibling.nombre) === catalogNameKey(nombre),
+    return this.view(
+      await this.modify(kind, id, revision, async (tx, row) => {
+        if (!this.view(row).renombrable)
+          throw new BadRequestException(
+            'Este nombre ya tiene uso académico o no es un borrador vacío.',
+          );
+        const siblings =
+          'temaId' in row
+            ? await tx.subtema.findMany({
+                where: { temaId: row.temaId, id: { not: id } },
+                select: { nombre: true },
+              })
+            : await tx.tema.findMany({
+                where: { area: row.area, id: { not: id } },
+                select: { nombre: true },
+              });
+        if (
+          siblings.some(
+            (sibling) =>
+              catalogNameKey(sibling.nombre) === catalogNameKey(nombre),
+          )
         )
-      )
-        throw new ConflictException(
-          'Ese nombre ya existe en esta clasificación.',
-        );
-      if (kind === 'temas')
-        await tx.tema.update({ where: { id }, data: { nombre } });
-      else await tx.subtema.update({ where: { id }, data: { nombre } });
-    });
+          throw new ConflictException(
+            'Ese nombre ya existe en esta clasificación.',
+          );
+        if (kind === 'temas')
+          await tx.tema.update({ where: { id }, data: { nombre } });
+        else await tx.subtema.update({ where: { id }, data: { nombre } });
+      }),
+    );
   }
 }

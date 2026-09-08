@@ -20,6 +20,10 @@ reglas de negocio. La aplicacion Flutter no accede directamente a PostgreSQL.
 - **7F-C3-D2-C:** reclasificación revisada de preguntas sin uso registrado,
   dentro de la misma área y sin publicar. Bloquea contenido usado/publicado;
   escrituras apagadas por defecto. [Contrato y límites](backend/EDITORIAL_RECLASSIFICATION.md).
+- **7F-C3-D2-D:** API especializada para guardar/retirar CLOZE en borradores
+  sin uso, validación de espacios y opciones y revisión previa a publicar.
+  Compatible con Flutter; publicación sigue apagada. Interfaz pendiente en D2-E.
+  [Contrato y límites](backend/EDITORIAL_CLOZE.md).
 
 ## Desarrollo local
 

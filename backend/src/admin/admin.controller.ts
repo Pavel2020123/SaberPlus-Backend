@@ -548,7 +548,7 @@ export class AdminController {
   // Ejercicio interactivo (cloze)
   @Patch('subtemas/:id/interactivo')
   @RetiredEditorialWrite(
-    'Edición CLOZE pendiente del contrato especializado C3-D2',
+    'PATCH /admin/editor/subtemas/:id/cloze con revisión vigente',
   )
   actualizarInteractivo(
     @Param('id') id: string,

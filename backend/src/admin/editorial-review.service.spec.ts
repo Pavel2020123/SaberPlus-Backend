@@ -69,6 +69,7 @@ describe('EditorialReviewService', () => {
     imagenUrl: null,
     videoUrl: null,
     tipoInteractivo: null as string | null,
+    datosInteractivo: null as unknown,
     fechaPublicacion: null as Date | null,
     _count: { preguntas: 0 },
   };
@@ -112,6 +113,7 @@ describe('EditorialReviewService', () => {
       imagenUrl: null,
       videoUrl: null,
       tipoInteractivo: null,
+      datosInteractivo: null,
       fechaPublicacion: null,
       _count: { preguntas: 0 },
     };
@@ -317,7 +319,7 @@ describe('EditorialReviewService', () => {
     );
     expect(tx.subtema.update).not.toHaveBeenCalled();
   });
-  it('advierte subtema sin lección y bloquea revisión interactiva no implementada', async () => {
+  it('advierte subtema sin lección y bloquea CLOZE sin datos', async () => {
     sub.estadoContenido = 'EN_REVISION';
     let detail = await service.detalle('subtemas', 's1');
     expect(detail.advertencias.join(' ')).toContain('sin lección');
@@ -325,6 +327,89 @@ describe('EditorialReviewService', () => {
     sub.tipoInteractivo = 'CLOZE';
     detail = await service.detalle('subtemas', 's1');
     expect(detail.destinos).not.toContain('PUBLICADO');
+  });
+  const cloze = () => ({
+    textoConEspacios: 'Dos más dos es ___.',
+    espacios: [{ opciones: ['4', '5'], correctaIndex: 0 }],
+  });
+  it('incluye texto, opciones y clave CLOZE en revisión sin publicar por leer', async () => {
+    sub.estadoContenido = 'EN_REVISION';
+    sub.tipoInteractivo = 'CLOZE';
+    sub.datosInteractivo = cloze();
+    const detail = await service.detalle('subtemas', 's1');
+    expect(detail.bloqueos).toEqual([]);
+    expect(detail.destinos).toContain('PUBLICADO');
+    expect(detail.contenido).toEqual(
+      expect.arrayContaining([
+        'CLOZE: Dos más dos es ___.',
+        'Espacio 1:',
+        '1. 4 [CORRECTA]',
+        '2. 5',
+      ]),
+    );
+    expect(detail.advertencias.join(' ')).toContain('autocorrección');
+    expect(tx.subtema.update).not.toHaveBeenCalled();
+    await service.cambiar('subtemas', 's1', detail.revision, 'PUBLICADO');
+    expect(tx.subtema.update).toHaveBeenCalledWith({
+      where: { id: 's1' },
+      data: {
+        estadoContenido: 'PUBLICADO',
+        fechaPublicacion: sub.fechaPublicacion,
+      },
+    });
+    expect(sub.fechaPublicacion).toBeInstanceOf(Date);
+  });
+  it.each([
+    'sinMarcador',
+    'indiceTexto',
+    'opcionesDuplicadas',
+    'huerfano',
+    'otroTipo',
+  ])('bloquea publicación de interactivo inválido: %s', async (reason) => {
+    sub.estadoContenido = 'EN_REVISION';
+    sub.tipoInteractivo = 'CLOZE';
+    const data: {
+      textoConEspacios: string;
+      espacios: { opciones: string[]; correctaIndex: unknown }[];
+    } = cloze();
+    if (reason === 'sinMarcador') data.textoConEspacios = 'Sin marcador';
+    if (reason === 'indiceTexto') data.espacios[0].correctaIndex = '0';
+    if (reason === 'opcionesDuplicadas') data.espacios[0].opciones = ['4', '4'];
+    if (reason === 'huerfano') sub.tipoInteractivo = null;
+    if (reason === 'otroTipo') sub.tipoInteractivo = 'OTRO';
+    sub.datosInteractivo = data;
+    const detail = await service.detalle('subtemas', 's1');
+    expect(detail.bloqueos.length).toBeGreaterThan(0);
+    await expect(
+      service.cambiar('subtemas', 's1', detail.revision, 'PUBLICADO'),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(tx.subtema.update).not.toHaveBeenCalled();
+  });
+  it('un cambio en respuestas CLOZE invalida la revisión antes de publicar', async () => {
+    sub.estadoContenido = 'EN_REVISION';
+    sub.tipoInteractivo = 'CLOZE';
+    sub.datosInteractivo = cloze();
+    const before = await service.detalle('subtemas', 's1');
+    sub.datosInteractivo = {
+      ...cloze(),
+      espacios: [{ opciones: ['4', '5'], correctaIndex: 1 }],
+    };
+    await expect(
+      service.cambiar('subtemas', 's1', before.revision, 'PUBLICADO'),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(tx.subtema.update).not.toHaveBeenCalled();
+  });
+  it('CLOZE válido no evade la bandera de publicación apagada', async () => {
+    process.env.EDITORIAL_PUBLICATION_ENABLED = 'false';
+    sub.estadoContenido = 'EN_REVISION';
+    sub.tipoInteractivo = 'CLOZE';
+    sub.datosInteractivo = cloze();
+    const detail = await service.detalle('subtemas', 's1');
+    expect(detail.habilitado).toBe(false);
+    await expect(
+      service.cambiar('subtemas', 's1', detail.revision, 'PUBLICADO'),
+    ).rejects.toBeInstanceOf(ServiceUnavailableException);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
   });
   it.each(['false', 'true', 1, false])(
     'no convierte %j en confirmación editorial',

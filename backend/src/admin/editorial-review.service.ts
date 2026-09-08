@@ -15,6 +15,7 @@ import {
   validateCatalogName,
 } from './academic-classification';
 import { lessonUrl } from './lesson-editor.service';
+import { validateClozeActivity } from './cloze-activity';
 
 export const REVIEW_KINDS = [
   'temas',
@@ -174,10 +175,31 @@ export class EditorialReviewService {
         advertencias.push(
           'Subtema sin lección: se publicará solo su estructura académica.',
         );
-      if (row.tipoInteractivo)
+      if (row.tipoInteractivo === 'CLOZE') {
+        try {
+          const activity = validateClozeActivity(row.datosInteractivo);
+          contenido.push(`CLOZE: ${activity.textoConEspacios}`);
+          activity.espacios.forEach((blank, i) => {
+            contenido.push(
+              `Espacio ${i + 1}:`,
+              ...blank.opciones.map(
+                (option, index) =>
+                  `${index + 1}. ${option}${index === blank.correctaIndex ? ' [CORRECTA]' : ''}`,
+              ),
+            );
+          });
+          advertencias.push(
+            'CLOZE es práctica de autocorrección: Flutter recibe las respuestas; no certifica dominio ni puntúa el diagnóstico.',
+          );
+        } catch (error) {
+          if (!(error instanceof BadRequestException)) throw error;
+          bloqueos.push(error.message);
+        }
+      } else if (row.tipoInteractivo || row.datosInteractivo != null) {
         bloqueos.push(
-          'Los interactivos requieren una revisión especializada; no se publican desde esta primera entrega.',
+          'Interactivo no compatible o datos sin tipo: corrige el borrador antes de publicar.',
         );
+      }
     }
     if (data.tipo === 'casos') {
       check(!!data.row.contexto.trim(), 'El caso necesita un contexto.');

@@ -1,5 +1,13 @@
 import { Body, Controller, Get, Param, Patch, UseGuards } from '@nestjs/common';
-import { IsString, Matches, MaxLength, MinLength } from 'class-validator';
+import {
+  Equals,
+  IsDefined,
+  IsString,
+  Matches,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
+import { Transform } from 'class-transformer';
 import { AdminGuard } from '../auth/jwt.guard';
 import { LessonEditorService } from './lesson-editor.service';
 
@@ -28,6 +36,20 @@ export class EditorNameDto extends EditorRevisionDto {
   nombre!: string;
 }
 
+export class ClozeDraftDto extends EditorRevisionDto {
+  // Preserve number/boolean types inside the JSON; the shared validator checks every field.
+  @IsDefined()
+  datosInteractivo!: unknown;
+}
+
+export class ClozeRemovalDto extends EditorRevisionDto {
+  @Transform(({ obj }: { obj: Record<string, unknown> }) => obj.confirmado, {
+    toClassOnly: true,
+  })
+  @Equals(true)
+  confirmado!: boolean;
+}
+
 @Controller('admin/editor')
 @UseGuards(AdminGuard)
 export class LessonEditorController {
@@ -41,6 +63,21 @@ export class LessonEditorController {
   @Get('subtemas/:id')
   subtema(@Param('id') id: string) {
     return this.editor.detalle('subtemas', id);
+  }
+
+  @Get('subtemas/:id/cloze')
+  cloze(@Param('id') id: string) {
+    return this.editor.detalleCloze(id);
+  }
+
+  @Patch('subtemas/:id/cloze')
+  guardarCloze(@Param('id') id: string, @Body() dto: ClozeDraftDto) {
+    return this.editor.guardarCloze(id, dto.revision, dto.datosInteractivo);
+  }
+
+  @Patch('subtemas/:id/cloze/retirar')
+  quitarCloze(@Param('id') id: string, @Body() dto: ClozeRemovalDto) {
+    return this.editor.quitarCloze(id, dto.revision, dto.confirmado);
   }
 
   @Patch('subtemas/:id/leccion')

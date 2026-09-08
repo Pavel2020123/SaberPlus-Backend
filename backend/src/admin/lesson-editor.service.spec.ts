@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { GUARDS_METADATA } from '@nestjs/common/constants';
-import { EstadoContenido } from '@prisma/client';
+import { EstadoContenido, Prisma } from '@prisma/client';
 import { plainToInstance } from 'class-transformer';
 import { validateSync } from 'class-validator';
 import { AdminGuard } from '../auth/jwt.guard';
@@ -25,7 +25,7 @@ describe('LessonEditorService', () => {
     videoUrl: null,
     imagenUrl: null,
     tipoInteractivo: null as string | null,
-    datosInteractivo: null,
+    datosInteractivo: null as unknown,
     estadoContenido: 'BORRADOR' as EstadoContenido,
     fechaPublicacion: null as Date | null,
     fechaActualizacion: new Date('2026-09-06T10:00:00Z'),
@@ -47,7 +47,7 @@ describe('LessonEditorService', () => {
     _count: { subtemas: 0 },
   };
   const tx = {
-    $queryRaw: jest.fn(),
+    $queryRaw: jest.fn<Promise<unknown[]>, unknown[]>(),
     subtema: { findUnique: jest.fn(), findMany: jest.fn(), update: jest.fn() },
     tema: { findUnique: jest.fn(), findMany: jest.fn(), update: jest.fn() },
   };
@@ -74,6 +74,8 @@ describe('LessonEditorService', () => {
     tx.subtema.update.mockImplementation(
       ({ data }: { data: Record<string, unknown> }) => {
         Object.assign(row, data);
+        if (data.datosInteractivo === Prisma.DbNull)
+          row.datosInteractivo = null;
         return Promise.resolve(row);
       },
     );
@@ -105,6 +107,149 @@ describe('LessonEditorService', () => {
     expect(detail.revision).toMatch(/^[a-f0-9]{64}$/);
     expect(detail).not.toHaveProperty('_count');
     expect(detail).not.toHaveProperty('datosInteractivo');
+  });
+  const activity = {
+    textoConEspacios: 'El doble de tres es ___.',
+    espacios: [{ opciones: ['3', '6'], correctaIndex: 1 }],
+  };
+  const saveCloze = async () =>
+    service.guardarCloze(
+      's1',
+      (await service.detalleCloze('s1')).revision,
+      activity,
+    );
+  it('guarda CLOZE bajo los mismos bloqueos sin tocar prosa, estado o clasificación', async () => {
+    row.contenido = 'Lección existente';
+    const before = await service.detalleCloze('s1');
+    const after = await saveCloze();
+    expect(tx.$queryRaw).toHaveBeenCalledTimes(4);
+    expect(tx.$queryRaw.mock.calls[0][1]).toBe('editor:area:MATEMATICAS');
+    expect(tx.$queryRaw.mock.calls[1][1]).toBe('catalogo:tema:t1');
+    expect(tx.subtema.update).toHaveBeenCalledWith({
+      where: { id: 's1' },
+      data: { tipoInteractivo: 'CLOZE', datosInteractivo: activity },
+    });
+    expect(after).toMatchObject({
+      editable: true,
+      datosInteractivo: activity,
+      errores: [],
+      contenido: 'Lección existente',
+      estadoContenido: 'BORRADOR',
+    });
+    expect(after.revision).not.toBe(before.revision);
+    expect(after).not.toHaveProperty('_count');
+  });
+  it('no admite sobrescritura desde una revisión anterior de CLOZE o prosa', async () => {
+    const before = await service.detalle('subtemas', 's1');
+    await saveCloze();
+    await expect(
+      service.guardarCloze('s1', before.revision, activity),
+    ).rejects.toBeInstanceOf(ConflictException);
+    await expect(
+      service.guardar('s1', before.revision, 'Otra', '', ''),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(tx.subtema.update).toHaveBeenCalledTimes(1);
+  });
+  it('relee los datos interactivos después del bloqueo', async () => {
+    const before = await service.detalleCloze('s1');
+    tx.$queryRaw.mockImplementation(() => {
+      row.datosInteractivo = activity;
+      return Promise.resolve([]);
+    });
+    await expect(
+      service.guardarCloze('s1', before.revision, activity),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(tx.subtema.update).not.toHaveBeenCalled();
+  });
+  it.each([
+    'PUBLICADO',
+    'EN_REVISION',
+    'ARCHIVADO',
+    'publicadoAntes',
+    'progreso',
+    'plan',
+    'padreArchivado',
+    'legado',
+    'otroTipo',
+  ])('no guarda ni retira CLOZE protegido: %s', async (reason) => {
+    row.tipoInteractivo = 'CLOZE';
+    row.datosInteractivo = activity;
+    if (['PUBLICADO', 'EN_REVISION', 'ARCHIVADO'].includes(reason))
+      row.estadoContenido = reason as EstadoContenido;
+    if (reason === 'publicadoAntes') row.fechaPublicacion = new Date();
+    if (reason === 'progreso') row._count.progresotemas = 1;
+    if (reason === 'plan') row._count.actividadesPlan = 1;
+    if (reason === 'padreArchivado') row.tema.estadoContenido = 'ARCHIVADO';
+    if (reason === 'legado') row.nombre = 'Banco General';
+    if (reason === 'otroTipo') row.tipoInteractivo = 'OTRO';
+    const detail = await service.detalleCloze('s1');
+    expect(detail.editable).toBe(false);
+    await expect(
+      service.guardarCloze('s1', detail.revision, activity),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    await expect(
+      service.quitarCloze('s1', detail.revision, true),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(tx.subtema.update).not.toHaveBeenCalled();
+  });
+  it('permite corregir JSON heredado inválido solo si es borrador editable', async () => {
+    row.tipoInteractivo = 'CLOZE';
+    row.datosInteractivo = { roto: true };
+    const detail = await service.detalleCloze('s1');
+    expect(detail).toMatchObject({ editable: true, datosInteractivo: null });
+    expect(detail.errores).toHaveLength(1);
+    expect((await saveCloze()).errores).toEqual([]);
+  });
+  it('señala datos huérfanos y no permite ocultarlos editando solo la prosa', async () => {
+    row.datosInteractivo = activity;
+    expect((await service.detalleCloze('s1')).errores).toHaveLength(1);
+    expect((await service.detalle('subtemas', 's1')).editable).toBe(false);
+  });
+  it('retira solo el ejercicio con confirmación y conserva la lección', async () => {
+    row.contenido = 'Lección';
+    await saveCloze();
+    const detail = await service.detalleCloze('s1');
+    const after = await service.quitarCloze('s1', detail.revision, true);
+    expect(tx.subtema.update).toHaveBeenLastCalledWith({
+      where: { id: 's1' },
+      data: { tipoInteractivo: null, datosInteractivo: Prisma.DbNull },
+    });
+    expect(after).toMatchObject({
+      contenido: 'Lección',
+      tipoInteractivo: null,
+      datosInteractivo: null,
+      errores: [],
+    });
+    expect((await service.detalle('subtemas', 's1')).editable).toBe(true);
+    await expect(
+      service.quitarCloze('s1', detail.revision, true),
+    ).rejects.toBeInstanceOf(ConflictException);
+  });
+  it('rechaza JSON inválido y retiro no confirmado antes de abrir transacción', async () => {
+    await expect(
+      service.guardarCloze('s1', 'revision', {}),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    await expect(
+      service.quitarCloze('s1', 'revision', 'true'),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+  it('enruta las tres operaciones CLOZE al servicio administrativo', async () => {
+    const controller = new LessonEditorController(service);
+    const detail = await controller.cloze('s1');
+    const saved = await controller.guardarCloze('s1', {
+      revision: detail.revision,
+      datosInteractivo: activity,
+    });
+    expect(saved.datosInteractivo).toEqual(activity);
+    expect(
+      (
+        await controller.quitarCloze('s1', {
+          revision: saved.revision,
+          confirmado: true,
+        })
+      ).tipoInteractivo,
+    ).toBeNull();
   });
   it('guarda bajo bloqueo sin publicar ni modificar clasificación', async () => {
     const result = await save();

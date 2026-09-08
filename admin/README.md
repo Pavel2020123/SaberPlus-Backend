@@ -1,4 +1,10 @@
-# Panel editorial de SaberPlus — 7F-C3-D2-C
+# Panel editorial de SaberPlus — 7F-C3-D2-D
+
+D2-D incorpora edición/retiro y revisión de CLOZE en la API ADMIN. Conserva
+el formato Flutter y bloquea ejercicios inválidos al publicar. No hay pantalla
+nueva ni operación en Supabase. [Contrato CLOZE](../backend/EDITORIAL_CLOZE.md).
+Sigue **D2-E: integrar en este panel CLOZE y las herramientas de legado**;
+después quedan pruebas PostgreSQL y ensayo real. Publicación sigue apagada.
 
 D2-C agrega una API ADMIN de reclasificación con destino/revisión/confirmación
 y bloqueo de preguntas con uso registrado. No hay pantalla nueva ni cambios
