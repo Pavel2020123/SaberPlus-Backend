@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Patch, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  UseGuards,
+} from '@nestjs/common';
 import {
   Equals,
   IsDefined,
@@ -42,18 +50,29 @@ export class ClozeDraftDto extends EditorRevisionDto {
   datosInteractivo!: unknown;
 }
 
-export class ClozeRemovalDto extends EditorRevisionDto {
+export class EditorRemovalDto extends EditorRevisionDto {
   @Transform(({ obj }: { obj: Record<string, unknown> }) => obj.confirmado, {
     toClassOnly: true,
   })
   @Equals(true)
   confirmado!: boolean;
 }
+export class ClozeRemovalDto extends EditorRemovalDto {}
 
 @Controller('admin/editor')
 @UseGuards(AdminGuard)
 export class LessonEditorController {
   constructor(private readonly editor: LessonEditorService) {}
+
+  @Delete('temas/:id')
+  eliminarTema(@Param('id') id: string, @Body() dto: EditorRemovalDto) {
+    return this.editor.eliminar('temas', id, dto.revision, dto.confirmado);
+  }
+
+  @Delete('subtemas/:id')
+  eliminarSubtema(@Param('id') id: string, @Body() dto: EditorRemovalDto) {
+    return this.editor.eliminar('subtemas', id, dto.revision, dto.confirmado);
+  }
 
   @Get('temas/:id')
   tema(@Param('id') id: string) {

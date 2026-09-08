@@ -191,6 +191,72 @@ const record = {
   motivo: "",
 };
 
+test("eliminar exige borrador autorizado, sin cambios y confirmación; invalida reintentos", async () => {
+  let calls = 0,
+    confirm = false;
+  const h = harness(
+    {
+      editor: async () => ({
+        ...record,
+        contenido: "",
+        eliminable: true,
+        motivoEliminacion: "",
+      }),
+      removeDraft: async (...args) => {
+        calls++;
+        assert.deepEqual(args, ["subtemas", "s1", "t1", record.revision, true]);
+        throw new Error("Respuesta perdida");
+      },
+    },
+    () => confirm,
+  );
+  await h.editor.open("subtemas", "s1", "t1");
+  await h.editor.remove();
+  assert.equal(calls, 0);
+  confirm = true;
+  h.$("lesson-text").oninput();
+  await h.editor.remove();
+  assert.equal(calls, 0);
+  assert.equal(h.$("editor-delete").disabled, true);
+  await h.editor.open("subtemas", "s1", "t1");
+  await h.editor.remove();
+  assert.equal(calls, 1);
+  assert.match(h.$("editor-message").textContent, /Respuesta perdida/);
+  assert.equal(h.$("editor-delete").disabled, true);
+  await h.editor.remove();
+  assert.equal(calls, 1);
+});
+
+test("eliminación confirmada cierra el editor y notifica; respuesta tardía no revive sesión", async () => {
+  let finish,
+    notices = 0;
+  const h = harness({
+    editor: async () => ({ ...record, eliminable: true }),
+    removeDraft: () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+  });
+  h.editor.onDeleted = () => {
+    notices++;
+  };
+  await h.editor.open("subtemas", "s1", "t1");
+  const first = h.editor.remove();
+  finish({ eliminado: true });
+  await first;
+  assert.equal(h.editor.record, null);
+  assert.equal(h.$("lesson-editor").hidden, true);
+  assert.equal(h.isBusy(), false);
+  assert.equal(notices, 1);
+  await h.editor.open("subtemas", "s1", "t1");
+  const late = h.editor.remove();
+  h.editor.close(true);
+  finish({ eliminado: true });
+  await late;
+  assert.equal(notices, 1);
+  assert.equal(h.editor.record, null);
+});
+
 test("interfaz conserva texto ante conflicto y avisa antes de descartarlo", async () => {
   const h = harness(
     {

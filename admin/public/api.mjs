@@ -227,6 +227,29 @@ export class CatalogApi {
       );
     return data;
   }
+  async removeDraft(kind, id, parent, revision, confirmado) {
+    requireValid(
+      ["temas", "subtemas"].includes(kind) &&
+        toolId(id) &&
+        toolId(parent) &&
+        hash(revision) &&
+        confirmado === true,
+    );
+    const result = await this.#protected(
+      `/admin/editor/${kind}/${encodeURIComponent(id)}`,
+      { method: "DELETE", body: { revision, confirmado: true } },
+    );
+    if (
+      result?.id !== id ||
+      result.tipo !== kind ||
+      result.eliminado !== true ||
+      result[kind === "temas" ? "area" : "temaId"] !== parent
+    )
+      throw new PanelError(
+        "No se pudo validar la eliminación. Consulta el catálogo antes de repetirla.",
+      );
+    return result;
+  }
   async bankPage(kind, parent, page = 1) {
     if (
       !["preguntas", "casos"].includes(kind) ||
@@ -562,6 +585,10 @@ export class CatalogApi {
       if (path === "/auth/login" || path === "/auth/perfil")
         throw new PanelError(
           "No pudimos confirmar el acceso. Comprueba que el servidor siga encendido y recarga la página antes de intentarlo de nuevo.",
+        );
+      if (method === "DELETE")
+        throw new PanelError(
+          "No se pudo confirmar la eliminación. Consulta el catálogo antes de repetirla; el registro podría haberse eliminado.",
         );
       throw new PanelError(
         method === "GET"

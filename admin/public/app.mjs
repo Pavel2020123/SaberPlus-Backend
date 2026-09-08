@@ -44,6 +44,11 @@ const editor = new LessonEditor({
       "Cambio guardado en borrador. Actualizar catálogo reordena la lista.",
     );
   },
+  onDeleted: () => {
+    state.themePage = 1;
+    notice("Borrador vacío eliminado definitivamente. Actualizando catálogo…");
+    void loadThemes();
+  },
 });
 const bank = new QuestionEditor({
   api,

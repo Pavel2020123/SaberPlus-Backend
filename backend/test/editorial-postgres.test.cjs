@@ -399,6 +399,100 @@ test('gates apagados impiden escribir también con conexión PostgreSQL real', a
     });
   }
 });
+test('eliminación real protege hijos, contenido y revisiones; no borra en cascada', async () => {
+  const { theme, source, destination } = await structure();
+  let detail = await lessons.detalle('temas', theme.id);
+  assert.equal(detail.eliminable, false);
+  await assert.rejects(
+    lessons.eliminar('temas', theme.id, detail.revision, true),
+    (e) => e.getStatus() === 400,
+  );
+  assert.equal(await db.subtema.count({ where: { temaId: theme.id } }), 2);
+  const before = await lessons.detalle('subtemas', source.id);
+  await lessons.guardar(source.id, before.revision, 'Lección nueva', '', '');
+  await assert.rejects(
+    lessons.eliminar('subtemas', source.id, before.revision, true),
+    (e) => e.getStatus() === 409,
+  );
+  detail = await lessons.detalle('subtemas', source.id);
+  await assert.rejects(
+    lessons.eliminar('subtemas', source.id, detail.revision, true),
+    (e) => e.getStatus() === 400,
+  );
+  // Remove only newly created empty fixtures; never the nonempty sibling.
+  const empty = await lessons.detalle('subtemas', destination.id);
+  const results = await Promise.allSettled([
+    lessons.eliminar('subtemas', destination.id, empty.revision, true),
+    lessons.eliminar('subtemas', destination.id, empty.revision, true),
+  ]);
+  assert.equal(results.filter((r) => r.status === 'fulfilled').length, 1);
+  assert.equal(
+    results.find((r) => r.status === 'rejected').reason.getStatus(),
+    404,
+  );
+  assert.equal(await db.subtema.count({ where: { temaId: theme.id } }), 1);
+  assert.equal(
+    (await db.subtema.findUnique({ where: { id: source.id } })).contenido,
+    'Lección nueva',
+  );
+  const emptyTheme = await catalog.crearTema(`Vacío ${randomUUID()}`, 'INGLES');
+  const preview = await lessons.detalle('temas', emptyTheme.id);
+  await lessons.eliminar('temas', emptyTheme.id, preview.revision, true);
+  assert.equal(
+    await db.tema.findUnique({ where: { id: emptyTheme.id } }),
+    null,
+  );
+});
+
+test('eliminación relee hijos creados mientras esperaba el bloqueo de área', async () => {
+  const theme = await catalog.crearTema(
+    `Concurrencia ${randomUUID()}`,
+    'INGLES',
+  );
+  const preview = await lessons.detalle('temas', theme.id);
+  let release, signal;
+  const ready = new Promise((resolve) => {
+    signal = resolve;
+  });
+  const gate = new Promise((resolve) => {
+    release = resolve;
+  });
+  const holding = peer.$transaction(
+    async (tx) => {
+      await lockEditorialArea(tx, 'INGLES');
+      await tx.subtema.create({
+        data: { nombre: 'Hijo concurrente', temaId: theme.id },
+      });
+      signal();
+      await gate;
+    },
+    { timeout: 10000 },
+  );
+  await ready;
+  const deleting = lessons.eliminar('temas', theme.id, preview.revision, true);
+  // Attach the rejection handler immediately while observing the lock.
+  const rejected = assert.rejects(deleting, (e) => e.getStatus() === 409);
+  let waiting = false;
+  try {
+    for (let n = 0; n < 100; n++) {
+      const rows =
+        await peer.$queryRaw`SELECT COUNT(*)::int AS count FROM pg_stat_activity WHERE wait_event = 'advisory' AND datname = current_database()`;
+      if (rows[0].count > 0) {
+        waiting = true;
+        break;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    }
+  } finally {
+    release();
+  }
+  await holding;
+  await rejected;
+  assert.equal(waiting, true);
+  assert.equal(await db.subtema.count({ where: { temaId: theme.id } }), 1);
+  assert.ok(await db.tema.findUnique({ where: { id: theme.id } }));
+});
+
 test('consulta JSON de Guardián bloquea el uso si existe su tabla opcional', async () => {
   const existing =
     await db.$queryRaw`SELECT to_regclass('"IntentoGuardian"') IS NOT NULL AS present`;

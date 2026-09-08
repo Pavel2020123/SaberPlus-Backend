@@ -6,10 +6,19 @@ export class LessonEditor {
     busy,
     setBusy,
     onSaved,
+    onDeleted = () => {},
     confirm = (message) => window.confirm(message),
     doc = document,
   }) {
-    Object.assign(this, { api, busy, setBusy, onSaved, confirm, doc });
+    Object.assign(this, {
+      api,
+      busy,
+      setBusy,
+      onSaved,
+      onDeleted,
+      confirm,
+      doc,
+    });
     this.$ = (id) => doc.getElementById(id);
     this.version = 0;
     this.record = null;
@@ -32,7 +41,11 @@ export class LessonEditor {
         this.dirty = true;
         this.preview();
         this.message("Cambios sin guardar.");
+        this.controls();
       };
+    this.$("editor-delete").onclick = () => {
+      void this.remove();
+    };
     this.$("editor-close").onclick = () => this.close();
     this.$("editor-reload").onclick = () => {
       if (this.record) void this.open(this.kind, this.record.id, this.parent);
@@ -126,6 +139,57 @@ export class LessonEditor {
       this.$(id).disabled = locked || !this.record?.renombrable;
     this.$("editor-reload").disabled = locked || !this.record;
     this.$("editor-close").disabled = locked;
+    this.$("editor-delete").disabled =
+      locked || this.dirty || this.record?.eliminable !== true;
+    this.$("editor-delete-policy").textContent = this.dirty
+      ? "Guarda o descarta tus cambios antes de eliminar."
+      : this.record?.motivoEliminacion ||
+        (this.record?.eliminable === true
+          ? "Eliminación definitiva de este borrador vacío. No se borrarán otros registros."
+          : "El servidor no ha autorizado eliminar este registro. Recarga para consultar.");
+  }
+  async remove() {
+    const row = this.record;
+    if (this.busy() || this.dirty || row?.eliminable !== true) return;
+    if (
+      !this.confirm(
+        `Eliminar definitivamente ${this.kind === "temas" ? "tema" : "subtema"}: ${row.nombre}\nID: ${row.id}\nClasificación: ${this.parent}\nNo se puede deshacer. Solo se eliminará este borrador vacío. ¿Confirmar?`,
+      )
+    )
+      return;
+    const version = this.version;
+    const kind = this.kind;
+    this.setBusy(true);
+    this.controls();
+    this.message("Eliminando borrador vacío…");
+    try {
+      const receipt = await this.api.removeDraft(
+        kind,
+        row.id,
+        this.parent,
+        row.revision,
+        true,
+      );
+      if (version !== this.version) return;
+      this.setBusy(false);
+      this.close(true);
+      this.onDeleted(kind, receipt);
+    } catch (error) {
+      if (version === this.version) {
+        this.record = {
+          ...row,
+          eliminable: false,
+          motivoEliminacion:
+            "Consulta el catálogo o recarga el registro antes de volver a eliminar.",
+        };
+        this.message(`${error.message} No se reintenta automáticamente.`, true);
+      }
+    } finally {
+      if (version === this.version) {
+        this.setBusy(false);
+        this.controls();
+      }
+    }
   }
   preview() {
     const target = this.$("lesson-preview");

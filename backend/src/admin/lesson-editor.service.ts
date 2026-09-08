@@ -89,6 +89,28 @@ export class LessonEditorService {
     const renombrable = isLesson
       ? editable && row._count.preguntas === 0
       : draft && row._count.subtemas === 0;
+    const motivoEliminacion = !draft
+      ? 'Solo se eliminan borradores nunca publicados. Usa Archivar para conservar el historial.'
+      : !classified
+        ? 'La clasificación genérica requiere revisión del banco antiguo.'
+        : isLesson
+          ? row.tema.estadoContenido === 'ARCHIVADO'
+            ? 'El tema está archivado.'
+            : row._count.preguntas !== 0
+              ? 'Contiene preguntas; no se eliminan en cascada.'
+              : row._count.progresotemas !== 0 ||
+                  row._count.actividadesPlan !== 0
+                ? 'Tiene progreso o actividades de estudio asociadas. Usa Archivar.'
+                : row.contenido ||
+                    row.videoUrl ||
+                    row.imagenUrl ||
+                    row.tipoInteractivo ||
+                    row.datosInteractivo != null
+                  ? 'Contiene una lección, recursos o un ejercicio. Solo se eliminan subtemas vacíos.'
+                  : ''
+          : row._count.subtemas !== 0
+            ? 'Contiene subtemas; no se eliminan en cascada.'
+            : '';
     return {
       id: row.id,
       nombre: row.nombre,
@@ -102,6 +124,8 @@ export class LessonEditorService {
       revision: createHash('sha256').update(JSON.stringify(row)).digest('hex'),
       editable,
       renombrable,
+      eliminable: motivoEliminacion === '',
+      motivoEliminacion,
       motivo:
         editable || renombrable
           ? ''
@@ -186,6 +210,7 @@ export class LessonEditorService {
     id: string,
     revision: string,
     change: (tx: Prisma.TransactionClient, row: Row) => Promise<void>,
+    readAfter = true,
   ) {
     return this.prisma.$transaction(async (tx) => {
       const initial = await this.row(tx, kind, id);
@@ -209,8 +234,41 @@ export class LessonEditorService {
           'El registro cambió. Recarga antes de guardar; tu texto no se sobrescribió.',
         );
       await change(tx, current);
-      return this.row(tx, kind, id);
+      return readAfter ? this.row(tx, kind, id) : current;
     });
+  }
+
+  async eliminar(
+    kind: EditorKind,
+    id: string,
+    revision: string,
+    confirmado: unknown,
+  ) {
+    if (confirmado !== true)
+      throw new BadRequestException('Confirma explícitamente la eliminación.');
+    const row = await this.modify(
+      kind,
+      id,
+      revision,
+      async (tx, current) => {
+        const detail = this.view(current);
+        if (!detail.eliminable)
+          throw new BadRequestException(detail.motivoEliminacion);
+        // Parent/child FOR UPDATE locks prevent new FK references while checking
+        // all dependents. Never delete children or invoke a legacy cascade writer.
+        if (kind === 'temas') await tx.tema.delete({ where: { id } });
+        else await tx.subtema.delete({ where: { id } });
+      },
+      false,
+    );
+    const detail = this.view(row);
+    return {
+      id,
+      tipo: kind,
+      area: detail.area,
+      temaId: detail.temaId,
+      eliminado: true,
+    };
   }
 
   async guardar(

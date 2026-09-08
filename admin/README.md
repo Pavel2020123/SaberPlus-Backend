@@ -1,5 +1,10 @@
 # Panel editorial de SaberPlus — 7F-C3-D2-E
 
+**Ajuste D2-F:** eliminación confirmada de temas/subtemas en borrador vacío,
+nunca publicados ni usados. No borra contenido ni hijos en cascada.
+[Reglas, contrato y prueba manual](../backend/EDITORIAL_DRAFT_DELETION.md).
+El panel acumula 61 pruebas aprobadas; falta confirmar el recorrido en navegador.
+
 **Entrega actual:** formularios CLOZE y banco antiguo (lotes, coincidencias,
 destino por tema/subtema y confirmación) conectados a las API ADMIN existentes.
 Demo con ejemplos propios, 54 pruebas del panel aprobadas; revisión visual pendiente
@@ -33,7 +38,8 @@ Primera entrega funcional: acceso ADMIN, navegación por las cinco áreas ICFES,
 catálogo paginado, estados editoriales y creación de temas/subtemas en borrador.
 Incluye revisión y cambios de estado en la demo. Las nuevas escrituras reales
 están desactivadas por defecto hasta completar D2 y preparar el ensayo D3.
-No elimina contenido. La reclasificación requiere revisión y habilitación explícita.
+Solo elimina borradores vacíos mediante la nueva ruta protegida D2-F.
+La reclasificación requiere revisión y habilitación explícita.
 Ahora incluye lecciones, preguntas y casos en borrador, vista previa del texto,
 corrección protegida de nombres y control de preguntas repetidas. El cierre
 editorial real sigue en C3-D2/D3; carga de archivos en C5.

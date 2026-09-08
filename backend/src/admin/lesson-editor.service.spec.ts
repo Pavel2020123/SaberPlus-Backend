@@ -11,6 +11,7 @@ import { AdminGuard } from '../auth/jwt.guard';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   EditorNameDto,
+  EditorRemovalDto,
   LessonDraftDto,
   LessonEditorController,
 } from './lesson-editor.controller';
@@ -48,8 +49,18 @@ describe('LessonEditorService', () => {
   };
   const tx = {
     $queryRaw: jest.fn<Promise<unknown[]>, unknown[]>(),
-    subtema: { findUnique: jest.fn(), findMany: jest.fn(), update: jest.fn() },
-    tema: { findUnique: jest.fn(), findMany: jest.fn(), update: jest.fn() },
+    subtema: {
+      findUnique: jest.fn(),
+      findMany: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+    },
+    tema: {
+      findUnique: jest.fn(),
+      findMany: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+    },
   };
   const prisma = { ...tx, $transaction: jest.fn() };
   const service = new LessonEditorService(prisma as unknown as PrismaService);
@@ -94,6 +105,99 @@ describe('LessonEditorService', () => {
       '',
       '',
     );
+
+  it.each(['temas', 'subtemas'] as const)(
+    'elimina solo el borrador vacío %s con bloqueo y confirmación',
+    async (kind) => {
+      const id = kind === 'temas' ? 't2' : 's1';
+      const detail = await service.detalle(kind, id);
+      expect(detail.eliminable).toBe(true);
+      const result = await service.eliminar(kind, id, detail.revision, true);
+      expect(result).toMatchObject({ id, tipo: kind, eliminado: true });
+      expect(
+        tx[kind === 'temas' ? 'tema' : 'subtema'].delete,
+      ).toHaveBeenCalledWith({ where: { id } });
+      expect(tx.$queryRaw.mock.calls[0][1]).toBe('editor:area:MATEMATICAS');
+    },
+  );
+  it.each([
+    'PUBLICADO',
+    'ARCHIVADO',
+    'EN_REVISION',
+    'fecha',
+    'preguntas',
+    'progreso',
+    'plan',
+    'texto',
+    'video',
+    'imagen',
+    'interactivo',
+    'json',
+    'padre',
+    'generico',
+  ])('bloquea eliminar un subtema protegido: %s', async (reason) => {
+    if (['PUBLICADO', 'ARCHIVADO', 'EN_REVISION'].includes(reason))
+      row.estadoContenido = reason as EstadoContenido;
+    if (reason === 'fecha') row.fechaPublicacion = new Date();
+    if (reason === 'preguntas') row._count.preguntas = 1;
+    if (reason === 'progreso') row._count.progresotemas = 1;
+    if (reason === 'plan') row._count.actividadesPlan = 1;
+    if (reason === 'texto') row.contenido = ' '; // Even whitespace is stored content.
+    if (reason === 'video')
+      Object.assign(row, { videoUrl: 'https://example.com/v' });
+    if (reason === 'imagen')
+      Object.assign(row, { imagenUrl: 'https://example.com/i' });
+    if (reason === 'interactivo') row.tipoInteractivo = 'CLOZE';
+    if (reason === 'json') row.datosInteractivo = {};
+    if (reason === 'padre') row.tema.estadoContenido = 'ARCHIVADO';
+    if (reason === 'generico') row.nombre = 'Banco General';
+    const detail = await service.detalle('subtemas', 's1');
+    expect(detail.eliminable).toBe(false);
+    expect(detail.motivoEliminacion).not.toBe('');
+    await expect(
+      service.eliminar('subtemas', 's1', detail.revision, true),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(tx.subtema.delete).not.toHaveBeenCalled();
+  });
+  it('no elimina un tema con hijos ni permite confirmaciones convertidas', async () => {
+    theme._count.subtemas = 1;
+    const detail = await service.detalle('temas', 't2');
+    await expect(
+      service.eliminar('temas', 't2', detail.revision, true),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    for (const confirmado of [false, 'true', 'false', 1, null, undefined]) {
+      await expect(
+        service.eliminar('temas', 't2', detail.revision, confirmado),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      const dto = plainToInstance(
+        EditorRemovalDto,
+        { revision: detail.revision, confirmado },
+        { enableImplicitConversion: true },
+      );
+      expect(validateSync(dto).length).toBeGreaterThan(0);
+    }
+    expect(
+      validateSync(
+        plainToInstance(
+          EditorRemovalDto,
+          { revision: detail.revision, confirmado: true },
+          { enableImplicitConversion: true },
+        ),
+      ),
+    ).toHaveLength(0);
+    expect(tx.tema.delete).not.toHaveBeenCalled();
+  });
+  it('relee después del bloqueo e impide eliminar desde una revisión antigua', async () => {
+    const detail = await service.detalle('subtemas', 's1');
+    tx.$queryRaw.mockImplementation(() => {
+      row._count.preguntas = 1;
+      return Promise.resolve([]);
+    });
+    await expect(
+      service.eliminar('subtemas', 's1', detail.revision, true),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(tx.subtema.delete).not.toHaveBeenCalled();
+  });
 
   it('expone un detalle editorial sin alumnos ni respuestas', async () => {
     const detail = await service.detalle('subtemas', 's1');

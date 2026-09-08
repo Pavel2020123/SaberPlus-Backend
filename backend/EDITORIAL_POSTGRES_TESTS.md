@@ -78,7 +78,7 @@ Prisma reales y dos conexiones independientes. No usa HTTP ni simula permisos AD
 
 ## Límites y estado de la etapa
 
-Resultado local: **10 pruebas PostgreSQL**, **11 pruebas de seguridad del
+Resultado inicial D2-F: **10 pruebas PostgreSQL**, **11 pruebas de seguridad del
 ejecutor** y **605 pruebas generales en 63 suites** aprobadas. La suite general
 se ejecutó con detección de recursos abiertos. Ambas instancias temporales usadas
 durante el desarrollo se detuvieron y eliminaron correctamente al terminar.

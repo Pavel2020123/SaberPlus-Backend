@@ -140,6 +140,22 @@ export function createDemoApi() {
     const renombrable = sub
       ? editable && !row._count.preguntas
       : draft && count === 0;
+    const motivoEliminacion = !draft
+      ? "Solo se eliminan borradores nunca publicados. Usa Archivar."
+      : key(row.nombre) === "banco general" ||
+          (sub && key(parent.nombre) === "banco general")
+        ? "La clasificación genérica requiere revisión del banco antiguo."
+        : sub
+          ? !editable ||
+            row._count.preguntas ||
+            row.contenido ||
+            row.videoUrl ||
+            row.imagenUrl
+            ? "Contiene preguntas, lección, recursos, ejercicio o uso; o su tema está archivado. Solo se eliminan borradores vacíos."
+            : ""
+          : count
+            ? "Contiene subtemas; no se eliminan en cascada."
+            : "";
     return {
       id: row.id,
       nombre: row.nombre,
@@ -154,6 +170,8 @@ export function createDemoApi() {
         .digest("hex"),
       editable,
       renombrable,
+      eliminable: motivoEliminacion === "",
+      motivoEliminacion,
       motivo:
         editable || renombrable
           ? ""
@@ -169,7 +187,7 @@ export function createDemoApi() {
   });
   return async (req, res, url) => {
     let body = {};
-    if (["POST", "PATCH"].includes(req.method)) {
+    if (["POST", "PATCH", "DELETE"].includes(req.method)) {
       let raw = "";
       for await (const chunk of req) {
         raw += chunk;
@@ -236,6 +254,28 @@ export function createDemoApi() {
       const current = editorView(kind, row);
       if (req.method === "GET" && !action) {
         send(res, 200, current);
+        return;
+      }
+      if (req.method === "DELETE" && !action) {
+        if (
+          body.confirmado !== true ||
+          !/^[a-f0-9]{64}$/.test(body.revision ?? "")
+        ) {
+          send(res, 400, {});
+        } else if (body.revision !== current.revision) {
+          send(res, 409, {});
+        } else if (!current.eliminable) {
+          send(res, 400, {});
+        } else {
+          collection.splice(collection.indexOf(row), 1);
+          send(res, 200, {
+            id: row.id,
+            tipo: kind,
+            area: current.area,
+            temaId: current.temaId,
+            eliminado: true,
+          });
+        }
         return;
       }
       if (req.method !== "PATCH" || !action) {

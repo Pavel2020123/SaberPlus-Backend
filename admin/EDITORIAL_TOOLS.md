@@ -36,6 +36,12 @@ simula en una prueba; esto no sustituye la revisión visual real pendiente de D2
 
 ### Completar espacios
 
+Para corregir un tema/subtema creado por error, su editor incluye **Eliminar
+borrador vacío** con confirmación y motivo si está bloqueado. No borra contenido
+ni historial. [Reglas y prueba](../backend/EDITORIAL_DRAFT_DELETION.md).
+Esta ampliación exige reiniciar la demo (descarta sus datos temporales), porque
+también incorpora rutas de servidor; no basta recargar solo el cliente.
+
 1. Matemáticas → Proporcionalidad → Porcentajes → **Completar espacios (CLOZE)**.
 2. Enunciado: `El 10 % de 200 es ___.` Primer espacio: opciones `20` y `10`,
    correcta «Opción 1». No tienes que escribir JSON ni índices manualmente.

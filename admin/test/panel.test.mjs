@@ -49,12 +49,15 @@ test("fallos de red o JSON durante el acceso no sugieren contenido guardado ni r
           return response({ accessToken: "fixture-token" });
         },
       });
-      await assert.rejects(api.login("demo@saberplus.invalid", "fixture"), (error) => {
-        assert.ok(error instanceof PanelError);
-        assert.match(error.message, /confirmar el acceso/);
-        assert.doesNotMatch(error.message, /guardado|catálogo|fixture-token/);
-        return true;
-      });
+      await assert.rejects(
+        api.login("demo@saberplus.invalid", "fixture"),
+        (error) => {
+          assert.ok(error instanceof PanelError);
+          assert.match(error.message, /confirmar el acceso/);
+          assert.doesNotMatch(error.message, /guardado|catálogo|fixture-token/);
+          return true;
+        },
+      );
       assert.equal(api.authenticated, false);
       assert.equal(calls, phase === "login" ? 1 : 2);
     }
@@ -68,11 +71,16 @@ test("timeout de acceso no se presenta como una escritura editorial", async () =
     fetcher: async (_url, options) => {
       calls++;
       return new Promise((_resolve, reject) =>
-        options.signal.addEventListener("abort", () => reject(new Error("timeout"))),
+        options.signal.addEventListener("abort", () =>
+          reject(new Error("timeout")),
+        ),
       );
     },
   });
-  await assert.rejects(api.login("demo@saberplus.invalid", "fixture"), /confirmar el acceso/);
+  await assert.rejects(
+    api.login("demo@saberplus.invalid", "fixture"),
+    /confirmar el acceso/,
+  );
   assert.equal(api.authenticated, false);
   assert.equal(calls, 1);
 });
@@ -165,6 +173,99 @@ test("la demo pagina más de 20 temas sin perder el ámbito", async (t) => {
     new Set([...first.items, ...second.items].map((row) => row.id)).size,
     21,
   );
+});
+
+test("demo elimina solo temas/subtemas vacíos con revisión; protege hijos y contenido", async (t) => {
+  const origin = await serve(t, { demo: true });
+  const api = new CatalogApi(`${origin}/api`);
+  const unauth = await fetch(`${origin}/api/admin/editor/temas/missing`, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ revision: "a".repeat(64), confirmado: true }),
+  });
+  assert.equal(unauth.status, 401);
+  await api.login("demo@saberplus.invalid", "solo-demostracion");
+  const theme = await api.create("temas", "INGLES", "Eliminar ensayo");
+  const before = await api.editor("temas", theme.id, "INGLES");
+  assert.equal(before.eliminable, true);
+  const sub = await api.create("subtemas", theme.id, "Subtema vacío");
+  await assert.rejects(
+    api.removeDraft("temas", theme.id, "INGLES", before.revision, true),
+    (e) => e.status === 409,
+  );
+  const parent = await api.editor("temas", theme.id, "INGLES");
+  assert.equal(parent.eliminable, false);
+  await assert.rejects(
+    api.removeDraft("temas", theme.id, "INGLES", parent.revision, true),
+    (e) => e.status === 400,
+  );
+  let detail = await api.editor("subtemas", sub.id, theme.id);
+  await assert.rejects(
+    api.removeDraft("subtemas", sub.id, theme.id, detail.revision, "true"),
+  );
+  detail = await api.editor("subtemas", sub.id, theme.id, {
+    revision: detail.revision,
+    contenido: "Contenido propio",
+    videoUrl: "",
+    imagenUrl: "",
+  });
+  assert.equal(detail.eliminable, false);
+  await assert.rejects(
+    api.removeDraft("subtemas", sub.id, theme.id, detail.revision, true),
+    (e) => e.status === 400,
+  );
+  detail = await api.editor("subtemas", sub.id, theme.id, {
+    revision: detail.revision,
+    contenido: "",
+    videoUrl: "",
+    imagenUrl: "",
+  });
+  await api.removeDraft("subtemas", sub.id, theme.id, detail.revision, true);
+  await assert.rejects(
+    api.editor("subtemas", sub.id, theme.id),
+    (e) => e.status === 404,
+  );
+  const empty = await api.editor("temas", theme.id, "INGLES");
+  assert.equal(empty.eliminable, true);
+  await api.removeDraft("temas", theme.id, "INGLES", empty.revision, true);
+  assert.equal(
+    (await api.page("temas", "INGLES")).items.some((r) => r.id === theme.id),
+    false,
+  );
+});
+
+test("eliminación verifica comprobante y diferencia pérdida de respuesta sin reintentar", async () => {
+  for (const invalid of [true, false]) {
+    let deletes = 0;
+    const api = new CatalogApi("/api", {
+      fetcher: async (url, options) => {
+        if (url.endsWith("/login"))
+          return response({ accessToken: "fixture-token" });
+        if (url.endsWith("/perfil"))
+          return response({ rol: "ADMIN", debeCambiarContrasena: false });
+        assert.equal(options.method, "DELETE");
+        assert.deepEqual(JSON.parse(options.body), {
+          revision: "a".repeat(64),
+          confirmado: true,
+        });
+        deletes++;
+        if (invalid)
+          return response({
+            id: "otro",
+            tipo: "temas",
+            area: "INGLES",
+            eliminado: true,
+          });
+        throw new Error("network");
+      },
+    });
+    await api.login("demo@saberplus.invalid", "fixture");
+    await assert.rejects(
+      api.removeDraft("temas", "t1", "INGLES", "a".repeat(64), true),
+      /eliminación/,
+    );
+    assert.equal(deletes, 1);
+  }
 });
 
 test("un nuevo servidor demo no conserva datos del anterior", async (t) => {
