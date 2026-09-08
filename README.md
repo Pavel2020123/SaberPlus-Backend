@@ -27,6 +27,9 @@ reglas de negocio. La aplicacion Flutter no accede directamente a PostgreSQL.
 - **7F-C3-D2-E:** formularios CLOZE y herramientas de lotes, coincidencias y
   reclasificación integrados en el panel, con demo aislada. Prueba visual y
   PostgreSQL pendientes. [Recorrido de prueba](admin/EDITORIAL_TOOLS.md).
+- **7F-C3-D2-F:** ejecutor de PostgreSQL temporal y pruebas de SQL, bloqueos,
+  conflictos, rollback y uso histórico. No conecta a bases existentes ni activa
+  banderas reales. [Repetir pruebas y límites](backend/EDITORIAL_POSTGRES_TESTS.md).
 
 ## Desarrollo local
 

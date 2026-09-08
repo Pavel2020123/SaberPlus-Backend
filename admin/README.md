@@ -4,8 +4,9 @@
 destino por tema/subtema y confirmación) conectados a las API ADMIN existentes.
 Demo con ejemplos propios, 54 pruebas del panel aprobadas; revisión visual pendiente
 por navegador no disponible. [Cómo probar y límites](EDITORIAL_TOOLS.md).
-No se ejecutaron migraciones, despliegues ni cambios en Supabase. Siguen D2-F
-(PostgreSQL/validación visual y operación autorizada) y después ensayo real D3.
+En D2-E no hubo migraciones ni cambios en Supabase. D2-F verifica ahora SQL y
+concurrencia en PostgreSQL temporal: [pruebas y límites](../backend/EDITORIAL_POSTGRES_TESTS.md).
+Quedan validación visual y operación autorizada, después ensayo real D3.
 
 Las descripciones D2-B/C/D siguientes corresponden a las entregas de API previas;
 sus herramientas visuales están integradas ahora en D2-E.

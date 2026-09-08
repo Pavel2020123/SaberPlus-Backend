@@ -105,8 +105,9 @@ catálogo → CLOZE → lección. Son pruebas de lógica, no una validación de 
 La habilidad de navegador no encontró navegadores disponibles; **no hubo prueba
 visual en esta entrega**. No se sustituyó por una captura ni se afirmó haberla hecho.
 
-**D2-E implementada localmente; D2 no está cerrada.** Sigue D2-F: preparar y
-ejecutar pruebas de consultas, bloqueos, rollback y concurrencia en una base
-PostgreSQL de ensayo explícitamente autorizada, y completar revisión visual.
+**D2-E implementada localmente; D2 no está cerrada.** D2-F ya verifica consultas,
+bloqueos, rollback y concurrencia en PostgreSQL temporal local:
+[ejecutor reproducible y límites](../backend/EDITORIAL_POSTGRES_TESTS.md).
+Queda completar revisión visual.
 Después, operación autorizada del legado y D3 (ensayo editorial real con ADMIN).
 No usar automáticamente Supabase de trabajo para las pruebas.
