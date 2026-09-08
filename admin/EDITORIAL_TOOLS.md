@@ -17,6 +17,23 @@ Ctrl+C. No utiliza credenciales reales. Reiniciar el servidor descarta la demo.
 Si ese puerto ya está ocupado, detener tu demo anterior o elegir `ADMIN_PORT`;
 no cerrar procesos ajenos. Los servidores de las pruebas usan puertos temporales.
 
+### Corrección de acceso durante D2-F
+
+Se corrigió el receptor de `fetch` nativo para evitar `Illegal invocation` en
+navegadores que exigen el contexto global. Los fallos de conexión, tiempo de
+espera o JSON durante login/perfil muestran un aviso de acceso, no el mensaje
+de una escritura editorial posiblemente guardada. Las escrituras conservan
+esa advertencia y no se reintentan automáticamente.
+
+Con la demo aún encendida, recargar con Ctrl+F5 y pulsar **Explorar demostración**.
+No hace falta reiniciar el servidor para cargar este cambio del cliente; así se
+conservan los datos temporales de la demo. No requiere cambios en Supabase/Render.
+
+Verificación de esta corrección: **57 pruebas aprobadas** y sintaxis de 14 módulos.
+Tres pruebas nuevas comprueban el receptor global contra la API demo aislada y
+los errores de acceso por red, JSON y timeout. La restricción de navegador se
+simula en una prueba; esto no sustituye la revisión visual real pendiente de D2-F.
+
 ### Completar espacios
 
 1. Matemáticas → Proporcionalidad → Porcentajes → **Completar espacios (CLOZE)**.

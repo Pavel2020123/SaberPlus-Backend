@@ -19,6 +19,64 @@ async function serve(t, options) {
 const response = (body, status = 200) =>
   new Response(JSON.stringify(body), { status });
 
+test("fetch nativo conserva el receptor global al acceder y consultar la demo", async (t) => {
+  const origin = await serve(t, { demo: true });
+  const nativeFetch = globalThis.fetch;
+  let calls = 0;
+  t.mock.method(globalThis, "fetch", function (...args) {
+    if (this !== globalThis) throw new TypeError("Illegal invocation");
+    calls++;
+    return Reflect.apply(nativeFetch, globalThis, args);
+  });
+  const api = new CatalogApi(`${origin}/api`);
+  await api.login("demo@saberplus.invalid", "solo-demostracion");
+  assert.equal(api.authenticated, true);
+  assert.equal((await api.areas()).length, 5);
+  assert.equal(calls, 3);
+});
+
+test("fallos de red o JSON durante el acceso no sugieren contenido guardado ni reintentan", async () => {
+  for (const phase of ["login", "perfil"]) {
+    for (const failure of ["network", "json"]) {
+      let calls = 0;
+      const api = new CatalogApi("/api", {
+        fetcher: async (url) => {
+          calls++;
+          if (url.endsWith(`/${phase}`)) {
+            if (failure === "network") throw new TypeError("Failed to fetch");
+            return new Response("not JSON", { status: 200 });
+          }
+          return response({ accessToken: "fixture-token" });
+        },
+      });
+      await assert.rejects(api.login("demo@saberplus.invalid", "fixture"), (error) => {
+        assert.ok(error instanceof PanelError);
+        assert.match(error.message, /confirmar el acceso/);
+        assert.doesNotMatch(error.message, /guardado|catálogo|fixture-token/);
+        return true;
+      });
+      assert.equal(api.authenticated, false);
+      assert.equal(calls, phase === "login" ? 1 : 2);
+    }
+  }
+});
+
+test("timeout de acceso no se presenta como una escritura editorial", async () => {
+  let calls = 0;
+  const api = new CatalogApi("/api", {
+    timeoutMs: 10,
+    fetcher: async (_url, options) => {
+      calls++;
+      return new Promise((_resolve, reject) =>
+        options.signal.addEventListener("abort", () => reject(new Error("timeout"))),
+      );
+    },
+  });
+  await assert.rejects(api.login("demo@saberplus.invalid", "fixture"), /confirmar el acceso/);
+  assert.equal(api.authenticated, false);
+  assert.equal(calls, 1);
+});
+
 test("acepta HTTPS y HTTP únicamente en loopback, sin credenciales", () => {
   assert.equal(validateApiBase("https://example.com/"), "https://example.com");
   assert.equal(

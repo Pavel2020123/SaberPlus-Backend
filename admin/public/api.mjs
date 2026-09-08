@@ -43,7 +43,8 @@ export class CatalogApi {
   constructor(
     base,
     {
-      fetcher = globalThis.fetch,
+      // Browser fetch must keep the global receiver, not the CatalogApi instance.
+      fetcher = globalThis.fetch.bind(globalThis),
       onSessionExpired = () => {},
       timeoutMs = 60000,
     } = {},
@@ -558,6 +559,10 @@ export class CatalogApi {
       return data;
     } catch (error) {
       if (error instanceof PanelError) throw error;
+      if (path === "/auth/login" || path === "/auth/perfil")
+        throw new PanelError(
+          "No pudimos confirmar el acceso. Comprueba que el servidor siga encendido y recarga la página antes de intentarlo de nuevo.",
+        );
       throw new PanelError(
         method === "GET"
           ? "No pudimos conectar o validar la respuesta. Revisa la conexión y CORS."
