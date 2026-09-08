@@ -17,6 +17,9 @@ reglas de negocio. La aplicacion Flutter no accede directamente a PostgreSQL.
 - **7F-C3-D2-B:** indexación por lotes del legado con vista previa, revisión,
   confirmación y reportes de duplicados. Escrituras apagadas por defecto; no
   publica ni reclasifica. [Procedimiento y límites](backend/EDITORIAL_LEGACY_INDEX.md).
+- **7F-C3-D2-C:** reclasificación revisada de preguntas sin uso registrado,
+  dentro de la misma área y sin publicar. Bloquea contenido usado/publicado;
+  escrituras apagadas por defecto. [Contrato y límites](backend/EDITORIAL_RECLASSIFICATION.md).
 
 ## Desarrollo local
 

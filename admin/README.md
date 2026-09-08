@@ -1,4 +1,8 @@
-# Panel editorial de SaberPlus — 7F-C3-D2-B
+# Panel editorial de SaberPlus — 7F-C3-D2-C
+
+D2-C agrega una API ADMIN de reclasificación con destino/revisión/confirmación
+y bloqueo de preguntas con uso registrado. No hay pantalla nueva ni cambios
+automáticos en la base. [Contrato y activación pendiente](../backend/EDITORIAL_RECLASSIFICATION.md).
 
 D2-B incorpora una API ADMIN de indexación por lotes y reportes del legado,
 sin cambios visuales en este panel. No se ha ejecutado contra la base real.
