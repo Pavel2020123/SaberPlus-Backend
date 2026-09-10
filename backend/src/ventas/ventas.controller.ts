@@ -9,10 +9,10 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { VentasService } from './ventas.service';
+import { IsJsonBoolean } from '../common/is-json-boolean';
 import { AdminGuard } from '../auth/jwt.guard';
 import { LineaInteres } from '@prisma/client';
 import {
-  IsBoolean,
   IsEmail,
   IsEnum,
   IsIn,
@@ -69,7 +69,7 @@ class CrearLeadVentasDto {
 }
 
 class MarcarAtendidoDto {
-  @IsBoolean()
+  @IsJsonBoolean()
   atendido!: boolean;
 }
 

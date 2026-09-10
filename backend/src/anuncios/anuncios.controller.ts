@@ -9,9 +9,9 @@ import {
   Request,
   UseGuards,
 } from '@nestjs/common';
+import { IsJsonBoolean } from '../common/is-json-boolean';
 import { AudienciaAnuncio, TipoAnuncio } from '@prisma/client';
 import {
-  IsBoolean,
   IsEnum,
   IsISO8601,
   IsOptional,
@@ -48,10 +48,10 @@ class CrearAnuncioDto {
   @IsISO8601()
   fechaFin?: string | null;
 
-  @IsBoolean()
+  @IsJsonBoolean()
   activo!: boolean;
 
-  @IsBoolean()
+  @IsJsonBoolean()
   destacado!: boolean;
 }
 
@@ -83,11 +83,11 @@ class ActualizarAnuncioDto {
   fechaFin?: string | null;
 
   @IsOptional()
-  @IsBoolean()
+  @IsJsonBoolean()
   activo?: boolean;
 
   @IsOptional()
-  @IsBoolean()
+  @IsJsonBoolean()
   destacado?: boolean;
 }
 

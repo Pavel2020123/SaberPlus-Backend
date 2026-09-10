@@ -140,9 +140,9 @@ export class VinculacionGrupoService {
   async aceptarIngreso(
     usuarioId: string,
     codigoRecibido: string,
-    acepto: boolean,
+    acepto: unknown,
   ) {
-    if (!acepto) {
+    if (acepto !== true) {
       throw new BadRequestException(
         'Debes aceptar explícitamente la institución y el grupo.',
       );

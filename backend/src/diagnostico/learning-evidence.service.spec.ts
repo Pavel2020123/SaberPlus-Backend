@@ -7,9 +7,21 @@ import { AuthenticatedRequest } from '../auth/auth.types';
 import { LearningEvidenceService } from './learning-evidence.service';
 import { LearningEvidenceController } from './learning-evidence.controller';
 
+interface EvidenceHistoryQuery {
+  where: {
+    usuarioId: string;
+    fechaRespuesta: { gte: Date; lte: Date };
+  };
+  take: number;
+  orderBy: unknown;
+  select: unknown;
+}
+
 describe('LearningEvidenceService', () => {
   const usuario = { findUnique: jest.fn() };
-  const historialRespuesta = { findMany: jest.fn() };
+  const historialRespuesta = {
+    findMany: jest.fn<Promise<unknown[]>, [EvidenceHistoryQuery]>(),
+  };
   const service = new LearningEvidenceService({
     usuario,
     historialRespuesta,
@@ -22,19 +34,16 @@ describe('LearningEvidenceService', () => {
 
   it('consulta solo el historial propio, acotado y sin contenido de preguntas', async () => {
     await service.obtener('user-1');
-    expect(historialRespuesta.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: {
-          usuarioId: 'user-1',
-          fechaRespuesta: { gte: expect.any(Date), lte: expect.any(Date) },
-        },
-        take: 10001,
-        orderBy: [{ fechaRespuesta: 'asc' }, { id: 'asc' }],
-      }),
-    );
-    const select = JSON.stringify(
-      historialRespuesta.findMany.mock.calls[0][0].select,
-    );
+    expect(historialRespuesta.findMany).toHaveBeenCalledTimes(1);
+    const query = historialRespuesta.findMany.mock.calls[0][0];
+    expect(query).toMatchObject({
+      where: { usuarioId: 'user-1' },
+      take: 10001,
+      orderBy: [{ fechaRespuesta: 'asc' }, { id: 'asc' }],
+    });
+    expect(query.where.fechaRespuesta.gte).toBeInstanceOf(Date);
+    expect(query.where.fechaRespuesta.lte).toBeInstanceOf(Date);
+    const select = JSON.stringify(query.select);
     expect(select).not.toContain('enunciado');
     expect(select).not.toContain('respuestaCorrectaId');
   });

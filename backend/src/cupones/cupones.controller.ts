@@ -11,7 +11,6 @@ import {
 } from '@nestjs/common';
 import { TipoPlan } from '@prisma/client';
 import {
-  IsBoolean,
   IsDateString,
   IsEnum,
   IsInt,
@@ -26,6 +25,7 @@ import {
 } from 'class-validator';
 import { AdminGuard, JwtGuard } from '../auth/jwt.guard';
 import { CuponesService } from './cupones.service';
+import { IsJsonBoolean } from '../common/is-json-boolean';
 
 class ValidarCuponQueryDto {
   @IsString()
@@ -56,7 +56,7 @@ class CrearCuponDto {
   titulo?: string;
 
   @IsOptional()
-  @IsBoolean()
+  @IsJsonBoolean()
   esAutomatica?: boolean;
 
   @IsInt()
@@ -80,7 +80,7 @@ class CrearCuponDto {
 
 class ActualizarCuponDto {
   @IsOptional()
-  @IsBoolean()
+  @IsJsonBoolean()
   activo?: boolean;
 
   @IsOptional()

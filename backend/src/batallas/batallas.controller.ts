@@ -10,7 +10,6 @@ import {
 } from '@nestjs/common';
 import { AreaIcfes, ModoBatalla, MotivoReporteBatalla } from '@prisma/client';
 import {
-  IsBoolean,
   IsEnum,
   IsOptional,
   IsString,
@@ -21,6 +20,7 @@ import { AuthenticatedRequest } from '../auth/auth.types';
 import { EmailVerificadoGuard } from '../auth/email-verificado.guard';
 import { JwtGuard } from '../auth/jwt.guard';
 import { BatallasService } from './batallas.service';
+import { IsJsonBoolean } from '../common/is-json-boolean';
 
 class CrearBatallaDto {
   @IsEnum(ModoBatalla)
@@ -31,7 +31,7 @@ class CrearBatallaDto {
   area?: AreaIcfes;
 
   @IsOptional()
-  @IsBoolean()
+  @IsJsonBoolean()
   invitacionPrivada?: boolean;
 }
 

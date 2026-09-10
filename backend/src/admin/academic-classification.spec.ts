@@ -1,5 +1,6 @@
 import { BadRequestException, ValidationPipe } from '@nestjs/common';
 import { GUARDS_METADATA } from '@nestjs/common/constants';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AdminGuard } from '../auth/jwt.guard';
 import { AdminService } from './admin.service';
@@ -15,7 +16,7 @@ describe('Clasificación obligatoria', () => {
   const pregunta = {
     findFirst: jest.fn(),
     findUnique: jest.fn(),
-    create: jest.fn(),
+    create: jest.fn<Promise<unknown>, [Prisma.PreguntaCreateArgs]>(),
     update: jest.fn(),
   };
   const prisma = { subtema, pregunta } as unknown as PrismaService;
@@ -75,11 +76,9 @@ describe('Clasificación obligatoria', () => {
       estadoContenido: 'BORRADOR',
     });
     await service.crearPregunta('Pregunta', 's1', 'MEDIO', respuestas);
-    expect(pregunta.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({ subtemaId: 's1' }),
-      }),
-    );
+    expect(pregunta.create.mock.calls[0][0]).toMatchObject({
+      data: { subtemaId: 's1' },
+    });
   });
 
   it('exige subtema en la carga rápida antes de consultar la base', async () => {

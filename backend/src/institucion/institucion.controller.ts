@@ -16,6 +16,7 @@ import {
   StreamableFile,
 } from '@nestjs/common';
 import { Response } from 'express';
+import { IsJsonBoolean } from '../common/is-json-boolean';
 import { AuthenticatedRequest } from '../auth/auth.types';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { InstitucionService } from './institucion.service';
@@ -172,6 +173,7 @@ class CodigoTemporalGrupoDto {
 }
 
 class AceptarCodigoTemporalGrupoDto extends CodigoTemporalGrupoDto {
+  @IsJsonBoolean()
   @Equals(true, { message: 'Debes aceptar explícitamente el vínculo.' })
   acepto!: true;
 }

@@ -48,6 +48,8 @@ button:hover:not(:disabled) {
 }
 button:focus-visible,
 input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
 a:focus-visible {
   outline: 3px solid #277dbe;
   outline-offset: 3px;
@@ -184,6 +186,7 @@ a {
   font-weight: 600;
 }
 .login-card {
+  min-width: 0;
   border: 1px solid var(--line);
   box-shadow: 0 12px 45px #192c3608;
   border-radius: 18px;
@@ -293,6 +296,7 @@ input:disabled {
   width: 100%;
 }
 .page-heading {
+  overflow-wrap: anywhere;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -341,6 +345,8 @@ input:disabled {
   min-width: 0;
 }
 .panel-heading {
+  flex-wrap: wrap;
+  gap: 8px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -435,6 +441,7 @@ input:disabled {
   place-items: center;
 }
 .pagination {
+  flex-wrap: wrap;
   display: flex;
   justify-content: space-between;
   align-items: center;

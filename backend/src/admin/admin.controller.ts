@@ -16,6 +16,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AdminService } from './admin.service';
+import { IsJsonBoolean } from '../common/is-json-boolean';
 import { AcademicCatalogService } from './academic-catalog.service';
 import { RetiredEditorialWrite } from './legacy-editorial-write.guard';
 import { ContentLifecycleService } from './content-lifecycle.service';
@@ -34,7 +35,6 @@ import {
 import {
   ArrayMinSize,
   IsArray,
-  IsBoolean,
   IsDateString,
   IsEnum,
   IsIn,
@@ -86,7 +86,7 @@ class RespuestaDto {
   @IsNotEmpty()
   texto!: string;
 
-  @IsBoolean()
+  @IsJsonBoolean()
   esCorrecta!: boolean;
 
   @IsOptional()

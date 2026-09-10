@@ -1,10 +1,10 @@
 import { AreaIcfes, Dificultad } from '@prisma/client';
 import { Type } from 'class-transformer';
+import { IsJsonBoolean } from '../common/is-json-boolean';
 import {
   ArrayMaxSize,
   ArrayMinSize,
   IsArray,
-  IsBoolean,
   IsEnum,
   IsInt,
   IsOptional,
@@ -20,7 +20,7 @@ import { CatalogPageDto } from './academic-catalog.controller';
 
 export class EditorialOptionDto {
   @IsString() @MinLength(1) @MaxLength(4000) texto!: string;
-  @IsBoolean() esCorrecta!: boolean;
+  @IsJsonBoolean() esCorrecta!: boolean;
   @IsString() @MaxLength(4000) explicacion!: string;
 }
 export class EditorialQuestionDto {

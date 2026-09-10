@@ -602,6 +602,25 @@ test("cableado del panel: catálogo → CLOZE → lección, banco antiguo y cier
       n.textContent.includes("Porcentajes"),
     ),
   );
+  // New catalog forms must be protected just like the lesson/question editors.
+  let confirmations = 0;
+  globalThis.window.confirm = () => { confirmations++; return false; };
+  get("theme-name").value = "Tema sin guardar";
+  get("area-list").children.find((n) => n.textContent.includes("Inglés")).onclick();
+  assert.equal(confirmations, 1);
+  assert.equal(get("theme-name").value, "Tema sin guardar");
+  assert.match(get("breadcrumb").textContent, /Matemáticas/);
+  get("logout").onclick();
+  assert.equal(confirmations, 2);
+  assert.equal(get("workspace").hidden, false);
+  get("subtheme-name").value = "Subtema sin guardar";
+  get("themes-list").children.find((n) => n.textContent.includes("Álgebra")).onclick();
+  assert.equal(confirmations, 3);
+  assert.equal(get("subtheme-name").value, "Subtema sin guardar");
+  assert.match(get("breadcrumb").textContent, /Proporcionalidad/);
+  get("theme-name").value = "";
+  get("subtheme-name").value = "";
+  globalThis.window.confirm = () => true;
   get("subthemes-list")
     .children.find((n) => n.textContent.includes("Porcentajes"))
     .onclick();

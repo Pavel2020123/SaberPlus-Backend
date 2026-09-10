@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Patch, UseGuards } from '@nestjs/common';
-import { IsBoolean, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsJsonBoolean } from '../common/is-json-boolean';
 import { AdminGuard } from '../auth/jwt.guard';
 import { SoporteService } from './soporte.service';
 
@@ -15,7 +16,7 @@ class ActualizarSoporteDto {
   mensajeWhatsapp?: string;
 
   @IsOptional()
-  @IsBoolean()
+  @IsJsonBoolean()
   activo?: boolean;
 }
 

@@ -2,15 +2,12 @@ import {
   Injectable,
   BadRequestException,
   UnauthorizedException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { BCRYPT_SALT_ROUNDS } from '../common/constants';
-import {
-  calcularFechaVencimientoPrueba,
-  planEstudianteVencido,
-} from './plan.util';
 import {
   generarTokenVerificacion,
   calcularExpiracionToken,
@@ -67,9 +64,7 @@ export class AuthService {
       BCRYPT_SALT_ROUNDS,
     );
 
-    // La prueba gratis de 3 días YA NO arranca aquí: arranca cuando se
-    // confirma el correo (verificarCorreo), para que nadie la reinicie
-    // registrándose con correos falsos. Punto 7.
+    // La verificación protege la cuenta; el estudio no tiene vencimiento.
     const tokenVerificacion = generarTokenVerificacion();
     const tokenVerificacionExpira = calcularExpiracionToken();
     if (rol === 'PROFESOR' && codigoReferido?.trim()) {
@@ -130,29 +125,33 @@ export class AuthService {
     }
 
     if (
-      usuario.tokenVerificacionExpira &&
-      usuario.tokenVerificacionExpira.getTime() < Date.now()
+      !usuario.tokenVerificacionExpira ||
+      usuario.tokenVerificacionExpira.getTime() <= Date.now()
     ) {
       throw new BadRequestException(
         'El enlace de verificación venció. Pide que te reenviemos uno nuevo.',
       );
     }
 
-    // Aquí SÍ arranca la prueba gratis de 3 días, ya con el correo confirmado.
-    const fechaVencimientoPlan =
-      usuario.rol === 'ESTUDIANTE' && !usuario.institucionId
-        ? calcularFechaVencimientoPrueba()
-        : usuario.fechaVencimientoPlan;
-
-    await this.prisma.usuario.update({
-      where: { id: usuario.id },
+    // Consumir el mismo token solo una vez, incluso entre solicitudes paralelas.
+    const actualizada = await this.prisma.usuario.updateMany({
+      where: {
+        id: usuario.id,
+        tokenVerificacion: token,
+        tokenVerificacionExpira: { gt: new Date() },
+        correoVerificado: false,
+      },
       data: {
         correoVerificado: true,
         tokenVerificacion: null,
         tokenVerificacionExpira: null,
-        fechaVencimientoPlan,
       },
     });
+    if (actualizada.count !== 1) {
+      throw new BadRequestException(
+        'El enlace de verificación ya no es válido.',
+      );
+    }
 
     return { mensaje: '¡Correo confirmado! Ya puedes empezar a estudiar.' };
   }
@@ -236,8 +235,8 @@ export class AuthService {
     }
 
     if (
-      usuario.tokenRecuperacionExpira &&
-      usuario.tokenRecuperacionExpira.getTime() < Date.now()
+      !usuario.tokenRecuperacionExpira ||
+      usuario.tokenRecuperacionExpira.getTime() <= Date.now()
     ) {
       throw new BadRequestException(
         'El enlace de recuperación venció. Pide uno nuevo.',
@@ -249,14 +248,26 @@ export class AuthService {
       BCRYPT_SALT_ROUNDS,
     );
 
-    await this.prisma.usuario.update({
-      where: { id: usuario.id },
+    // La condición se reevalúa DESPUÉS de bcrypt: no sobrescribir una clave
+    // si otro intento ya consumió/reemplazó el enlace mientras se calculaba.
+    const actualizada = await this.prisma.usuario.updateMany({
+      where: {
+        id: usuario.id,
+        tokenRecuperacion: token,
+        tokenRecuperacionExpira: { gt: new Date() },
+      },
       data: {
         contrasenaHash: contrasenaEncriptada,
         tokenRecuperacion: null,
         tokenRecuperacionExpira: null,
+        debeCambiarContrasena: false,
       },
     });
+    if (actualizada.count !== 1) {
+      throw new BadRequestException(
+        'El enlace de recuperación ya no es válido.',
+      );
+    }
 
     return { mensaje: 'Contraseña actualizada. Ya puedes iniciar sesión.' };
   }
@@ -330,9 +341,9 @@ export class AuthService {
 
     return {
       ...usuario,
-      // Ya resuelto en el backend para que el frontend no tenga que
-      // repetir la lógica de "quién queda exento del muro de pago".
-      planVencido: planEstudianteVencido(usuario),
+      // Compatibilidad del contrato móvil: pagar elimina anuncios, no abre
+      // materias. La fecha de un plan antiguo jamás bloquea el aprendizaje.
+      planVencido: false,
       // Igual, pero para el aviso de "confirma tu correo".
       requiereVerificacionCorreo: requiereVerificacionCorreo(usuario),
     };
@@ -362,22 +373,42 @@ export class AuthService {
   }
 
   // ─── CAMBIO DE CONTRASEÑA OBLIGATORIO (punto 12) ─────────────
-  // No pide la contraseña actual: el usuario ya se autenticó con el
-  // JWT (con la temporal que le dio el admin), y eso ya prueba que la
-  // conoce. Solo apaga la bandera para que no lo vuelva a interrumpir.
+  // Solo sirve para sustituir la contraseña temporal pendiente. No es un
+  // endpoint general de cambio de clave con un JWT como única evidencia.
   async cambiarContrasenaInicial(usuarioId: string, nuevaContrasena: string) {
+    const usuario = await this.prisma.usuario.findUnique({
+      where: { id: usuarioId },
+      select: { debeCambiarContrasena: true, contrasenaHash: true },
+    });
+    if (!usuario) throw new UnauthorizedException('Usuario no encontrado.');
+    if (usuario.debeCambiarContrasena !== true) {
+      throw new ForbiddenException(
+        'No tienes un cambio de contraseña inicial pendiente.',
+      );
+    }
     const contrasenaEncriptada = await bcrypt.hash(
       nuevaContrasena,
       BCRYPT_SALT_ROUNDS,
     );
 
-    await this.prisma.usuario.update({
-      where: { id: usuarioId },
+    const actualizada = await this.prisma.usuario.updateMany({
+      where: {
+        id: usuarioId,
+        debeCambiarContrasena: true,
+        contrasenaHash: usuario.contrasenaHash,
+      },
       data: {
         contrasenaHash: contrasenaEncriptada,
         debeCambiarContrasena: false,
+        tokenRecuperacion: null,
+        tokenRecuperacionExpira: null,
       },
     });
+    if (actualizada.count !== 1) {
+      throw new ForbiddenException(
+        'El cambio inicial ya no está pendiente. Inicia sesión de nuevo.',
+      );
+    }
 
     return { mensaje: 'Contraseña actualizada.' };
   }

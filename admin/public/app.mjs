@@ -118,6 +118,15 @@ function notice(message = "", error = false) {
   $("notice").textContent = message;
   $("notice").className = `notice ${error ? "error" : "success"}`;
 }
+function catalogDraftPending(subthemeOnly = false) {
+  return Boolean($("subtheme-name").value.trim() ||
+    (!subthemeOnly && $("theme-name").value.trim()));
+}
+function confirmCatalogDiscard(subthemeOnly = false) {
+  return !catalogDraftPending(subthemeOnly) || window.confirm(
+    "Hay nombres de temas o subtemas sin guardar. ¿Cambiar de selección y descartarlos?",
+  );
+}
 function showLogin(message = "") {
   editor.close(true);
   bank.close(true);
@@ -257,6 +266,7 @@ function renderList(kind, data, message) {
 }
 async function selectArea(area) {
   if (state.busy) return;
+  if (!confirmCatalogDiscard()) return;
   if (!closeEditors()) return;
   state.area = area;
   state.theme = null;
@@ -302,6 +312,7 @@ async function loadThemes() {
 }
 async function selectTheme(theme) {
   if (state.busy) return;
+  if (!confirmCatalogDiscard(true)) return;
   if (!closeEditors()) return;
   state.theme = theme;
   state.subPage = 1;
@@ -411,7 +422,7 @@ $("demo-login").onclick = () => {
 };
 $("logout").onclick = () => {
   if (
-    (!editor.dirty && !bank.dirty && !tools.dirty) ||
+    (!editor.dirty && !bank.dirty && !tools.dirty && !catalogDraftPending()) ||
     window.confirm("Hay cambios sin guardar. ¿Cerrar sesión y descartarlos?")
   )
     showLogin("Sesión cerrada en esta pestaña.");
@@ -487,7 +498,7 @@ for (const [id, key, delta, load] of [
   };
 window.addEventListener("pagehide", () => api.logout());
 window.addEventListener("beforeunload", (event) => {
-  if (editor.dirty || bank.dirty || tools.dirty || state.busy) {
+  if (editor.dirty || bank.dirty || tools.dirty || catalogDraftPending() || state.busy) {
     event.preventDefault();
     event.returnValue = "";
   }

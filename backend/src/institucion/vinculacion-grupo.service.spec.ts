@@ -91,13 +91,16 @@ describe('VinculacionGrupoService', () => {
     expect(codigoTemporalGrupo.findUnique).not.toHaveBeenCalled();
   });
 
-  it('exige la aceptación explícita antes de consultar o escribir', async () => {
-    await expect(
-      service.aceptarIngreso('student-1', 'GRP-ABCDEFGH', false),
-    ).rejects.toBeInstanceOf(BadRequestException);
-    expect(usuario.findUnique).not.toHaveBeenCalled();
-    expect(claseEstudiante.create).not.toHaveBeenCalled();
-  });
+  it.each([false, 'false', 'true', 1, null, undefined])(
+    'exige aceptación JSON explícita, no %p, antes de consultar o escribir',
+    async (acepto) => {
+      await expect(
+        service.aceptarIngreso('student-1', 'GRP-ABCDEFGH', acepto),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(usuario.findUnique).not.toHaveBeenCalled();
+      expect(claseEstudiante.create).not.toHaveBeenCalled();
+    },
+  );
 
   it('impide usar el código para cambiar de institución', async () => {
     usuario.findUnique.mockResolvedValue({

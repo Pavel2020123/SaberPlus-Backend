@@ -14,14 +14,23 @@ describe('AcademicCatalogService', () => {
     create: jest.fn(),
   };
   const subtema = { findMany: jest.fn(), create: jest.fn() };
-  const tx = { tema, subtema, $queryRaw: jest.fn() };
+  const tx = {
+    tema,
+    subtema,
+    $queryRaw: jest.fn<
+      Promise<unknown>,
+      [TemplateStringsArray, ...unknown[]]
+    >(),
+  };
   const prisma = { ...tx, $transaction: jest.fn() };
   const service = new AcademicCatalogService(
     prisma as unknown as PrismaService,
   );
   beforeEach(() => {
     jest.resetAllMocks();
-    prisma.$transaction.mockImplementation((fn) => fn(tx));
+    prisma.$transaction.mockImplementation(
+      (fn: (client: typeof tx) => Promise<unknown>) => fn(tx),
+    );
     tema.findMany.mockResolvedValue([]);
     subtema.findMany.mockResolvedValue([]);
     tema.findUnique.mockResolvedValue({
