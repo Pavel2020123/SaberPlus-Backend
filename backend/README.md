@@ -6,6 +6,10 @@ el entorno Linux de Render.
 
 ## Comandos
 
+Pasarelas heredadas retiradas el 12 de septiembre de 2026: no hay integración
+operativa de ePayco/Wompi. Las rutas antiguas solo responden HTTP 410, sin modificar
+pagos. [Alcance, pruebas y despliegue pendiente](PAGOS_HEREDADOS_RETIRADOS.md).
+
 ```bash
 npm ci
 npm run db:generate
