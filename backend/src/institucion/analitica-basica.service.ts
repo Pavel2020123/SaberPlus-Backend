@@ -1,9 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { InstitucionAccesoService } from './institucion-acceso.service';
+import { subtemaPublicadoWhere } from '../common/contenido-publicado';
+import { progresoPublicadoCount } from './progreso-publicado';
 
 interface EstudianteAnalitica {
   id: string;
+  _count: { progresotemas: number };
   resultados: { puntaje: number; fechaRealizado: Date }[];
   progresotemas: {
     completado: boolean;
@@ -28,7 +31,7 @@ export class AnaliticaBasicaService {
     const periodoDias = 30;
     const desde = new Date(Date.now() - periodoDias * 24 * 60 * 60 * 1000);
     const [totalSubtemas, grupos] = await Promise.all([
-      this.prisma.subtema.count(),
+      this.prisma.subtema.count({ where: subtemaPublicadoWhere() }),
       this.prisma.clase.findMany({
         where: {
           institucionId: membresia.institucionId,
@@ -46,6 +49,7 @@ export class AnaliticaBasicaService {
               Usuario: {
                 select: {
                   id: true,
+                  _count: progresoPublicadoCount,
                   resultados: {
                     where: { fechaRealizado: { gte: desde } },
                     select: { puntaje: true, fechaRealizado: true },
@@ -111,9 +115,7 @@ export class AnaliticaBasicaService {
   ) {
     const resultados = estudiantes.flatMap((item) => item.resultados);
     const progresoIndividual = estudiantes.map((item) => {
-      const completados = item.progresotemas.filter(
-        (progreso) => progreso.completado,
-      ).length;
+      const completados = item._count.progresotemas;
       return totalSubtemas === 0
         ? 0
         : Math.min(100, Math.round((completados / totalSubtemas) * 100));

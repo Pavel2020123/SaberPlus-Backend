@@ -2,6 +2,8 @@ import { ForbiddenException, Injectable } from '@nestjs/common';
 import { AreaIcfes } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { InstitucionAccesoService } from './institucion-acceso.service';
+import { subtemaPublicadoWhere } from '../common/contenido-publicado';
+import { progresoPublicadoCount } from './progreso-publicado';
 
 export interface AnaliticaAreaEstudiante {
   area: AreaIcfes;
@@ -49,7 +51,7 @@ export class AnaliticaDetalladaService {
 
     const soloGruposAsignados = membresia.rol === 'PROFESOR';
     const [totalSubtemas, estudiantes] = await Promise.all([
-      this.prisma.subtema.count(),
+      this.prisma.subtema.count({ where: subtemaPublicadoWhere() }),
       this.prisma.usuario.findMany({
         where: {
           institucionId: membresia.institucionId,
@@ -66,6 +68,7 @@ export class AnaliticaDetalladaService {
         },
         select: {
           id: true,
+          _count: progresoPublicadoCount,
           nombre: true,
           correo: true,
           xpTotal: true,
@@ -107,9 +110,7 @@ export class AnaliticaDetalladaService {
           (resultado) => resultado.fechaRealizado,
         );
         const ultimoSimulacro = this.fechaMayor(fechasSimulacro);
-        const temasCompletados = estudiante.progresotemas.filter(
-          (progreso) => progreso.completado,
-        ).length;
+        const temasCompletados = estudiante._count.progresotemas;
         const progresoPorcentaje =
           totalSubtemas === 0
             ? 0

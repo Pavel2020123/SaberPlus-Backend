@@ -2,6 +2,8 @@ import { ForbiddenException, Injectable } from '@nestjs/common';
 import { AreaIcfes, OrigenRespuesta } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { InstitucionAccesoService } from './institucion-acceso.service';
+import { subtemaPublicadoWhere } from '../common/contenido-publicado';
+import { progresoPublicadoCount } from './progreso-publicado';
 
 export type NivelRiesgo = 'CRITICA' | 'ALTA' | 'ATENCION';
 
@@ -82,7 +84,7 @@ export class AlertasRiesgoService {
       ahora.getTime() - DIAS_VENTANA_RENDIMIENTO * DIA_MS,
     );
     const [totalSubtemas, estudiantes] = await Promise.all([
-      this.prisma.subtema.count(),
+      this.prisma.subtema.count({ where: subtemaPublicadoWhere() }),
       this.prisma.usuario.findMany({
         where: {
           institucionId: membresia.institucionId,
@@ -99,6 +101,7 @@ export class AlertasRiesgoService {
         },
         select: {
           id: true,
+          _count: progresoPublicadoCount,
           nombre: true,
           correo: true,
           fechaCreacion: true,
@@ -197,7 +200,7 @@ export class AlertasRiesgoService {
           titulo: ultimaActividad
             ? 'Actividad interrumpida'
             : 'Sin actividad registrada',
-          detalle: `${diasSinActividad} días sin estudiar ni responder preguntas.`,
+          detalle: `${diasSinActividad} días sin actividad académica registrada en el servidor. No mide todo el uso de la app ni el estudio sin sincronizar.`,
         });
       }
 
@@ -266,9 +269,7 @@ export class AlertasRiesgoService {
           porcentaje: (resumen.correctas / resumen.total) * 100,
         }))
         .sort((a, b) => a.porcentaje - b.porcentaje)[0]?.area;
-      const temasCompletados = estudiante.progresotemas.filter(
-        (progreso) => progreso.completado,
-      ).length;
+      const temasCompletados = estudiante._count.progresotemas;
 
       return [
         {

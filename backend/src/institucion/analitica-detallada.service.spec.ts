@@ -43,6 +43,7 @@ describe('AnaliticaDetalladaService', () => {
     usuario.findMany.mockResolvedValue([
       {
         id: 'student-1',
+        _count: { progresotemas: 1 },
         nombre: 'Ana',
         correo: 'ana@example.com',
         xpTotal: 500,

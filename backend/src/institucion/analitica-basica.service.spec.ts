@@ -39,6 +39,7 @@ describe('AnaliticaBasicaService', () => {
           {
             Usuario: {
               id: 'student-1',
+              _count: { progresotemas: 2 },
               resultados: [{ puntaje: 72, fechaRealizado: reciente }],
               progresotemas: [
                 { completado: true, fechaVisto: reciente },
@@ -84,6 +85,7 @@ describe('AnaliticaBasicaService', () => {
     });
     const estudiante = {
       id: 'student-1',
+      _count: { progresotemas: 0 },
       resultados: [],
       progresotemas: [],
     };

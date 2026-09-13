@@ -53,6 +53,7 @@ describe('AlertasRiesgoService', () => {
     usuario.findMany.mockResolvedValue([
       {
         id: 'estudiante-critico',
+        _count: { progresotemas: 1 },
         nombre: 'Andrea Riesgo',
         correo: 'andrea@colegio.com',
         fechaCreacion: new Date('2026-07-01T15:00:00Z'),
@@ -76,6 +77,7 @@ describe('AlertasRiesgoService', () => {
       },
       {
         id: 'estudiante-pendiente',
+        _count: { progresotemas: 0 },
         nombre: 'Bruno Pendiente',
         correo: 'bruno@colegio.com',
         fechaCreacion: new Date('2026-08-16T15:00:00Z'),
@@ -89,6 +91,7 @@ describe('AlertasRiesgoService', () => {
       },
       {
         id: 'estudiante-sin-riesgo',
+        _count: { progresotemas: 1 },
         nombre: 'Carla Estable',
         correo: 'carla@colegio.com',
         fechaCreacion: new Date('2026-08-01T15:00:00Z'),

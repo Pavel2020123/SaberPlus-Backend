@@ -105,6 +105,33 @@ describe('ReporteInstitucionalService', () => {
     });
   });
 
+  it.each([0, 1])(
+    'CSV distingue ausencia de resultados de cero real: %i',
+    async (total) => {
+      obtenerAnalitica.mockResolvedValue({
+        estudiantes: [
+          {
+            id: 'student-1',
+            nombre: 'Ana',
+            correo: 'ana@example.com',
+            grupos: [],
+            xpTotal: 0,
+            totalSimulacros: total,
+            promedioPuntaje: 0,
+            progresoPorcentaje: 0,
+            estadoAcademico: 'SIN_DATOS',
+          },
+        ],
+      });
+      const reporte = await service.generarCsv('teacher-1');
+      const celdas = reporte.archivo
+        .toString('utf8')
+        .split('\r\n')[1]
+        .split(',');
+      expect(celdas[5]).toBe(total === 0 ? '"Sin resultados"' : '"0"');
+    },
+  );
+
   it('rechaza exportaciones del plan gratuito antes de consultar datos', async () => {
     obtenerCapacidadesInstitucion.mockResolvedValue({
       exportacionesHabilitadas: false,

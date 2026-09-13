@@ -38,7 +38,7 @@ export class ReporteInstitucionalService {
       'Area prioritaria',
       'Estado academico',
       'Nivel de riesgo',
-      'Dias sin actividad',
+      'Dias sin registro academico remoto',
     ];
     const filas = datos.analitica.estudiantes.map((estudiante) => {
       const alerta = alertas.get(estudiante.id);
@@ -48,7 +48,10 @@ export class ReporteInstitucionalService {
         estudiante.grupos.map((grupo) => grupo.nombre).join(' | '),
         estudiante.xpTotal,
         estudiante.totalSimulacros,
-        estudiante.promedioPuntaje,
+        this.promedioVisible(
+          estudiante.totalSimulacros,
+          estudiante.promedioPuntaje,
+        ),
         estudiante.progresoPorcentaje,
         estudiante.areaPrioritaria ?? '',
         estudiante.estadoAcademico,
@@ -132,6 +135,10 @@ export class ReporteInstitucionalService {
     return `"${texto.replace(/"/g, '""')}"`;
   }
 
+  private promedioVisible(total: number, promedio: number): string {
+    return total === 0 ? 'Sin resultados' : String(promedio);
+  }
+
   private crearPdf(
     analitica: Awaited<ReturnType<AnaliticaDetalladaService['obtener']>>,
     alertas: Awaited<ReturnType<AlertasRiesgoService['obtenerAlertas']>>,
@@ -158,7 +165,7 @@ export class ReporteInstitucionalService {
         `Estudiantes: ${analitica.institucion.totalEstudiantes}   Simulacros: ${analitica.institucion.totalSimulacros}`,
       );
       doc.text(
-        `Promedio: ${analitica.institucion.promedioGeneral}/100   En riesgo: ${alertas.resumen.enRiesgo}`,
+        `Promedio (escala 0-100): ${this.promedioVisible(analitica.institucion.totalSimulacros, analitica.institucion.promedioGeneral)}   En riesgo: ${alertas.resumen.enRiesgo}`,
       );
 
       doc.moveDown().fontSize(15).text('Áreas prioritarias');
@@ -190,7 +197,7 @@ export class ReporteInstitucionalService {
           .fontSize(9)
           .fillColor('#444444')
           .text(
-            `Grupos: ${estudiante.grupos.map((grupo) => grupo.nombre).join(', ') || 'Sin grupo'} | Promedio: ${estudiante.promedioPuntaje} | Progreso: ${estudiante.progresoPorcentaje}%`,
+            `Grupos: ${estudiante.grupos.map((grupo) => grupo.nombre).join(', ') || 'Sin grupo'} | Promedio: ${this.promedioVisible(estudiante.totalSimulacros, estudiante.promedioPuntaje)} | Progreso publicado: ${estudiante.progresoPorcentaje}%`,
           )
           .text(
             `Prioridad: ${estudiante.areaPrioritaria ? this.etiquetaArea(estudiante.areaPrioritaria) : 'Sin datos'} | Riesgo: ${alerta?.nivel ?? 'SIN ALERTA'}`,
