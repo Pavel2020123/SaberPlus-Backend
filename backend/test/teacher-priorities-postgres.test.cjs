@@ -99,6 +99,12 @@ async function fixture() {
           enunciado: `Pregunta propia ${i}`,
           subtemaId: subtopic.id,
           estadoContenido: 'PUBLICADO',
+          respuestas: {
+            create: [
+              { texto: 'Correcta', esCorrecta: true },
+              { texto: 'Incorrecta', esCorrecta: false },
+            ],
+          },
         },
       }),
     );
@@ -453,5 +459,93 @@ test('concurrencia: dos selecciones diferentes no superan diez prioridades activ
       where: { claseId: f.group.id, retiradoEn: null },
     }),
     10,
+  );
+});
+
+test('P3-B: práctica solo del snapshot y calificación existente completan prioridad sin exponer claves', async () => {
+  const f = await fixture();
+  await assign(f);
+  const extra = await db.pregunta.create({
+    data: {
+      enunciado: 'Pregunta posterior',
+      subtemaId: f.subtopic.id,
+      estadoContenido: 'PUBLICADO',
+    },
+  });
+  const result = await service.startPractice(f.student.id, f.dto.id);
+  assert.equal(result.preguntas.length, 5);
+  assert.ok(
+    result.preguntas.every((q) => f.questions.some((p) => p.id === q.id)),
+  );
+  assert.ok(!result.preguntas.some((q) => q.id === extra.id));
+  assert.equal(JSON.stringify(result).includes('esCorrecta'), false);
+  const attempt = await db.intentoSimulacro.findUnique({
+    where: { id: result.intentoId },
+  });
+  assert.equal(attempt.usuarioId, f.student.id);
+  assert.equal(attempt.origen, 'PRACTICA');
+  assert.ok(attempt.expira <= new Date(f.dto.venceEn));
+  const { SimulacroService } = require('../src/simulacro/simulacro.service.ts');
+  const answers = result.preguntas.map((q) => ({
+    preguntaId: q.id,
+    respuestaId: q.respuestas[0].id,
+  }));
+  await new SimulacroService(db).calificarSimulacro(
+    f.student.id,
+    result.intentoId,
+    'MATEMATICAS',
+    answers,
+    'PRACTICA',
+  );
+  assert.equal(
+    (await service.listForStudent(f.student.id, 1)).prioridades[0].cumplida,
+    true,
+  );
+  await assert.rejects(
+    service.startPractice(f.student.id, f.dto.id),
+    status(409),
+  );
+});
+
+test('P3-B: continúa con pendientes y rechaza retiro, vencimiento, salida y otro alumno', async () => {
+  const f = await fixture(),
+    other = await fixture();
+  const p = await assign(f);
+  await answer(f, f.questions[0], new Date(p.creadoEn.getTime() + 1000));
+  const result = await service.startPractice(f.student.id, p.id);
+  assert.equal(result.preguntas.length, 4);
+  assert.ok(result.preguntas.every((q) => q.id !== f.questions[0].id));
+  await assert.rejects(
+    service.startPractice(other.student.id, p.id),
+    status(404),
+  );
+  await assert.rejects(service.startPractice(f.teacher.id, p.id), status(403));
+  await service.withdraw(f.teacher.id, f.group.id, p.id);
+  await assert.rejects(service.startPractice(f.student.id, p.id), status(404));
+  const second = await fixture();
+  const p2 = await assign(second);
+  await db.prioridadDocente.update({
+    where: { id: p2.id },
+    data: { venceEn: new Date(Date.now() - 1000) },
+  });
+  await assert.rejects(
+    service.startPractice(second.student.id, p2.id),
+    status(404),
+  );
+  await db.prioridadDocente.update({
+    where: { id: p2.id },
+    data: { venceEn: new Date(Date.now() + 86400000) },
+  });
+  await db.claseEstudiante.delete({
+    where: {
+      usuarioId_claseId: {
+        usuarioId: second.student.id,
+        claseId: second.group.id,
+      },
+    },
+  });
+  await assert.rejects(
+    service.startPractice(second.student.id, p2.id),
+    status(404),
   );
 });

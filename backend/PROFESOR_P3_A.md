@@ -1,5 +1,9 @@
 # Profesor P3-A — prioridades docentes: persistencia y API
 
+Actualización posterior: P3-B ya integra el cliente y el inicio de práctica.
+Ver `PROFESOR_P3_B.md`. Sigue P4; esta guía conserva el contrato y la entrega P3-A.
+El despliegue/migración real y el ensayo P5 siguen pendientes.
+
 Entrega local del 13 de septiembre de 2026. **P3 está dividida: P3-A backend,
 P3-B integración Flutter y práctica dirigida. P3 no está terminada completa.**
 Sigue P3-B, después P4, P5 y D3. No se desplegó ni se modificó Supabase.

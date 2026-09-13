@@ -25,6 +25,7 @@ describe('contrato HTTP P3-A', () => {
     catalog: jest.fn(),
     listForTeacher: jest.fn(),
     listForStudent: jest.fn(),
+    startPractice: jest.fn(),
   };
   const group = '11111111-1111-4111-8111-111111111111';
   const priority = '22222222-2222-4222-8222-222222222222';
@@ -145,5 +146,21 @@ describe('contrato HTTP P3-A', () => {
     await request(server())
       .get('/prioridades-docentes/me?estudianteId=other')
       .expect(400);
+  });
+
+  it('inicio de práctica usa identidad de sesión, valida UUID y no recibe claves', async () => {
+    const response = await request(server())
+      .post(`/prioridades-docentes/${priority}/practica`)
+      .send({ usuarioId: 'other' })
+      .expect(201);
+    expect(response.headers['cache-control']).toBe('private, no-store');
+    expect(service.startPractice).toHaveBeenCalledWith(
+      'session-user',
+      priority,
+    );
+    await request(server())
+      .post('/prioridades-docentes/no-es-uuid/practica')
+      .expect(400);
+    expect(service.startPractice).toHaveBeenCalledTimes(1);
   });
 });

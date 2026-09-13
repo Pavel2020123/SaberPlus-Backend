@@ -548,4 +548,118 @@ export class TeacherPrioritiesService {
       prioridades: result.prioridades.filter((p) => allowed.has(p.grupoId)),
     };
   }
+
+  async startPractice(actorId: string, priorityId: string) {
+    return this.write(async (tx) => {
+      const user = await this.student(actorId, tx);
+      const now = new Date();
+      const priority = await tx.prioridadDocente.findFirst({
+        where: {
+          id: priorityId,
+          retiradoEn: null,
+          venceEn: { gt: now },
+          clase: {
+            ClaseEstudiante: {
+              some: this.enrollmentWhere(user.institucionId, actorId),
+            },
+          },
+        },
+      });
+      if (!priority)
+        throw new NotFoundException(
+          'La prioridad ya no está activa o no pertenece a tu grupo.',
+        );
+      const enrollment = await tx.claseEstudiante.findFirst({
+        where: {
+          ...this.enrollmentWhere(user.institucionId, actorId),
+          claseId: priority.claseId,
+        },
+        select: { fechaIngreso: true },
+      });
+      if (!enrollment || !priorityApplies(priority, enrollment.fechaIngreso)) {
+        throw new ForbiddenException(
+          'Esta prioridad no corresponde a tu ingreso al grupo.',
+        );
+      }
+      const practiced =
+        (await this.counts(tx, priority, [actorId], now)).get(actorId) ?? 0;
+      if (practiced >= priority.metaPreguntas)
+        throw new ConflictException(
+          'Ya completaste esta prioridad. Puedes seguir practicando desde el catálogo.',
+        );
+      const questions = await tx.pregunta.findMany({
+        where: preguntaPublicadaWhere({
+          id: { in: priority.preguntaIds },
+          subtema: { tema: { area: priority.area } },
+          historialRespuestas: {
+            none: {
+              usuarioId: actorId,
+              area: priority.area,
+              fechaRespuesta: {
+                gte: new Date(
+                  Math.max(
+                    priority.creadoEn.getTime(),
+                    enrollment.fechaIngreso.getTime(),
+                  ),
+                ),
+                lt: now,
+              },
+            },
+          },
+        }),
+        orderBy: [{ casoId: 'asc' }, { ordenEnCaso: 'asc' }, { id: 'asc' }],
+        take: priority.metaPreguntas - practiced,
+        select: {
+          id: true,
+          enunciado: true,
+          imagenUrl: true,
+          dificultad: true,
+          ordenEnCaso: true,
+          caso: {
+            select: {
+              id: true,
+              titulo: true,
+              contexto: true,
+              imagenUrl: true,
+              area: true,
+            },
+          },
+          respuestas: { select: { id: true, texto: true } },
+          subtema: {
+            select: {
+              id: true,
+              nombre: true,
+              tema: { select: { nombre: true, area: true } },
+            },
+          },
+        },
+      });
+      if (!questions.length)
+        throw new NotFoundException(
+          'No quedan preguntas publicadas pendientes en esta prioridad. Consulta con tu profesor.',
+        );
+      const expiresAt = new Date(
+        Math.min(priority.venceEn.getTime(), now.getTime() + 2 * 3600000),
+      );
+      // Mismo intento y calificación de práctica existente; sin claves ni nuevos XP.
+      const attempt = await tx.intentoSimulacro.create({
+        data: {
+          usuarioId: actorId,
+          origen: 'PRACTICA',
+          area: priority.area,
+          preguntaIds: questions.map((q) => q.id),
+          expira: expiresAt,
+        },
+        select: { id: true },
+      });
+      return {
+        version: 1,
+        prioridadId: priority.id,
+        area: priority.area,
+        intentoId: attempt.id,
+        expira: expiresAt,
+        preguntas: questions,
+      };
+    });
+  }
 }

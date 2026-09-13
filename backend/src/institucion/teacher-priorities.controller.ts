@@ -87,6 +87,15 @@ export class TeacherPrioritiesController {
 export class StudentPrioritiesController {
   constructor(private readonly service: TeacherPrioritiesService) {}
 
+  @Post(':prioridadId/practica')
+  @Header('Cache-Control', 'private, no-store')
+  practice(
+    @Request() req: AuthenticatedRequest,
+    @Param('prioridadId', new ParseUUIDPipe()) priorityId: string,
+  ) {
+    return this.service.startPractice(req.usuario.sub, priorityId);
+  }
+
   @Get('me')
   @Header('Cache-Control', 'private, no-store')
   list(
