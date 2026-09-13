@@ -53,6 +53,9 @@ async function freePort() {
 }
 
 async function main() {
+  const teacherPriorities = process.argv.includes('--teacher-priorities');
+  if (process.argv.slice(2).some((arg) => arg !== '--teacher-priorities'))
+    throw new Error('Opción de pruebas no reconocida.');
   // No .env files, external database URLs or existing PostgreSQL services are used.
   const bin =
     process.env.EDITORIAL_PG_BIN ||
@@ -171,6 +174,13 @@ async function main() {
       sql.push(
         `\n-- ${file}\n${(await run('git', ['-C', repository, 'show', `HEAD:${file}`])).stdout}\n`,
       );
+    // P3-A permite únicamente SU migración pendiente en la base desechable.
+    // Nunca descubrir/aplicar otras migraciones locales (p. ej. Guardián).
+    const priorityMigration =
+      'backend/prisma/migrations/20260913090000_teacher_priorities/migration.sql';
+    if (teacherPriorities && !migrations.includes(priorityMigration)) {
+      sql.push(await readFile(join(repository, priorityMigration), 'utf8'));
+    }
     const migrationFile = join(resolved, 'migrations.sql');
     await writeFile(migrationFile, sql.join('\n'), 'utf8');
     await run(binary('psql'), [
@@ -181,11 +191,17 @@ async function main() {
       migrationFile,
     ]);
     console.log(
-      `SQL de ${migrations.length} migraciones aplicado solo a la instancia desechable.`,
+      `SQL de ${migrations.length} migraciones versionadas${teacherPriorities && !migrations.includes(priorityMigration) ? ' y la migración local P3-A' : ''} aplicado solo a la instancia desechable.`,
     );
     const result = await run(
       process.execPath,
-      ['--test', '--test-concurrency=1', 'test/editorial-postgres.test.cjs'],
+      [
+        '--test',
+        '--test-concurrency=1',
+        teacherPriorities
+          ? 'test/teacher-priorities-postgres.test.cjs'
+          : 'test/editorial-postgres.test.cjs',
+      ],
       180000,
     );
     console.log(

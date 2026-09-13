@@ -44,8 +44,11 @@ export class InstitucionAccesoService {
     return (await this.obtenerMembresiaGestionable(usuarioId)).institucionId;
   }
 
-  async obtenerMembresiaGestionable(usuarioId: string) {
-    const membresia = await this.prisma.miembroInstitucion.findUnique({
+  async obtenerMembresiaGestionable(
+    usuarioId: string,
+    cliente: Prisma.TransactionClient = this.prisma,
+  ) {
+    const membresia = await cliente.miembroInstitucion.findUnique({
       where: { usuarioId },
       select: { id: true, institucionId: true, rol: true },
     });
@@ -57,16 +60,23 @@ export class InstitucionAccesoService {
     return membresia;
   }
 
-  async obtenerGrupoGestionable(usuarioId: string, claseId: string) {
-    const membresia = await this.obtenerMembresiaGestionable(usuarioId);
-    const grupo = await this.prisma.clase.findFirst({
+  async obtenerGrupoGestionable(
+    usuarioId: string,
+    claseId: string,
+    cliente: Prisma.TransactionClient = this.prisma,
+  ) {
+    const membresia = await this.obtenerMembresiaGestionable(
+      usuarioId,
+      cliente,
+    );
+    const grupo = await cliente.clase.findFirst({
       where: { id: claseId, institucionId: membresia.institucionId },
       select: { id: true, institucionId: true, nombre: true, grado: true },
     });
     if (!grupo) throw new NotFoundException('Grupo no encontrado.');
 
     if (membresia.rol === 'PROFESOR') {
-      const asignacion = await this.prisma.claseProfesor.findUnique({
+      const asignacion = await cliente.claseProfesor.findUnique({
         where: {
           claseId_miembroId: { claseId: grupo.id, miembroId: membresia.id },
         },

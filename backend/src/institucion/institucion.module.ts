@@ -17,10 +17,20 @@ import { ReporteInstitucionalService } from './reporte-institucional.service';
 import { StudentEvidenceController } from './student-evidence.controller';
 import { StudentEvidenceService } from './student-evidence.service';
 import { LearningEvidenceService } from '../diagnostico/learning-evidence.service';
+import { TeacherPrioritiesService } from './teacher-priorities.service';
+import {
+  TeacherPrioritiesController,
+  StudentPrioritiesController,
+} from './teacher-priorities.controller';
 
 @Module({
   imports: [PrismaModule],
-  controllers: [InstitucionController, StudentEvidenceController],
+  controllers: [
+    InstitucionController,
+    StudentEvidenceController,
+    TeacherPrioritiesController,
+    StudentPrioritiesController,
+  ],
   providers: [
     InstitucionService,
     InstitucionAccesoService,
@@ -37,6 +47,7 @@ import { LearningEvidenceService } from '../diagnostico/learning-evidence.servic
     ReporteInstitucionalService,
     StudentEvidenceService,
     LearningEvidenceService,
+    TeacherPrioritiesService,
   ],
 })
 export class InstitucionModule {}
