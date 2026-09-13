@@ -14,10 +14,13 @@ import { VinculacionGrupoService } from './vinculacion-grupo.service';
 import { AnaliticaBasicaService } from './analitica-basica.service';
 import { AnaliticaDetalladaService } from './analitica-detallada.service';
 import { ReporteInstitucionalService } from './reporte-institucional.service';
+import { StudentEvidenceController } from './student-evidence.controller';
+import { StudentEvidenceService } from './student-evidence.service';
+import { LearningEvidenceService } from '../diagnostico/learning-evidence.service';
 
 @Module({
   imports: [PrismaModule],
-  controllers: [InstitucionController],
+  controllers: [InstitucionController, StudentEvidenceController],
   providers: [
     InstitucionService,
     InstitucionAccesoService,
@@ -32,6 +35,8 @@ import { ReporteInstitucionalService } from './reporte-institucional.service';
     AnaliticaBasicaService,
     AnaliticaDetalladaService,
     ReporteInstitucionalService,
+    StudentEvidenceService,
+    LearningEvidenceService,
   ],
 })
 export class InstitucionModule {}

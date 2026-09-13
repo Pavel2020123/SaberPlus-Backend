@@ -72,6 +72,11 @@ function summarize(
     sesiones,
     dias,
     porcentaje: Math.round(percentage * 10) / 10,
+    ultimaEvidencia: records.length
+      ? new Date(
+          Math.max(...records.map((row) => row.fechaRespuesta.getTime())),
+        ).toISOString()
+      : null,
     estado: !enough
       ? 'EVIDENCIA_INSUFICIENTE'
       : percentage < EVIDENCE_POLICY.umbralRefuerzo

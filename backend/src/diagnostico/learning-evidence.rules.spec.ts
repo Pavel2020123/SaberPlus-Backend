@@ -118,6 +118,7 @@ describe('Evidencia académica v1', () => {
       preguntasUnicas: 1,
       correctas: 0,
       estado: 'EVIDENCIA_INSUFICIENTE',
+      ultimaEvidencia: record(0).fechaRespuesta.toISOString(),
     });
   });
 
