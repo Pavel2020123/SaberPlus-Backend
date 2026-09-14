@@ -1132,6 +1132,19 @@ model IntentoSimulacro {
   @@index([usuarioId, consumidoEn, expira])
 }
 
+// Bloques declarados por el dispositivo; no acreditan atención ni otorgan XP.
+model PomodoroRegistrado {
+  usuarioId       String   @db.Uuid
+  eventoId        String   @db.VarChar(80)
+  duracionSegundos Int      @default(1500)
+  finalizadoEn    DateTime @db.Timestamp(3)
+  recibidoEn      DateTime @default(now()) @db.Timestamp(3)
+  usuario         Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@id([usuarioId, eventoId])
+  @@unique([usuarioId, finalizadoEn])
+}
+
 model HistorialRespuesta {
   id                      String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   sesionId                String          @db.Uuid
