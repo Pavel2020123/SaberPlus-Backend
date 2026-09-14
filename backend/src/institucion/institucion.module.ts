@@ -18,6 +18,11 @@ import { StudentEvidenceController } from './student-evidence.controller';
 import { StudentEvidenceService } from './student-evidence.service';
 import { LearningEvidenceService } from '../diagnostico/learning-evidence.service';
 import { TeacherPrioritiesService } from './teacher-priorities.service';
+import { StudyTimeService } from './study-time.service';
+import {
+  StudyTimeController,
+  TeacherStudyTimeController,
+} from './study-time.controller';
 import {
   TeacherPrioritiesController,
   StudentPrioritiesController,
@@ -30,6 +35,8 @@ import {
     StudentEvidenceController,
     TeacherPrioritiesController,
     StudentPrioritiesController,
+    StudyTimeController,
+    TeacherStudyTimeController,
   ],
   providers: [
     InstitucionService,
@@ -48,6 +55,7 @@ import {
     StudentEvidenceService,
     LearningEvidenceService,
     TeacherPrioritiesService,
+    StudyTimeService,
   ],
 })
 export class InstitucionModule {}

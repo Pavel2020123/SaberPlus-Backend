@@ -15,7 +15,8 @@ export class StudentEvidenceService {
     private readonly evidence: LearningEvidenceService,
   ) {}
 
-  private async estudianteAutorizado(actorId: string, estudianteId: string) {
+  // Alcance compartido por evidencia P2 y evolución P4, sin consultar respuestas.
+  async estudianteAutorizado(actorId: string, estudianteId: string) {
     const miembro = await this.acceso.obtenerMembresiaGestionable(actorId);
     if (!['PROFESOR', 'ADMINISTRADOR', 'PROPIETARIO'].includes(miembro.rol)) {
       throw new ForbiddenException('No tienes acceso docente.');

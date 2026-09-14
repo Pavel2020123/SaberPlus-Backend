@@ -179,6 +179,7 @@ model Usuario {
   resultados                ResultadoSimulacro[]
   intentosSimulacro         IntentoSimulacro[]
   historialRespuestas       HistorialRespuesta[]
+  pomodorosRegistrados       PomodoroRegistrado[]
   diagnosticoInicial        DiagnosticoInicial?
   progresotemas             ProgresoTema[]
   PagoOrden                 PagoOrden[]

@@ -54,7 +54,13 @@ async function freePort() {
 
 async function main() {
   const teacherPriorities = process.argv.includes('--teacher-priorities');
-  if (process.argv.slice(2).some((arg) => arg !== '--teacher-priorities'))
+  const studyTime = process.argv.includes('--study-time');
+  if (
+    process.argv
+      .slice(2)
+      .some((arg) => !['--teacher-priorities', '--study-time'].includes(arg)) ||
+    (teacherPriorities && studyTime)
+  )
     throw new Error('Opción de pruebas no reconocida.');
   // No .env files, external database URLs or existing PostgreSQL services are used.
   const bin =
@@ -181,6 +187,12 @@ async function main() {
     if (teacherPriorities && !migrations.includes(priorityMigration)) {
       sql.push(await readFile(join(repository, priorityMigration), 'utf8'));
     }
+    // Solo la migración específica P4-A; no aplicar otras pendientes del usuario.
+    const studyMigration =
+      'backend/prisma/migrations/20260914090000_study_time_pomodoros/migration.sql';
+    if (studyTime && !migrations.includes(studyMigration)) {
+      sql.push(await readFile(join(repository, studyMigration), 'utf8'));
+    }
     const migrationFile = join(resolved, 'migrations.sql');
     await writeFile(migrationFile, sql.join('\n'), 'utf8');
     await run(binary('psql'), [
@@ -191,16 +203,18 @@ async function main() {
       migrationFile,
     ]);
     console.log(
-      `SQL de ${migrations.length} migraciones versionadas${teacherPriorities && !migrations.includes(priorityMigration) ? ' y la migración local P3-A' : ''} aplicado solo a la instancia desechable.`,
+      `SQL de ${migrations.length} migraciones versionadas${teacherPriorities && !migrations.includes(priorityMigration) ? ' y la migración local P3-A' : ''}${studyTime && !migrations.includes(studyMigration) ? ' y la migración local P4-A' : ''} aplicado solo a la instancia desechable.`,
     );
     const result = await run(
       process.execPath,
       [
         '--test',
         '--test-concurrency=1',
-        teacherPriorities
-          ? 'test/teacher-priorities-postgres.test.cjs'
-          : 'test/editorial-postgres.test.cjs',
+        studyTime
+          ? 'test/study-time-postgres.test.cjs'
+          : teacherPriorities
+            ? 'test/teacher-priorities-postgres.test.cjs'
+            : 'test/editorial-postgres.test.cjs',
       ],
       180000,
     );
