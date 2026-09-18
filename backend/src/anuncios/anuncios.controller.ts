@@ -25,6 +25,7 @@ import {
   ProfesorInstitucionGuard,
 } from '../auth/jwt.guard';
 import { AnunciosService } from './anuncios.service';
+import { InstitutionOperationalGuard } from '../institucion/institution-operational.guard';
 
 class CrearAnuncioDto {
   @IsString()
@@ -151,14 +152,14 @@ export class AnunciosController {
   }
 
   @Get('institucion/listado')
-  @UseGuards(JwtGuard, ProfesorInstitucionGuard)
+  @UseGuards(JwtGuard, InstitutionOperationalGuard, ProfesorInstitucionGuard)
   listarInstitucion(@Request() req: AuthenticatedRequest) {
     const institucionId = this.institucionProfesor(req);
     return this.anunciosService.listarInstitucion(institucionId);
   }
 
   @Post('institucion')
-  @UseGuards(JwtGuard, ProfesorInstitucionGuard)
+  @UseGuards(JwtGuard, InstitutionOperationalGuard, ProfesorInstitucionGuard)
   crearInstitucion(
     @Body() body: CrearAnuncioDto,
     @Request() req: AuthenticatedRequest,
@@ -171,7 +172,7 @@ export class AnunciosController {
   }
 
   @Patch('institucion/:id')
-  @UseGuards(JwtGuard, ProfesorInstitucionGuard)
+  @UseGuards(JwtGuard, InstitutionOperationalGuard, ProfesorInstitucionGuard)
   actualizarInstitucion(
     @Param('id') id: string,
     @Body() body: ActualizarAnuncioDto,
@@ -185,7 +186,7 @@ export class AnunciosController {
   }
 
   @Delete('institucion/:id')
-  @UseGuards(JwtGuard, ProfesorInstitucionGuard)
+  @UseGuards(JwtGuard, InstitutionOperationalGuard, ProfesorInstitucionGuard)
   eliminarInstitucion(
     @Param('id') id: string,
     @Request() req: AuthenticatedRequest,

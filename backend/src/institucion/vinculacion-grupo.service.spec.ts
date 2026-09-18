@@ -49,7 +49,11 @@ describe('VinculacionGrupoService', () => {
       nombre: 'Once A',
       grado: 'ONCE',
       institucionId: 'institution-1',
-      Institucion: { id: 'institution-1', nombre: 'Colegio Central' },
+      Institucion: {
+        id: 'institution-1',
+        nombre: 'Colegio Central',
+        estadoVerificacion: 'APROBADA',
+      },
     },
   };
 

@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { GUARDS_METADATA } from '@nestjs/common/constants';
 import { Test } from '@nestjs/testing';
+import { InstitutionOperationalGuard } from './institution-operational.guard';
 import * as request from 'supertest';
 import { Server } from 'node:http';
 import { AuthenticatedRequest } from '../auth/auth.types';
@@ -46,6 +47,8 @@ describe('P4-A contrato HTTP (guards sustituidos)', () => {
       })
       .overrideGuard(EmailVerificadoGuard)
       .useValue({ canActivate: () => true })
+      .overrideGuard(InstitutionOperationalGuard)
+      .useValue({ canActivate: () => true })
       .overrideGuard(ProfesorInstitucionGuard)
       .useValue({ canActivate: () => true })
       .compile();
@@ -75,7 +78,12 @@ describe('P4-A contrato HTTP (guards sustituidos)', () => {
     ]);
     expect(
       Reflect.getMetadata(GUARDS_METADATA, TeacherStudyTimeController),
-    ).toEqual([JwtGuard, EmailVerificadoGuard, ProfesorInstitucionGuard]);
+    ).toEqual([
+      JwtGuard,
+      EmailVerificadoGuard,
+      InstitutionOperationalGuard,
+      ProfesorInstitucionGuard,
+    ]);
   });
   it('usa solo actor de sesión, devuelve no-store y no acepta identidad por cuerpo', async () => {
     const response = await request(server())

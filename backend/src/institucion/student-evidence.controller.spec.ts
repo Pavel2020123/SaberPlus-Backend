@@ -1,5 +1,6 @@
 import { ExecutionContext, INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+import { InstitutionOperationalGuard } from './institution-operational.guard';
 import * as request from 'supertest';
 import { Server } from 'node:http';
 import { StudentEvidenceController } from './student-evidence.controller';
@@ -28,6 +29,8 @@ describe('contrato HTTP de ficha docente', () => {
         },
       })
       .overrideGuard(EmailVerificadoGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(InstitutionOperationalGuard)
       .useValue({ canActivate: () => true })
       .overrideGuard(ProfesorInstitucionGuard)
       .useValue({ canActivate: () => true })

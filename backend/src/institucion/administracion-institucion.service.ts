@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { Prisma, RolMembresiaInstitucion } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { requireInstitutionOperational } from './institution-approval.policy';
 
 type RolGestionable = 'ADMINISTRADOR' | 'PROFESOR';
 type DecisionSolicitud = 'APROBAR' | 'RECHAZAR';
@@ -382,6 +383,13 @@ export class AdministracionInstitucionService {
     if (usuario.institucionId) {
       throw new ConflictException('Ya perteneces a una institución.');
     }
+
+    requireInstitutionOperational(
+      await this.prisma.institucion.findUnique({
+        where: { id: invitacion.institucionId },
+        select: { estadoVerificacion: true, transicionHasta: true },
+      }),
+    );
 
     try {
       await this.prisma.$transaction([

@@ -3,6 +3,7 @@ import { LessonEditor } from "./lesson-editor.mjs";
 import { QuestionEditor } from "./question-editor.mjs";
 import { EditorialReview } from "./editorial-review.mjs";
 import { EditorialTools } from "./editorial-tools.mjs";
+import { InstitutionApproval } from "./institution-approval.mjs";
 
 const $ = (id) => document.getElementById(id);
 const config = globalThis.SABERPLUS_CONFIG;
@@ -50,6 +51,8 @@ const editor = new LessonEditor({
     void loadThemes();
   },
 });
+const approvals = new InstitutionApproval({ api, host: $("institution-approval-panel"), demo: config.demo });
+$("institution-approvals").onclick = () => { if (closeEditors()) void approvals.open(); };
 const bank = new QuestionEditor({
   api,
   busy: () => state.busy,
@@ -128,6 +131,8 @@ function confirmCatalogDiscard(subthemeOnly = false) {
   );
 }
 function showLogin(message = "") {
+  approvals.close();
+  $("institution-approvals").hidden = true;
   editor.close(true);
   bank.close(true);
   review.close(true);
@@ -352,12 +357,17 @@ async function enter(correo, contrasena) {
   $("login-message").textContent = "Verificando acceso editorial…";
   try {
     const profile = await api.login(correo, contrasena);
-    state.areas = await api.areas();
+    $("institution-approvals").hidden = false;
     $("password").value = "";
     $("login-view").hidden = true;
     $("workspace").hidden = false;
     $("logout").hidden = false;
     $("welcome").textContent = `HOLA, ${profile.nombre}`;
+    try { state.areas = await api.areas(); }
+    catch (error) {
+      if (api.authenticated) notice(`Catálogo no disponible: ${error.message} Puedes abrir Instituciones.`, true);
+      return;
+    }
     await selectArea(
       state.areas.find((area) => area.id === "MATEMATICAS") || state.areas[0],
     );
@@ -496,7 +506,7 @@ for (const [id, key, delta, load] of [
     notice();
     void load();
   };
-window.addEventListener("pagehide", () => api.logout());
+window.addEventListener("pagehide", () => showLogin());
 window.addEventListener("beforeunload", (event) => {
   if (editor.dirty || bank.dirty || tools.dirty || catalogDraftPending() || state.busy) {
     event.preventDefault();

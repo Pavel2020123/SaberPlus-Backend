@@ -8,6 +8,7 @@ import { InstitucionAccesoService } from './institucion-acceso.service';
 import { StudentEvidenceService } from './student-evidence.service';
 import { StudentEvidenceController } from './student-evidence.controller';
 import { JwtGuard, ProfesorInstitucionGuard } from '../auth/jwt.guard';
+import { InstitutionOperationalGuard } from './institution-operational.guard';
 import { EmailVerificadoGuard } from '../auth/email-verificado.guard';
 import { AuthenticatedRequest } from '../auth/auth.types';
 
@@ -213,6 +214,11 @@ describe('ficha de evidencia docente P2', () => {
     expect(obtener).toHaveBeenCalledWith('teacher', 'student');
     expect(
       Reflect.getMetadata(GUARDS_METADATA, StudentEvidenceController),
-    ).toEqual([JwtGuard, EmailVerificadoGuard, ProfesorInstitucionGuard]);
+    ).toEqual([
+      JwtGuard,
+      EmailVerificadoGuard,
+      InstitutionOperationalGuard,
+      ProfesorInstitucionGuard,
+    ]);
   });
 });

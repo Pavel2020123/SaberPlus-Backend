@@ -15,6 +15,7 @@ import { EmailVerificadoGuard } from '../auth/email-verificado.guard';
 import { JwtGuard, ProfesorInstitucionGuard } from '../auth/jwt.guard';
 import { StudyTimeQueryDto, SyncPomodorosDto } from './study-time.dto';
 import { StudyTimeService } from './study-time.service';
+import { InstitutionOperationalGuard } from './institution-operational.guard';
 
 @Controller('tiempo-estudio/me')
 @UseGuards(JwtGuard, EmailVerificadoGuard)
@@ -41,7 +42,12 @@ export class StudyTimeController {
 }
 
 @Controller('instituciones/me/estudiantes')
-@UseGuards(JwtGuard, EmailVerificadoGuard, ProfesorInstitucionGuard)
+@UseGuards(
+  JwtGuard,
+  EmailVerificadoGuard,
+  InstitutionOperationalGuard,
+  ProfesorInstitucionGuard,
+)
 export class TeacherStudyTimeController {
   constructor(private readonly service: StudyTimeService) {}
 

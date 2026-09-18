@@ -13,6 +13,7 @@ import {
   UseGuards,
   UseInterceptors,
   ParseEnumPipe,
+  GoneException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AdminService } from './admin.service';
@@ -333,12 +334,10 @@ export class AdminController {
 
   @Post('instituciones-desde-lead')
   crearInstitucionDesdeLead(@Body() body: CrearInstitucionDesdeLeadDto) {
-    return this.adminService.crearInstitucionDesdeLead({
-      ...body,
-      fechaVencimientoPlan: body.fechaVencimientoPlan
-        ? new Date(body.fechaVencimientoPlan)
-        : undefined,
-    });
+    void body;
+    throw new GoneException(
+      'Revisa una solicitud institucional. La creación directa desde contactos fue retirada.',
+    );
   }
 
   @Patch('instituciones/:id/plan')

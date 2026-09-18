@@ -19,9 +19,15 @@ import {
   TeacherPriorityPageDto,
 } from './teacher-priorities.dto';
 import { TeacherPrioritiesService } from './teacher-priorities.service';
+import { InstitutionOperationalGuard } from './institution-operational.guard';
 
 @Controller('instituciones/me/grupos/:grupoId/prioridades')
-@UseGuards(JwtGuard, EmailVerificadoGuard, ProfesorInstitucionGuard)
+@UseGuards(
+  JwtGuard,
+  EmailVerificadoGuard,
+  InstitutionOperationalGuard,
+  ProfesorInstitucionGuard,
+)
 export class TeacherPrioritiesController {
   constructor(private readonly service: TeacherPrioritiesService) {}
 
@@ -83,7 +89,7 @@ export class TeacherPrioritiesController {
 }
 
 @Controller('prioridades-docentes')
-@UseGuards(JwtGuard, EmailVerificadoGuard)
+@UseGuards(JwtGuard, EmailVerificadoGuard, InstitutionOperationalGuard)
 export class StudentPrioritiesController {
   constructor(private readonly service: TeacherPrioritiesService) {}
 

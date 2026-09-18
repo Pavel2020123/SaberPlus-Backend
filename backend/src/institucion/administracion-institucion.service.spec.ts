@@ -35,6 +35,11 @@ describe('AdministracionInstitucionService', () => {
     updateMany: jest.fn(),
   };
   const prisma = {
+    institucion: {
+      findUnique: jest
+        .fn()
+        .mockResolvedValue({ estadoVerificacion: 'APROBADA' }),
+    },
     miembroInstitucion,
     solicitudIngresoInstitucion,
     invitacionInstitucion,

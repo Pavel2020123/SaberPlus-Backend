@@ -114,6 +114,9 @@ model CodigoTemporalGrupo {
 }
 
 model Institucion {
+  estadoVerificacion   EstadoAltaInstitucion @default(PENDIENTE)
+  transicionHasta       DateTime? @db.Timestamp(3)
+  solicitudAlta         SolicitudAltaInstitucion?
   id                   String                        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   nombre               String                        @db.VarChar(255)
   codigoUnico          String                        @unique @db.VarChar(50)
@@ -139,6 +142,7 @@ model Institucion {
 }
 
 model Usuario {
+  solicitudAltaInstitucion SolicitudAltaInstitucion?
   id                        String                        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   nombre                    String                        @db.VarChar(255)
   correo                    String                        @unique @db.VarChar(255)
@@ -221,6 +225,40 @@ enum RolUsuario {
   ESTUDIANTE
   PROFESOR
   ADMIN
+}
+
+enum EstadoAltaInstitucion {
+  PENDIENTE
+  REQUIERE_INFORMACION
+  APROBADA
+  RECHAZADA
+  SUSPENDIDA
+  LEGADO_EN_REVISION
+}
+
+model SolicitudAltaInstitucion {
+  id String @id @default(uuid()) @db.Uuid
+  solicitanteId String? @unique @db.Uuid
+  solicitante Usuario? @relation(fields: [solicitanteId], references: [id], onDelete: SetNull)
+  institucionId String? @unique @db.Uuid
+  institucion Institucion? @relation(fields: [institucionId], references: [id], onDelete: Restrict)
+  nombre String @db.VarChar(120)
+  nombreNormalizado String @db.VarChar(120)
+  ciudad String @db.VarChar(120)
+  ciudadNormalizada String @db.VarChar(120)
+  correoInstitucional String @db.VarChar(254)
+  contacto String @db.VarChar(120)
+  referenciaUrl String? @db.VarChar(500)
+  evidencia String @db.VarChar(2000)
+  estado EstadoAltaInstitucion @default(PENDIENTE)
+  revision Int @default(1)
+  mensajeSolicitante String @default("") @db.VarChar(1000)
+  historial Json @default("[]")
+  creadoEn DateTime @default(now()) @db.Timestamp(3)
+  actualizadoEn DateTime @default(now()) @updatedAt @db.Timestamp(3)
+
+  @@index([estado, actualizadoEn])
+  @@index([nombreNormalizado, ciudadNormalizada])
 }
 
 enum RolMembresiaInstitucion {

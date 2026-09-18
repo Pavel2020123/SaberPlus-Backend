@@ -12,6 +12,7 @@ import {
   UseFilters,
   UploadedFile,
   BadRequestException,
+  GoneException,
   Res,
   StreamableFile,
 } from '@nestjs/common';
@@ -20,6 +21,10 @@ import { IsJsonBoolean } from '../common/is-json-boolean';
 import { AuthenticatedRequest } from '../auth/auth.types';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { InstitucionService } from './institucion.service';
+import {
+  InstitutionOperationalGuard,
+  InstitutionReviewAccess,
+} from './institution-operational.guard';
 import { GrupoService } from './grupo.service';
 import { EstudianteService } from './estudiante.service';
 import { EstudianteImportService } from './estudiante-import.service';
@@ -232,7 +237,7 @@ class TransferirPropiedadDto {
 }
 
 @Controller('instituciones')
-@UseGuards(JwtGuard)
+@UseGuards(JwtGuard, InstitutionOperationalGuard)
 export class InstitucionController {
   constructor(
     private readonly institucionService: InstitucionService,
@@ -250,6 +255,7 @@ export class InstitucionController {
   ) {}
 
   @Get('profesor/contexto')
+  @InstitutionReviewAccess()
   obtenerContextoProfesor(@Request() req: AuthenticatedRequest) {
     return this.vinculoInstitucionService.obtenerContextoProfesor(
       req.usuario.sub,
@@ -422,11 +428,10 @@ export class InstitucionController {
     @Body() body: CrearInstitucionDto,
     @Request() req: AuthenticatedRequest,
   ) {
-    return this.institucionService.crearInstitucion(
-      req.usuario.sub,
-      body.nombre,
-      body.mensajeBienvenida,
-      body.logoUrl,
+    void body;
+    void req;
+    throw new GoneException(
+      'Solicita la aprobación de tu institución desde el formulario de verificación.',
     );
   }
 

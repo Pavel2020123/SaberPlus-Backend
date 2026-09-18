@@ -4,6 +4,7 @@ import { validateName } from "./public/api.mjs";
 import { createDemoQuestionBank } from "./demo-question-bank.mjs";
 import { createDemoEditorialReview } from "./demo-editorial-review.mjs";
 import { createDemoEditorialTools } from "./demo-editorial-tools.mjs";
+import { createDemoInstitutionApproval } from "./demo-institution-approval.mjs";
 
 // Local-only fixtures. This module has no network or database dependencies.
 const areas = [
@@ -185,6 +186,7 @@ export function createDemoApi() {
     editorView,
     send,
   });
+  const institutionApprovals = createDemoInstitutionApproval(send);
   return async (req, res, url) => {
     let body = {};
     if (["POST", "PATCH", "DELETE"].includes(req.method)) {
@@ -236,6 +238,7 @@ export function createDemoApi() {
       send(res, 200, areas);
       return;
     }
+    if (institutionApprovals(req, res, url, body)) return;
     if (questionBank(req, res, url, body)) return;
     if (reviewApi(req, res, url, body)) return;
     if (toolsApi(req, res, url, body)) return;

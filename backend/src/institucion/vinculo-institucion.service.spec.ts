@@ -67,6 +67,7 @@ describe('VinculoInstitucionService', () => {
       membresiaInstitucion: { rol: 'PROPIETARIO' },
     });
     institucion.findUnique.mockResolvedValue({
+      estadoVerificacion: 'APROBADA',
       id: 'institucion-1',
       nombre: 'Colegio Central',
       codigoUnico: 'INST-ABC123',
@@ -105,6 +106,7 @@ describe('VinculoInstitucionService', () => {
       institucionId: null,
     });
     institucion.findUnique.mockResolvedValue({
+      estadoVerificacion: 'APROBADA',
       id: 'institucion-1',
       nombre: 'Colegio Central',
       codigoUnico: 'INST-ABC123',

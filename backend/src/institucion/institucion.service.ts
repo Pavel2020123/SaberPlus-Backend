@@ -150,6 +150,17 @@ export class InstitucionService {
     const institucionId =
       await this.institucionAcceso.obtenerInstitucionIdGestionable(usuarioId);
 
+    if (nombre !== undefined) {
+      const current = await this.prisma.institucion.findUniqueOrThrow({
+        where: { id: institucionId },
+        select: { nombre: true },
+      });
+      if (nombre.trim() !== current.nombre)
+        throw new BadRequestException(
+          'El nombre identifica a la institución verificada. Solicita su cambio al equipo de SaberPlus.',
+        );
+    }
+
     return this.prisma.institucion.update({
       where: { id: institucionId },
       data: {
@@ -161,6 +172,14 @@ export class InstitucionService {
   }
 
   async eliminarMiInstitucion(usuarioId: string) {
+    const approval = await this.prisma.solicitudAltaInstitucion.findFirst({
+      where: { institucion: { Usuario: { some: { id: usuarioId } } } },
+      select: { id: true },
+    });
+    if (approval)
+      throw new BadRequestException(
+        'Solicita la baja al equipo de SaberPlus. Se conservará el historial de verificación y no se borrarán los datos de los estudiantes desde esta acción.',
+      );
     const usuario = await this.prisma.usuario.findUnique({
       where: { id: usuarioId },
       select: {

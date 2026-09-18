@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { GUARDS_METADATA } from '@nestjs/common/constants';
 import { Test } from '@nestjs/testing';
+import { InstitutionOperationalGuard } from './institution-operational.guard';
 import * as request from 'supertest';
 import { Server } from 'node:http';
 import { AuthenticatedRequest } from '../auth/auth.types';
@@ -53,6 +54,8 @@ describe('contrato HTTP P3-A', () => {
       })
       .overrideGuard(EmailVerificadoGuard)
       .useValue({ canActivate: () => true })
+      .overrideGuard(InstitutionOperationalGuard)
+      .useValue({ canActivate: () => true })
       .overrideGuard(ProfesorInstitucionGuard)
       .useValue({ canActivate: () => true })
       .compile();
@@ -79,10 +82,15 @@ describe('contrato HTTP P3-A', () => {
   it('declara autenticación y correo en ambos controladores y rol docente en gestión', () => {
     expect(
       Reflect.getMetadata(GUARDS_METADATA, TeacherPrioritiesController),
-    ).toEqual([JwtGuard, EmailVerificadoGuard, ProfesorInstitucionGuard]);
+    ).toEqual([
+      JwtGuard,
+      EmailVerificadoGuard,
+      InstitutionOperationalGuard,
+      ProfesorInstitucionGuard,
+    ]);
     expect(
       Reflect.getMetadata(GUARDS_METADATA, StudentPrioritiesController),
-    ).toEqual([JwtGuard, EmailVerificadoGuard]);
+    ).toEqual([JwtGuard, EmailVerificadoGuard, InstitutionOperationalGuard]);
   });
   it('crear toma actor de la sesión, valida cuerpo y deshabilita caché', async () => {
     const response = await request(server()).post(base).send(body).expect(201);

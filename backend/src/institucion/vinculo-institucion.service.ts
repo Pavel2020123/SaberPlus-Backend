@@ -8,6 +8,10 @@ import {
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { capacidadesPlanInstitucional } from './institucion-plan.util';
+import {
+  institutionOperational,
+  requireInstitutionOperational,
+} from './institution-approval.policy';
 
 @Injectable()
 export class VinculoInstitucionService {
@@ -34,6 +38,8 @@ export class VinculoInstitucionService {
             select: {
               id: true,
               nombre: true,
+              estadoVerificacion: true,
+              transicionHasta: true,
               codigoUnico: true,
               planActual: true,
               logoUrl: true,
@@ -61,6 +67,14 @@ export class VinculoInstitucionService {
         throw new NotFoundException('La institución vinculada ya no existe.');
       }
       const capacidades = capacidadesPlanInstitucional(institucion);
+      if (!institutionOperational(institucion))
+        return {
+          estado: 'VERIFICACION_REQUERIDA',
+          institucion: null,
+          membresia: null,
+          solicitud: null,
+          invitaciones: [],
+        };
       return {
         estado: 'VINCULADO',
         institucion: {
@@ -154,7 +168,13 @@ export class VinculoInstitucionService {
     const codigo = codigoInstitucion.trim().toUpperCase();
     const institucion = await this.prisma.institucion.findUnique({
       where: { codigoUnico: codigo },
-      select: { id: true, nombre: true, codigoUnico: true },
+      select: {
+        id: true,
+        nombre: true,
+        codigoUnico: true,
+        estadoVerificacion: true,
+        transicionHasta: true,
+      },
     });
     if (!institucion) {
       throw new NotFoundException(
@@ -162,6 +182,7 @@ export class VinculoInstitucionService {
       );
     }
 
+    requireInstitutionOperational(institucion);
     const pendiente = await this.prisma.solicitudIngresoInstitucion.findFirst({
       where: { solicitanteId: usuarioId, estado: 'PENDIENTE' },
       select: { id: true },

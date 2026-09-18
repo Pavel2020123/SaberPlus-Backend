@@ -10,6 +10,7 @@ import { Prisma } from '@prisma/client';
 import { createHash, randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { InstitucionAccesoService } from './institucion-acceso.service';
+import { requireInstitutionOperational } from './institution-approval.policy';
 
 @Injectable()
 export class VinculacionGrupoService {
@@ -260,7 +261,14 @@ export class VinculacionGrupoService {
             id: true,
             nombre: true,
             grado: true,
-            Institucion: { select: { id: true, nombre: true } },
+            Institucion: {
+              select: {
+                id: true,
+                nombre: true,
+                estadoVerificacion: true,
+                transicionHasta: true,
+              },
+            },
           },
         },
       },
@@ -310,7 +318,14 @@ export class VinculacionGrupoService {
             nombre: true,
             grado: true,
             institucionId: true,
-            Institucion: { select: { id: true, nombre: true } },
+            Institucion: {
+              select: {
+                id: true,
+                nombre: true,
+                estadoVerificacion: true,
+                transicionHasta: true,
+              },
+            },
           },
         },
       },
@@ -323,6 +338,7 @@ export class VinculacionGrupoService {
     ) {
       throw this.codigoInvalido();
     }
+    requireInstitutionOperational(codigo.clase.Institucion);
     return codigo;
   }
 

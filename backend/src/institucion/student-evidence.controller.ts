@@ -11,9 +11,15 @@ import { AuthenticatedRequest } from '../auth/auth.types';
 import { JwtGuard, ProfesorInstitucionGuard } from '../auth/jwt.guard';
 import { EmailVerificadoGuard } from '../auth/email-verificado.guard';
 import { StudentEvidenceService } from './student-evidence.service';
+import { InstitutionOperationalGuard } from './institution-operational.guard';
 
 @Controller('instituciones')
-@UseGuards(JwtGuard, EmailVerificadoGuard, ProfesorInstitucionGuard)
+@UseGuards(
+  JwtGuard,
+  EmailVerificadoGuard,
+  InstitutionOperationalGuard,
+  ProfesorInstitucionGuard,
+)
 export class StudentEvidenceController {
   constructor(private readonly service: StudentEvidenceService) {}
 

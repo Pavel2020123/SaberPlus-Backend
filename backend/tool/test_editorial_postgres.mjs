@@ -55,11 +55,20 @@ async function freePort() {
 async function main() {
   const teacherPriorities = process.argv.includes('--teacher-priorities');
   const studyTime = process.argv.includes('--study-time');
+  const institutionApproval = process.argv.includes('--institution-approval');
   if (
     process.argv
       .slice(2)
-      .some((arg) => !['--teacher-priorities', '--study-time'].includes(arg)) ||
-    (teacherPriorities && studyTime)
+      .some(
+        (arg) =>
+          ![
+            '--teacher-priorities',
+            '--study-time',
+            '--institution-approval',
+          ].includes(arg),
+      ) ||
+    [teacherPriorities, studyTime, institutionApproval].filter(Boolean).length >
+      1
   )
     throw new Error('Opción de pruebas no reconocida.');
   // No .env files, external database URLs or existing PostgreSQL services are used.
@@ -176,10 +185,16 @@ async function main() {
     if (!migrations.length)
       throw new Error('No se encontraron migraciones versionadas.');
     const sql = [];
-    for (const file of migrations)
+    const approvalMigration =
+      'backend/prisma/migrations/20260917130000_institution_approval/migration.sql';
+    const legacyFixture = `INSERT INTO "Institucion" ("id", "nombre", "codigoUnico") VALUES ('11111111-1111-4111-8111-111111111111', '  Colegio   Águila legado  ', 'LEGADO-P4C');`;
+    for (const file of migrations) {
+      if (institutionApproval && file === approvalMigration)
+        sql.push(legacyFixture);
       sql.push(
         `\n-- ${file}\n${(await run('git', ['-C', repository, 'show', `HEAD:${file}`])).stdout}\n`,
       );
+    }
     // P3-A permite únicamente SU migración pendiente en la base desechable.
     // Nunca descubrir/aplicar otras migraciones locales (p. ej. Guardián).
     const priorityMigration =
@@ -194,6 +209,10 @@ async function main() {
       sql.push(await readFile(join(repository, studyMigration), 'utf8'));
     }
     const migrationFile = join(resolved, 'migrations.sql');
+    if (institutionApproval && !migrations.includes(approvalMigration)) {
+      sql.push(legacyFixture);
+      sql.push(await readFile(join(repository, approvalMigration), 'utf8'));
+    }
     await writeFile(migrationFile, sql.join('\n'), 'utf8');
     await run(binary('psql'), [
       '-X',
@@ -203,18 +222,20 @@ async function main() {
       migrationFile,
     ]);
     console.log(
-      `SQL de ${migrations.length} migraciones versionadas${teacherPriorities && !migrations.includes(priorityMigration) ? ' y la migración local P3-A' : ''}${studyTime && !migrations.includes(studyMigration) ? ' y la migración local P4-A' : ''} aplicado solo a la instancia desechable.`,
+      `SQL de ${migrations.length} migraciones versionadas${teacherPriorities && !migrations.includes(priorityMigration) ? ' y la migración local P3-A' : ''}${studyTime && !migrations.includes(studyMigration) ? ' y la migración local P4-A' : ''}${institutionApproval && !migrations.includes(approvalMigration) ? ' y la migración local P4-C' : ''} aplicado solo a la instancia desechable.`,
     );
     const result = await run(
       process.execPath,
       [
         '--test',
         '--test-concurrency=1',
-        studyTime
-          ? 'test/study-time-postgres.test.cjs'
-          : teacherPriorities
-            ? 'test/teacher-priorities-postgres.test.cjs'
-            : 'test/editorial-postgres.test.cjs',
+        institutionApproval
+          ? 'test/institution-approval-postgres.test.cjs'
+          : studyTime
+            ? 'test/study-time-postgres.test.cjs'
+            : teacherPriorities
+              ? 'test/teacher-priorities-postgres.test.cjs'
+              : 'test/editorial-postgres.test.cjs',
       ],
       180000,
     );

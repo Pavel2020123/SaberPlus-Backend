@@ -118,6 +118,17 @@ export class CatalogApi {
       );
     return rows;
   }
+  institutionApplications(estado = '', pagina = 1) {
+    const query = new URLSearchParams({ pagina: String(pagina) });
+    if (estado) query.set('estado', estado);
+    return this.#protected(`/admin/instituciones/solicitudes?${query}`);
+  }
+  institutionApplication(id) {
+    return this.#protected(`/admin/instituciones/solicitudes/${encodeURIComponent(id)}`);
+  }
+  reviewInstitution(id, body) {
+    return this.#protected(`/admin/instituciones/solicitudes/${encodeURIComponent(id)}/revision`, { method: 'POST', body });
+  }
   async page(kind, parent, page = 1) {
     if (
       !["temas", "subtemas"].includes(kind) ||
@@ -582,6 +593,8 @@ export class CatalogApi {
       return data;
     } catch (error) {
       if (error instanceof PanelError) throw error;
+      if (method === 'POST' && path.startsWith('/admin/instituciones/solicitudes/'))
+        throw new PanelError('No pudimos confirmar la decisión. Consulta el estado de la solicitud antes de volver a revisarla; podría haberse guardado.');
       if (path === "/auth/login" || path === "/auth/perfil")
         throw new PanelError(
           "No pudimos confirmar el acceso. Comprueba que el servidor siga encendido y recarga la página antes de intentarlo de nuevo.",
