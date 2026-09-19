@@ -56,6 +56,7 @@ async function main() {
   const teacherPriorities = process.argv.includes('--teacher-priorities');
   const studyTime = process.argv.includes('--study-time');
   const institutionApproval = process.argv.includes('--institution-approval');
+  const summit = process.argv.includes('--summit');
   if (
     process.argv
       .slice(2)
@@ -65,9 +66,10 @@ async function main() {
             '--teacher-priorities',
             '--study-time',
             '--institution-approval',
+            '--summit',
           ].includes(arg),
       ) ||
-    [teacherPriorities, studyTime, institutionApproval].filter(Boolean).length >
+    [teacherPriorities, studyTime, institutionApproval, summit].filter(Boolean).length >
       1
   )
     throw new Error('Opción de pruebas no reconocida.');
@@ -185,10 +187,20 @@ async function main() {
     if (!migrations.length)
       throw new Error('No se encontraron migraciones versionadas.');
     const sql = [];
+    if (summit) sql.push('CREATE ROLE anon NOLOGIN NOSUPERUSER NOBYPASSRLS; CREATE ROLE authenticated NOLOGIN NOSUPERUSER NOBYPASSRLS; GRANT USAGE ON SCHEMA public TO anon, authenticated;');
     const approvalMigration =
       'backend/prisma/migrations/20260917130000_institution_approval/migration.sql';
+    const approvalPrivacyMigration =
+      'backend/prisma/migrations/20260918090000_institution_approval_privacy/migration.sql';
+    // Solo en este PostgreSQL desechable: simular permisos públicos anteriores.
+    const privacyFixture = `CREATE ROLE anon NOLOGIN NOSUPERUSER NOBYPASSRLS;
+      CREATE ROLE authenticated NOLOGIN NOSUPERUSER NOBYPASSRLS;
+      GRANT USAGE ON SCHEMA public TO anon, authenticated;
+      GRANT ALL ON TABLE "SolicitudAltaInstitucion" TO anon, authenticated, PUBLIC;`;
     const legacyFixture = `INSERT INTO "Institucion" ("id", "nombre", "codigoUnico") VALUES ('11111111-1111-4111-8111-111111111111', '  Colegio   Águila legado  ', 'LEGADO-P4C');`;
     for (const file of migrations) {
+      if (institutionApproval && file === approvalPrivacyMigration)
+        sql.push(privacyFixture);
       if (institutionApproval && file === approvalMigration)
         sql.push(legacyFixture);
       sql.push(
@@ -209,9 +221,17 @@ async function main() {
       sql.push(await readFile(join(repository, studyMigration), 'utf8'));
     }
     const migrationFile = join(resolved, 'migrations.sql');
+    const summitMigration = 'backend/prisma/migrations/20260918140000_summit_challenge/migration.sql';
+    if (summit && !migrations.includes(summitMigration)) {
+      sql.push(await readFile(join(repository, summitMigration), 'utf8'));
+    }
     if (institutionApproval && !migrations.includes(approvalMigration)) {
       sql.push(legacyFixture);
       sql.push(await readFile(join(repository, approvalMigration), 'utf8'));
+    }
+    if (institutionApproval && !migrations.includes(approvalPrivacyMigration)) {
+      sql.push(privacyFixture);
+      sql.push(await readFile(join(repository, approvalPrivacyMigration), 'utf8'));
     }
     await writeFile(migrationFile, sql.join('\n'), 'utf8');
     await run(binary('psql'), [
@@ -229,7 +249,7 @@ async function main() {
       [
         '--test',
         '--test-concurrency=1',
-        institutionApproval
+        summit ? 'test/summit-postgres.test.cjs' : institutionApproval
           ? 'test/institution-approval-postgres.test.cjs'
           : studyTime
             ? 'test/study-time-postgres.test.cjs'

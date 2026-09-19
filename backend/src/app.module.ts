@@ -22,6 +22,8 @@ import { CuadernoErroresModule } from './cuaderno-errores/cuaderno-errores.modul
 import { TiraAflojaModule } from './tira-afloja/tira-afloja.module';
 import { TriviaRushModule } from './trivia-rush/trivia-rush.module';
 import { HealthController } from './health/health.controller';
+import { GuardianModule } from './guardian/guardian.module';
+import { SummitModule } from './summit/summit.module';
 
 @Module({
   imports: [
@@ -46,6 +48,8 @@ import { HealthController } from './health/health.controller';
     CuadernoErroresModule,
     TiraAflojaModule,
     TriviaRushModule,
+    GuardianModule,
+    SummitModule,
   ],
   controllers: [AppController, HealthController],
 })

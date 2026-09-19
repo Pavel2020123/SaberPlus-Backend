@@ -6,6 +6,9 @@ el entorno Linux de Render.
 
 ## Comandos
 
+JN-1B: [Salto a la cima — API, reglas y pruebas locales](SUMMIT_CHALLENGE.md).
+Migración preparada, sin despliegue; integración Flutter pendiente de JN-1C.
+
 Pasarelas heredadas retiradas el 12 de septiembre de 2026: no hay integración
 operativa de ePayco/Wompi. Las rutas antiguas solo responden HTTP 410, sin modificar
 pagos. [Alcance, pruebas y despliegue pendiente](PAGOS_HEREDADOS_RETIRADOS.md).

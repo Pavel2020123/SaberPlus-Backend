@@ -4,6 +4,31 @@ const { readFile } = require('node:fs/promises');
 const { randomUUID } = require('node:crypto');
 let db, service, admin, operational;
 const status = (code) => (error) => error.getStatus?.() === code;
+test('evidencia privada: revoca permisos directos de anon y authenticated', async () => {
+  const [table] = await db.$queryRawUnsafe(`SELECT relrowsecurity FROM pg_class WHERE oid = 'public."SolicitudAltaInstitucion"'::regclass`);
+  assert.equal(table.relrowsecurity, true);
+  for (const role of ['anon', 'authenticated']) {
+    for (const privilege of ['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'REFERENCES', 'TRIGGER']) {
+      const [result] = await db.$queryRawUnsafe(`SELECT has_table_privilege($1, 'public."SolicitudAltaInstitucion"', $2) AS allowed`, role, privilege);
+      assert.equal(result.allowed, false, `${role}: ${privilege}`);
+    }
+    await assert.rejects(db.$transaction(async tx => {
+      await tx.$executeRawUnsafe(`SET LOCAL ROLE ${role}`);
+      await tx.$queryRawUnsafe('SELECT * FROM "SolicitudAltaInstitucion"');
+    }), error => error.code === 'P2010' && error.meta?.code === '42501');
+  }
+});
+test('RLS oculta evidencia aun si se concede SELECT por accidente; el permiso de ensayo revierte', async () => {
+  const rollback = new Error('ROLLBACK_TEST_ONLY');
+  for (const role of ['anon', 'authenticated']) {
+    await assert.rejects(db.$transaction(async tx => {
+      await tx.$executeRawUnsafe(`GRANT SELECT ON "SolicitudAltaInstitucion" TO ${role}`);
+      await tx.$executeRawUnsafe(`SET LOCAL ROLE ${role}`);
+      assert.deepEqual(await tx.$queryRawUnsafe('SELECT * FROM "SolicitudAltaInstitucion"'), []);
+      throw rollback;
+    }), error => error === rollback);
+  }
+});
 test('migración conserva el legado sin autoaprobar y fija transición de 30 días', async () => {
   const institution = await db.institucion.findUniqueOrThrow({
     where: { id: '11111111-1111-4111-8111-111111111111' },

@@ -1,5 +1,7 @@
 import path from 'node:path';
 import process from 'node:process';
+import { readdirSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { config } from 'dotenv';
 import { PrismaClient } from '@prisma/client';
 
@@ -19,6 +21,16 @@ try {
   console.log('DATABASE_PROBE=OK');
 
   if (verifySchema) {
+    const migrationDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../prisma/migrations');
+    const expectedMigrations = readdirSync(migrationDirectory, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => entry.name);
+    const appliedMigrations = await prisma.$queryRawUnsafe(`
+      SELECT migration_name FROM "_prisma_migrations"
+      WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL
+    `);
+    const appliedNames = new Set(appliedMigrations.map((row) => row.migration_name));
+    const missingMigrations = expectedMigrations.filter((name) => !appliedNames.has(name));
     const [migrationState] = await prisma.$queryRawUnsafe(`
       SELECT
         COUNT(*) FILTER (
@@ -35,7 +47,8 @@ try {
         COUNT(*) FILTER (WHERE table_name = 'Pregunta')::int AS questions_table,
         COUNT(*) FILTER (WHERE table_name = 'Institucion')::int AS institutions_table,
         COUNT(*) FILTER (WHERE table_name = 'IntentoTriviaRush')::int AS trivia_table,
-        COUNT(*) FILTER (WHERE table_name = 'PartidaTiraAfloja')::int AS tug_table
+        COUNT(*) FILTER (WHERE table_name = 'PartidaTiraAfloja')::int AS tug_table,
+        COUNT(*) FILTER (WHERE table_name = 'IntentoGuardian')::int AS guardian_table
       FROM information_schema.tables
       WHERE table_schema = 'public'
     `);
@@ -44,11 +57,13 @@ try {
       (value) => Number(value) === 1,
     );
     console.log(`MIGRATIONS_APPLIED=${Number(migrationState.applied)}`);
+    console.log(`MIGRATIONS_EXPECTED=${expectedMigrations.length}`);
+    console.log(`MIGRATIONS_PENDING=${missingMigrations.length}`);
     console.log(`MIGRATIONS_FAILED=${Number(migrationState.failed)}`);
     console.log(`KEY_TABLES_PRESENT=${expectedTablesPresent ? 'YES' : 'NO'}`);
 
     if (
-      Number(migrationState.applied) !== 39 ||
+      missingMigrations.length !== 0 ||
       Number(migrationState.failed) !== 0 ||
       !expectedTablesPresent
     ) {
