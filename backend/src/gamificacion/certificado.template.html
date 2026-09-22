@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Certificado SaberPlus</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 1123px;
+      height: 794px;
+      font-family: 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      background: #f8fbff;
+    }
+
+    body.demo .demo-watermark { display: block; }
+
+    .page {
+      position: relative;
+      width: 1123px;
+      height: 794px;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at top left, rgba(59,130,246,0.10), transparent 28%),
+        radial-gradient(circle at bottom right, rgba(6,182,212,0.10), transparent 30%),
+        linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
+      color: #0f172a;
+    }
+
+    .glow-1,
+    .glow-2 {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(6px);
+      opacity: .45;
+      z-index: 0;
+    }
+
+    .glow-1 {
+      width: 260px;
+      height: 260px;
+      top: -70px;
+      left: -60px;
+      background: rgba(59,130,246,0.16);
+    }
+
+    .glow-2 {
+      width: 240px;
+      height: 240px;
+      right: -50px;
+      bottom: -50px;
+      background: rgba(34,197,94,0.10);
+    }
+
+    .frame-outer,
+    .frame-inner {
+      position: absolute;
+      inset: 24px;
+      border-radius: 26px;
+      z-index: 1;
+    }
+
+    .frame-outer {
+      border: 3px solid #1d4ed8;
+      box-shadow: 0 16px 45px rgba(15, 23, 42, 0.08);
+    }
+
+    .frame-inner {
+      inset: 38px;
+      border: 1px solid #bfdbfe;
+      border-radius: 20px;
+    }
+
+    .header {
+      position: absolute;
+      top: 58px;
+      left: 64px;
+      right: 64px;
+      height: 118px;
+      padding: 22px 28px;
+      border-radius: 24px;
+      background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 55%, #38bdf8 100%);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 3;
+      box-shadow: 0 18px 40px rgba(37, 99, 235, 0.18);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+
+    .brand-logo {
+      width: 72px;
+      height: 72px;
+      object-fit: contain;
+      background: rgba(255,255,255,0.10);
+      border-radius: 18px;
+      padding: 8px;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12);
+    }
+
+    .brand-text {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .brand-name {
+      font-size: 34px;
+      font-weight: 800;
+      letter-spacing: 0.2px;
+      line-height: 1;
+    }
+
+    .brand-tagline {
+      font-size: 15px;
+      color: rgba(255,255,255,0.84);
+      line-height: 1.3;
+    }
+
+    .badge {
+      padding: 12px 18px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.14);
+      border: 1px solid rgba(255,255,255,0.16);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .content {
+      position: absolute;
+      top: 205px;
+      left: 78px;
+      right: 78px;
+      bottom: 70px;
+      z-index: 3;
+      text-align: center;
+    }
+
+    .eyebrow {
+      margin-bottom: 10px;
+      color: #2563eb;
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: 2.4px;
+      text-transform: uppercase;
+    }
+
+    .title {
+      margin: 0;
+      color: #0f172a;
+      font-size: 38px;
+      line-height: 1.1;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+    }
+
+    .subtitle {
+      margin-top: 12px;
+      color: #475569;
+      font-size: 19px;
+      font-weight: 500;
+    }
+
+    .name-wrap {
+      margin: 34px auto 0;
+      width: 80%;
+      max-width: 860px;
+      padding: 0 16px 16px;
+      position: relative;
+    }
+
+    .name {
+      line-height: 1.08;
+      font-weight: 900;
+      color: #0f172a;
+      margin: 0;
+      letter-spacing: -0.4px;
+    }
+
+    .name-line {
+      width: 430px;
+      max-width: 100%;
+      height: 4px;
+      border-radius: 999px;
+      margin: 18px auto 0;
+      background: linear-gradient(90deg, #60a5fa 0%, #2563eb 50%, #22d3ee 100%);
+      opacity: 0.88;
+    }
+
+    .message {
+      width: 70%;
+      margin: 24px auto 0;
+      color: #334155;
+      font-size: 18px;
+      line-height: 1.7;
+    }
+
+    .cards {
+      margin-top: 36px;
+      display: flex;
+      justify-content: center;
+      gap: 18px;
+      flex-wrap: wrap;
+    }
+
+    .card {
+      width: 280px;
+      min-height: 96px;
+      padding: 18px 18px 16px;
+      border-radius: 20px;
+      background: rgba(255,255,255,0.92);
+      border: 1px solid #dbeafe;
+      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+    }
+
+    .card-label {
+      font-size: 12px;
+      color: #64748b;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      margin-bottom: 8px;
+    }
+
+    .card-value {
+      font-size: 18px;
+      color: #1d4ed8;
+      font-weight: 800;
+      line-height: 1.35;
+    }
+
+    .footnote {
+      position: absolute;
+      left: 110px;
+      right: 290px;
+      bottom: 38px;
+      text-align: left;
+      color: #64748b;
+      font-size: 12px;
+      line-height: 1.5;
+      z-index: 3;
+    }
+
+    .mascot {
+      position: absolute;
+      right: 58px;
+      bottom: 36px;
+      width: 250px;
+      height: auto;
+      z-index: 3;
+      filter: drop-shadow(0 18px 28px rgba(14, 116, 144, 0.18));
+    }
+
+    .confetti-piece {
+      position: absolute;
+      z-index: 2;
+      border-radius: 999px;
+      opacity: 0.92;
+    }
+
+    .c1 { top: 92px; left: 86px; width: 14px; height: 44px; background: #f59e0b; transform: rotate(-28deg); }
+    .c2 { top: 118px; left: 118px; width: 12px; height: 26px; background: #ef4444; transform: rotate(18deg); }
+    .c3 { top: 170px; right: 180px; width: 12px; height: 40px; background: #22c55e; transform: rotate(36deg); }
+    .c4 { top: 154px; right: 148px; width: 16px; height: 16px; background: #38bdf8; border-radius: 4px; transform: rotate(24deg); }
+    .c5 { bottom: 190px; right: 280px; width: 16px; height: 48px; background: #facc15; transform: rotate(48deg); }
+    .c6 { bottom: 224px; right: 332px; width: 12px; height: 30px; background: #fb7185; transform: rotate(-32deg); }
+    .c7 { top: 276px; left: 120px; width: 12px; height: 12px; background: #2563eb; }
+    .c8 { top: 246px; left: 152px; width: 10px; height: 34px; background: #22d3ee; transform: rotate(-56deg); }
+    .c9 { bottom: 148px; right: 238px; width: 12px; height: 12px; background: #ef4444; }
+    .c10 { bottom: 104px; right: 316px; width: 12px; height: 36px; background: #8b5cf6; transform: rotate(20deg); }
+    .c11 { top: 234px; right: 110px; width: 10px; height: 10px; background: #f59e0b; }
+    .c12 { top: 220px; right: 80px; width: 12px; height: 28px; background: #0ea5e9; transform: rotate(-25deg); }
+
+    .demo-watermark {
+      display: none;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) rotate(-24deg);
+      color: rgba(220, 38, 38, 0.17);
+      font-size: 66px;
+      font-weight: 900;
+      letter-spacing: 2px;
+      z-index: 10;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body class="{{BODY_CLASS}}">
+  <div class="page">
+    <div class="glow-1"></div>
+    <div class="glow-2"></div>
+
+    <div class="frame-outer"></div>
+    <div class="frame-inner"></div>
+
+    <span class="confetti-piece c1"></span>
+    <span class="confetti-piece c2"></span>
+    <span class="confetti-piece c3"></span>
+    <span class="confetti-piece c4"></span>
+    <span class="confetti-piece c5"></span>
+    <span class="confetti-piece c6"></span>
+    <span class="confetti-piece c7"></span>
+    <span class="confetti-piece c8"></span>
+    <span class="confetti-piece c9"></span>
+    <span class="confetti-piece c10"></span>
+    <span class="confetti-piece c11"></span>
+    <span class="confetti-piece c12"></span>
+
+    <div class="header">
+      <div class="brand">
+        <img class="brand-logo" src="{{LOGO_SRC}}" alt="Logo SaberPlus" />
+        <div class="brand-text">
+          <div class="brand-name">SaberPlus</div>
+          <div class="brand-tagline">Preparación para el examen Saber 11</div>
+        </div>
+      </div>
+      <div class="badge">Reconocimiento de logro</div>
+    </div>
+
+    <div class="content">
+      <div class="eyebrow">Certificación digital</div>
+      <h1 class="title">{{TITULO}}</h1>
+      <div class="subtitle">Se otorga el presente certificado a:</div>
+
+      <div class="name-wrap">
+        <h2 class="name" {{NOMBRE_FONT_SIZE}}px;">{{NOMBRE}}</h2>
+        <div class="name-line"></div>
+      </div>
+
+      <div class="message">{{TEXTO}}</div>
+
+      <div class="cards">
+        <div class="card">
+          <div class="card-label">Área o curso</div>
+          <div class="card-value">{{AREA_O_CURSO}}</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Fecha de emisión</div>
+          <div class="card-value">{{FECHA}}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footnote">
+      Esta es una constancia de finalización emitida por SaberPlus. No es un diploma oficial del
+      ICFES, de una institución educativa, ni certifica un puntaje del examen real.
+    </div>
+
+    <img class="mascot" src="{{SABI_SRC}}" alt="Mascota SaberPlus" />
+
+    <div class="demo-watermark">DEMOSTRACIÓN / NO VÁLIDO</div>
+  </div>
+</body>
+</html>
