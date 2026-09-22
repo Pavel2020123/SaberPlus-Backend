@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Certificado SaberPlus</title>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; script-src 'none'; base-uri 'none'" />
+  <style>
+    @page { size: A4 landscape; margin: 0; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; width: 297mm; height: 210mm; font-family: Arial, Helvetica, sans-serif; color: #0f172a; }
+    body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    .page { position: relative; width: 297mm; height: 210mm; overflow: hidden; background: #fff; }
+    .frame-outer { position: absolute; inset: 24px; border: 3px solid #1d4ed8; border-radius: 26px; }
+    .frame-inner { position: absolute; inset: 38px; border: 1px solid #bfdbfe; border-radius: 20px; }
+    .header { position: absolute; top: 58px; left: 64px; right: 64px; height: 118px; padding: 22px 28px; border-radius: 24px; background: linear-gradient(135deg, #1d4ed8, #2563eb 55%, #38bdf8); color: white; display: flex; align-items: center; justify-content: space-between; }
+    .brand { display: flex; align-items: center; gap: 18px; }
+    .brand-logo { width: 72px; height: 72px; object-fit: contain; border-radius: 16px; }
+    .brand-name { font-size: 34px; font-weight: 800; }
+    .brand-tagline { font-size: 15px; margin-top: 4px; }
+    .badge { padding: 12px 18px; border-radius: 99px; border: 1px solid #ffffff60; background: #ffffff20; font-size: 12px; font-weight: bold; letter-spacing: 1px; }
+    .content { position: absolute; top: 215px; left: 75px; width: 670px; text-align: center; }
+    .eyebrow { color: #2563eb; font-size: 13px; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; }
+    .title { font-size: 30px; line-height: 1.15; margin: 10px 0 12px; }
+    .subtitle { font-size: 17px; color: #475569; }
+    .name-wrap { margin: 24px auto 0; width: 630px; height: 130px; display: flex; flex-direction: column; justify-content: center; }
+    .name { margin: 0; font-size: 42px; line-height: 1.12; overflow-wrap: anywhere; font-weight: 800; }
+    .name-line { flex-shrink: 0; width: 390px; height: 4px; margin: 10px auto 0; border-radius: 4px; background: linear-gradient(90deg, #60a5fa, #2563eb, #22d3ee); }
+    .message { max-width: 620px; margin: 16px auto 0; font-size: 17px; line-height: 1.55; color: #334155; }
+    .cards { display: flex; gap: 16px; justify-content: center; margin-top: 22px; }
+    .card { width: 290px; min-height: 90px; padding: 16px; border-radius: 18px; border: 1px solid #dbeafe; background: #f8fbff; }
+    .card-label { font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .card-value { font-size: 18px; font-weight: bold; line-height: 1.35; color: #1d4ed8; }
+    .mascot { position: absolute; right: 65px; top: 285px; width: 270px; height: 340px; object-fit: contain; }
+    .footnote { position: absolute; left: 78px; right: 78px; bottom: 56px; font-size: 11px; line-height: 1.5; color: #64748b; }
+    .demo-watermark { display: none; position: absolute; top: 46%; left: 10%; transform: rotate(-20deg); font-size: 52px; font-weight: bold; color: #dc262630; white-space: nowrap; }
+    body.demo .demo-watermark { display: block; }
+  </style>
+</head>
+<body class="{{BODY_CLASS}}">
+  <div class="page">
+    <div class="frame-outer"></div><div class="frame-inner"></div>
+    <header class="header">
+      <div class="brand"><img class="brand-logo" src="{{LOGO}}" alt="Logo SaberPlus" />
+        <div><div class="brand-name">SaberPlus</div><div class="brand-tagline">Preparación para el examen Saber 11</div></div>
+      </div>
+      <div class="badge">CONSTANCIA DE FINALIZACIÓN</div>
+    </header>
+    <main class="content">
+      <div class="eyebrow">Tu esfuerzo merece reconocimiento</div>
+      <h1 class="title">{{TITULO}}</h1>
+      <div class="subtitle">SaberPlus felicita a:</div>
+      <div class="name-wrap"><h2 class="name">{{NOMBRE}}</h2><div class="name-line"></div></div>
+      <div class="message">{{TEXTO}}</div>
+      <div class="cards">
+        <div class="card"><div class="card-label">Área o curso</div><div class="card-value">{{AREA_O_CURSO}}</div></div>
+        <div class="card"><div class="card-label">Fecha de emisión</div><div class="card-value">{{FECHA}}</div></div>
+      </div>
+    </main>
+    <img class="mascot" src="{{MASCOTA}}" alt="Sabi celebrando" />
+    <footer class="footnote">Esta es una constancia de finalización emitida por SaberPlus. No es un diploma oficial del ICFES ni de una institución educativa, ni certifica un puntaje del examen real.</footer>
+    <div class="demo-watermark">DEMOSTRACIÓN / NO VÁLIDO</div>
+  </div>
+</body>
+</html>

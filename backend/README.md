@@ -33,3 +33,22 @@ despliegue. No guardes contrasenas ni cadenas de conexion reales en Git.
 - `npm run db:deploy`: aplica migraciones versionadas.
 
 Flutter consume esta API y nunca se conecta directamente a las tablas.
+
+## Certificados de finalización
+
+Hay seis tipos: una constancia por cada área de Saber 11 y una final por las cinco.
+`GET /gamificacion/certificados` devuelve el progreso del alumno autenticado;
+`GET /gamificacion/certificados/:tipo/pdf` emite el PDF solo al completar todas
+las lecciones publicadas correspondientes. Un área sin lecciones no se habilita.
+Los logros permanecen como insignias; la antigua descarga por logro responde 410.
+
+La plantilla HTML y las dos imágenes locales están en
+`src/gamificacion/templates/`. Puppeteer instala Chrome durante `npm ci` en
+`.cache/puppeteer`, carpeta ignorada por Git; el servicio debe conservar ese
+navegador entre instalación y ejecución. En Render, verificar que el build
+incluya la carpeta y que el plan permita iniciar Chrome. No hace falta migración
+para esta función. El renderer no carga recursos de red.
+
+Vista previa sin datos reales: `npm run build` y
+`node tool/preview_course_certificate.cjs`. Las muestras marcadas
+“DEMOSTRACIÓN / NO VÁLIDO” quedan en `output/pdf/` y no se versionan.
