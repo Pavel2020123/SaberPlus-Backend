@@ -121,8 +121,8 @@ export class LessonEditor {
     this.$("preview-section").hidden = this.kind === "temas";
     this.$("editor-policy").textContent =
       record.motivo ||
-      "Borrador: guardar no publica en la app. Los nombres solo se corrigen antes de tener uso académico.";
-    this.message(`Estado: ${record.estadoContenido}.`);
+      (this.api.simple ? "Guardar deja la explicación disponible para los estudiantes. Los nombres solo se corrigen si el registro no tiene contenido asociado." : "Borrador: guardar no publica en la app. Los nombres solo se corrigen antes de tener uso académico.");
+    this.message(this.api.simple ? "Edita la explicación y los ejemplos y pulsa Guardar explicación." : `Estado: ${record.estadoContenido}.`);
     this.preview();
     this.controls();
   }
@@ -141,11 +141,12 @@ export class LessonEditor {
     this.$("editor-close").disabled = locked;
     this.$("editor-delete").disabled =
       locked || this.dirty || this.record?.eliminable !== true;
+    this.$("editor-delete").textContent = this.api.simple ? `Eliminar ${this.kind === "temas" ? "tema" : "subtema"} vacío` : "Eliminar borrador vacío";
     this.$("editor-delete-policy").textContent = this.dirty
       ? "Guarda o descarta tus cambios antes de eliminar."
       : this.record?.motivoEliminacion ||
         (this.record?.eliminable === true
-          ? "Eliminación definitiva de este borrador vacío. No se borrarán otros registros."
+          ? "Eliminación definitiva de este registro vacío. No se borrarán otros registros."
           : "El servidor no ha autorizado eliminar este registro. Recarga para consultar.");
   }
   async remove() {
@@ -153,7 +154,7 @@ export class LessonEditor {
     if (this.busy() || this.dirty || row?.eliminable !== true) return;
     if (
       !this.confirm(
-        `Eliminar definitivamente ${this.kind === "temas" ? "tema" : "subtema"}: ${row.nombre}\nID: ${row.id}\nClasificación: ${this.parent}\nNo se puede deshacer. Solo se eliminará este borrador vacío. ¿Confirmar?`,
+        `Eliminar definitivamente ${this.kind === "temas" ? "tema" : "subtema"}: ${row.nombre}\nNo se puede deshacer. Solo se eliminará este registro vacío. ¿Confirmar?`,
       )
     )
       return;
@@ -161,7 +162,7 @@ export class LessonEditor {
     const kind = this.kind;
     this.setBusy(true);
     this.controls();
-    this.message("Eliminando borrador vacío…");
+    this.message("Eliminando registro vacío…");
     try {
       const receipt = await this.api.removeDraft(
         kind,
@@ -246,7 +247,7 @@ export class LessonEditor {
     const version = this.version;
     this.setBusy(true);
     this.controls();
-    this.message("Guardando borrador…");
+    this.message("Guardando…");
     try {
       const record = await this.api.editor(
         this.kind,
@@ -270,7 +271,7 @@ export class LessonEditor {
       }
       this.onSaved(this.kind, record);
       this.message(
-        `${rename ? "Nombre" : "Lección"} guardado. No se publicó.${otherDirty ? " Hay otros cambios sin guardar." : ""}`,
+        `${rename ? "Nombre" : "Lección"} guardado.${this.api.simple ? " Publicado; en demostración solo se conserva en memoria." : " No se publicó."}${otherDirty ? " Hay otros cambios sin guardar." : ""}`,
       );
     } catch (error) {
       if (version === this.version)

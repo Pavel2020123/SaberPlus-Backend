@@ -7,6 +7,7 @@ import {
 import { AreaIcfes, EstadoContenido } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { lockEditorialArea } from './editorial-lock';
+import { publishParents, requireDirectPublication } from './direct-publication';
 import {
   catalogNameKey,
   isGenericCatalogName,
@@ -32,7 +33,8 @@ export class AcademicCatalogService {
     }));
   }
 
-  async crearTema(value: string, area: AreaIcfes) {
+  async crearTema(value: string, area: AreaIcfes, direct = false) {
+    if (direct) requireDirectPublication();
     const nombre = validateCatalogName(value);
     if (!Object.prototype.hasOwnProperty.call(ACADEMIC_AREAS, area))
       throw new BadRequestException('El área no es válida.');
@@ -46,12 +48,20 @@ export class AcademicCatalogService {
       });
       this.ensureUnique(nombre, siblings);
       return tx.tema.create({
-        data: { nombre, area, estadoContenido: EstadoContenido.BORRADOR },
+        data: {
+          nombre,
+          area,
+          estadoContenido: direct
+            ? EstadoContenido.PUBLICADO
+            : EstadoContenido.BORRADOR,
+          ...(direct ? { fechaPublicacion: new Date() } : {}),
+        },
       });
     });
   }
 
-  async crearSubtema(value: string, temaId: string) {
+  async crearSubtema(value: string, temaId: string, direct = false) {
+    if (direct) requireDirectPublication();
     const nombre = validateCatalogName(value);
     return this.prisma.$transaction(async (tx) => {
       const initial = await tx.tema.findUnique({
@@ -82,8 +92,16 @@ export class AcademicCatalogService {
         select: { nombre: true },
       });
       this.ensureUnique(nombre, siblings);
+      if (direct) await publishParents(tx, temaId);
       return tx.subtema.create({
-        data: { nombre, temaId, estadoContenido: EstadoContenido.BORRADOR },
+        data: {
+          nombre,
+          temaId,
+          estadoContenido: direct
+            ? EstadoContenido.PUBLICADO
+            : EstadoContenido.BORRADOR,
+          ...(direct ? { fechaPublicacion: new Date() } : {}),
+        },
       });
     });
   }
@@ -129,7 +147,11 @@ export class AcademicCatalogService {
         nombre: true,
         temaId: true,
         estadoContenido: true,
-        _count: { select: { preguntas: true } },
+        _count: {
+          select: {
+            preguntas: { where: { estadoContenido: { not: 'ARCHIVADO' } } },
+          },
+        },
       },
     });
     return {

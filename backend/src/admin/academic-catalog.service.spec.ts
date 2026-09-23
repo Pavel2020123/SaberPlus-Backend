@@ -206,7 +206,11 @@ describe('AcademicCatalogService', () => {
           nombre: true,
           temaId: true,
           estadoContenido: true,
-          _count: { select: { preguntas: true } },
+          _count: {
+            select: {
+              preguntas: { where: { estadoContenido: { not: 'ARCHIVADO' } } },
+            },
+          },
         },
       }),
     );

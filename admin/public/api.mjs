@@ -47,12 +47,14 @@ export class CatalogApi {
       fetcher = globalThis.fetch.bind(globalThis),
       onSessionExpired = () => {},
       timeoutMs = 60000,
+      simple = false,
     } = {},
   ) {
     this.base = base;
     this.fetcher = fetcher;
     this.onSessionExpired = onSessionExpired;
     this.timeoutMs = timeoutMs;
+    this.simple = simple;
   }
   get authenticated() {
     return this.#token !== null;
@@ -177,7 +179,7 @@ export class CatalogApi {
   create(kind, parent, name) {
     if (!["temas", "subtemas"].includes(kind) || !parent)
       throw new PanelError("Selecciona primero el área o tema.");
-    return this.#protected(`/admin/${kind}`, {
+    return this.#protected(`/admin/${this.simple ? "simple/" : ""}${kind}`, {
       method: "POST",
       body: {
         nombre: validateName(name),
@@ -213,7 +215,7 @@ export class CatalogApi {
       };
     }
     const data = await this.#protected(
-      `/admin/editor/${kind}/${encodeURIComponent(id)}${suffix}`,
+      `/admin/${this.simple ? "simple/" : ""}editor/${kind}/${encodeURIComponent(id)}${suffix}`,
       options,
     );
     if (
@@ -247,7 +249,7 @@ export class CatalogApi {
         confirmado === true,
     );
     const result = await this.#protected(
-      `/admin/editor/${kind}/${encodeURIComponent(id)}`,
+      `/admin/${this.simple ? "simple/" : ""}editor/${kind}/${encodeURIComponent(id)}`,
       { method: "DELETE", body: { revision, confirmado: true } },
     );
     if (
@@ -275,7 +277,7 @@ export class CatalogApi {
       pagina: String(page),
       limite: "20",
     });
-    const data = await this.#protected(`/admin/editor/${kind}?${query}`);
+    const data = await this.#protected(`/admin/${this.simple ? "simple/" : ""}editor/${kind}?${query}`);
     if (
       !data ||
       data.pagina !== page ||
@@ -322,15 +324,15 @@ export class CatalogApi {
       };
     }
     const row = await this.#protected(
-      `/admin/editor/${kind}${id ? `/${encodeURIComponent(id)}` : ""}`,
+      `/admin/${this.simple ? "simple/" : ""}editor/${kind}${id ? `/${encodeURIComponent(id)}` : ""}`,
       options,
     );
     if (
       !row ||
       typeof row.id !== "string" ||
       !row.id ||
-      (id && row.id !== id) ||
-      (input && row.estadoContenido !== "BORRADOR") ||
+      (id && row.id !== id && !(this.simple && input && kind === "preguntas" && row.reemplazaId === id)) ||
+      (input && row.estadoContenido !== (this.simple ? "PUBLICADO" : "BORRADOR")) ||
       row[kind === "preguntas" ? "subtemaId" : "area"] !== parent ||
       !/^[a-f0-9]{64}$/.test(row.revision) ||
       typeof row.editable !== "boolean" ||
@@ -540,7 +542,7 @@ export class CatalogApi {
       if (generation !== this.#generation)
         throw new PanelError("Solicitud cancelada.");
       if (!response.ok) {
-        if (response.status === 409 && path.startsWith("/admin/editor/")) {
+        if (response.status === 409 && /^\/admin\/(simple\/)?editor\//.test(path)) {
           let detail;
           try {
             detail = await response.json();
@@ -574,6 +576,8 @@ export class CatalogApi {
           this.logout();
           this.onSessionExpired();
         }
+        if (response.status === 503 && path.startsWith("/admin/simple/"))
+          throw new PanelError("Guardar y publicar no está habilitado o el servidor no está disponible. Revisa EDITORIAL_PUBLICATION_ENABLED en el backend antes de continuar.", 503);
         throw new PanelError(
           {
             400: "Revisa los datos y la clasificación. El nombre o el estado del contenido no son válidos.",

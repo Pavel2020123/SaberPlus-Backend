@@ -153,6 +153,8 @@ export class QuestionEditor {
     this.$("bank-heading").textContent =
       `${kind === "preguntas" ? "Preguntas" : "Casos compartidos"} · ${parent.nombre}`;
     this.$("bank-heading").focus();
+    this.$("bank-new").textContent = kind === "preguntas" ? "+ Agregar pregunta" : "+ Agregar texto compartido";
+    this.$("bank-save").textContent = kind === "preguntas" ? "Guardar pregunta" : "Guardar texto compartido";
     await this.run(() => this.loadPage(1));
   }
   async loadPage(page) {
@@ -168,7 +170,7 @@ export class QuestionEditor {
         const button = this.doc.createElement("button");
         button.type = "button";
         button.className = "item";
-        button.textContent = `${this.kind === "preguntas" ? row.enunciado.slice(0, 130) : row.titulo || "Caso sin título"} · ${row.estadoContenido} · ${row.id}`;
+        button.textContent = `${this.kind === "preguntas" ? row.enunciado.slice(0, 130) : row.titulo || "Texto sin título"} · ${row.estadoContenido === "PUBLICADO" ? "Disponible" : "Sin publicar"}`;
         button.onclick = () => this.select(row.id);
         return button;
       }),
@@ -219,7 +221,7 @@ export class QuestionEditor {
             })))
         : [],
     );
-    this.message(
+    this.message(this.api.simple ? (row ? (row.editable ? "Puedes editar y guardar los cambios directamente." : "Este contenido tiene uso académico o está retirado y no se puede editar aquí.") : "Completa la pregunta y marca la respuesta correcta. Al guardar quedará publicada.") :
       row
         ? `${row.estadoContenido} · ${row.editable ? "Editable" : "Solo lectura: no es un borrador sin uso académico"}. ID: ${row.id}`
         : "Nuevo borrador. Guardar no publica en la app.",
@@ -296,7 +298,7 @@ export class QuestionEditor {
         const option = this.doc.createElement("option");
         option.value = row.id;
         option.textContent = `${row.titulo || row.id}${row.estadoContenido ? ` · ${row.estadoContenido}` : ""}`;
-        option.disabled = row.estadoContenido === "ARCHIVADO";
+        option.disabled = this.api.simple ? Boolean(row.id && row.estadoContenido !== "PUBLICADO") : row.estadoContenido === "ARCHIVADO";
         return option;
       }),
     );
@@ -339,7 +341,7 @@ export class QuestionEditor {
       );
       if (version !== this.version) return;
       this.fill(row);
-      this.message("Guardado en BORRADOR. No está publicado.");
+      this.message(this.api.simple ? "Guardado y publicado. En demostración, el cambio es solo local." : "Guardado en BORRADOR. No está publicado.");
       try {
         await this.loadPage(this.page);
       } catch {

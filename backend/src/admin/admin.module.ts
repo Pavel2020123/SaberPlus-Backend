@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { SimpleContentController } from './simple-content.controller';
 import { AdminController } from './admin.controller';
 import { AdminService } from './admin.service';
 import { PrismaModule } from '../prisma/prisma.module';
@@ -23,6 +24,7 @@ import { QuestionReclassificationService } from './question-reclassification.ser
   imports: [PrismaModule],
 
   controllers: [
+    SimpleContentController,
     AdminController,
     AcademicCatalogController,
     LessonEditorController,

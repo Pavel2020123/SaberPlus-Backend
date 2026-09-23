@@ -89,10 +89,9 @@
           <h2>Áreas ICFES</h2>
           <nav id="area-list" aria-label="Seleccionar área"></nav>
           <div class="sidebar-note">
-            <strong>Primero, un borrador.</strong>
+            <strong>Área → Tema → Subtema → Preguntas</strong>
             <p>
-              Crear un tema no lo publica. El contenido necesita revisión antes
-              de aparecer en la app.
+              Escribe el contenido y guárdalo. Quedará disponible sin enviarlo a revisión.
             </p>
           </div>
         </aside>
@@ -106,11 +105,11 @@
               </p>
             </div>
             <button id="refresh" class="secondary">Actualizar catálogo</button>
-            <button id="area-legacy" class="secondary" disabled>
+            <button id="area-legacy" class="secondary" disabled hidden>
               Revisar banco antiguo
             </button>
             <button id="area-cases" class="secondary" disabled>
-              Casos del área
+              Textos compartidos (opcional)
             </button>
           </div>
           <p id="demo-banner" class="demo-note" hidden>
@@ -132,7 +131,7 @@
               </div>
               <p class="hint">Selecciona un tema para ver sus subtemas.</p>
               <button id="theme-edit" class="secondary" disabled>
-                Corregir nombre del tema seleccionado
+                Editar tema seleccionado
               </button>
               <div id="themes-list" class="items" aria-live="polite"></div>
               <div class="pagination">
@@ -161,7 +160,7 @@
                   required
                 />
                 <p class="hint">
-                  Se guardará como borrador en el área seleccionada.
+                  Se creará dentro del área seleccionada.
                 </p>
                 <button id="theme-submit" class="primary" type="submit">
                   + Crear tema
@@ -177,7 +176,7 @@
                 <span class="panel-count" id="subthemes-count">—</span>
               </div>
               <p class="hint">
-                Selecciona un subtema para escribir o consultar su lección.
+                Selecciona un subtema para agregar o editar sus preguntas.
               </p>
               <div id="subthemes-list" class="items" aria-live="polite"></div>
               <div class="pagination">
@@ -214,6 +213,12 @@
               </form>
             </section>
           </div>
+          <section id="subtopic-navigation" class="catalog-panel lesson-editor" hidden aria-label="Contenido del subtema">
+            <h2 id="subtopic-title"></h2>
+            <p class="hint">Elige qué quieres editar. Cambiar de sección no cambia de subtema.</p>
+            <button id="subtopic-questions" class="secondary" type="button">Preguntas</button>
+            <button id="subtopic-lesson" class="secondary" type="button">Explicación, ejemplos y nombre</button>
+          </section>
           <section
             id="lesson-editor"
             class="catalog-panel lesson-editor"
@@ -222,11 +227,11 @@
           >
             <div class="panel-heading">
               <h2 id="editor-title" tabindex="-1">Editor de lección</h2>
-              <button id="editor-close" class="secondary">Cerrar editor</button>
-              <button id="lesson-review" class="secondary" disabled>
+              <button id="editor-close" class="secondary">Ocultar explicación</button>
+              <button id="lesson-review" class="secondary" disabled hidden>
                 Revisar estado y publicación
               </button>
-              <button id="editor-cloze" class="secondary" disabled>
+              <button id="editor-cloze" class="secondary" disabled hidden>
                 Completar espacios (CLOZE)
               </button>
               <button id="editor-questions" class="secondary" disabled>
@@ -239,7 +244,7 @@
               Recargar versión del servidor
             </button>
             <button id="editor-delete" class="secondary" type="button" disabled aria-describedby="editor-delete-policy">
-              Eliminar borrador vacío
+              Eliminar registro vacío
             </button>
             <p id="editor-delete-policy" class="hint"></p>
             <form id="rename-form" class="create-form">
@@ -251,8 +256,8 @@
             </form>
             <div class="catalog-grid">
               <form id="lesson-form" class="create-form">
-                <h3>Contenido de la lección</h3>
-                <label for="lesson-text">Texto en Markdown</label>
+                <h3>Explicación y ejemplos del subtema</h3>
+                <label for="lesson-text">Escribe la explicación y los ejemplos</label>
                 <textarea
                   id="lesson-text"
                   rows="18"
@@ -279,11 +284,10 @@
                   placeholder="https://…"
                 />
                 <p class="hint">
-                  Dejar una referencia vacía la elimina del borrador. La carga
-                  de archivos llegará en 7F-C5.
+                  Dejar un enlace vacío lo elimina. Por ahora las imágenes y videos se agregan mediante enlaces HTTPS.
                 </p>
                 <button id="lesson-save" class="primary" type="submit">
-                  Guardar lección en borrador
+                  Guardar explicación
                 </button>
               </form>
               <section
@@ -311,13 +315,12 @@
             <div class="panel-heading">
               <h2 id="bank-heading" tabindex="-1">Preguntas y casos</h2>
               <button id="bank-close" class="secondary" type="button">
-                Cerrar sección
+                Ocultar preguntas
               </button>
             </div>
             <p class="hint">
-              Contenido privado del equipo editorial. Guardar no publica. Las
-              preguntas conservan su subtema; los casos pueden compartirse entre
-              preguntas de la misma área.
+              Agrega el enunciado, las opciones, la respuesta correcta y su explicación.
+              Al guardar queda publicado, sin pasos de revisión. En DEMO los cambios son solo locales.
             </p>
             <p id="bank-message" role="status" aria-live="polite"></p>
             <div id="bank-list" class="items"></div>
@@ -327,20 +330,21 @@
               ><button id="bank-next" class="quiet">Siguiente →</button>
             </div>
             <button id="bank-new" class="primary" type="button">
-              + Crear nuevo borrador
+              + Agregar pregunta
             </button>
             <button id="bank-reload" class="secondary" type="button">
               Recargar registro seleccionado
             </button>
             <button
               id="bank-reclassify"
+              hidden
               type="button"
               class="secondary"
               disabled
             >
               Revisar clasificación
             </button>
-            <button id="bank-review" type="button" class="secondary" disabled>
+            <button id="bank-review" type="button" class="secondary" disabled hidden>
               Revisar estado y publicación
             </button>
             <form id="bank-form" class="create-form" hidden>
@@ -385,9 +389,9 @@
                   rows="5"
                   maxlength="12000"
                 ></textarea>
-                <h3>Caso compartido (opcional)</h3>
+                <details><summary>Texto compartido para varias preguntas (opcional)</summary>
                 <p class="hint">
-                  Crea primero el caso en «Casos del área». El selector recorre
+                  Crea primero el texto en «Textos compartidos». El selector recorre
                   el catálogo de 20 en 20. El orden debe estar libre dentro del
                   caso, incluso entre subtemas.
                 </p>
@@ -409,9 +413,10 @@
                   max="10000"
                   step="1"
                 />
+                </details>
               </div>
               <button id="bank-save" class="primary" type="submit">
-                Guardar borrador
+                Guardar pregunta
               </button>
               <h3>Vista previa editorial</h3>
               <p class="hint">
@@ -462,9 +467,9 @@
             <div id="tools-content"></div>
           </section>
           <footer class="workspace-footer">
-            <span>7F-C3-D2-E · CLOZE y banco antiguo</span
+            <span>SaberPlus · Administración de contenido</span
             ><span
-              >Pendiente: verificación visual, PostgreSQL y ensayo real</span
+              >Área · Tema · Subtema · Preguntas</span
             >
           </footer>
         </div>

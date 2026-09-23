@@ -547,7 +547,7 @@ test("nuevos módulos se sirven sin secretos ni almacenamiento persistente", asy
     assert.ok(html.includes(`id="${id}"`));
 });
 
-test("cableado del panel: catálogo → CLOZE → lección, banco antiguo y cierre de sesión", async (t) => {
+test("cableado simple: catálogo → preguntas → explicación sin perder el subtema", async (t) => {
   const { base } = await serve(t);
   const originals = {
     document: globalThis.document,
@@ -624,35 +624,20 @@ test("cableado del panel: catálogo → CLOZE → lección, banco antiguo y cier
   get("subthemes-list")
     .children.find((n) => n.textContent.includes("Porcentajes"))
     .onclick();
-  await waitFor(() => !get("editor-cloze").disabled);
-  get("editor-cloze").onclick();
-  await waitFor(() =>
-    get("tools-content").children.some((n) => n.tagName === "label"),
-  );
+  await waitFor(() => !get("bank-new").disabled && !get("bank-editor").hidden);
+  assert.equal(get("subtopic-navigation").hidden, false);
+  assert.equal(get("subtopic-title").textContent, "Porcentajes");
+  get("subtopic-lesson").onclick();
+  await waitFor(() => !get("lesson-save").disabled && !get("lesson-editor").hidden);
+  get("lesson-text").value = "Explicación con ejemplo del porcentaje.";
+  get("lesson-text").oninput();
+  get("lesson-form").onsubmit({ preventDefault() {} });
+  await waitFor(() => get("editor-message").textContent.includes("Publicado"));
+  get("subtopic-questions").onclick();
+  await waitFor(() => !get("bank-new").disabled && !get("bank-editor").hidden);
   assert.equal(get("lesson-editor").hidden, true);
-  assert.equal(get("tools-panel").hidden, false);
-  await waitFor(
-    () => !all().find((n) => n.textContent === "Volver a la lección")?.disabled,
-  );
-  all()
-    .find(
-      (n) => n.tagName === "button" && n.textContent === "Volver a la lección",
-    )
-    .onclick();
-  await waitFor(
-    () => !get("editor-cloze").disabled && !get("lesson-editor").hidden,
-  );
-  assert.equal(get("tools-panel").hidden, true);
-  get("area-legacy").onclick();
-  assert.equal(get("tools-panel").hidden, false);
-  const load = all().find(
-    (n) => n.tagName === "button" && n.textContent === "Consultar lote",
-  );
-  load.onclick();
-  await waitFor(() =>
-    get("tools-message").textContent.includes("Revisa el lote"),
-  );
+  assert.equal(get("subtopic-navigation").hidden, false);
   get("logout").onclick();
-  assert.equal(get("tools-panel").hidden, true);
-  assert.equal(get("tools-content").children.length, 0);
+  assert.equal(get("bank-editor").hidden, true);
+  assert.equal(get("subtopic-navigation").hidden, true);
 });

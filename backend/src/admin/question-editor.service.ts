@@ -12,6 +12,7 @@ import { createQuestionFingerprint } from '../common/question-fingerprint';
 import { validateAcademicClassification } from './academic-classification';
 import { lessonUrl } from './lesson-editor.service';
 import { EditorialCaseDto, EditorialQuestionDto } from './question-editor.dto';
+import { publishParents, requireDirectPublication } from './direct-publication';
 
 const questionInclude = {
   respuestas: { orderBy: { id: 'asc' } },
@@ -47,7 +48,7 @@ function stale() {
 export class QuestionEditorService {
   constructor(private readonly prisma: PrismaService) {}
 
-  private questionView(row: Question) {
+  private questionView(row: Question, direct = false) {
     let classified = true;
     try {
       validateAcademicClassification(row.subtema);
@@ -55,12 +56,14 @@ export class QuestionEditorService {
       classified = false;
     }
     const editable =
-      row.estadoContenido === 'BORRADOR' &&
-      !row.fechaPublicacion &&
+      (direct
+        ? row.estadoContenido !== 'ARCHIVADO'
+        : row.estadoContenido === 'BORRADOR' && !row.fechaPublicacion) &&
       classified &&
-      Object.entries(row._count).every(
-        ([relation, count]) => relation === 'respuestas' || count === 0,
-      );
+      (direct ||
+        Object.entries(row._count).every(
+          ([relation, count]) => relation === 'respuestas' || count === 0,
+        ));
     return {
       id: row.id,
       subtemaId: row.subtemaId,
@@ -82,7 +85,7 @@ export class QuestionEditorService {
       revision: revisionOf(row),
     };
   }
-  private caseView(row: Case) {
+  private caseView(row: Case, direct = false) {
     return {
       id: row.id,
       area: row.area,
@@ -92,8 +95,9 @@ export class QuestionEditorService {
       estadoContenido: row.estadoContenido,
       preguntas: row._count.preguntas,
       editable:
-        row.estadoContenido === 'BORRADOR' &&
-        !row.fechaPublicacion &&
+        (direct
+          ? row.estadoContenido !== 'ARCHIVADO'
+          : row.estadoContenido === 'BORRADOR' && !row.fechaPublicacion) &&
         row._count.preguntas === 0,
       revision: revisionOf(row),
     };
@@ -114,14 +118,19 @@ export class QuestionEditorService {
     if (!row) throw new NotFoundException('El caso no existe.');
     return row;
   }
-  async detallePregunta(id: string) {
-    return this.questionView(await this.question(this.prisma, id));
+  async detallePregunta(id: string, direct = false) {
+    return this.questionView(await this.question(this.prisma, id), direct);
   }
-  async detalleCaso(id: string) {
-    return this.caseView(await this.case(this.prisma, id));
+  async detalleCaso(id: string, direct = false) {
+    return this.caseView(await this.case(this.prisma, id), direct);
   }
 
-  async preguntas(subtemaId: string, pagina: number, limite: number) {
+  async preguntas(
+    subtemaId: string,
+    pagina: number,
+    limite: number,
+    direct = false,
+  ) {
     const subtema = await this.prisma.subtema.findUnique({
       where: { id: subtemaId },
       include: { tema: true },
@@ -134,7 +143,10 @@ export class QuestionEditorService {
       permiteCrear = false;
     }
     const rows = await this.prisma.pregunta.findMany({
-      where: { subtemaId },
+      where: {
+        subtemaId,
+        ...(direct ? { estadoContenido: { not: 'ARCHIVADO' as const } } : {}),
+      },
       skip: (pagina - 1) * limite,
       take: limite + 1,
       orderBy: { id: 'asc' },
@@ -173,11 +185,14 @@ export class QuestionEditorService {
       items: rows.slice(0, limite),
     };
   }
-  async guardarCaso(body: EditorialCaseDto, id?: string) {
+  async guardarCaso(body: EditorialCaseDto, id?: string, direct = false) {
+    if (direct) requireDirectPublication();
     const data = {
       titulo: textField(body.titulo, 200),
       contexto: textField(body.contexto, 20000),
       imagenUrl: lessonUrl(body.imagenUrl),
+      ...(direct ? { estadoContenido: 'PUBLICADO' as const } : {}),
+      ...(direct ? { fechaPublicacion: new Date() } : {}),
     };
     return this.prisma.$transaction(async (tx) => {
       await lockEditorialArea(tx, body.area);
@@ -185,8 +200,10 @@ export class QuestionEditorService {
         await tx.$queryRaw`SELECT id FROM "CasoPregunta" WHERE id = ${id} FOR UPDATE`;
         const row = await this.case(tx, id);
         if (!body.revision || revisionOf(row) !== body.revision) throw stale();
-        if (row.area !== body.area || !this.caseView(row).editable)
+        if (row.area !== body.area || !this.caseView(row, direct).editable)
           throw new BadRequestException('Caso de solo lectura o de otra área.');
+        if (direct)
+          data.fechaPublicacion = row.fechaPublicacion ?? data.fechaPublicacion;
       }
       const row = id
         ? await tx.casoPregunta.update({
@@ -195,14 +212,24 @@ export class QuestionEditorService {
             include: caseInclude,
           })
         : await tx.casoPregunta.create({
-            data: { ...data, area: body.area, estadoContenido: 'BORRADOR' },
+            data: {
+              ...data,
+              area: body.area,
+              estadoContenido: direct ? 'PUBLICADO' : 'BORRADOR',
+              ...(direct ? { fechaPublicacion: new Date() } : {}),
+            },
             include: caseInclude,
           });
-      return this.caseView(row);
+      return this.caseView(row, direct);
     });
   }
 
-  async guardarPregunta(body: EditorialQuestionDto, id?: string) {
+  async guardarPregunta(
+    body: EditorialQuestionDto,
+    id?: string,
+    direct = false,
+  ) {
+    if (direct) requireDirectPublication();
     const enunciado = textField(body.enunciado, 12000),
       explicacion = textField(body.explicacion, 12000);
     const imagenUrl = lessonUrl(body.imagenUrl);
@@ -264,7 +291,7 @@ export class QuestionEditorService {
         if (!body.revision || revisionOf(row) !== body.revision) throw stale();
         if (
           row.subtemaId !== body.subtemaId ||
-          !this.questionView(row).editable
+          !this.questionView(row, direct).editable
         )
           throw new BadRequestException(
             'Pregunta de solo lectura o de otro subtema.',
@@ -273,14 +300,23 @@ export class QuestionEditorService {
       if (casoId) {
         await tx.$queryRaw`SELECT id FROM "CasoPregunta" WHERE id = ${casoId} FOR UPDATE`;
         const caso = await this.case(tx, casoId);
-        if (caso.area !== area || caso.estadoContenido === 'ARCHIVADO')
+        if (
+          caso.area !== area ||
+          caso.estadoContenido === 'ARCHIVADO' ||
+          (direct && caso.estadoContenido !== 'PUBLICADO')
+        )
           throw new BadRequestException(
-            'Selecciona un caso no archivado de la misma área.',
+            direct
+              ? 'Guarda primero el texto compartido para publicarlo y selecciona uno de la misma área.'
+              : 'Selecciona un caso no archivado de la misma área.',
           );
         const occupied = await tx.pregunta.findFirst({
           where: {
             casoId,
             ordenEnCaso: body.ordenEnCaso,
+            ...(direct
+              ? { estadoContenido: { not: 'ARCHIVADO' as const } }
+              : {}),
             ...(id ? { id: { not: id } } : {}),
           },
           select: { id: true },
@@ -297,11 +333,13 @@ export class QuestionEditorService {
         imagen: imagenUrl,
         opciones: respuestas,
       });
-      // Include archived and legacy questions. Legacy is bounded and fail-closed;
+      // Legacy APIs include archived rows; direct editing excludes retired versions.
+      // Legacy comparison is bounded and fail-closed;
       // large unindexed banks must be backfilled before this editor can accept new entries.
       const matches = await tx.pregunta.findMany({
         where: {
           ...(id ? { id: { not: id } } : {}),
+          ...(direct ? { estadoContenido: { not: 'ARCHIVADO' as const } } : {}),
           OR: [
             { huellaContenido },
             { huellaContenido: null, subtema: { tema: { area } } },
@@ -352,25 +390,40 @@ export class QuestionEditorService {
         ordenEnCaso: casoId ? body.ordenEnCaso : null,
         huellaContenido,
       };
-      const row = id
-        ? await tx.pregunta.update({
+      // Direct edits create a new version. Old answers/IDs remain intact for
+      // attempts and historical results, including JSON snapshots without FKs.
+      if (direct) {
+        await publishParents(tx, parent.temaId, parent.id);
+        if (id)
+          await tx.pregunta.update({
             where: { id },
-            data: {
-              ...data,
-              respuestas: { deleteMany: {}, create: respuestas },
-            },
-            include: questionInclude,
-          })
-        : await tx.pregunta.create({
-            data: {
-              ...data,
-              subtemaId: body.subtemaId,
-              estadoContenido: 'BORRADOR',
-              respuestas: { create: respuestas },
-            },
-            include: questionInclude,
+            data: { estadoContenido: 'ARCHIVADO' },
           });
-      return this.questionView(row);
+      }
+      const row =
+        id && !direct
+          ? await tx.pregunta.update({
+              where: { id },
+              data: {
+                ...data,
+                respuestas: { deleteMany: {}, create: respuestas },
+              },
+              include: questionInclude,
+            })
+          : await tx.pregunta.create({
+              data: {
+                ...data,
+                subtemaId: body.subtemaId,
+                estadoContenido: direct ? 'PUBLICADO' : 'BORRADOR',
+                ...(direct ? { fechaPublicacion: new Date() } : {}),
+                respuestas: { create: respuestas },
+              },
+              include: questionInclude,
+            });
+      return {
+        ...this.questionView(row, direct),
+        ...(direct && id ? { reemplazaId: id } : {}),
+      };
     });
   }
 }

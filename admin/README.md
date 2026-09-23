@@ -1,4 +1,43 @@
-# Panel editorial de SaberPlus — 7F-C3-D2-E
+# Panel administrativo de SaberPlus
+
+## Flujo actual: guardar y publicar (22 de septiembre de 2026)
+
+Esta sección reemplaza el recorrido de borradores/revisión descrito en el historial inferior.
+
+1. Selecciona una de las cinco áreas.
+2. Selecciona o crea un tema y luego un subtema.
+3. El subtema abre sus **Preguntas**. Pulsa **Agregar pregunta**, escribe el enunciado,
+   sus opciones, marca una correcta y escribe la explicación. **Guardar pregunta** publica directamente.
+4. **Explicación, ejemplos y nombre** abre la lección del mismo subtema. **Guardar explicación** publica.
+5. Ambos botones permanecen visibles para cambiar de sección sin perder el subtema.
+
+Ya no se necesita enviar a revisión. CLOZE, reclasificación y banco antiguo no aparecen
+en el recorrido normal; sus contratos anteriores se conservan por compatibilidad.
+Los textos compartidos son opcionales para varias preguntas basadas en una misma lectura.
+Las imágenes todavía se agregan por URL HTTPS, no subiendo un archivo.
+
+La DEMO sigue siendo temporal: no escribe en Supabase y se reinicia vacía de cambios locales.
+En el servidor real se debe desplegar el backend actualizado y habilitar
+`EDITORIAL_PUBLICATION_ENABLED=true` tras comprobar la base de destino. Sin esa bandera,
+Guardar devuelve un error explícito y no escribe nada. No se cambió esta configuración ni se desplegó Render.
+La app recibe el contenido publicado al consultar/sincronizar el catálogo; no se añadió push en tiempo real.
+
+### Protecciones y límites
+
+- Rutas `/admin/simple/...` protegidas con ADMIN y DTOs; los antiguos endpoints mantienen su contrato.
+- Guardado transaccional, validación de clasificación, URLs, respuesta correcta, duplicados y revisión concurrente.
+- Editar una pregunta crea una versión publicada nueva y retira la anterior, conservando sus respuestas e IDs
+  históricos. El listado normal excluye las retiradas. No se añade aún un historial visual de versiones.
+- Se pueden eliminar temas/subtemas **vacíos**, con confirmación. No se borran hijos ni avances en cascada.
+- Las lecciones con progreso, actividades de estudio o ejercicios especiales siguen protegidas contra edición.
+  Los textos compartidos usados por preguntas tampoco se sobrescriben.
+- No hay cambios de esquema ni migraciones nuevas para este ajuste.
+
+Pruebas: `npm test` y `npm run check` en `admin`; `npm test -- --runInBand`,
+`npm run build` y `npm run test:editorial:postgres` en `backend`. La última utiliza
+PostgreSQL desechable en loopback, nunca Supabase. La revisión visual manual sigue pendiente.
+
+## Historial de entregas anteriores
 
 **Ajuste D2-F:** eliminación confirmada de temas/subtemas en borrador vacío,
 nunca publicados ni usados. No borra contenido ni hijos en cascada.

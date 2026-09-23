@@ -89,6 +89,47 @@ const cloze = {
   espacios: [{ opciones: ['4', '5'], correctaIndex: 0 }],
 };
 
+test('guardado simple publica, versiona preguntas y revierte errores sin alterar historial', async () => {
+  const { QuestionEditorService } = require('../src/admin/question-editor.service.ts');
+  const questions = new QuestionEditorService(db);
+  const theme = await catalog.crearTema(`Directo ${randomUUID()}`, 'MATEMATICAS', true);
+  const sub = await catalog.crearSubtema('Sumas directas', theme.id, true);
+  assert.equal(theme.estadoContenido, 'PUBLICADO');
+  assert.equal(sub.estadoContenido, 'PUBLICADO');
+  const detail = await lessons.detalle('subtemas', sub.id, true);
+  const saved = await lessons.guardar(sub.id, detail.revision, 'Explicación con ejemplo.', '', '', true);
+  assert.equal(saved.estadoContenido, 'PUBLICADO');
+  const body = { subtemaId: sub.id, enunciado: `Suma ${randomUUID()}`, explicacion: 'Tres más tres es seis.', dificultad: 'BASICO', imagenUrl: '', casoId: '', respuestas: [
+    { texto: '6', esCorrecta: true, explicacion: '' }, { texto: '9', esCorrecta: false, explicacion: '' },
+  ] };
+  const first = await questions.guardarPregunta(body, undefined, true);
+  const oldOptions = await db.respuesta.findMany({ where: { preguntaId: first.id }, orderBy: { id: 'asc' } });
+  const result = await questions.guardarPregunta({ ...body, revision: first.revision, explicacion: 'Corregida.' }, first.id, true);
+  assert.notEqual(result.id, first.id);
+  assert.equal(result.reemplazaId, first.id);
+  assert.equal(result.estadoContenido, 'PUBLICADO');
+  assert.equal((await questions.detallePregunta(first.id, true)).estadoContenido, 'ARCHIVADO');
+  assert.deepEqual(await db.respuesta.findMany({ where: { preguntaId: first.id }, orderBy: { id: 'asc' } }), oldOptions);
+  assert.deepEqual((await questions.preguntas(sub.id, 1, 20, true)).items.map((r) => r.id), [result.id]);
+  await assert.rejects(questions.guardarPregunta({ ...body, revision: first.revision }, first.id, true));
+  await assert.rejects(questions.guardarPregunta(body, undefined, true), (e) => e.getStatus() === 409);
+  assert.equal((await questions.detallePregunta(result.id, true)).estadoContenido, 'PUBLICADO');
+  const empty = await catalog.crearSubtema('Vacío eliminable', theme.id, true);
+  const emptyDetail = await lessons.detalle('subtemas', empty.id, true);
+  await lessons.eliminar('subtemas', empty.id, emptyDetail.revision, true, true);
+  assert.equal(await db.subtema.findUnique({ where: { id: empty.id } }), null);
+  const pending = await catalog.crearSubtema('Pendiente inválido', theme.id);
+  await db.subtema.update({ where: { id: pending.id }, data: { imagenUrl: 'javascript:alert(1)' } });
+  await assert.rejects(questions.guardarPregunta({ ...body, subtemaId: pending.id, enunciado: randomUUID() }, undefined, true));
+  assert.equal((await db.subtema.findUnique({ where: { id: pending.id } })).estadoContenido, 'BORRADOR');
+  assert.equal(await db.pregunta.count({ where: { subtemaId: pending.id } }), 0);
+  const flag = process.env.EDITORIAL_PUBLICATION_ENABLED;
+  try {
+    process.env.EDITORIAL_PUBLICATION_ENABLED = 'false';
+    await assert.rejects(questions.guardarPregunta(body, undefined, true), (e) => e.getStatus() === 503);
+  } finally { process.env.EDITORIAL_PUBLICATION_ENABLED = flag; }
+});
+
 test('catálogo concurrente: solo un tema equivalente queda guardado', async () => {
   const name = `Álgebra de ensayo ${randomUUID()}`;
   const results = await Promise.allSettled([
@@ -493,26 +534,21 @@ test('eliminación relee hijos creados mientras esperaba el bloqueo de área', a
   assert.ok(await db.tema.findUnique({ where: { id: theme.id } }));
 });
 
-test('consulta JSON de Guardián bloquea el uso si existe su tabla opcional', async () => {
-  const existing =
-    await db.$queryRaw`SELECT to_regclass('"IntentoGuardian"') IS NOT NULL AS present`;
-  // The pending Guardian migration is NOT installed. This fixture tests only its JSON query.
-  assert.equal(
-    existing[0].present,
-    false,
-    'Revisar este fixture cuando Guardián se incorpore a las migraciones versionadas.',
-  );
+test('consulta JSON de Guardián bloquea el uso en su tabla versionada', async () => {
   const { source, destination } = await structure();
   const q = await question(source.id);
-  await db.$executeRawUnsafe(
-    'CREATE TABLE "IntentoGuardian" (id TEXT PRIMARY KEY, preguntas JSONB NOT NULL)',
-  );
+  const user = await db.usuario.create({ data: {
+    nombre: 'Ensayo Guardián', correo: `guardian-${randomUUID()}@example.invalid`, contrasenaHash: 'fixture-no-login',
+  } });
   try {
-    await db.$executeRaw`INSERT INTO "IntentoGuardian" (id, preguntas) VALUES ('fixture-guardian', ${JSON.stringify([{ question: { id: q.id } }])}::jsonb)`;
+    await db.intentoGuardian.create({ data: {
+      usuarioId: user.id, area: 'MATEMATICAS', dificultad: 'BASICO',
+      preguntas: [{ question: { id: q.id } }], venceEn: new Date(Date.now() + 60000),
+    } });
     const preview = await reclassify.preview(q.id, destination.id);
     assert.equal(preview.puedeReclasificar, false);
     assert.ok(preview.bloqueos.some((v) => v.includes('uso académico')));
   } finally {
-    await db.$executeRawUnsafe('DROP TABLE "IntentoGuardian"');
+    await db.usuario.delete({ where: { id: user.id } });
   }
 });

@@ -8,6 +8,12 @@ import { createHash } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { lockEditorialArea } from './editorial-lock';
+import {
+  lessonUrl,
+  publishParents,
+  requireDirectPublication,
+} from './direct-publication';
+export { lessonUrl } from './direct-publication';
 import { ClozeActivity, validateClozeActivity } from './cloze-activity';
 import {
   catalogNameKey,
@@ -26,30 +32,6 @@ const lessonInclude = {
 type Theme = Prisma.TemaGetPayload<{ include: typeof themeInclude }>;
 type Lesson = Prisma.SubtemaGetPayload<{ include: typeof lessonInclude }>;
 type Row = Theme | Lesson;
-
-export function lessonUrl(value: string): string | null {
-  if (typeof value !== 'string' || value.length > 2000)
-    throw new BadRequestException(
-      'La referencia debe ser texto de hasta 2000 caracteres.',
-    );
-  const result = value.trim();
-  if (!result) return null;
-  try {
-    const url = new URL(result);
-    if (
-      url.protocol !== 'https:' ||
-      url.username ||
-      url.password ||
-      /[\s\p{Cc}\p{Cf}]/u.test(result)
-    )
-      throw new Error();
-    return url.href;
-  } catch {
-    throw new BadRequestException(
-      'Usa una URL HTTPS completa y sin credenciales.',
-    );
-  }
-}
 
 @Injectable()
 export class LessonEditorService {
@@ -71,15 +53,16 @@ export class LessonEditorService {
     return row;
   }
 
-  private view(row: Row) {
+  private view(row: Row, direct = false) {
     const isLesson = 'temaId' in row;
     const draft = row.estadoContenido === 'BORRADOR' && !row.fechaPublicacion;
+    const writable = direct ? row.estadoContenido !== 'ARCHIVADO' : draft;
     const classified =
       !isGenericCatalogName(row.nombre) &&
       (!isLesson || !isGenericCatalogName(row.tema.nombre));
     const editable =
       isLesson &&
-      draft &&
+      writable &&
       classified &&
       row.tema.estadoContenido !== 'ARCHIVADO' &&
       row._count.progresotemas === 0 &&
@@ -88,8 +71,8 @@ export class LessonEditorService {
       row.datosInteractivo == null;
     const renombrable = isLesson
       ? editable && row._count.preguntas === 0
-      : draft && row._count.subtemas === 0;
-    const motivoEliminacion = !draft
+      : writable && row._count.subtemas === 0;
+    const motivoEliminacion = !(direct ? writable : draft)
       ? 'Solo se eliminan borradores nunca publicados. Usa Archivar para conservar el historial.'
       : !classified
         ? 'La clasificación genérica requiere revisión del banco antiguo.'
@@ -129,12 +112,14 @@ export class LessonEditorService {
       motivo:
         editable || renombrable
           ? ''
-          : 'Solo lectura: publicado, en revisión, archivado, interactivo o con uso académico. Los temas solo se renombran si están vacíos y nunca publicados.',
+          : direct
+            ? 'Este contenido tiene actividad de estudiantes, un ejercicio especial o está retirado. Se conserva para proteger su historial.'
+            : 'Solo lectura: publicado, en revisión, archivado, interactivo o con uso académico. Los temas solo se renombran si están vacíos y nunca publicados.',
     };
   }
 
-  async detalle(kind: EditorKind, id: string) {
-    return this.view(await this.row(this.prisma, kind, id));
+  async detalle(kind: EditorKind, id: string, direct = false) {
+    return this.view(await this.row(this.prisma, kind, id), direct);
   }
 
   private clozeView(row: Row) {
@@ -243,6 +228,7 @@ export class LessonEditorService {
     id: string,
     revision: string,
     confirmado: unknown,
+    direct = false,
   ) {
     if (confirmado !== true)
       throw new BadRequestException('Confirma explícitamente la eliminación.');
@@ -251,7 +237,7 @@ export class LessonEditorService {
       id,
       revision,
       async (tx, current) => {
-        const detail = this.view(current);
+        const detail = this.view(current, direct);
         if (!detail.eliminable)
           throw new BadRequestException(detail.motivoEliminacion);
         // Parent/child FOR UPDATE locks prevent new FK references while checking
@@ -277,7 +263,9 @@ export class LessonEditorService {
     contenido: string,
     videoUrl: string,
     imagenUrl: string,
+    direct = false,
   ) {
+    if (direct) requireDirectPublication();
     if (
       typeof contenido !== 'string' ||
       contenido.length > 30000 ||
@@ -293,10 +281,12 @@ export class LessonEditorService {
     };
     return this.view(
       await this.modify('subtemas', id, revision, async (tx, row) => {
-        if (!this.view(row).editable)
+        if (!this.view(row, direct).editable)
           throw new BadRequestException('Esta lección es de solo lectura.');
         await tx.subtema.update({ where: { id }, data });
+        if (direct && 'temaId' in row) await publishParents(tx, row.temaId, id);
       }),
+      direct,
     );
   }
 
@@ -305,11 +295,13 @@ export class LessonEditorService {
     id: string,
     revision: string,
     value: string,
+    direct = false,
   ) {
+    if (direct) requireDirectPublication();
     const nombre = validateCatalogName(value);
     return this.view(
       await this.modify(kind, id, revision, async (tx, row) => {
-        if (!this.view(row).renombrable)
+        if (!this.view(row, direct).renombrable)
           throw new BadRequestException(
             'Este nombre ya tiene uso académico o no es un borrador vacío.',
           );
@@ -335,7 +327,14 @@ export class LessonEditorService {
         if (kind === 'temas')
           await tx.tema.update({ where: { id }, data: { nombre } });
         else await tx.subtema.update({ where: { id }, data: { nombre } });
+        if (direct)
+          await publishParents(
+            tx,
+            'temaId' in row ? row.temaId : id,
+            'temaId' in row ? id : undefined,
+          );
       }),
+      direct,
     );
   }
 }

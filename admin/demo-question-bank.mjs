@@ -20,19 +20,18 @@ export function createDemoQuestionBank({ themes, subthemes, send }) {
   const questions = [];
   const hash = (row) =>
     createHash("sha256").update(JSON.stringify(row)).digest("hex");
-  const caseView = (row) => {
+  const caseView = (row, direct = false) => {
     const count = questions.filter((q) => q.casoId === row.id).length;
     return {
       ...row,
       preguntas: count,
       editable:
-        row.estadoContenido === "BORRADOR" &&
-        !row.fechaPublicacion &&
+        (direct ? row.estadoContenido !== "ARCHIVADO" : row.estadoContenido === "BORRADOR" && !row.fechaPublicacion) &&
         count === 0,
       revision: hash([row, count]),
     };
   };
-  const questionView = (row) => {
+  const questionView = (row, direct = false) => {
     const sub = subthemes.find((s) => s.id === row.subtemaId),
       theme = themes.find((t) => t.id === sub.temaId);
     const caso = cases.find((c) => c.id === row.casoId) ?? null;
@@ -41,9 +40,7 @@ export function createDemoQuestionBank({ themes, subthemes, send }) {
       area: theme.area,
       caso,
       editable:
-        row.estadoContenido === "BORRADOR" &&
-        !row.fechaPublicacion &&
-        !row.usoDemo &&
+        (direct ? row.estadoContenido !== "ARCHIVADO" : row.estadoContenido === "BORRADOR" && !row.fechaPublicacion && !row.usoDemo) &&
         sub.nombre.toLowerCase() !== "banco general" &&
         theme.nombre.toLowerCase() !== "banco general" &&
         sub.estadoContenido !== "ARCHIVADO" &&
@@ -51,7 +48,7 @@ export function createDemoQuestionBank({ themes, subthemes, send }) {
       revision: hash([row, sub, theme, caso]),
     };
   };
-  const handler = (req, res, url, body) => {
+  const handler = (req, res, url, body, direct = false) => {
     const match =
       /^\/api\/admin\/editor\/(preguntas|casos)(?:\/([^/]+))?$/.exec(
         url.pathname,
@@ -59,7 +56,7 @@ export function createDemoQuestionBank({ themes, subthemes, send }) {
     if (!match) return false;
     const [, kind, id] = match;
     const collection = kind === "preguntas" ? questions : cases;
-    const view = kind === "preguntas" ? questionView : caseView;
+    const view = (value) => (kind === "preguntas" ? questionView : caseView)(value, direct);
     const row = id
       ? collection.find((item) => item.id === decodeURIComponent(id))
       : null;
@@ -94,6 +91,7 @@ export function createDemoQuestionBank({ themes, subthemes, send }) {
       }
       const theme = sub && themes.find((t) => t.id === sub.temaId);
       const rows = collection
+        .filter((item) => !direct || item.estadoContenido !== "ARCHIVADO")
         .filter((item) =>
           kind === "preguntas"
             ? item.subtemaId === sub.id
@@ -160,6 +158,8 @@ export function createDemoQuestionBank({ themes, subthemes, send }) {
           theme = sub && themes.find((t) => t.id === sub.temaId);
         if (
           !theme ||
+          sub.nombre.toLowerCase() === "banco general" ||
+          theme.nombre.toLowerCase() === "banco general" ||
           sub.estadoContenido === "ARCHIVADO" ||
           theme.estadoContenido === "ARCHIVADO"
         )
@@ -169,13 +169,14 @@ export function createDemoQuestionBank({ themes, subthemes, send }) {
           if (
             !caso ||
             caso.area !== theme.area ||
-            caso.estadoContenido === "ARCHIVADO"
+            (direct ? caso.estadoContenido !== "PUBLICADO" : caso.estadoContenido === "ARCHIVADO")
           )
             throw new Error();
           if (
             questions.some(
               (q) =>
                 q.id !== id &&
+                (!direct || q.estadoContenido !== "ARCHIVADO") &&
                 q.casoId === fields.casoId &&
                 q.ordenEnCaso === fields.ordenEnCaso,
             )
@@ -188,6 +189,7 @@ export function createDemoQuestionBank({ themes, subthemes, send }) {
         const duplicate = questions.find(
           (q) =>
             q.id !== id &&
+            (!direct || q.estadoContenido !== "ARCHIVADO") &&
             questionCanonical(questionView(q).area, q) === canonical,
         );
         if (duplicate) {
@@ -205,16 +207,25 @@ export function createDemoQuestionBank({ themes, subthemes, send }) {
           .update(canonical)
           .digest("hex");
         if (!id) sub._count.preguntas++;
+        if (direct) {
+          for (const parent of [sub, theme]) {
+            parent.estadoContenido = "PUBLICADO";
+            parent.fechaPublicacion ??= new Date().toISOString();
+          }
+        }
       }
       if (kind === "preguntas" && !fields.casoId) fields.ordenEnCaso = null;
-      if (row) Object.assign(row, fields, { editorVersion: randomUUID() });
+      const replace = direct && row && kind === "preguntas";
+      if (replace) row.estadoContenido = "ARCHIVADO";
+      if (row && !replace) Object.assign(row, fields, { editorVersion: randomUUID() }, direct ? { estadoContenido: "PUBLICADO", fechaPublicacion: row.fechaPublicacion ?? new Date().toISOString() } : {});
       else
         collection.push({
           ...fields,
           id: randomUUID(),
-          estadoContenido: "BORRADOR",
+          estadoContenido: direct ? "PUBLICADO" : "BORRADOR",
+          ...(direct ? { fechaPublicacion: new Date().toISOString() } : {}),
         });
-      send(res, id ? 200 : 201, view(row ?? collection.at(-1)));
+      send(res, id ? 200 : 201, { ...view(replace ? collection.at(-1) : row ?? collection.at(-1)), ...(replace ? { reemplazaId: id } : {}) });
     } catch {
       send(res, 400, {});
     }

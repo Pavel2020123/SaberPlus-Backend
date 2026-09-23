@@ -124,14 +124,15 @@ export function createDemoApi() {
     ...questionBank.records,
     send,
   });
-  const editorView = (kind, row) => {
+  const editorView = (kind, row, direct = false) => {
     const sub = kind === "subtemas";
     const parent = sub ? themes.find((theme) => theme.id === row.temaId) : null;
     const count = subthemes.filter((item) => item.temaId === row.id).length;
     const draft = row.estadoContenido === "BORRADOR" && !row.fechaPublicacion;
+    const writable = direct ? row.estadoContenido !== "ARCHIVADO" : draft;
     const editable =
       sub &&
-      draft &&
+      writable &&
       parent.estadoContenido !== "ARCHIVADO" &&
       !row.tipoInteractivo &&
       row.datosInteractivo == null &&
@@ -140,8 +141,8 @@ export function createDemoApi() {
       key(parent.nombre) !== "banco general";
     const renombrable = sub
       ? editable && !row._count.preguntas
-      : draft && count === 0;
-    const motivoEliminacion = !draft
+      : writable && count === 0;
+    const motivoEliminacion = !writable
       ? "Solo se eliminan borradores nunca publicados. Usa Archivar."
       : key(row.nombre) === "banco general" ||
           (sub && key(parent.nombre) === "banco general")
@@ -207,6 +208,11 @@ export function createDemoApi() {
         return;
       }
     }
+    const direct = url.pathname.startsWith("/api/admin/simple/");
+    if (direct) {
+      url = new URL(url);
+      url.pathname = url.pathname.replace("/admin/simple/", "/admin/");
+    }
     const path = url.pathname.slice(4);
     if (path === "/auth/login" && req.method === "POST") {
       if (
@@ -239,7 +245,7 @@ export function createDemoApi() {
       return;
     }
     if (institutionApprovals(req, res, url, body)) return;
-    if (questionBank(req, res, url, body)) return;
+    if (questionBank(req, res, url, body, direct)) return;
     if (reviewApi(req, res, url, body)) return;
     if (toolsApi(req, res, url, body)) return;
     const editorMatch =
@@ -254,7 +260,7 @@ export function createDemoApi() {
         send(res, 404, {});
         return;
       }
-      const current = editorView(kind, row);
+      const current = editorView(kind, row, direct);
       if (req.method === "GET" && !action) {
         send(res, 200, current);
         return;
@@ -312,7 +318,16 @@ export function createDemoApi() {
           Object.assign(row, lessonFields(body));
         }
         row.editorVersion = randomUUID();
-        send(res, 200, editorView(kind, row));
+        if (direct) {
+          row.estadoContenido = "PUBLICADO";
+          row.fechaPublicacion ??= new Date().toISOString();
+          if (kind === "subtemas") {
+            const parent = themes.find((t) => t.id === row.temaId);
+            parent.estadoContenido = "PUBLICADO";
+            parent.fechaPublicacion ??= new Date().toISOString();
+          }
+        }
+        send(res, 200, editorView(kind, row, direct));
       } catch {
         send(res, 400, {});
       }
@@ -384,7 +399,7 @@ export function createDemoApi() {
         key(nombre) === "banco general" ||
         (themeMode
           ? !areas.some((row) => row.id === body.area)
-          : !parent || parent.estadoContenido === "ARCHIVADO")
+          : !parent || parent.estadoContenido === "ARCHIVADO" || key(parent.nombre) === "banco general")
       ) {
         send(res, 400, {});
         return;
@@ -403,12 +418,17 @@ export function createDemoApi() {
       const row = {
         id: randomUUID(),
         nombre,
-        estadoContenido: "BORRADOR",
+        estadoContenido: direct ? "PUBLICADO" : "BORRADOR",
+        ...(direct ? { fechaPublicacion: new Date().toISOString() } : {}),
         ...(themeMode
           ? { area: body.area }
           : { temaId: body.temaId, _count: { preguntas: 0 } }),
       };
       collection.push(row);
+      if (direct && parent && !themeMode) {
+        parent.estadoContenido = "PUBLICADO";
+        parent.fechaPublicacion ??= new Date().toISOString();
+      }
       send(res, 201, row);
       return;
     }

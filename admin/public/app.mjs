@@ -11,6 +11,7 @@ const state = {
   areas: [],
   area: null,
   theme: null,
+  subtheme: null,
   themePage: 1,
   subPage: 1,
   themes: null,
@@ -21,6 +22,7 @@ let themesVersion = 0,
   subsVersion = 0,
   sessionVersion = 0;
 const api = new CatalogApi(config.apiBase, {
+  simple: true,
   onSessionExpired: () =>
     showLogin("La sesión terminó o tus permisos cambiaron. Ingresa de nuevo."),
 });
@@ -42,12 +44,12 @@ const editor = new LessonEditor({
       state.theme.nombre = record.nombre;
     renderList(kind, page);
     notice(
-      "Cambio guardado en borrador. Actualizar catálogo reordena la lista.",
+      "Cambio guardado y publicado. Actualizar catálogo reordena la lista.",
     );
   },
   onDeleted: () => {
     state.themePage = 1;
-    notice("Borrador vacío eliminado definitivamente. Actualizando catálogo…");
+    notice("Registro vacío eliminado. Actualizando catálogo…");
     void loadThemes();
   },
 });
@@ -62,8 +64,27 @@ const bank = new QuestionEditor({
   },
 });
 function closeEditors() {
-  return editor.close() && bank.close() && review.close() && tools.close();
+  const closed = editor.close() && bank.close() && review.close() && tools.close();
+  if (closed) {
+    state.subtheme = null;
+    $("subtopic-navigation").hidden = true;
+  }
+  return closed;
 }
+async function selectSubtheme(row) {
+  if (!closeEditors()) return;
+  state.subtheme = { ...row, area: state.area.id };
+  $("subtopic-navigation").hidden = false;
+  $("subtopic-title").textContent = row.nombre;
+  await bank.open("preguntas", state.subtheme);
+}
+$("subtopic-questions").onclick = () => {
+  if (state.subtheme && editor.close()) void bank.open("preguntas", state.subtheme);
+};
+$("subtopic-lesson").onclick = () => {
+  if (state.subtheme && bank.close())
+    void editor.open("subtemas", state.subtheme.id, state.subtheme.temaId);
+};
 const review = new EditorialReview({
   api,
   busy: () => state.busy,
@@ -89,10 +110,10 @@ const tools = new EditorialTools({
   },
 });
 const stateLabels = {
-  BORRADOR: "Borrador",
-  EN_REVISION: "En revisión",
-  PUBLICADO: "Publicado",
-  ARCHIVADO: "Archivado",
+  BORRADOR: "Sin publicar",
+  EN_REVISION: "Sin publicar",
+  PUBLICADO: "Disponible",
+  ARCHIVADO: "Retirado",
 };
 
 $("environment").textContent = config.demo
@@ -137,6 +158,8 @@ function showLogin(message = "") {
   bank.close(true);
   review.close(true);
   tools.close(true);
+  state.subtheme = null;
+  $("subtopic-navigation").hidden = true;
   sessionVersion++;
   api.logout();
   themesVersion++;
@@ -177,6 +200,7 @@ function updateControls() {
     ? "Guardando…"
     : "+ Crear subtema";
   $("refresh").disabled = state.busy;
+  $("subtopic-questions").disabled = $("subtopic-lesson").disabled = state.busy;
   $("lesson-review").disabled = state.busy || !editor.record;
   $("bank-review").disabled = state.busy || !bank.record;
   $("area-cases").disabled = state.busy || !state.area;
@@ -204,7 +228,7 @@ function updateControls() {
   $("subtheme-context").textContent = !state.theme
     ? "Selecciona primero un tema."
     : canSub
-      ? `Se guardará como borrador en ${state.theme.nombre}.`
+      ? `Se creará dentro de ${state.theme.nombre}.`
       : "Este tema está archivado o requiere reclasificación. No admite contenido nuevo.";
   $("breadcrumb").textContent =
     [state.area?.nombre, state.theme?.nombre].filter(Boolean).join("  /  ") ||
@@ -240,7 +264,7 @@ function renderList(kind, data, message) {
       if (kind === "temas") {
         item.setAttribute("aria-pressed", String(row.id === state.theme?.id));
         item.onclick = () => selectTheme(row);
-      } else item.onclick = () => openLesson("subtemas", row.id, row.temaId);
+      } else item.onclick = () => selectSubtheme(row);
       item.append(element("span", row.nombre, "item-name"));
       const details = element("span", undefined, "item-details");
       const count = row._count?.[kind === "temas" ? "subtemas" : "preguntas"];
@@ -386,7 +410,7 @@ async function create(kind, input) {
   const session = sessionVersion;
   state.busy = true;
   updateControls();
-  notice("Guardando borrador…");
+  notice("Guardando…");
   try {
     const created = await api.create(kind, parent.id, $(input).value);
     if (session !== sessionVersion || !api.authenticated) return;
@@ -394,24 +418,26 @@ async function create(kind, input) {
       typeof created?.id !== "string" ||
       !created.id ||
       typeof created?.nombre !== "string" ||
-      created.estadoContenido !== "BORRADOR" ||
+      created.estadoContenido !== "PUBLICADO" ||
       created[kind === "temas" ? "area" : "temaId"] !== parent.id
     )
       throw new PanelError(
-        "No se pudo validar la confirmación del borrador. Consulta el catálogo antes de reenviar.",
+        "No se pudo confirmar el guardado. Consulta el catálogo antes de reenviar.",
       );
     $(input).value = "";
     state.busy = false;
     if (kind === "temas") {
       state.themePage = 1;
       await loadThemes();
+      if (session === sessionVersion && api.authenticated) await selectTheme(created);
     } else {
       state.subPage = 1;
       await loadSubs();
+      if (session === sessionVersion && api.authenticated) await selectSubtheme(created);
     }
     if (session === sessionVersion && api.authenticated)
       notice(
-        `Borrador creado: ${created.nombre}. No está publicado. La lista vuelve a la primera página en orden alfabético.${(kind === "temas" ? state.themes : state.subs) ? "" : " No pudimos recargar la lista; usa Actualizar catálogo."}`,
+        `${created.nombre}: creado. Ya puedes agregar ${kind === "temas" ? "subtemas" : "preguntas y su explicación"}.${config.demo ? " Es una demostración; no modifica Supabase." : ""}`,
       );
   } catch (error) {
     if (session === sessionVersion && api.authenticated)
