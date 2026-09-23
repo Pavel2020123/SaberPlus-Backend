@@ -191,6 +191,29 @@ const record = {
   motivo: "",
 };
 
+test("editor por bloques actualiza vista previa, guarda y conserva contenido tras conflicto", async () => {
+  const h = harness({ editor: async (...args) => {
+    if (args[3]) throw new Error("Conflicto de versión");
+    return { ...record, contenido: "" };
+  } });
+  await h.editor.open("subtemas", "s1", "t1");
+  h.$("lesson-add-block").onclick();
+  const card = h.$("lesson-blocks").children[0];
+  const title = card.children[2].children[0];
+  const content = card.children[3].children[0];
+  title.value = "Regla de tres"; title.oninput();
+  content.value = "Un ejemplo explicado."; content.oninput();
+  assert.equal(h.editor.dirty, true);
+  assert.match(h.$("lesson-text").value, /## Regla de tres/);
+  assert.equal(h.$("lesson-preview").children[0].textContent, "Regla de tres");
+  await h.editor.save(false);
+  assert.match(h.$("editor-message").textContent, /Conflicto/);
+  assert.equal(title.value, "Regla de tres");
+  h.editor.close(true);
+  assert.equal(h.$("lesson-add-block").disabled, true);
+  assert.equal(h.editor.blocks.blocks.length, 0);
+});
+
 test("eliminar exige borrador autorizado, sin cambios y confirmación; invalida reintentos", async () => {
   let calls = 0,
     confirm = false;

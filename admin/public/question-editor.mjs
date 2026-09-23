@@ -155,7 +155,20 @@ export class QuestionEditor {
     this.$("bank-heading").focus();
     this.$("bank-new").textContent = kind === "preguntas" ? "+ Agregar pregunta" : "+ Agregar texto compartido";
     this.$("bank-save").textContent = kind === "preguntas" ? "Guardar pregunta" : "Guardar texto compartido";
-    await this.run(() => this.loadPage(1));
+    this.$("bank-list-title").textContent = kind === "preguntas" ? "Preguntas de este subtema" : "Contextos de esta área";
+    this.$("bank-help").textContent = kind === "preguntas"
+      ? "Escribe el enunciado, las opciones, la respuesta correcta y la explicación. Guardar publica directamente. En DEMO los cambios son solo locales."
+      : "Crea una lectura, situación o imagen que compartirán varias preguntas. Después podrás seleccionarla en cada pregunta de esta área. No es la explicación del subtema. En DEMO los cambios son solo locales.";
+    this.$("bank-preview-title").textContent = kind === "preguntas" ? "Vista previa de la pregunta" : "Vista previa del contexto";
+    this.$("bank-preview-help").textContent = kind === "preguntas"
+      ? "La respuesta correcta se muestra solo para el editor. Las imágenes se abren por enlace."
+      : "Así se organiza el texto compartido. No lleva opciones ni respuesta correcta; estas se agregan en Preguntas.";
+    await this.run(async (version) => {
+      await this.loadPage(1);
+      if (version !== this.version || !this.api.simple) return;
+      this.fill(null);
+      if (kind === "preguntas") await this.loadCases(1);
+    });
   }
   async loadPage(page) {
     const version = this.version;
@@ -221,7 +234,8 @@ export class QuestionEditor {
             })))
         : [],
     );
-    this.message(this.api.simple ? (row ? (row.editable ? "Puedes editar y guardar los cambios directamente." : "Este contenido tiene uso académico o está retirado y no se puede editar aquí.") : "Completa la pregunta y marca la respuesta correcta. Al guardar quedará publicada.") :
+    if (this.api.simple) this.$("bank-heading").textContent = `${row ? "Editar" : "Agregar"} ${question ? "pregunta" : "contexto"} · ${this.parent.nombre}`;
+    this.message(this.api.simple ? (row ? (row.editable ? "Puedes editar y guardar los cambios directamente." : "Este contenido tiene uso académico o está retirado y no se puede editar aquí.") : "Completa los campos. Al guardar quedará publicado.") :
       row
         ? `${row.estadoContenido} · ${row.editable ? "Editable" : "Solo lectura: no es un borrador sin uso académico"}. ID: ${row.id}`
         : "Nuevo borrador. Guardar no publica en la app.",
@@ -238,11 +252,13 @@ export class QuestionEditor {
   renderOptions(rows) {
     this.options = rows.map((row, index) => {
       const group = this.doc.createElement("fieldset");
+      group.className = "answer-row";
       const legend = this.doc.createElement("legend");
-      legend.textContent = `Opción ${index + 1}`;
+      legend.textContent = `Opción ${"ABCDEF"[index]}`;
       group.append(legend);
       const input = (tag, label, value, type) => {
         const wrap = this.doc.createElement("label");
+        wrap.className = type === "radio" ? "answer-correct" : label === "Respuesta" ? "answer-text" : "answer-explanation";
         wrap.textContent = label;
         const control = this.doc.createElement(tag);
         if (type) control.type = type;
@@ -252,6 +268,7 @@ export class QuestionEditor {
         } else {
           control.value = value;
           control.maxLength = 4000;
+          control.rows = 2;
         }
         control.oninput = () => this.changed();
         wrap.append(control);
@@ -261,7 +278,7 @@ export class QuestionEditor {
       return {
         group,
         texto: input("textarea", "Respuesta", row.texto),
-        correcta: input("input", "Es la correcta", row.esCorrecta, "radio"),
+        correcta: input("input", "Correcta", row.esCorrecta, "radio"),
         explicacion: input(
           "textarea",
           "Explicación de esta opción (opcional)",
@@ -329,6 +346,7 @@ export class QuestionEditor {
   }
   async save() {
     if (!this.hasForm || (this.record && !this.record.editable)) return;
+    const creating = !this.record;
     await this.run(async (version) => {
       const row = await this.api.bankRecord(
         this.kind,
@@ -344,6 +362,12 @@ export class QuestionEditor {
       this.message(this.api.simple ? "Guardado y publicado. En demostración, el cambio es solo local." : "Guardado en BORRADOR. No está publicado.");
       try {
         await this.loadPage(this.page);
+        if (version !== this.version) return;
+        if (creating && this.api.simple) {
+          this.fill(null);
+          if (this.kind === "preguntas") await this.loadCases(1);
+          if (version === this.version) this.message("Guardado y publicado. Ya puedes agregar el siguiente. En DEMO los cambios son solo locales.");
+        }
       } catch {
         if (version === this.version)
           this.message(

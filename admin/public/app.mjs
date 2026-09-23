@@ -17,6 +17,7 @@ const state = {
   themes: null,
   subs: null,
   busy: false,
+  section: "catalog",
 };
 let themesVersion = 0,
   subsVersion = 0,
@@ -54,7 +55,7 @@ const editor = new LessonEditor({
   },
 });
 const approvals = new InstitutionApproval({ api, host: $("institution-approval-panel"), demo: config.demo });
-$("institution-approvals").onclick = () => { if (closeEditors()) void approvals.open(); };
+$("institution-approvals").onclick = () => void changeSection("institutions");
 const bank = new QuestionEditor({
   api,
   busy: () => state.busy,
@@ -74,16 +75,77 @@ function closeEditors() {
 async function selectSubtheme(row) {
   if (!closeEditors()) return;
   state.subtheme = { ...row, area: state.area.id };
+  if (state.section !== "content") state.section = "questions";
   $("subtopic-navigation").hidden = false;
   $("subtopic-title").textContent = row.nombre;
-  await bank.open("preguntas", state.subtheme);
+  renderSection();
+  if (state.section === "content") await editor.open("subtemas", row.id, row.temaId);
+  else await bank.open("preguntas", state.subtheme);
 }
 $("subtopic-questions").onclick = () => {
-  if (state.subtheme && editor.close()) void bank.open("preguntas", state.subtheme);
+  void changeSection("questions");
 };
 $("subtopic-lesson").onclick = () => {
-  if (state.subtheme && bank.close())
-    void editor.open("subtemas", state.subtheme.id, state.subtheme.temaId);
+  void changeSection("content");
+};
+const sections = ["catalog", "questions", "content", "cases", "institutions"];
+function renderSection() {
+  for (const key of sections) {
+    $("section-" + key).setAttribute("aria-current", state.section === key ? "page" : "false");
+    $("section-" + key).disabled = state.busy;
+  }
+  const scoped = ["questions", "content"].includes(state.section);
+  $("catalog-panels").hidden = state.section !== "catalog";
+  $("catalog-selection").hidden = state.section === "institutions";
+  $("select-theme-field").hidden = $("select-sub-field").hidden = !scoped;
+  $("selection-help").hidden = !scoped || Boolean(state.subtheme);
+  $("subtopic-navigation").hidden = true;
+}
+async function changeSection(section) {
+  if (state.busy || !confirmCatalogDiscard()) return;
+  const selected = state.subtheme;
+  if (!closeEditors()) return;
+  approvals.close();
+  state.section = section;
+  state.subtheme = selected;
+  $("theme-name").value = $("subtheme-name").value = "";
+  renderSection();
+  if (section === "institutions") return approvals.open();
+  if (section === "cases" && state.area) return bank.open("casos", { ...state.area, area: state.area.id });
+  if (selected && section === "questions") return bank.open("preguntas", selected);
+  if (selected && section === "content") return editor.open("subtemas", selected.id, selected.temaId);
+  updateControls();
+}
+for (const key of sections) $("section-" + key).onclick = () => void changeSection(key);
+function selector(id, rows, selected, placeholder) {
+  const options = [element("option", placeholder), ...rows.map((row) => {
+    const option = element("option", row.nombre);
+    option.value = row.id;
+    return option;
+  })];
+  options[0].value = "";
+  $(id).replaceChildren(...options);
+  $(id).value = selected ?? "";
+}
+$("select-area").onchange = async () => {
+  const row = state.areas.find((item) => item.id === $("select-area").value);
+  if (row) await selectArea(row);
+  updateControls();
+};
+$("select-theme").onchange = async () => {
+  const row = state.themes?.items.find((item) => item.id === $("select-theme").value);
+  if (row) await selectTheme(row);
+  updateControls();
+};
+$("create-sub-theme").onchange = async () => {
+  const row = state.themes?.items.find((item) => item.id === $("create-sub-theme").value);
+  if (row) await selectTheme(row);
+  updateControls();
+};
+$("select-sub").onchange = async () => {
+  const row = state.subs?.items.find((item) => item.id === $("select-sub").value);
+  if (row) await selectSubtheme(row);
+  updateControls();
 };
 const review = new EditorialReview({
   api,
@@ -173,6 +235,7 @@ function showLogin(message = "") {
     busy: false,
     themePage: 1,
     subPage: 1,
+    section: "catalog",
   });
   $("workspace").hidden = true;
   $("login-view").hidden = false;
@@ -187,6 +250,24 @@ function showLogin(message = "") {
   notice();
 }
 function updateControls() {
+  renderSection();
+  selector("select-area", state.areas, state.area?.id, "Selecciona un área");
+  const themes = [...(state.themes?.items ?? [])];
+  if (state.theme && !themes.some((row) => row.id === state.theme.id)) themes.unshift(state.theme);
+  selector("select-theme", themes, state.theme?.id, "Selecciona un tema");
+  selector("create-sub-theme", themes, state.theme?.id, "Selecciona un tema");
+  $("create-sub-theme").disabled = state.busy || !state.themes;
+  const subs = [...(state.subs?.items ?? [])];
+  if (state.subtheme && !subs.some((row) => row.id === state.subtheme.id)) subs.unshift(state.subtheme);
+  selector("select-sub", subs, state.subtheme?.id, "Selecciona un subtema");
+  $("select-area").disabled = state.busy || !state.areas.length;
+  $("select-theme").disabled = state.busy || !state.themes;
+  $("select-sub").disabled = state.busy || !state.subs;
+  for (const [name, page, data] of [["theme", state.themePage, state.themes], ["sub", state.subPage, state.subs]]) {
+    $("select-" + name + "-prev").disabled = state.busy || !data || page <= 1;
+    $("select-" + name + "-next").disabled = state.busy || !data?.hayMas || page >= 10000;
+    $("select-" + name + "-page").textContent = `Página ${page}`;
+  }
   const canSub =
     state.theme &&
     state.theme.estadoContenido !== "ARCHIVADO" &&
@@ -313,6 +394,8 @@ async function selectArea(area) {
     "Selecciona un tema para explorar sus subtemas.",
   );
   await loadThemes();
+  if (state.section === "cases" && state.area?.id === area.id)
+    await bank.open("casos", { ...area, area: area.id });
 }
 async function loadThemes() {
   if (!state.area || !api.authenticated) return;
@@ -433,7 +516,7 @@ async function create(kind, input) {
     } else {
       state.subPage = 1;
       await loadSubs();
-      if (session === sessionVersion && api.authenticated) await selectSubtheme(created);
+      if (session === sessionVersion && api.authenticated) $(input).focus();
     }
     if (session === sessionVersion && api.authenticated)
       notice(
@@ -521,6 +604,10 @@ $("refresh").onclick = () => {
   void loadThemes();
 };
 for (const [id, key, delta, load] of [
+  ["select-theme-prev", "themePage", -1, loadThemes],
+  ["select-theme-next", "themePage", 1, loadThemes],
+  ["select-sub-prev", "subPage", -1, loadSubs],
+  ["select-sub-next", "subPage", 1, loadSubs],
   ["themes-prev", "themePage", -1, loadThemes],
   ["themes-next", "themePage", 1, loadThemes],
   ["subthemes-prev", "subPage", -1, loadSubs],

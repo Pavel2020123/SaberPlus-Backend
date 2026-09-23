@@ -112,7 +112,7 @@ test("solo sirve archivos permitidos, con CSP y sin caché de sesión", async (t
   );
   assert.equal(page.headers.get("cache-control"), "no-store");
   assert.equal(page.headers.get("x-frame-options"), "DENY");
-  assert.match(await page.text(), /Catálogo académico/);
+  assert.match(await page.text(), /Panel de administración/);
   for (const path of [
     "/.env.local",
     "/server.mjs",

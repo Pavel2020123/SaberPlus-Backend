@@ -594,9 +594,8 @@ test("cableado simple: catálogo → preguntas → explicación sin perder el su
         n.textContent.includes("Proporcionalidad"),
       ),
   );
-  get("themes-list")
-    .children.find((n) => n.textContent.includes("Proporcionalidad"))
-    .onclick();
+  get("create-sub-theme").value = "demo-t1";
+  await get("create-sub-theme").onchange();
   await waitFor(() =>
     get("subthemes-list").children.some((n) =>
       n.textContent.includes("Porcentajes"),
@@ -621,22 +620,47 @@ test("cableado simple: catálogo → preguntas → explicación sin perder el su
   get("theme-name").value = "";
   get("subtheme-name").value = "";
   globalThis.window.confirm = () => true;
-  get("subthemes-list")
-    .children.find((n) => n.textContent.includes("Porcentajes"))
-    .onclick();
+  get("section-questions").onclick();
+  get("select-sub").value = "demo-s2";
+  await get("select-sub").onchange();
   await waitFor(() => !get("bank-new").disabled && !get("bank-editor").hidden);
-  assert.equal(get("subtopic-navigation").hidden, false);
+  assert.equal(get("catalog-panels").hidden, true);
+  assert.equal(get("bank-form").hidden, false);
+  assert.equal(get("select-sub").value, "demo-s2");
   assert.equal(get("subtopic-title").textContent, "Porcentajes");
-  get("subtopic-lesson").onclick();
+  get("section-content").onclick();
   await waitFor(() => !get("lesson-save").disabled && !get("lesson-editor").hidden);
   get("lesson-text").value = "Explicación con ejemplo del porcentaje.";
   get("lesson-text").oninput();
   get("lesson-form").onsubmit({ preventDefault() {} });
   await waitFor(() => get("editor-message").textContent.includes("Publicado"));
-  get("subtopic-questions").onclick();
+  get("section-questions").onclick();
   await waitFor(() => !get("bank-new").disabled && !get("bank-editor").hidden);
   assert.equal(get("lesson-editor").hidden, true);
-  assert.equal(get("subtopic-navigation").hidden, false);
+  assert.equal(get("select-sub").value, "demo-s2");
+  get("bank-text").value = "Pregunta sin guardar";
+  get("bank-text").oninput();
+  globalThis.window.confirm = () => false;
+  get("section-catalog").onclick();
+  assert.equal(get("bank-editor").hidden, false);
+  assert.equal(get("bank-text").value, "Pregunta sin guardar");
+  globalThis.window.confirm = () => true;
+  await get("section-cases").onclick();
+  await waitFor(() => !get("bank-new").disabled);
+  assert.match(get("bank-heading").textContent, /contexto/);
+  await get("section-catalog").onclick();
+  assert.equal(get("catalog-panels").hidden, false);
+  for (const name of ["Subtema nuevo uno", "Subtema nuevo dos"]) {
+    get("subtheme-name").value = name;
+    get("subtheme-form").onsubmit({ preventDefault() {} });
+    await waitFor(() => !get("subtheme-submit").disabled && get("notice").textContent.includes(`${name}: creado`));
+    assert.equal(get("catalog-panels").hidden, false);
+    assert.equal(get("bank-editor").hidden, true);
+    assert.equal(get("lesson-editor").hidden, true);
+    assert.equal(get("subtheme-name").value, "");
+    assert.equal(get("create-sub-theme").value, "demo-t1");
+    assert.ok(get("subthemes-list").children.some((n) => n.textContent.includes(name)));
+  }
   get("logout").onclick();
   assert.equal(get("bank-editor").hidden, true);
   assert.equal(get("subtopic-navigation").hidden, true);

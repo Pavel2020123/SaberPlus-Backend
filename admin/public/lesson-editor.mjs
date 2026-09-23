@@ -1,4 +1,5 @@
 import { previewBlocks, referenceUrl } from "./lesson-fields.mjs";
+import { LessonBlocks } from "./lesson-blocks.mjs";
 
 export class LessonEditor {
   constructor({
@@ -23,6 +24,15 @@ export class LessonEditor {
     this.version = 0;
     this.record = null;
     this.dirty = false;
+    this.blocks = new LessonBlocks({ doc, host: this.$("lesson-blocks"), add: this.$("lesson-add-block"), confirm,
+      onChange: (text) => {
+        this.$("lesson-text").value = text;
+        this.dirty = true;
+        this.preview();
+        this.message("Cambios sin guardar.");
+        this.controls();
+      },
+    });
     this.$("lesson-form").onsubmit = (event) => {
       event.preventDefault();
       void this.save(false);
@@ -38,6 +48,7 @@ export class LessonEditor {
       "lesson-image",
     ])
       this.$(id).oninput = () => {
+        if (id === "lesson-text") this.blocks.load(this.$(id).value);
         this.dirty = true;
         this.preview();
         this.message("Cambios sin guardar.");
@@ -76,6 +87,8 @@ export class LessonEditor {
       this.$(id).value = "";
     this.$("lesson-preview").replaceChildren();
     this.$("lesson-references").replaceChildren();
+    this.blocks.load("");
+    this.blocks.lock(true);
     this.message("");
     return true;
   }
@@ -115,6 +128,7 @@ export class LessonEditor {
       `${this.kind === "temas" ? "Tema" : "Lección"}: ${record.nombre}`;
     this.$("editor-name").value = record.nombre;
     this.$("lesson-text").value = record.contenido;
+    this.blocks.load(record.contenido);
     this.$("lesson-video").value = record.videoUrl;
     this.$("lesson-image").value = record.imagenUrl;
     this.$("lesson-form").hidden = this.kind === "temas";
@@ -128,6 +142,7 @@ export class LessonEditor {
   }
   controls() {
     const locked = this.busy();
+    this.blocks.lock(locked || !this.record?.editable);
     for (const id of [
       "lesson-text",
       "lesson-video",
@@ -263,6 +278,7 @@ export class LessonEditor {
       if (otherDirty) {
         if (rename) {
           this.$("lesson-text").value = lessonDraft.contenido;
+          this.blocks.load(lessonDraft.contenido);
           this.$("lesson-video").value = lessonDraft.videoUrl;
           this.$("lesson-image").value = lessonDraft.imagenUrl;
         } else this.$("editor-name").value = nameDraft;

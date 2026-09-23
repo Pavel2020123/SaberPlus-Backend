@@ -2,6 +2,38 @@
 
 ## Flujo actual: guardar y publicar (22 de septiembre de 2026)
 
+### Diseño actualizado a partir del administrador de Icfes_Vida (23 de septiembre)
+
+**Contenido por bloques:** se adaptaron `EditorBloquesContenido`, `TarjetaBloqueContenido`
+y la lógica de contenido de Icfes_Vida: Lectura, Ejemplo, Consejo y Resumen, con título
+y texto separados, agregar/quitar bloques y vista previa inmediata. Ya no es necesario
+escribir `#`. Se aceptan títulos heredados como `#Título` y se generan encabezados Markdown
+con espacio al editar los bloques. Para compatibilidad con Flutter se guarda Markdown estándar,
+sin los marcadores exclusivos `[[LECCION]]`/`[[BLOQUE]]` de la web antigua.
+La vista previa sigue sin ejecutar HTML ni descargar imágenes automáticamente; no pretende
+reproducir todos los formatos avanzados de Markdown. Se corrigieron las instrucciones y
+la vista previa específica de Casos y contextos. Validación: 71 pruebas del panel aprobadas.
+
+Se tomó como referencia `frontend/src/app/admin/page.tsx`, sus estilos y los componentes
+de temas, preguntas y contenido. No se modifica el proyecto Icfes_Vida ni se migra su stack Next.js.
+SaberPlus conserva el panel ligero y sus API ADMIN protegidas.
+
+- Pestañas: **Temas y subtemas**, **Preguntas**, **Contenido**, **Casos y contextos**, **Instituciones**.
+- Selectores de área, tema y subtema, con navegación paginada para bancos grandes.
+- Formulario de pregunta abierto al seleccionar el subtema: opciones A–F (cuatro inicialmente),
+  radio de respuesta correcta, explicación general y explicaciones opcionales por respuesta.
+- Listado debajo del formulario; seleccionar una pregunta permite editarla. Después de crear,
+  el formulario queda limpio para cargar la siguiente. La vista previa es desplegable.
+- Se conservan confirmación de descarte, control de concurrencia, duplicados, casos,
+  aprobación institucional y eliminación segura de registros vacíos.
+- No se copian ventas, pagos ni eliminación en cascada del sistema antiguo. Tampoco se simulan
+  pestañas que no están conectadas a funciones reales de este panel.
+- Imágenes: se mantiene URL HTTPS. Los nombres locales de `frontend/public/imagenes` del
+  proyecto anterior no sirven como enlaces para la app móvil; la carga de archivos sigue pendiente.
+
+Verificado con pruebas automatizadas del panel. La inspección visual en navegador no pudo
+realizarse porque la conexión de navegador no está disponible en esta sesión.
+
 Esta sección reemplaza el recorrido de borradores/revisión descrito en el historial inferior.
 
 1. Selecciona una de las cinco áreas.

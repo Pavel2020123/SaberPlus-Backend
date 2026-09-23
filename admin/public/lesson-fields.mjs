@@ -42,9 +42,9 @@ export function previewBlocks(text) {
     .replace(/\r\n?/g, "\n")
     .split("\n")
     .map((line) => {
-      const heading = /^(#{1,3})\s+(.+)$/.exec(line);
+      const heading = /^\s{0,3}(#{1,6})\s*((?!#)\S.*)$/.exec(line);
       if (heading)
-        return { tag: `h${heading[1].length + 1}`, text: heading[2] };
+        return { tag: `h${Math.min(heading[1].length + 1, 6)}`, text: heading[2] };
       const bullet = /^[-*]\s+(.+)$/.exec(line);
       return { tag: "p", text: bullet ? `• ${bullet[1]}` : line };
     });

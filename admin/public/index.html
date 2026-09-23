@@ -22,7 +22,6 @@
       </div>
     </header>
     <main id="main" tabindex="-1">
-      <section id="institution-approval-panel" class="content" aria-label="Verificación institucional" hidden></section>
       <section id="login-view" class="login-layout">
         <div class="intro">
           <p class="eyebrow">CONTENIDO QUE ENSEÑA</p>
@@ -84,7 +83,7 @@
         </section>
       </section>
       <section id="workspace" class="workspace" hidden>
-        <aside class="sidebar" aria-label="Áreas académicas">
+        <aside class="sidebar" aria-label="Áreas académicas" hidden>
           <p class="eyebrow">TU CATÁLOGO</p>
           <h2>Áreas ICFES</h2>
           <nav id="area-list" aria-label="Seleccionar área"></nav>
@@ -99,19 +98,26 @@
           <div class="page-heading">
             <div>
               <p class="eyebrow" id="welcome">EQUIPO EDITORIAL</p>
-              <h1>Catálogo académico</h1>
+              <h1>Panel de administración</h1>
               <p class="muted">
-                Dale estructura a lo que tus estudiantes van a aprender.
+                Gestiona temas, preguntas, contenido e instituciones de SaberPlus.
               </p>
             </div>
             <button id="refresh" class="secondary">Actualizar catálogo</button>
             <button id="area-legacy" class="secondary" disabled hidden>
               Revisar banco antiguo
             </button>
-            <button id="area-cases" class="secondary" disabled>
+            <button id="area-cases" class="secondary" disabled hidden>
               Textos compartidos (opcional)
             </button>
           </div>
+          <nav class="admin-tabs" aria-label="Secciones administrativas">
+            <button id="section-catalog" type="button" aria-current="page">Temas y subtemas</button>
+            <button id="section-questions" type="button">Preguntas</button>
+            <button id="section-content" type="button">Contenido</button>
+            <button id="section-cases" type="button">Casos y contextos</button>
+            <button id="section-institutions" type="button">Instituciones</button>
+          </nav>
           <p id="demo-banner" class="demo-note" hidden>
             DEMO · Datos de ejemplo y cambios solo en memoria. No estás editando
             la base real.
@@ -120,7 +126,20 @@
             Selecciona un área para comenzar
           </div>
           <p id="notice" role="status" class="notice" aria-live="polite"></p>
-          <div class="catalog-grid">
+          <section id="catalog-selection" class="catalog-panel selection-panel" aria-label="Seleccionar contenido">
+            <div><label for="select-area">Área</label><select id="select-area"></select></div>
+            <div id="select-theme-field" hidden>
+              <label for="select-theme">Tema</label><select id="select-theme"></select>
+              <div class="selector-pages"><button id="select-theme-prev" type="button" class="quiet">← Temas</button><span id="select-theme-page"></span><button id="select-theme-next" type="button" class="quiet">Más temas →</button></div>
+            </div>
+            <div id="select-sub-field" hidden>
+              <label for="select-sub">Subtema</label><select id="select-sub"></select>
+              <div class="selector-pages"><button id="select-sub-prev" type="button" class="quiet">← Subtemas</button><span id="select-sub-page"></span><button id="select-sub-next" type="button" class="quiet">Más subtemas →</button></div>
+            </div>
+          </section>
+          <p id="selection-help" class="hint" hidden>Selecciona área, tema y subtema para comenzar.</p>
+          <section id="institution-approval-panel" class="content" aria-label="Verificación institucional" hidden></section>
+          <div id="catalog-panels" class="catalog-grid">
             <section class="catalog-panel" aria-labelledby="themes-title">
               <div class="panel-heading">
                 <div>
@@ -197,6 +216,8 @@
               </div>
               <form id="subtheme-form" class="create-form">
                 <h3>Crear un subtema</h3>
+                <label for="create-sub-theme">Tema al que pertenece</label>
+                <select id="create-sub-theme"></select>
                 <label for="subtheme-name">Nombre del subtema</label
                 ><input
                   id="subtheme-name"
@@ -256,10 +277,14 @@
             </form>
             <div class="catalog-grid">
               <form id="lesson-form" class="create-form">
-                <h3>Explicación y ejemplos del subtema</h3>
-                <label for="lesson-text">Escribe la explicación y los ejemplos</label>
+                <h3>Lección por bloques</h3>
+                <p class="hint">Agrega lecturas, ejemplos, consejos o resúmenes. Escribe el título en su campo; no necesitas usar # ni otros símbolos.</p>
+                <button id="lesson-add-block" class="secondary" type="button">+ Agregar bloque</button>
+                <div id="lesson-blocks"></div>
                 <textarea
                   id="lesson-text"
+                  hidden
+                  aria-label="Contenido generado por los bloques"
                   rows="18"
                   maxlength="30000"
                   placeholder="# Título&#10;&#10;Explicación y ejemplos…"
@@ -297,9 +322,8 @@
               >
                 <h3 id="preview-title">Vista previa del texto</h3>
                 <p class="hint">
-                  Vista simplificada: títulos con #, ##, ### y viñetas con -.
-                  Otros formatos se muestran literalmente; la app usa Markdown
-                  completo. No se cargan imágenes ni videos automáticamente.
+                  Los títulos y textos se actualizan mientras editas los bloques.
+                  Las imágenes y videos se abren desde sus enlaces, no se cargan automáticamente.
                 </p>
                 <div id="lesson-preview" class="lesson-preview"></div>
                 <div id="lesson-references" class="lesson-references"></div>
@@ -313,21 +337,24 @@
             aria-labelledby="bank-heading"
           >
             <div class="panel-heading">
-              <h2 id="bank-heading" tabindex="-1">Preguntas y casos</h2>
+              <h2 id="bank-heading" tabindex="-1">Agregar pregunta</h2>
               <button id="bank-close" class="secondary" type="button">
                 Ocultar preguntas
               </button>
             </div>
-            <p class="hint">
+            <p id="bank-help" class="hint">
               Agrega el enunciado, las opciones, la respuesta correcta y su explicación.
               Al guardar queda publicado, sin pasos de revisión. En DEMO los cambios son solo locales.
             </p>
             <p id="bank-message" role="status" aria-live="polite"></p>
+            <div id="bank-list-section" class="question-list-section">
+            <h3 id="bank-list-title">Preguntas de este subtema</h3>
             <div id="bank-list" class="items"></div>
             <div class="pagination">
               <button id="bank-prev" class="quiet">← Anterior</button
               ><span id="bank-page">Página 1</span
               ><button id="bank-next" class="quiet">Siguiente →</button>
+            </div>
             </div>
             <button id="bank-new" class="primary" type="button">
               + Agregar pregunta
@@ -418,12 +445,13 @@
               <button id="bank-save" class="primary" type="submit">
                 Guardar pregunta
               </button>
-              <h3>Vista previa editorial</h3>
-              <p class="hint">
+              <details class="preview-disclosure"><summary id="bank-preview-title">Vista previa de la pregunta</summary>
+              <p id="bank-preview-help" class="hint">
                 Texto simplificado; muestra la correcta solo para el editor. No
                 carga imágenes automáticamente ni reproduce exactamente Flutter.
               </p>
               <div id="bank-preview" class="lesson-preview"></div>
+              </details>
             </form>
           </section>
           <section
