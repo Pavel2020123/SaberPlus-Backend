@@ -211,6 +211,8 @@ model Usuario {
   intentosTriviaRush        IntentoTriviaRush[]
   intentosGuardian          IntentoGuardian[]
   intentosCima              IntentoCima[]
+  intentosRescateEstrellas  IntentoRescateEstrellas[]
+  intentosEscudoConocimiento IntentoEscudoConocimiento[]
   concesionesJuego          ConcesionRecompensaJuego[]
   cuadernoErrores           CuadernoError[]
   membresiaInstitucion      MiembroInstitucion?
@@ -1242,6 +1244,46 @@ model IntentoGuardian {
 }
 
 model IntentoCima {
+  id           String      @id @default(uuid()) @db.Uuid
+  usuarioId    String      @db.Uuid
+  usuario      Usuario     @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  area         AreaIcfes
+  temaId       String?
+  subtemaId    String?
+  dificultad   Dificultad?
+  version      Int         @default(1)
+  estado       String      @default("ACTIVO") @db.VarChar(20)
+  // Snapshot privado: la API nunca expone soluciones futuras.
+  preguntas    Json
+  respuestas   Json        @default("[]")
+  creadoEn     DateTime    @default(now())
+  venceEn      DateTime
+  finalizadoEn DateTime?
+
+  @@index([usuarioId, creadoEn])
+}
+
+model IntentoRescateEstrellas {
+  id           String      @id @default(uuid()) @db.Uuid
+  usuarioId    String      @db.Uuid
+  usuario      Usuario     @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  area         AreaIcfes
+  temaId       String?
+  subtemaId    String?
+  dificultad   Dificultad?
+  version      Int         @default(1)
+  estado       String      @default("ACTIVO") @db.VarChar(20)
+  // Snapshot privado: la API nunca expone soluciones futuras.
+  preguntas    Json
+  respuestas   Json        @default("[]")
+  creadoEn     DateTime    @default(now())
+  venceEn      DateTime
+  finalizadoEn DateTime?
+
+  @@index([usuarioId, creadoEn])
+}
+
+model IntentoEscudoConocimiento {
   id           String      @id @default(uuid()) @db.Uuid
   usuarioId    String      @db.Uuid
   usuario      Usuario     @relation(fields: [usuarioId], references: [id], onDelete: Cascade)

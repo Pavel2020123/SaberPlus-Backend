@@ -6,6 +6,9 @@ el entorno Linux de Render.
 
 ## Comandos
 
+JN-2B: [Rescate de estrellas — contrato y pruebas locales](STAR_RESCUE.md).
+Backend y migración preparados; sigue JN-2C Flutter remoto. Sin despliegue automático.
+
 JN-1B: [Salto a la cima — API, reglas y pruebas locales](SUMMIT_CHALLENGE.md).
 Migración preparada, sin despliegue; integración Flutter pendiente de JN-1C.
 
@@ -24,6 +27,12 @@ npm test -- --runInBand
 Para desarrollo, copia `.env.example` como `.env.local` y completa valores
 locales. Para staging o produccion, configura los secretos en el proveedor de
 despliegue. No guardes contrasenas ni cadenas de conexion reales en Git.
+
+## Escudo del conocimiento — JN-4B
+
+Backend local de rondas, escudo y páginas; sin XP ni diagnóstico.
+Contrato y pruebas en [KNOWLEDGE_SHIELD.md](KNOWLEDGE_SHIELD.md).
+Rutas privadas bajo /escudo-conocimiento; cliente remoto y despliegue pendientes.
 
 ## Base de datos
 

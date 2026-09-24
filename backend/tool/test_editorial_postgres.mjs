@@ -57,6 +57,8 @@ async function main() {
   const studyTime = process.argv.includes('--study-time');
   const institutionApproval = process.argv.includes('--institution-approval');
   const summit = process.argv.includes('--summit');
+  const starRescue = process.argv.includes('--star-rescue');
+  const knowledgeShield = process.argv.includes('--knowledge-shield');
   if (
     process.argv
       .slice(2)
@@ -67,9 +69,11 @@ async function main() {
             '--study-time',
             '--institution-approval',
             '--summit',
+            '--star-rescue',
+            '--knowledge-shield',
           ].includes(arg),
       ) ||
-    [teacherPriorities, studyTime, institutionApproval, summit].filter(Boolean).length >
+    [teacherPriorities, studyTime, institutionApproval, summit, starRescue, knowledgeShield].filter(Boolean).length >
       1
   )
     throw new Error('Opción de pruebas no reconocida.');
@@ -187,7 +191,7 @@ async function main() {
     if (!migrations.length)
       throw new Error('No se encontraron migraciones versionadas.');
     const sql = [];
-    if (summit) sql.push('CREATE ROLE anon NOLOGIN NOSUPERUSER NOBYPASSRLS; CREATE ROLE authenticated NOLOGIN NOSUPERUSER NOBYPASSRLS; GRANT USAGE ON SCHEMA public TO anon, authenticated;');
+    if (summit || starRescue || knowledgeShield) sql.push('CREATE ROLE anon NOLOGIN NOSUPERUSER NOBYPASSRLS; CREATE ROLE authenticated NOLOGIN NOSUPERUSER NOBYPASSRLS; GRANT USAGE ON SCHEMA public TO anon, authenticated;');
     const approvalMigration =
       'backend/prisma/migrations/20260917130000_institution_approval/migration.sql';
     const approvalPrivacyMigration =
@@ -221,6 +225,16 @@ async function main() {
       sql.push(await readFile(join(repository, studyMigration), 'utf8'));
     }
     const migrationFile = join(resolved, 'migrations.sql');
+    const shieldMigration = 'backend/prisma/migrations/20260924160000_knowledge_shield/migration.sql';
+    if (knowledgeShield && !migrations.includes(shieldMigration)) {
+      sql.push(await readFile(join(repository, shieldMigration), 'utf8'));
+      console.log('Incluida únicamente la migración local JN-4B de Escudo.');
+    }
+    const starRescueMigration = 'backend/prisma/migrations/20260923160000_star_rescue/migration.sql';
+    if (starRescue && !migrations.includes(starRescueMigration)) {
+      sql.push(await readFile(join(repository, starRescueMigration), 'utf8'));
+      console.log('Incluida únicamente la migración local JN-2B de Rescate de estrellas.');
+    }
     const summitMigration = 'backend/prisma/migrations/20260918140000_summit_challenge/migration.sql';
     if (summit && !migrations.includes(summitMigration)) {
       sql.push(await readFile(join(repository, summitMigration), 'utf8'));
@@ -249,7 +263,7 @@ async function main() {
       [
         '--test',
         '--test-concurrency=1',
-        summit ? 'test/summit-postgres.test.cjs' : institutionApproval
+        knowledgeShield ? 'test/knowledge-shield-postgres.test.cjs' : starRescue ? 'test/star-rescue-postgres.test.cjs' : summit ? 'test/summit-postgres.test.cjs' : institutionApproval
           ? 'test/institution-approval-postgres.test.cjs'
           : studyTime
             ? 'test/study-time-postgres.test.cjs'

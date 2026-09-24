@@ -24,6 +24,8 @@ import { TriviaRushModule } from './trivia-rush/trivia-rush.module';
 import { HealthController } from './health/health.controller';
 import { GuardianModule } from './guardian/guardian.module';
 import { SummitModule } from './summit/summit.module';
+import { StarRescueModule } from './star-rescue/star-rescue.module';
+import { KnowledgeShieldModule } from './knowledge-shield/knowledge-shield.module';
 
 @Module({
   imports: [
@@ -50,6 +52,8 @@ import { SummitModule } from './summit/summit.module';
     TriviaRushModule,
     GuardianModule,
     SummitModule,
+    StarRescueModule,
+    KnowledgeShieldModule,
   ],
   controllers: [AppController, HealthController],
 })
