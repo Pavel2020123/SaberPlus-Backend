@@ -1,5 +1,9 @@
 # API de SaberPlus
 
+MA-1: [Cobertura básica del banco](BANK_COVERAGE.md), consulta ADMIN por subtema,
+dificultades y explicaciones faltantes. Implementada y probada localmente; reportes
+académicos y ensayo desplegado pendientes. No requiere nueva migración.
+
 Backend NestJS de SaberPlus con Prisma y PostgreSQL. El proyecto fija Node
 `24.14.1` y npm `11.11.0` para que el lockfile sea reproducible en Windows y en
 el entorno Linux de Render.

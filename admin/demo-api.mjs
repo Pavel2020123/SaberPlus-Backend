@@ -5,6 +5,7 @@ import { createDemoQuestionBank } from "./demo-question-bank.mjs";
 import { createDemoEditorialReview } from "./demo-editorial-review.mjs";
 import { createDemoEditorialTools } from "./demo-editorial-tools.mjs";
 import { createDemoInstitutionApproval } from "./demo-institution-approval.mjs";
+import { demoCoverage } from "./demo-bank-coverage.mjs";
 
 // Local-only fixtures. This module has no network or database dependencies.
 const areas = [
@@ -242,6 +243,18 @@ export function createDemoApi() {
     }
     if (path === "/admin/catalogo/areas" && req.method === "GET") {
       send(res, 200, areas);
+      return;
+    }
+    if (path === "/admin/cobertura" && req.method === "GET") {
+      const area = url.searchParams.get("area");
+      const pagina = Number(url.searchParams.get("pagina") ?? 1);
+      const limite = Number(url.searchParams.get("limite") ?? 50);
+      if (!areas.some(a => a.id === area) || !Number.isInteger(pagina) || pagina < 1 || pagina > 10000 ||
+          !Number.isInteger(limite) || limite < 1 || limite > 100 ||
+          [...url.searchParams.keys()].some(k => !["area","pagina","limite"].includes(k))) {
+        send(res, 400, {}); return;
+      }
+      send(res, 200, demoCoverage({ themes, subthemes, ...questionBank.records }, area, pagina, limite));
       return;
     }
     if (institutionApprovals(req, res, url, body)) return;

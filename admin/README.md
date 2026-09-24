@@ -1,5 +1,15 @@
 # Panel administrativo de SaberPlus
 
+## MA-1 — Cobertura básica (24 de septiembre de 2026)
+
+Nueva pestaña **Cobertura**: seleccionar área para consultar por subtema preguntas
+disponibles, dificultades faltantes y ausencia de explicación. Solo lectura, con
+paginación y recarga; no altera el guardado/publicación ni los editores existentes.
+En demo cuenta los registros en memoria, no los totales ilustrativos iniciales.
+Reportes de preguntas todavía no disponibles. [Reglas y pruebas](../backend/BANK_COVERAGE.md).
+Verificación local: 79 pruebas del panel y comprobación de 19 módulos aprobadas;
+revisión visual y conexión real siguen pendientes.
+
 ## Flujo actual: guardar y publicar (22 de septiembre de 2026)
 
 ### Diseño actualizado a partir del administrador de Icfes_Vida (23 de septiembre)

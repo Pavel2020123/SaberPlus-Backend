@@ -732,6 +732,9 @@ details { margin: 20px 0; }
 summary { cursor: pointer; font-size: 14px; font-weight: 650; padding: 10px 0; }
 .preview-disclosure { background: var(--wash); border-radius: 8px; padding: 0 14px; }
 #lesson-editor { max-width: 940px; }
+.coverage-grid { display: grid; gap: 16px; margin: 20px 0; }
+.coverage-grid article { overflow-wrap: anywhere; }
+#bank-coverage-panel select { max-width: 100%; }
 #institution-approval-panel { background: white; margin: 20px 0; max-width: 100%; }
 #editor-questions, #editor-close, #bank-close { display: none; }
 @media (max-width: 760px) {

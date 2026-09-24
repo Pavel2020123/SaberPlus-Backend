@@ -59,6 +59,7 @@ async function main() {
   const summit = process.argv.includes('--summit');
   const starRescue = process.argv.includes('--star-rescue');
   const knowledgeShield = process.argv.includes('--knowledge-shield');
+  const coverage = process.argv.includes('--coverage');
   if (
     process.argv
       .slice(2)
@@ -71,9 +72,10 @@ async function main() {
             '--summit',
             '--star-rescue',
             '--knowledge-shield',
+            '--coverage',
           ].includes(arg),
       ) ||
-    [teacherPriorities, studyTime, institutionApproval, summit, starRescue, knowledgeShield].filter(Boolean).length >
+    [teacherPriorities, studyTime, institutionApproval, summit, starRescue, knowledgeShield, coverage].filter(Boolean).length >
       1
   )
     throw new Error('Opción de pruebas no reconocida.');
@@ -263,7 +265,7 @@ async function main() {
       [
         '--test',
         '--test-concurrency=1',
-        knowledgeShield ? 'test/knowledge-shield-postgres.test.cjs' : starRescue ? 'test/star-rescue-postgres.test.cjs' : summit ? 'test/summit-postgres.test.cjs' : institutionApproval
+        coverage ? 'test/bank-coverage-postgres.test.cjs' : knowledgeShield ? 'test/knowledge-shield-postgres.test.cjs' : starRescue ? 'test/star-rescue-postgres.test.cjs' : summit ? 'test/summit-postgres.test.cjs' : institutionApproval
           ? 'test/institution-approval-postgres.test.cjs'
           : studyTime
             ? 'test/study-time-postgres.test.cjs'

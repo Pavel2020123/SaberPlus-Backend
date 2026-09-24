@@ -4,6 +4,7 @@ import { QuestionEditor } from "./question-editor.mjs";
 import { EditorialReview } from "./editorial-review.mjs";
 import { EditorialTools } from "./editorial-tools.mjs";
 import { InstitutionApproval } from "./institution-approval.mjs";
+import { BankCoverage } from "./bank-coverage.mjs";
 
 const $ = (id) => document.getElementById(id);
 const config = globalThis.SABERPLUS_CONFIG;
@@ -55,6 +56,7 @@ const editor = new LessonEditor({
   },
 });
 const approvals = new InstitutionApproval({ api, host: $("institution-approval-panel"), demo: config.demo });
+const coverage = new BankCoverage({ api, host: $("bank-coverage-panel") });
 $("institution-approvals").onclick = () => void changeSection("institutions");
 const bank = new QuestionEditor({
   api,
@@ -88,7 +90,7 @@ $("subtopic-questions").onclick = () => {
 $("subtopic-lesson").onclick = () => {
   void changeSection("content");
 };
-const sections = ["catalog", "questions", "content", "cases", "institutions"];
+const sections = ["catalog", "questions", "content", "cases", "institutions", "coverage"];
 function renderSection() {
   for (const key of sections) {
     $("section-" + key).setAttribute("aria-current", state.section === key ? "page" : "false");
@@ -96,7 +98,7 @@ function renderSection() {
   }
   const scoped = ["questions", "content"].includes(state.section);
   $("catalog-panels").hidden = state.section !== "catalog";
-  $("catalog-selection").hidden = state.section === "institutions";
+  $("catalog-selection").hidden = ["institutions", "coverage"].includes(state.section);
   $("select-theme-field").hidden = $("select-sub-field").hidden = !scoped;
   $("selection-help").hidden = !scoped || Boolean(state.subtheme);
   $("subtopic-navigation").hidden = true;
@@ -106,11 +108,13 @@ async function changeSection(section) {
   const selected = state.subtheme;
   if (!closeEditors()) return;
   approvals.close();
+  coverage.close();
   state.section = section;
   state.subtheme = selected;
   $("theme-name").value = $("subtheme-name").value = "";
   renderSection();
   if (section === "institutions") return approvals.open();
+  if (section === "coverage") return coverage.open();
   if (section === "cases" && state.area) return bank.open("casos", { ...state.area, area: state.area.id });
   if (selected && section === "questions") return bank.open("preguntas", selected);
   if (selected && section === "content") return editor.open("subtemas", selected.id, selected.temaId);
@@ -215,6 +219,7 @@ function confirmCatalogDiscard(subthemeOnly = false) {
 }
 function showLogin(message = "") {
   approvals.close();
+  coverage.close();
   $("institution-approvals").hidden = true;
   editor.close(true);
   bank.close(true);

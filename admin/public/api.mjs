@@ -120,6 +120,11 @@ export class CatalogApi {
       );
     return rows;
   }
+  coverage(area, pagina = 1) {
+    if (!["LECTURA_CRITICA","MATEMATICAS","SOCIALES_CIUDADANAS","CIENCIAS_NATURALES","INGLES"].includes(area) ||
+        !Number.isInteger(pagina) || pagina < 1 || pagina > 10000) throw new PanelError("Filtro de cobertura inválido.");
+    return this.#protected(`/admin/cobertura?${new URLSearchParams({ area, pagina: String(pagina), limite: "20" })}`);
+  }
   institutionApplications(estado = '', pagina = 1) {
     const query = new URLSearchParams({ pagina: String(pagina) });
     if (estado) query.set('estado', estado);

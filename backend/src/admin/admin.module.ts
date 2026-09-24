@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { BankCoverageController } from './bank-coverage.controller';
+import { BankCoverageService } from './bank-coverage.service';
 import { SimpleContentController } from './simple-content.controller';
 import { AdminController } from './admin.controller';
 import { AdminService } from './admin.service';
@@ -24,6 +26,7 @@ import { QuestionReclassificationService } from './question-reclassification.ser
   imports: [PrismaModule],
 
   controllers: [
+    BankCoverageController,
     SimpleContentController,
     AdminController,
     AcademicCatalogController,
@@ -35,6 +38,7 @@ import { QuestionReclassificationService } from './question-reclassification.ser
   ],
 
   providers: [
+    BankCoverageService,
     AdminService,
     AcademicCatalogService,
     LessonEditorService,
