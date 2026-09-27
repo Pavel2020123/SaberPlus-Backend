@@ -26,7 +26,7 @@ import { HealthController } from './health/health.controller';
 import { GuardianModule } from './guardian/guardian.module';
 import { SummitModule } from './summit/summit.module';
 import { StarRescueModule } from './star-rescue/star-rescue.module';
-import { KnowledgeShieldModule } from './knowledge-shield/knowledge-shield.module';
+import { RetiredGamesController } from './common/retired-games.controller';
 
 @Module({
   imports: [
@@ -55,8 +55,7 @@ import { KnowledgeShieldModule } from './knowledge-shield/knowledge-shield.modul
     GuardianModule,
     SummitModule,
     StarRescueModule,
-    KnowledgeShieldModule,
   ],
-  controllers: [AppController, HealthController],
+  controllers: [AppController, HealthController, RetiredGamesController],
 })
 export class AppModule {}

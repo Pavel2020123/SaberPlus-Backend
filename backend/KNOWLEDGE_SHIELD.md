@@ -1,5 +1,10 @@
 # JN-4B — Escudo del conocimiento
 
+**RETIRADO, 27 de septiembre de 2026.** Documento histórico, no contrato activo.
+Motor y pruebas exclusivas eliminados; rutas antiguas devuelven 410 sin Prisma.
+No ejecutar comandos de juego/runner listados abajo. Se conserva migración y
+modelo legado para no destruir historial; ninguna partida nueva se procesa.
+
 Implementación local del 24 de septiembre de 2026. Sin despliegue ni migración en
 Supabase/Render. El cliente Flutter sigue siendo demo; JN-4C conectará estas rutas.
 

@@ -36,11 +36,12 @@ Para desarrollo, copia `.env.example` como `.env.local` y completa valores
 locales. Para staging o produccion, configura los secretos en el proveedor de
 despliegue. No guardes contrasenas ni cadenas de conexion reales en Git.
 
-## Escudo del conocimiento — JN-4B
+## Escudo del conocimiento — retirado
 
-Backend local de rondas, escudo y páginas; sin XP ni diagnóstico.
-Contrato y pruebas en [KNOWLEDGE_SHIELD.md](KNOWLEDGE_SHIELD.md).
-Rutas privadas bajo /escudo-conocimiento; cliente remoto y despliegue pendientes.
+Retirado por decisión del propietario el 27 de septiembre: sin módulo ni motor.
+Las rutas antiguas responden 410, sin acceder a base. Modelo/migración se conservan
+solo como historial legado, sin borrar partidas. El retiro en Render requiere
+desplegar esta versión. [Antecedente histórico](KNOWLEDGE_SHIELD.md).
 
 ## Base de datos
 

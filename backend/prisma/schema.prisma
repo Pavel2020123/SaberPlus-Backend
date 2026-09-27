@@ -1306,6 +1306,8 @@ model IntentoRescateEstrellas {
   @@index([usuarioId, creadoEn])
 }
 
+// Historial legado: juego retirado el 27-09-2026. Sin motor ni nuevas escrituras.
+// Conservar tabla/migración para no destruir intentos ni alterar migraciones aplicadas.
 model IntentoEscudoConocimiento {
   id           String      @id @default(uuid()) @db.Uuid
   usuarioId    String      @db.Uuid
