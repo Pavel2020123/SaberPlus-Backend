@@ -1,5 +1,9 @@
 # API de SaberPlus
 
+MA-2A: [Mapa de aprendizaje — reglas y API](LEARNING_MAP.md), relaciones orientativas
+entre subtemas con control de ciclos/concurrencia. Implementado y probado localmente;
+migración nueva no desplegada. Sigue MA-2B editor del panel y después MA-2C Flutter.
+
 MA-1: [Cobertura básica del banco](BANK_COVERAGE.md), consulta ADMIN por subtema,
 dificultades y explicaciones faltantes. Implementada y probada localmente; reportes
 académicos y ensayo desplegado pendientes. No requiere nueva migración.

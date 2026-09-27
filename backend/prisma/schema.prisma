@@ -567,23 +567,46 @@ model Tema {
 }
 
 model Subtema {
-  id                 String                 @id @default(uuid())
-  nombre             String
-  temaId             String
-  contenido          String?                @db.Text
-  videoUrl           String?
-  imagenUrl          String?
-  tipoInteractivo    TipoInteractivo?
-  datosInteractivo   Json?
-  estadoContenido    EstadoContenido        @default(BORRADOR)
-  fechaPublicacion   DateTime?              @db.Timestamp(6)
-  fechaActualizacion DateTime               @default(now()) @updatedAt @db.Timestamp(6)
-  tema               Tema                   @relation(fields: [temaId], references: [id], onDelete: Cascade)
-  preguntas          Pregunta[]
-  progresotemas      ProgresoTema[]
-  actividadesPlan    PlanEstudioActividad[]
+  id                    String                 @id @default(uuid())
+  nombre                String
+  temaId                String
+  contenido             String?                @db.Text
+  videoUrl              String?
+  imagenUrl             String?
+  tipoInteractivo       TipoInteractivo?
+  datosInteractivo      Json?
+  estadoContenido       EstadoContenido        @default(BORRADOR)
+  fechaPublicacion      DateTime?              @db.Timestamp(6)
+  fechaActualizacion    DateTime               @default(now()) @updatedAt @db.Timestamp(6)
+  tema                  Tema                   @relation(fields: [temaId], references: [id], onDelete: Cascade)
+  preguntas             Pregunta[]
+  progresotemas         ProgresoTema[]
+  actividadesPlan       PlanEstudioActividad[]
+  basesAprendizaje      RelacionAprendizaje[]  @relation("DestinoAprendizaje")
+  siguientesAprendizaje RelacionAprendizaje[]  @relation("BaseAprendizaje")
 
   @@index([estadoContenido, temaId])
+}
+
+model MapaAprendizaje {
+  area           AreaIcfes             @id
+  revision       Int                   @default(0)
+  actualizadoEn  DateTime              @default(now()) @updatedAt @db.Timestamp(3)
+  actualizadoPor String?
+  relaciones     RelacionAprendizaje[]
+}
+
+model RelacionAprendizaje {
+  area      AreaIcfes
+  previoId  String
+  destinoId String
+  mapa      MapaAprendizaje @relation(fields: [area], references: [area], onDelete: Cascade)
+  previo    Subtema         @relation("BaseAprendizaje", fields: [previoId], references: [id], onDelete: Cascade)
+  destino   Subtema         @relation("DestinoAprendizaje", fields: [destinoId], references: [id], onDelete: Cascade)
+
+  @@id([previoId, destinoId])
+  @@index([area, destinoId])
+  @@index([destinoId])
 }
 
 model Pregunta {

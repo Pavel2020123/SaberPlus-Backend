@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { LearningMapModule } from './learning-map/learning-map.module';
 import { AppController } from './app.controller';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
@@ -29,6 +30,7 @@ import { KnowledgeShieldModule } from './knowledge-shield/knowledge-shield.modul
 
 @Module({
   imports: [
+    LearningMapModule,
     PrismaModule,
     AuthModule,
     SimulacroModule,
