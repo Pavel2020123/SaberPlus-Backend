@@ -142,6 +142,8 @@ model Institucion {
 }
 
 model Usuario {
+  repasosDiferidos RepasoDiferido[]
+  eventosRepaso EventoRepasoDiferido[]
   solicitudAltaInstitucion SolicitudAltaInstitucion?
   id                        String                        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   nombre                    String                        @db.VarChar(255)
@@ -1326,6 +1328,28 @@ model IntentoEscudoConocimiento {
   finalizadoEn DateTime?
 
   @@index([usuarioId, creadoEn])
+}
+
+model RepasoDiferido {
+  usuarioId String @db.Uuid
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  tarjetaId String @db.VarChar(200)
+  contenidoVersion String @db.VarChar(40)
+  paso Int
+  revision Int
+  revisadoEn DateTime @db.Timestamptz(3)
+  venceEn DateTime @db.Timestamptz(3)
+  @@id([usuarioId, contenidoVersion, tarjetaId])
+}
+
+model EventoRepasoDiferido {
+  usuarioId String @db.Uuid
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  eventoId String @db.Uuid
+  huella String @db.VarChar(64)
+  resultado Json
+  creadoEn DateTime @default(now()) @db.Timestamptz(3)
+  @@id([usuarioId, eventoId])
 }
 
 model ProgresoTema {

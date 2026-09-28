@@ -60,6 +60,7 @@ async function main() {
   const starRescue = process.argv.includes('--star-rescue');
   const coverage = process.argv.includes('--coverage');
   const learningMap = process.argv.includes('--learning-map');
+  const deferredReview = process.argv.includes('--deferred-review');
   if (
     process.argv
       .slice(2)
@@ -73,9 +74,10 @@ async function main() {
             '--star-rescue',
             '--coverage',
             '--learning-map',
+            '--deferred-review',
           ].includes(arg),
       ) ||
-    [teacherPriorities, studyTime, institutionApproval, summit, starRescue, coverage, learningMap].filter(Boolean).length >
+    [teacherPriorities, studyTime, institutionApproval, summit, starRescue, coverage, learningMap, deferredReview].filter(Boolean).length >
       1
   )
     throw new Error('Opción de pruebas no reconocida.');
@@ -193,7 +195,7 @@ async function main() {
     if (!migrations.length)
       throw new Error('No se encontraron migraciones versionadas.');
     const sql = [];
-    if (summit || starRescue || learningMap) sql.push('CREATE ROLE anon NOLOGIN NOSUPERUSER NOBYPASSRLS; CREATE ROLE authenticated NOLOGIN NOSUPERUSER NOBYPASSRLS; GRANT USAGE ON SCHEMA public TO anon, authenticated;');
+    if (summit || starRescue || learningMap || deferredReview) sql.push('CREATE ROLE anon NOLOGIN NOSUPERUSER NOBYPASSRLS; CREATE ROLE authenticated NOLOGIN NOSUPERUSER NOBYPASSRLS; GRANT USAGE ON SCHEMA public TO anon, authenticated;');
     const approvalMigration =
       'backend/prisma/migrations/20260917130000_institution_approval/migration.sql';
     const approvalPrivacyMigration =
@@ -227,6 +229,10 @@ async function main() {
       sql.push(await readFile(join(repository, studyMigration), 'utf8'));
     }
     const migrationFile = join(resolved, 'migrations.sql');
+    const reviewMigration = 'backend/prisma/migrations/20260927180000_deferred_review/migration.sql';
+    if (deferredReview && !migrations.includes(reviewMigration)) {
+      sql.push(await readFile(join(repository, reviewMigration), 'utf8'));
+    }
     const mapMigration = 'backend/prisma/migrations/20260927120000_learning_map/migration.sql';
     if (learningMap && !migrations.includes(mapMigration)) {
       sql.push(await readFile(join(repository, mapMigration), 'utf8'));
@@ -265,7 +271,7 @@ async function main() {
       [
         '--test',
         '--test-concurrency=1',
-        learningMap ? 'test/learning-map-postgres.test.cjs' : coverage ? 'test/bank-coverage-postgres.test.cjs' : starRescue ? 'test/star-rescue-postgres.test.cjs' : summit ? 'test/summit-postgres.test.cjs' : institutionApproval
+        deferredReview ? 'test/deferred-review-postgres.test.cjs' : learningMap ? 'test/learning-map-postgres.test.cjs' : coverage ? 'test/bank-coverage-postgres.test.cjs' : starRescue ? 'test/star-rescue-postgres.test.cjs' : summit ? 'test/summit-postgres.test.cjs' : institutionApproval
           ? 'test/institution-approval-postgres.test.cjs'
           : studyTime
             ? 'test/study-time-postgres.test.cjs'

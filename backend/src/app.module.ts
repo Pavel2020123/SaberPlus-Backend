@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { DeferredReviewModule } from './deferred-review/deferred-review.module';
 import { LearningMapModule } from './learning-map/learning-map.module';
 import { AppController } from './app.controller';
 import { PrismaModule } from './prisma/prisma.module';
@@ -30,6 +31,7 @@ import { RetiredGamesController } from './common/retired-games.controller';
 
 @Module({
   imports: [
+    DeferredReviewModule,
     LearningMapModule,
     PrismaModule,
     AuthModule,

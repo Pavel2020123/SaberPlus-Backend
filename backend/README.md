@@ -1,8 +1,13 @@
 # API de SaberPlus
 
+MA-3B: [Agenda y sincronización del repaso diferido](DEFERRED_REVIEW.md).
+Implementada/probada localmente: API privada, recibos idempotentes y migración
+con RLS. Sin despliegue en Supabase. Sigue MA-3C (UI y ciclo de sincronización Flutter).
+
 MA-2A: [Mapa de aprendizaje — reglas y API](LEARNING_MAP.md), relaciones orientativas
 entre subtemas con control de ciclos/concurrencia. Implementado y probado localmente;
-migración nueva no desplegada. Sigue MA-2B editor del panel y después MA-2C Flutter.
+migración nueva no desplegada. MA-2B panel y MA-2C Flutter también tienen entrega
+local; ensayo real sigue pendiente.
 
 MA-1: [Cobertura básica del banco](BANK_COVERAGE.md), consulta ADMIN por subtema,
 dificultades y explicaciones faltantes. Implementada y probada localmente; reportes
