@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 
 // Avoid a long shell command chain: the same syntax check on Windows and CI.
 const files = [
+  'public/learning-map-fields.mjs', 'public/learning-map-editor.mjs', 'demo-learning-map.mjs',
   'public/bank-coverage.mjs', 'demo-bank-coverage.mjs',
   'public/lesson-blocks.mjs',
   'public/institution-approval.mjs', 'demo-institution-approval.mjs',

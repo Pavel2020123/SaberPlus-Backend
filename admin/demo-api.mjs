@@ -6,6 +6,7 @@ import { createDemoEditorialReview } from "./demo-editorial-review.mjs";
 import { createDemoEditorialTools } from "./demo-editorial-tools.mjs";
 import { createDemoInstitutionApproval } from "./demo-institution-approval.mjs";
 import { demoCoverage } from "./demo-bank-coverage.mjs";
+import { createDemoLearningMap } from "./demo-learning-map.mjs";
 
 // Local-only fixtures. This module has no network or database dependencies.
 const areas = [
@@ -81,6 +82,7 @@ export function createDemoApi() {
     res.end(JSON.stringify(body));
   };
   const questionBank = createDemoQuestionBank({ themes, subthemes, send });
+  const learningMap = createDemoLearningMap({ themes, subthemes, send });
   // Dedicated legacy fixtures do not mix with the empty draft lesson used by editors.
   themes.push({
     id: "demo-legacy-theme",
@@ -191,7 +193,7 @@ export function createDemoApi() {
   const institutionApprovals = createDemoInstitutionApproval(send);
   return async (req, res, url) => {
     let body = {};
-    if (["POST", "PATCH", "DELETE"].includes(req.method)) {
+    if (["POST", "PUT", "PATCH", "DELETE"].includes(req.method)) {
       let raw = "";
       for await (const chunk of req) {
         raw += chunk;
@@ -258,6 +260,7 @@ export function createDemoApi() {
       return;
     }
     if (institutionApprovals(req, res, url, body)) return;
+    if (learningMap(req, res, url, body)) return;
     if (questionBank(req, res, url, body, direct)) return;
     if (reviewApi(req, res, url, body)) return;
     if (toolsApi(req, res, url, body)) return;

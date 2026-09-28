@@ -5,6 +5,7 @@ import { EditorialReview } from "./editorial-review.mjs";
 import { EditorialTools } from "./editorial-tools.mjs";
 import { InstitutionApproval } from "./institution-approval.mjs";
 import { BankCoverage } from "./bank-coverage.mjs";
+import { LearningMapEditor } from "./learning-map-editor.mjs";
 
 const $ = (id) => document.getElementById(id);
 const config = globalThis.SABERPLUS_CONFIG;
@@ -57,6 +58,7 @@ const editor = new LessonEditor({
 });
 const approvals = new InstitutionApproval({ api, host: $("institution-approval-panel"), demo: config.demo });
 const coverage = new BankCoverage({ api, host: $("bank-coverage-panel") });
+const learningMap = new LearningMapEditor({ api, host: $("learning-map-panel"), setBusy: value => { state.busy = value; updateControls(); } });
 $("institution-approvals").onclick = () => void changeSection("institutions");
 const bank = new QuestionEditor({
   api,
@@ -67,7 +69,7 @@ const bank = new QuestionEditor({
   },
 });
 function closeEditors() {
-  const closed = editor.close() && bank.close() && review.close() && tools.close();
+  const closed = learningMap.close() && editor.close() && bank.close() && review.close() && tools.close();
   if (closed) {
     state.subtheme = null;
     $("subtopic-navigation").hidden = true;
@@ -77,11 +79,12 @@ function closeEditors() {
 async function selectSubtheme(row) {
   if (!closeEditors()) return;
   state.subtheme = { ...row, area: state.area.id };
-  if (state.section !== "content") state.section = "questions";
+  if (!["content", "map"].includes(state.section)) state.section = "questions";
   $("subtopic-navigation").hidden = false;
   $("subtopic-title").textContent = row.nombre;
   renderSection();
   if (state.section === "content") await editor.open("subtemas", row.id, row.temaId);
+  else if (state.section === "map") await learningMap.open(state.subtheme);
   else await bank.open("preguntas", state.subtheme);
 }
 $("subtopic-questions").onclick = () => {
@@ -90,13 +93,13 @@ $("subtopic-questions").onclick = () => {
 $("subtopic-lesson").onclick = () => {
   void changeSection("content");
 };
-const sections = ["catalog", "questions", "content", "cases", "institutions", "coverage"];
+const sections = ["catalog", "questions", "content", "cases", "institutions", "coverage", "map"];
 function renderSection() {
   for (const key of sections) {
     $("section-" + key).setAttribute("aria-current", state.section === key ? "page" : "false");
     $("section-" + key).disabled = state.busy;
   }
-  const scoped = ["questions", "content"].includes(state.section);
+  const scoped = ["questions", "content", "map"].includes(state.section);
   $("catalog-panels").hidden = state.section !== "catalog";
   $("catalog-selection").hidden = ["institutions", "coverage"].includes(state.section);
   $("select-theme-field").hidden = $("select-sub-field").hidden = !scoped;
@@ -117,6 +120,7 @@ async function changeSection(section) {
   if (section === "coverage") return coverage.open();
   if (section === "cases" && state.area) return bank.open("casos", { ...state.area, area: state.area.id });
   if (selected && section === "questions") return bank.open("preguntas", selected);
+  if (selected && section === "map") return learningMap.open(selected);
   if (selected && section === "content") return editor.open("subtemas", selected.id, selected.temaId);
   updateControls();
 }
@@ -160,7 +164,7 @@ const review = new EditorialReview({
   },
 });
 function openLesson(kind, id, parent) {
-  if (bank.close() && review.close() && tools.close())
+  if (learningMap.close() && bank.close() && review.close() && tools.close())
     void editor.open(kind, id, parent);
 }
 const tools = new EditorialTools({
@@ -222,6 +226,7 @@ function showLogin(message = "") {
   coverage.close();
   $("institution-approvals").hidden = true;
   editor.close(true);
+  learningMap.close(true);
   bank.close(true);
   review.close(true);
   tools.close(true);
@@ -626,7 +631,7 @@ for (const [id, key, delta, load] of [
   };
 window.addEventListener("pagehide", () => showLogin());
 window.addEventListener("beforeunload", (event) => {
-  if (editor.dirty || bank.dirty || tools.dirty || catalogDraftPending() || state.busy) {
+  if (learningMap.pending || editor.dirty || bank.dirty || tools.dirty || catalogDraftPending() || state.busy) {
     event.preventDefault();
     event.returnValue = "";
   }

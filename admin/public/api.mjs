@@ -1,4 +1,5 @@
 import { lessonFields } from "./lesson-fields.mjs";
+import { mapId, mapChange, mapDetail } from "./learning-map-fields.mjs";
 import { questionFields, caseFields } from "./question-fields.mjs";
 import {
   areas as toolAreas,
@@ -124,6 +125,12 @@ export class CatalogApi {
     if (!["LECTURA_CRITICA","MATEMATICAS","SOCIALES_CIUDADANAS","CIENCIAS_NATURALES","INGLES"].includes(area) ||
         !Number.isInteger(pagina) || pagina < 1 || pagina > 10000) throw new PanelError("Filtro de cobertura inválido.");
     return this.#protected(`/admin/cobertura?${new URLSearchParams({ area, pagina: String(pagina), limite: "20" })}`);
+  }
+  async learningMap(id, area, change) {
+    if (!mapId(id) || !["LECTURA_CRITICA","MATEMATICAS","SOCIALES_CIUDADANAS","CIENCIAS_NATURALES","INGLES"].includes(area)) throw new PanelError('Selección del mapa inválida.');
+    const body = change === undefined ? undefined : mapChange(change);
+    const data = await this.#protected(`/admin/mapa-aprendizaje/subtemas/${encodeURIComponent(id)}`, body ? {method:'PUT',body}:undefined);
+    return mapDetail(data,id,area);
   }
   institutionApplications(estado = '', pagina = 1) {
     const query = new URLSearchParams({ pagina: String(pagina) });

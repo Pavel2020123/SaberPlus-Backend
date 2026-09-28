@@ -383,3 +383,18 @@ suites del backend; compilación y lint focalizado correctos. El ensayo demo
 recorre creación, revisión, publicación y archivo jerárquicos. Sigue pendiente
 la prueba real en navegador/PostgreSQL/Flutter. No hubo migraciones ni publicación real.
 
+# MA-2B — Mapa de aprendizaje (implementación local)
+
+En «Mapa de aprendizaje», selecciona área, tema y subtema destino. Busca bases
+publicadas dentro de la misma área y pulsa «Guardar mapa». Máximo ocho bases
+directas; quitar una relación no elimina contenido. El recorrido es orientativo,
+no bloquea lecciones ni otorga experiencia. No requiere enviar a revisión.
+
+Los cambios sin guardar requieren confirmación al salir. Ante conflicto o guardado
+incierto se conserva la selección y se exige recargar antes de reenviar. La demo
+es solo memoria, valida ciclos y revisiones y no conecta con Supabase.
+
+Archivos: `public/learning-map-editor.mjs`, `public/learning-map-fields.mjs`,
+`demo-learning-map.mjs`, `test/learning-map.test.mjs`. Contrato real:
+`../backend/LEARNING_MAP.md`. Verificar con `npm run check` y `npm test` en `admin/`.
+Sigue MA-2C (Flutter). Migración/despliegue y ensayo real siguen pendientes.

@@ -744,3 +744,5 @@ summary { cursor: pointer; font-size: 14px; font-weight: 650; padding: 10px 0; }
   .catalog-panel { padding: 18px; }
   #bank-form .answer-row { grid-template-columns: 62px minmax(0, 1fr); gap: 8px; }
 }
+#learning-map-panel button { margin: .3rem; white-space: normal; overflow-wrap: anywhere; }
+#learning-map-panel li { margin-block: .6rem; overflow-wrap: anywhere; }
