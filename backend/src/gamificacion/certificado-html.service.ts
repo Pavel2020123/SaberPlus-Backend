@@ -1,7 +1,7 @@
 import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import puppeteer, { Browser } from 'puppeteer';
+import type { Browser } from 'puppeteer';
 
 export interface DatosCertificado {
   nombre: string;
@@ -56,6 +56,7 @@ export class CertificadoHtmlService {
     let browser: Browser | undefined;
     try {
       const html = await construirHtml(datos);
+      const { default: puppeteer } = await import('puppeteer');
       browser = await puppeteer.launch({ headless: true, timeout: 20_000 });
       const page = await browser.newPage();
       await page.setJavaScriptEnabled(false);
