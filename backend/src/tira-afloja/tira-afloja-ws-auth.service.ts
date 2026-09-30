@@ -9,6 +9,7 @@ import { Socket } from 'socket.io';
 import { JwtPayload } from '../auth/auth.types';
 import { requiereVerificacionCorreo } from '../auth/verificacion.util';
 import { PrismaService } from '../prisma/prisma.service';
+import { requireChangedInitialPassword } from '../auth/initial-password-access';
 
 export interface UsuarioSocketTiraAfloja {
   id: string;
@@ -45,6 +46,7 @@ export class TiraAflojaWsAuthService {
         rol: true,
         institucionId: true,
         correoVerificado: true,
+        debeCambiarContrasena: true,
       },
     });
     if (!usuario) {
@@ -55,6 +57,7 @@ export class TiraAflojaWsAuthService {
         'Tira y afloja solo admite cuentas de estudiante.',
       );
     }
+    requireChangedInitialPassword(usuario.debeCambiarContrasena);
     if (requiereVerificacionCorreo(usuario)) {
       throw new ForbiddenException('Debes verificar tu correo para jugar.');
     }

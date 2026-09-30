@@ -6,8 +6,13 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { Reflector } from '@nestjs/core';
 import { AuthenticatedRequest, JwtPayload } from './auth.types';
 import { PrismaService } from '../prisma/prisma.service';
+import {
+  INITIAL_PASSWORD_ACCESS,
+  requireChangedInitialPassword,
+} from './initial-password-access';
 
 // ─── GUARD PARA USUARIOS LOGUEADOS ──────────────────────────
 @Injectable()
@@ -15,6 +20,7 @@ export class JwtGuard implements CanActivate {
   constructor(
     private jwtService: JwtService,
     private prisma: PrismaService,
+    private reflector: Reflector = new Reflector(),
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -27,6 +33,7 @@ export class JwtGuard implements CanActivate {
       );
     }
 
+    let cambioInicialPendiente = false;
     try {
       const payload = await this.jwtService.verifyAsync<JwtPayload>(token);
       const usuario = await this.prisma.usuario.findUnique({
@@ -36,11 +43,13 @@ export class JwtGuard implements CanActivate {
           nombre: true,
           rol: true,
           institucionId: true,
+          debeCambiarContrasena: true,
         },
       });
       if (!usuario?.rol) {
         throw new UnauthorizedException('La sesión ya no es válida.');
       }
+      cambioInicialPendiente = usuario.debeCambiarContrasena === true;
       request.usuario = {
         sub: payload.sub,
         correo: usuario.correo,
@@ -52,6 +61,15 @@ export class JwtGuard implements CanActivate {
       throw new UnauthorizedException('Token inválido o expirado.');
     }
 
+    if (
+      cambioInicialPendiente &&
+      this.reflector.get<boolean>(
+        INITIAL_PASSWORD_ACCESS,
+        context.getHandler(),
+      ) !== true
+    ) {
+      requireChangedInitialPassword(cambioInicialPendiente);
+    }
     return true;
   }
 
@@ -93,6 +111,7 @@ export class AdminGuard implements CanActivate {
         nombre: true,
         rol: true,
         institucionId: true,
+        debeCambiarContrasena: true,
       },
     });
     if (!usuario) {
@@ -101,6 +120,7 @@ export class AdminGuard implements CanActivate {
     if (usuario.rol !== 'ADMIN') {
       throw new ForbiddenException('No tienes permiso de administrador.');
     }
+    requireChangedInitialPassword(usuario.debeCambiarContrasena);
 
     request.usuario = {
       sub: payload.sub,

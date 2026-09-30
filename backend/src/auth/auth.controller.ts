@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { JwtGuard } from './jwt.guard';
+import { AllowInitialPasswordAccess } from './initial-password-access';
 import { AuthenticatedRequest } from './auth.types';
 import {
   IsEmail,
@@ -163,6 +164,7 @@ export class AuthController {
 
   @UseGuards(JwtGuard)
   @Get('perfil')
+  @AllowInitialPasswordAccess()
   obtenerPerfil(@Request() req: AuthenticatedRequest) {
     return this.authService.obtenerPerfil(req.usuario.sub);
   }
@@ -182,6 +184,7 @@ export class AuthController {
 
   @UseGuards(JwtGuard)
   @Patch('cambiar-contrasena-inicial')
+  @AllowInitialPasswordAccess()
   cambiarContrasenaInicial(
     @Body() body: CambiarContrasenaInicialDto,
     @Request() req: AuthenticatedRequest,
