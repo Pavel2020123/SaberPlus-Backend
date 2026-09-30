@@ -66,6 +66,50 @@ describe('TiraAflojaGateway', () => {
     expect(autenticacion.autenticar).toHaveBeenCalled();
     expect(juego.obtenerActiva).toHaveBeenCalledWith('usuario-1');
   });
+
+  it('emite presencia de entrada y salida sin UUID de cuenta', async () => {
+    autenticacion.autenticar
+      .mockResolvedValueOnce({ id: 'privado-a', nombre: 'Nombre privado A' })
+      .mockResolvedValueOnce({ id: 'privado-b', nombre: 'Nombre privado B' });
+    juego.obtenerActiva
+      .mockResolvedValueOnce({
+        partida: { id: 'partida', lado: 'A', version: 1 },
+      })
+      .mockResolvedValueOnce({
+        partida: { id: 'partida', lado: 'B', version: 1 },
+      });
+    const url = await app.getUrl();
+    cliente = io(`${url}/tira-afloja`, {
+      transports: ['websocket'],
+      auth: { token: 'a' },
+      forceNew: true,
+      reconnection: false,
+    });
+    await esperarEvento(cliente, 'tira:conectado');
+    const entrada = esperarEvento<{ usuarioId: string; conectado: boolean }>(
+      cliente,
+      'tira:presencia',
+    );
+    const rival = io(`${url}/tira-afloja`, {
+      transports: ['websocket'],
+      auth: { token: 'b' },
+      forceNew: true,
+      reconnection: false,
+    });
+    try {
+      expect(await entrada).toMatchObject({ usuarioId: 'B', conectado: true });
+      const salida = esperarEvento<{ usuarioId: string; conectado: boolean }>(
+        cliente,
+        'tira:presencia',
+      );
+      rival.disconnect();
+      const mensaje = await salida;
+      expect(mensaje).toMatchObject({ usuarioId: 'B', conectado: false });
+      expect(JSON.stringify(mensaje)).not.toMatch(/privado|Nombre/);
+    } finally {
+      rival.disconnect();
+    }
+  });
 });
 
 function esperarEvento<T>(cliente: ClientSocket, evento: string): Promise<T> {
