@@ -1,5 +1,12 @@
 # MA-3B — Agenda de repaso diferido
 
+> Documento de entrega MA-3B y contrato v1. Conciliación del 29 de septiembre
+> de 2026: MA-3C ya implementa agenda, flashcards y ciclo de sincronización en
+> Flutter. Las instrucciones futuras de este documento conservan contexto
+> histórico; no definen la siguiente etapa global. Falta ensayo real de red,
+> reinstalación y persistencia; no se acredita despliegue. Consultar la Ruta
+> vigente del equipo en Flutter (`docs/ETAPAS_PENDIENTES.md`).
+
 Implementada y probada localmente. No desplegada, no migrada en Supabase.
 La pantalla y conexión a botones de flashcards corresponden a MA-3C.
 

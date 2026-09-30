@@ -339,6 +339,17 @@ export class AuthService {
 
     if (!usuario) return usuario;
 
+    if (usuario.debeCambiarContrasena) {
+      // Contrato mínimo que Flutter/ADMIN necesitan para resolver la obligación.
+      return {
+        id: usuario.id,
+        nombre: usuario.nombre,
+        correo: usuario.correo,
+        rol: usuario.rol,
+        debeCambiarContrasena: true,
+      };
+    }
+
     return {
       ...usuario,
       // Compatibilidad del contrato móvil: pagar elimina anuncios, no abre

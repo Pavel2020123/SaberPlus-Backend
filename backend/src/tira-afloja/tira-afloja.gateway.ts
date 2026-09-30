@@ -37,6 +37,7 @@ interface DatosSocketTiraAfloja {
   usuarioId?: string;
   nombre?: string;
   partidaId?: string;
+  lado?: 'A' | 'B';
   acciones?: number[];
 }
 
@@ -161,7 +162,11 @@ export class TiraAflojaGateway
 
       const estado = await this.juego.obtenerActiva(usuario.id);
       if (estado) {
-        await this.unirAPartida(cliente, estado.partida.id);
+        await this.unirAPartida(
+          cliente,
+          estado.partida.id,
+          estado.partida.lado,
+        );
       }
       cliente.emit('tira:conectado', {
         servidorAhora: new Date().toISOString(),
@@ -182,14 +187,14 @@ export class TiraAflojaGateway
   }
 
   async handleDisconnect(cliente: SocketTiraAfloja): Promise<void> {
-    const { usuarioId, partidaId } = cliente.data;
-    if (!usuarioId || !partidaId || !this.servidor) return;
+    const { usuarioId, partidaId, lado } = cliente.data;
+    if (!usuarioId || !partidaId || !lado || !this.servidor) return;
     const conexiones = await this.servidor
       .in(salaUsuario(usuarioId))
       .fetchSockets();
     if (conexiones.length > 0) return;
     this.servidor.to(salaPartida(partidaId)).emit('tira:presencia', {
-      usuarioId,
+      usuarioId: lado,
       conectado: false,
       servidorAhora: new Date().toISOString(),
     });
@@ -205,7 +210,7 @@ export class TiraAflojaGateway
       this.usuarioId(cliente),
       entrada.area,
     );
-    await this.unirAPartida(cliente, estado.partida.id);
+    await this.unirAPartida(cliente, estado.partida.id, estado.partida.lado);
     cliente.emit('tira:estado', estado);
     return { ok: true, version: estado.partida.version };
   }
@@ -221,7 +226,7 @@ export class TiraAflojaGateway
       entrada.partidaId,
       entrada.desdeVersion,
     );
-    await this.unirAPartida(cliente, entrada.partidaId);
+    await this.unirAPartida(cliente, entrada.partidaId, estado.partida.lado);
     cliente.emit('tira:estado', estado);
     return { ok: true, version: estado.partida.version };
   }
@@ -285,14 +290,16 @@ export class TiraAflojaGateway
   private async unirAPartida(
     cliente: SocketTiraAfloja,
     partidaId: string,
+    lado: 'A' | 'B',
   ): Promise<void> {
     if (cliente.data.partidaId && cliente.data.partidaId !== partidaId) {
       await cliente.leave(salaPartida(cliente.data.partidaId));
     }
     cliente.data.partidaId = partidaId;
+    cliente.data.lado = lado;
     await cliente.join(salaPartida(partidaId));
     cliente.to(salaPartida(partidaId)).emit('tira:presencia', {
-      usuarioId: this.usuarioId(cliente),
+      usuarioId: lado,
       conectado: true,
       servidorAhora: new Date().toISOString(),
     });

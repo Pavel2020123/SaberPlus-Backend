@@ -175,8 +175,6 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
     const partida = await this.prisma.partidaTiraAfloja.findUnique({
       where: { id: partidaId },
       include: {
-        jugadorA: { select: { id: true, nombre: true, fotoPerfil: true } },
-        jugadorB: { select: { id: true, nombre: true, fotoPerfil: true } },
         preguntaActual: {
           include: {
             respuestas: true,
@@ -233,9 +231,12 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
         listoB: partida.listoB,
         rondaIniciaEn: partida.rondaIniciaEn,
         rondaVenceEn: partida.rondaVenceEn,
-        yo: lado === 'A' ? partida.jugadorA : partida.jugadorB,
-        rival: lado === 'A' ? partida.jugadorB : partida.jugadorA,
-        ganadorId: partida.ganadorId,
+        // Referencias de asiento dentro de esta partida, nunca IDs de cuenta.
+        yo: this.presentarJugador(lado),
+        rival: partida.jugadorBId
+          ? this.presentarJugador(lado === 'A' ? 'B' : 'A')
+          : null,
+        ganadorId: this.referenciaJugador(partida, partida.ganadorId),
         yaRespondi: respuestasRonda.some(
           (respuesta) => respuesta.usuarioId === usuarioId,
         ),
@@ -257,10 +258,60 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
       eventos: eventos.map((evento) => ({
         version: evento.version,
         tipo: evento.tipo,
-        datos: evento.datos,
+        datos: this.presentarDatosEvento(partida, evento.datos),
         fecha: evento.fecha,
       })),
     };
+  }
+
+  private presentarJugador(lado: 'A' | 'B') {
+    return { id: lado, nombre: `Jugador ${lado}`, fotoPerfil: null };
+  }
+
+  private referenciaJugador(
+    partida: { jugadorAId: string; jugadorBId: string | null },
+    usuarioId: unknown,
+  ): 'A' | 'B' | null {
+    if (usuarioId === partida.jugadorAId) return 'A';
+    if (partida.jugadorBId && usuarioId === partida.jugadorBId) return 'B';
+    return null;
+  }
+
+  private presentarDatosEvento(
+    partida: { jugadorAId: string; jugadorBId: string | null },
+    datos: Prisma.JsonValue,
+  ): Record<string, Prisma.JsonValue> {
+    if (!datos || typeof datos !== 'object' || Array.isArray(datos)) return {};
+    const publicos: Record<string, Prisma.JsonValue> = {};
+    // Lista cerrada: también protege la lectura de eventos históricos.
+    for (const campo of [
+      'area',
+      'ronda',
+      'movimiento',
+      'motivo',
+      'posicionCuerda',
+      'respuestaCorrectaId',
+      'explicacion',
+      'resultado',
+      'iniciaEn',
+      'venceEn',
+    ]) {
+      const valor = datos[campo];
+      if (
+        valor === null ||
+        typeof valor === 'string' ||
+        typeof valor === 'number' ||
+        typeof valor === 'boolean'
+      ) {
+        publicos[campo] = valor;
+      }
+    }
+    for (const campo of ['jugadorBId', 'abandonoUsuarioId', 'ganadorId']) {
+      if (campo in datos) {
+        publicos[campo] = this.referenciaJugador(partida, datos[campo]);
+      }
+    }
+    return publicos;
   }
 
   async marcarListo(usuarioId: string, partidaId: string) {

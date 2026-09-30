@@ -52,6 +52,25 @@ describe('TiraAflojaWsAuthService', () => {
     expect(verificar).not.toHaveBeenCalled();
   });
 
+  it('rechaza el bypass por websocket con contraseña inicial pendiente', async () => {
+    buscarUsuario.mockResolvedValue({
+      id: 'usuario-1',
+      rol: RolUsuario.ESTUDIANTE,
+      correoVerificado: true,
+      debeCambiarContrasena: true,
+    });
+    await expect(
+      servicio.autenticar(socket({ auth: { token: 'token' }, headers: {} })),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(buscarUsuario).toHaveBeenCalledWith(
+      expect.objectContaining<Record<string, unknown>>({
+        select: expect.objectContaining<Record<string, unknown>>({
+          debeCambiarContrasena: true,
+        }),
+      }),
+    );
+  });
+
   it('rechaza cuentas que no son de estudiante', async () => {
     buscarUsuario.mockResolvedValue({
       id: 'profesor-1',

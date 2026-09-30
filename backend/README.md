@@ -1,5 +1,13 @@
 # API de SaberPlus
 
+> Conciliación del relevo, 29 de septiembre de 2026: las referencias «sigue
+> MA-3C», «sigue JN-2C» y «pendiente de JN-1C» inferiores describen el cierre
+> histórico de cada entrega backend. Las tres integraciones Flutter ya existen
+> en el HEAD auditado; MA-2A/B/C y MA-3A/B/C están implementadas localmente.
+> Ensayos integrados y despliegue siguen sin acreditarse en esta auditoría.
+> Consultar la Ruta vigente del equipo en Flutter (`docs/ETAPAS_PENDIENTES.md`)
+> y su auditoría de relevo. No comenzar PR-I1 antes de resolver las decisiones.
+
 MA-3B: [Agenda y sincronización del repaso diferido](DEFERRED_REVIEW.md).
 Implementada/probada localmente: API privada, recibos idempotentes y migración
 con RLS. Sin despliegue en Supabase. Sigue MA-3C (UI y ciclo de sincronización Flutter).

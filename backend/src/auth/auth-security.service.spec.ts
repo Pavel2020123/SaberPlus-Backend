@@ -224,9 +224,37 @@ describe('AuthService: consumo de credenciales y acceso académico', () => {
   });
 
   it('el perfil no bloquea estudio por un plan legado vencido', async () => {
+    usuario.findUnique.mockResolvedValue({
+      id: 'student-1',
+      rol: 'ESTUDIANTE',
+      institucionId: null,
+      correoVerificado: false,
+      debeCambiarContrasena: false,
+      fechaVencimientoPlan: new Date('2020-01-01T00:00:00Z'),
+    });
     await expect(service.obtenerPerfil('student-1')).resolves.toMatchObject({
       planVencido: false,
       requiereVerificacionCorreo: true,
+    });
+  });
+
+  it('limita el perfil temporal al contrato de sesión sin foto ni progreso', async () => {
+    usuario.findUnique.mockResolvedValue({
+      id: 'student-1',
+      nombre: 'Estudiante',
+      correo: 'student@example.invalid',
+      rol: 'ESTUDIANTE',
+      debeCambiarContrasena: true,
+      xpTotal: 900,
+      fotoPerfil: 'foto-privada',
+      descripcion: 'privada',
+    });
+    await expect(service.obtenerPerfil('student-1')).resolves.toEqual({
+      id: 'student-1',
+      nombre: 'Estudiante',
+      correo: 'student@example.invalid',
+      rol: 'ESTUDIANTE',
+      debeCambiarContrasena: true,
     });
   });
 });

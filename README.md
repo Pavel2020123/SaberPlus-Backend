@@ -1,5 +1,14 @@
 # SaberPlus Backend
 
+> Estado del relevo, 29 de septiembre de 2026: MA-2A/B/C y MA-3A/B/C tienen
+> implementación local en backend, ADMIN (MA-2) y Flutter; JN-1C/JN-2C también
+> existen. No acredita migraciones, despliegue ni ensayo físico. Los apartados
+> editoriales históricos inferiores no definen la siguiente etapa global:
+> el flujo actual `/admin/simple` guarda/publica directamente con permisos y
+> validaciones; no hay que reponer la revisión editorial histórica obligatoria.
+> Consultar la Ruta vigente del equipo en Flutter (`docs/ETAPAS_PENDIENTES.md`)
+> y `docs/AUDITORIA_RELEVO_2026-09-28.md`. PR-I1 espera decisiones del propietario.
+
 API oficial de SaberPlus. Centraliza autenticacion, permisos, contenido
 academico, diagnosticos, intentos, calificacion, gamificacion, instituciones y
 reglas de negocio. La aplicacion Flutter no accede directamente a PostgreSQL.
