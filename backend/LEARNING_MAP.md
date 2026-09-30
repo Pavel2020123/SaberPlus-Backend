@@ -1,5 +1,12 @@
 # MA-2A — Reglas y backend del mapa de aprendizaje
 
+> Documento histórico de MA-2A y contrato de referencia. No define la siguiente
+> etapa global. Al relevo del 29 de septiembre de 2026, MA-2B (ADMIN) y MA-2C
+> (Flutter) ya tienen implementación y pruebas locales. Las menciones «pendiente»
+> y «Próximo» inferiores conservan el contexto de esta entrega; no autorizan
+> repetirlas. Falta ensayo real y no se acredita migración/despliegue. Consultar
+> la Ruta vigente del equipo: Flutter `docs/ETAPAS_PENDIENTES.md`.
+
 Implementación local, 27 de septiembre de 2026. No desplegada ni aplicada a Supabase.
 MA-2B (panel) y MA-2C (Flutter) siguen pendientes: esta entrega no agrega pantallas.
 

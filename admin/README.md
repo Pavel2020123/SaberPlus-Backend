@@ -1,5 +1,15 @@
 # Panel administrativo de SaberPlus
 
+> Conciliación del relevo, 29 de septiembre de 2026: este archivo conserva
+> entregas históricas y sus cifras de pruebas. No define la siguiente etapa
+> global. MA-2C Flutter ya está implementada; «Sigue MA-2C» al final describe
+> el cierre histórico de MA-2B. El editor actual usa guardado/publicación directa
+> por `/admin/simple`, con permisos y validaciones; no restaurar un gate de
+> revisión obligatorio por leer apartados antiguos. Línea base actual: check de
+> 22 módulos y 88 pruebas locales; revisión visual e integración real pendientes.
+> Consultar la Ruta vigente del equipo en Flutter (`docs/ETAPAS_PENDIENTES.md`)
+> y `docs/AUDITORIA_RELEVO_2026-09-28.md` antes de PR-I1.
+
 ## MA-1 — Cobertura básica (24 de septiembre de 2026)
 
 Nueva pestaña **Cobertura**: seleccionar área para consultar por subtema preguntas
