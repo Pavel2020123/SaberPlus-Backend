@@ -142,6 +142,8 @@ model Institucion {
 }
 
 model Usuario {
+  eventosXpCompetitivo EventoXpCompetitivo[]
+  balancesCompetitivos BalanceCompetitivo[]
   repasosDiferidos RepasoDiferido[]
   eventosRepaso EventoRepasoDiferido[]
   solicitudAltaInstitucion SolicitudAltaInstitucion?
@@ -224,6 +226,102 @@ model Usuario {
   invitacionesAceptadas     InvitacionInstitucion[]       @relation("ReceptorInvitacionInstitucion")
   auditoriasCreadas         AuditoriaInstitucion[]        @relation("ActorAuditoriaInstitucion")
   auditoriasRecibidas       AuditoriaInstitucion[]        @relation("AfectadoAuditoriaInstitucion")
+}
+
+enum JuegoCompetitivo {
+  TRIVIA_RUSH
+  GHOST_DUEL
+  SUMMIT
+  TUG_OF_WAR
+  GUARDIAN
+  MEMORY_MATCH
+  BATTLES
+  STAR_RESCUE
+}
+
+enum TipoEventoXpCompetitivo {
+  RESULTADO
+  ABANDONO
+  VICTORIA_POR_ABANDONO
+  CORRECCION
+}
+
+enum FuenteXpCompetitivo {
+  TRIVIA_ATTEMPT
+  SUMMIT_ATTEMPT
+  TUG_MATCH
+  GUARDIAN_ATTEMPT
+  MEMORY_ATTEMPT
+  BATTLE
+  STAR_RESCUE_ATTEMPT
+}
+
+enum EstadoEventoXpCompetitivo {
+  APLICADO
+}
+
+model BalanceCompetitivo {
+  usuarioId String @db.Uuid
+  gameId JuegoCompetitivo
+  temporada Int
+  xp Int @default(0)
+  alcanzadoEn DateTime? @db.Timestamptz(3)
+  updatedAt DateTime @default(now()) @db.Timestamptz(3)
+  version Int @default(0)
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Restrict)
+
+  @@id([usuarioId, gameId, temporada])
+  @@index([gameId, temporada])
+}
+
+model EventoXpCompetitivo {
+  id String @id @default(uuid()) @db.Uuid
+  usuarioId String @db.Uuid
+  gameId JuegoCompetitivo
+  temporada Int
+  xpRulesVersion Int
+  tipo TipoEventoXpCompetitivo
+  deltaNominal Int
+  deltaAplicado Int
+  saldoAntes Int
+  saldoDespues Int
+  secuencia Int
+  sourceType FuenteXpCompetitivo
+  sourceId String @db.VarChar(120)
+  // SETTLEMENT for all terminal outcomes; correction operation UUID otherwise.
+  liquidacion String @db.VarChar(50)
+  idempotencyKey String @unique @db.VarChar(64)
+  evidenciaHash String @db.VarChar(64)
+  // Historical reference, deliberately not a cascading FK to current membership.
+  institucionId String? @db.Uuid
+  fechaEfectiva DateTime @db.Timestamptz(3)
+  fechaRegistro DateTime @default(now()) @db.Timestamptz(3)
+  estado EstadoEventoXpCompetitivo @default(APLICADO)
+  eventoCorregidoId String? @db.Uuid
+  actorId String? @db.Uuid
+  motivo String? @db.VarChar(500)
+  metadata Json @default("{}")
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Restrict)
+  eventoCorregido EventoXpCompetitivo? @relation("CorreccionXp", fields: [eventoCorregidoId], references: [id], onDelete: Restrict)
+  correcciones EventoXpCompetitivo[] @relation("CorreccionXp")
+
+  @@unique([sourceType, sourceId, usuarioId, liquidacion])
+  @@unique([usuarioId, gameId, temporada, secuencia])
+  @@index([gameId, temporada])
+  @@index([institucionId, temporada])
+  @@index([fechaEfectiva])
+  @@index([eventoCorregidoId])
+}
+
+// Append-only snapshots of institutional membership, including explicit null.
+// The first record marks known coverage, never invented historical membership.
+model HistorialInstitucionCompetitiva {
+  id BigInt @id @default(autoincrement())
+  usuarioId String @db.Uuid
+  institucionId String? @db.Uuid
+  desde DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([usuarioId, desde, id])
 }
 
 enum RolUsuario {
