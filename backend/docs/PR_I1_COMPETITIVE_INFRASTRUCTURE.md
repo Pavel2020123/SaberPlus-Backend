@@ -1,8 +1,77 @@
 # PR-I1 V1: infraestructura competitiva común
 
-Estado: primera ronda implementada para revisión; **PR-I1 no completado**. No hay juegos habilitados, endpoints competitivos ni integración masiva. `CompetitiveModule` exporta el servicio, pero todavía no está importado por `AppModule`; su registro de verificadores está vacío deliberadamente.
+Estado: infraestructura común y primera integración de **SUMMIT, GUARDIAN y STAR_RESCUE** implementadas para revisión; **PR-I1 sigue abierto**. Los tres módulos de juego importan `CompetitiveModule`, que registra sus verificadores reales y un reconciliador común. No hay endpoint genérico de XP. Los otros cinco juegos siguen sin integración. Código y nueva migración de esta ronda no desplegados; Flutter no se modifica.
 
 Autoridad de producto: `saber_plus/docs/PLAN_MAESTRO_COMPETITIVO.md` y sección 12 de `saber_plus/docs/PR_I1_AUDITORIA_FORMULAS.md`, Flutter `main` `6903816`. La petición de implementación de esta ronda sustituye la anterior parada documental. Backend inicial: `feat/pr-i1-competitive-infrastructure`, `fb27225d96376c3867418d9f5a1a53030d2256c0`. No se modifican Flutter, dependencias ni `Usuario.xpTotal`.
+
+La ronda de integración parte del checkpoint **08fa13b4093a237ab168b519c293c45a67d1d8fc**, misma rama, working tree inicialmente limpio. La migración base competitiva versionada se conserva intacta.
+
+## Integración individual: activación y autoridad
+
+La admisión de **nuevos** intentos competitivos requiere además `COMPETITIVE_SOLO_ENABLED=true` en el entorno del backend. La comprobación está centralizada en `competitive.activation.ts`, compartida por los tres servicios. Ausencia, `false` o cualquier valor distinto del literal `true` deshabilitan la creación; devuelve HTTP 403 con código `COMPETITIVE_SOLO_DISABLED`, sin crear un intento. `.env.example` declara false. Flutter no configura este valor ni puede sustituirlo mediante el payload.
+
+El gate se evalúa después de recuperar un intento activo compatible y antes de seleccionar el banco/crear uno nuevo. Por ello apagarlo no modifica registros existentes ni impide continuar un competitivo previamente aceptado, incluso si el cliente repite `competitive:true` al recuperarlo. Tampoco se consulta en respuestas, abandono, verificación, liquidación o reconciliación. Los intentos legacy siguen funcionando y el flag habilitado no omite elegibilidad, snapshots, locks ni validaciones. No habilita los otros cinco juegos ni cambia XP V1. Un cambio del entorno operativo requiere reiniciar/recrear las instancias según el mecanismo de despliegue; no existe un endpoint para modificarlo.
+
+### Compatibilidad y orden seguro de despliegue
+
+**El flag no hace compatible este backend con un esquema anterior.** Prisma lee los campos nuevos incluso en operaciones legacy y el reconciliador consulta las tablas al arrancar. Deben estar aplicadas tanto `20260930120000_competitive_infrastructure` como `20260930180000_competitive_solo_runtime` antes de ejecutar este backend. No se añade fallback a un esquema viejo ni se interpreta un error de esquema como cero XP o cola vacía. Las operaciones propagan errores de Prisma; el worker registra explícitamente `COMPETITIVE_SCHEMA_MISSING` para tablas/columnas ausentes (P2021/P2022 y SQL 42P01/42703 mediante P2010), y conserva los pendientes para reintento. Un arranque HTTP por sí solo no demuestra compatibilidad del esquema.
+
+Orden obligatorio para un despliegue futuro autorizado:
+
+1. Respaldo verificable y revisión de migraciones, retención de evidencia, locks y plan de reversión. La nueva migración es aditiva para el cliente Prisma anterior, pero habilita RLS en Guardián y restringe escrituras competitivas; no asumir compatibilidad de permisos sin comprobarla.
+2. Verificar rol PostgreSQL efectivo del backend y gate RLS descrito en este informe, incluidos intentos, ledger, balance, historial y triggers. Sigue sin evidencia de producción.
+3. Aplicar **con autorización** las migraciones pendientes compatibles, respetando el orden base → runtime individual, antes del nuevo backend. No ejecutar `db push` como sustituto ni editar migraciones aplicadas.
+4. Verificar historial de migraciones, columnas/tipos/defaults, índices, constraints/triggers y permisos reales. Comprobar acceso del backend y denegación de anon/authenticated. Resolver cualquier esquema faltante antes de continuar.
+5. Desplegar backend con `COMPETITIVE_SOLO_ENABLED=false` explícito en todas las instancias. El worker debe ejecutarse también con el flag apagado.
+6. Realizar pruebas operativas autorizadas: creación/continuación legacy, rechazo de nuevos competitivos, salud de consultas/reconciliación, ausencia de errores de esquema y recuperación de intentos ya aceptados donde existan. Las pruebas positivas de activación se validan antes en un entorno autorizado y aislado.
+7. Solo después de revisar los resultados, activar explícitamente `COMPETITIVE_SOLO_ENABLED=true`. Apagarlo posteriormente bloquea nuevas admisiones; deja activos cierre y recuperación. No revertir/eliminar esquema o evidencia mientras haya intentos pendientes.
+
+Esta ronda solo prueba PostgreSQL local desechable; no aplica migraciones remotas ni confirma el rol de producción.
+
+Los POST existentes de creación de Cima, Guardián y Rescate aceptan ahora `competitive?: boolean`. Omitirlo al crear un intento, o enviar false, conserva el modo no competitivo. Solo true permite solicitar un intento competitivo; el servidor verifica ESTUDIANTE y construye un snapshot completo con preguntas publicadas. El flag no admite strings/números coercionados aunque la configuración global de validación convierta tipos. No se aceptan XP, victoria, métricas finales, institución, temporada, snapshot ni fecha de inicio del cliente.
+
+No existe importación de partidas offline: el inicio competitivo es una llamada autenticada online que crea un intento vacío con ID, configuración, snapshot y reloj servidor. Una partida local/práctica anterior no puede convertirse mediante este campo ni cargar sus resultados históricos. La desconexión posterior a un inicio online no invalida la sesión recuperable de 24 h. No se añade heartbeat.
+
+`competitiveRulesVersion` es null para todos los intentos previos y para los nuevos legacy/práctica. Es 1 únicamente en nuevos inicios competitivos autorizados. Es inmutable, incluso al intentar promover un registro legacy por SQL. Si ya hay un intento activo, un cambio explícito de modo produce conflicto; omitir el campo al recuperar conserva el modo del intento existente. El estado público incorpora únicamente el booleano `competitive`, sin ledger, hashes, marcas internas de cola ni datos institucionales. Se mantiene la revisión pedagógica ya existente de respuestas respondidas de Guardián; no se añaden soluciones futuras ni evidencia competitiva privada.
+
+`SoloCompetitiveVerifier` tiene tres instancias registradas para SUMMIT_ATTEMPT, GUARDIAN_ATTEMPT y STAR_RESCUE_ATTEMPT. Lee y bloquea el intento dentro de la transacción de `CompetitiveService`; verifica propiedad, origen competitivo V1, versión del motor, fecha y estado terminal, plazo de 24 h, tamaño/configuración del snapshot, preguntas/opciones únicas y secuencia de respuestas. Recalcula cada acierto comparando opción aceptada y solución privada del snapshot; comprueba el booleano persistido, deduplica claves y rechaza respuestas posteriores al resultado terminal. Los motores existentes reconstruyen altura máxima, escudos, estrellas y constelaciones. No consulta el banco actual para sustituir el snapshot.
+
+La liquidación normal y el abandono usan las reglas V1 existentes. Abandono explícito o caducidad definitiva generan nominal -10 sin premio parcial; el balance aplica piso cero. Una caducidad competitiva usa `finalizadoEn = venceEn`, el plazo servidor definitivo, aunque se detecte más tarde; así no cambia temporada/institución por demorar el reinicio. Los intentos legacy conservan su comportamiento previo de caducidad. Un microcorte no cierra ninguno de estos tres juegos.
+
+## Recuperación durable y nueva migración
+
+Nueva migración **`20260930180000_competitive_solo_runtime`**, posterior a la base; añade a IntentoCima, IntentoGuardian e IntentoRescateEstrellas:
+
+| Campo | Significado |
+|---|---|
+| competitiveRulesVersion nullable | null = no competitivo; 1 = nuevo intento competitivo online autorizado. |
+| competitiveSettledAt nullable | Acuse de ledger confirmado; null mantiene trabajo pendiente. |
+| competitiveRetryAt | Momento del siguiente intento de reconciliación; permite posponer errores sin bloquear las demás partidas. |
+
+La propia fila del intento es la cola durable: `competitiveRulesVersion=1`, acuse null y estado terminal, o estado ACTIVO con plazo vencido. No se necesita otra outbox porque el resultado terminal y la evidencia se escriben en esa misma fila/transacción. No se depende de un callback ni de que el cliente vuelva a consultar.
+
+`CompetitiveReconciler` se inicia con el módulo Nest: escanea al arrancar y cada **30 segundos**, hasta 25 candidatos por juego en cada pasada. Los escaneos se excluyen dentro de un proceso y la idempotencia/locks de PostgreSQL protegen entre procesos. Cierra sesiones vencidas bajo lock y llama al servicio de liquidación fuera de esa transacción. Tras un fallo, conserva el pendiente, registra un código de error seguro y pospone un minuto su próximo intento. Una caída de DB no elimina pendientes ni detiene futuras pasadas. El apagado cancela el temporizador y espera la pasada activa.
+
+Casos de caída:
+
+1. **Antes de persistir cierre:** se revierte la transacción; el intento sigue recuperable o el reconciliador lo vence después de su plazo.
+2. **Cierre persistido, sin ledger:** la fila terminal conserva acuse null; otro proceso/pasada la detecta y liquida.
+3. **Ledger confirmado, sin acuse:** el siguiente intento devuelve el mismo evento por identidad fuente/participante, sin volver a incrementar saldo/secuencia; después escribe el acuse.
+4. **Evidencia o historial insuficientes:** no se acredita ni se usa institución actual como sustituto. El intento continúa pendiente con reintento diferido. Una inconsistencia permanente necesita revisión operativa; el reconciliador no falsifica evidencia ni reescribe un terminal inmutable.
+
+Los constraints/triggers nuevos conservan modo, configuración, snapshot, propietario, fechas de inicio/plazo y versión; respuestas solo se agregan al final, de una en una. Un terminal no puede alterar resultado/respuestas/fecha. Se prohíbe eliminar evidencia competitiva y marcar liquidación sin ledger correspondiente. Los CHECK exigen V1, ventana exacta de 24 h, fechas/estado coherentes y acuse solo para competitivos terminales. Se conservan los constraints existentes de un único intento activo y banco/tamaño de cada motor. Se añaden tres índices de búsqueda por versión/acuse/reintento.
+
+RLS de los snapshots se conserva y se habilita también en Guardián; se revocan permisos públicos/anon/authenticated para las tres tablas. El gate de rol efectivo de producción descrito más abajo sigue pendiente y ahora comprende también las tablas de intentos y el SELECT del ledger que realiza el trigger del acuse. No se ejecutó ninguna migración remota.
+
+### Orden de locks
+
+Los servicios conservan su advisory lock por juego/usuario para las operaciones existentes, y después bloquean Usuario y revalidan ESTUDIANTE dentro de la transacción, antes de leer/modificar el intento. Guardián conserva además su rechazo temprano y añade la comprobación transaccional. La recuperación adquiere Usuario → intento; la liquidación adquiere identidad idempotente → Usuario → intento → balance. Ningún verificador/reconciliador solicita el advisory de juego después de bloquear Usuario. El acuse solo modifica el intento y no adquiere después un lock de usuario. No se llama a `settle` desde una transacción de respuesta/cierre, evitando inversión de locks.
+
+La fecha normal de cierre se fija dentro de la transacción que mantiene bloqueado Usuario, serializando frente a cambios institucionales. Las respuestas tardías compiten con la caducidad bajo ese mismo lock y no se aceptan después del plazo. Las pruebas usan PostgreSQL real para respuestas/reintentos/caducidad/liquidaciones concurrentes.
+
+### Alcance y límites de esta integración
+
+"Integrado" significa que un nuevo intento online con opt-in servidor puede recorrer creación → snapshot/respuestas persistidos → cierre → verificador real → ledger/balance y recuperarse tras reiniciar sin volver a pagar. No significa desplegado ni activado desde Flutter, que aún omite el opt-in. La liquidación es eventual; requiere al menos una instancia backend ejecutándose y los permisos/migraciones correctos. Los lotes de 25 y reintentos son parámetros operativos, no límites de recompensa. No se agrega UI, ranking ni endpoint público para inspeccionar pendientes. PR-I1 continúa abierto.
 
 ## Motor puro V1
 
@@ -36,7 +105,7 @@ Los límites terminales se contrastaron con `guardian.rules.ts`, `summit.rules.t
 - Prioridad del abandono definitivo sobre rendimiento parcial, y ambos ausentes sin ganador ni premio positivo. Una partida larga u oscilante no es fraude por sí misma.
 - Plazos y presencia durable: no basta un socket desconectado, heartbeat o afirmación del rival. Retener rival, rondas, movimientos, respuestas, resultado, duración y abandono en evidencia privada del origen para análisis futuro.
 
-Los adaptadores deben usar un orden de locks compatible: usuario/rol y después origen, sin adquirirlos en orden inverso desde cierres del juego. Deben serializar el timestamp terminal con cambios de membresía sobre el mismo usuario. No registrar fuentes hasta completar estas garantías. Los adaptadores de prueba leen una tabla de fixtures que solo existe en PostgreSQL desechable; no se incluyen en el módulo de producción.
+Los adaptadores deben usar un orden de locks compatible: usuario/rol y después origen, sin adquirirlos en orden inverso desde cierres del juego. Deben serializar el timestamp terminal con cambios de membresía sobre el mismo usuario. Solo los tres verificadores individuales descritos arriba se registran ahora. Los adaptadores sintéticos de pruebas de infraestructura permanecen exclusivos del PostgreSQL desechable; no se incluyen en el módulo de producción.
 
 ## Persistencia, transacciones e idempotencia
 
@@ -115,7 +184,7 @@ Victoria por abandono es un tipo separado para Tira/Batallas. Exige partida acti
 
 `competitive.source.ts` enumera explícitamente los contratos comprobados en `prisma/schema.prisma`. No se normalizan identificadores arbitrarios por semejanza con UUID.
 
-| Fuente | Modelo/campo real (línea del schema) | Representación aceptada/canónica |
+| Fuente | Modelo/campo real (línea del schema en checkpoint 08fa13b) | Representación aceptada/canónica |
 |---|---|---|
 | TRIVIA_ATTEMPT | `IntentoTriviaRush.id`, 1081; `@db.Uuid`, `uuid_generate_v4()` | UUID estándar 8-4-4-4-12; minúsculas antes de lock/hash/consulta. Trivia y Duelo comparten fuente. |
 | SUMMIT_ATTEMPT | `IntentoCima.id`, 1370; `@db.Uuid`, `uuid()` | Igual. |
@@ -125,7 +194,7 @@ Victoria por abandono es un tipo separado para Tira/Batallas. Exige partida acti
 | STAR_RESCUE_ATTEMPT | `IntentoRescateEstrellas.id`, 1390; `@db.Uuid`, `uuid()` | Igual. |
 | MEMORY_ATTEMPT | No existe modelo/intento servidor de Memoria | Sin contrato canónico aprobado; siempre bloqueado, sin convertir identificadores locales a UUID. |
 
-Las líneas señalan el campo ID en el schema de esta revisión; el nombre de modelo/campo es la referencia estable. UUID compacto, con llaves, espacios o guiones alternativos se rechaza, aunque PostgreSQL pueda aceptar algunas variantes como UUID. Nunca se usa su texto sin normalizar para crear otra identidad. El CHECK SQL de `sourceId` exige representación UUID estándar en minúsculas para las fuentes actualmente habilitables; Memoria permanece prohibida por su propio CHECK. Las pruebas cubren las seis familias, retry concurrente con mayúsculas/minúsculas, alternativas rechazadas y escritura directa no canónica rechazada.
+Las líneas señalan el campo ID en el schema del checkpoint 08fa13b; el nombre de modelo/campo es la referencia estable. UUID compacto, con llaves, espacios o guiones alternativos se rechaza, aunque PostgreSQL pueda aceptar algunas variantes como UUID. Nunca se usa su texto sin normalizar para crear otra identidad. El CHECK SQL de `sourceId` exige representación UUID estándar en minúsculas para las fuentes actualmente habilitables; Memoria permanece prohibida por su propio CHECK. Las pruebas cubren las seis familias, retry concurrente con mayúsculas/minúsculas, alternativas rechazadas y escritura directa no canónica rechazada.
 
 ### Auditoría completa de pertenencia institucional actual
 
@@ -167,20 +236,20 @@ Antes de ejecutar esta migración en Supabase/producción, el responsable del de
 
 El test local comprueba catálogos/permisos/RLS y ejecuta SELECT e INSERT bajo `SET LOCAL ROLE anon/authenticated`, exigiendo error PostgreSQL 42501. El gate de producción permanece **pendiente**, no aprobado por esos resultados locales.
 
-Ninguno está conectado al runtime competitivo; tener una función pura no habilita el juego.
+Solo los tres juegos individuales están conectados al runtime competitivo por opt-in. Tener una función pura no habilita los otros cinco.
 
 | Juego | Regla V1 implementada | Integrado al runtime | Autoridad suficiente | Estado |
 |---|---|---|---|---|
 | Trivia Rush | Sí | No | Parcial: falta snapshot competitivo Q y cierre/presencia durable | Preparado/no conectado |
 | Duelo fantasma | Sí | No | No: modo y fantasma inicial no persistidos | Bloqueado por autoridad |
-| Cima | Sí | No | Para aritmética normal; falta contexto/cierre competitivo | Listo para ronda de integración |
+| Cima | Sí | Sí, opt-in | Snapshot/replay, cierre y recuperación servidor | Integrado backend; no desplegado |
 | Tira y afloja | Sí | No | Parcial: faltan R/Qpartida y presencia/cierre durable | Preparado/no conectado |
-| Guardián | Sí | No | Para aritmética normal; falta contexto/cierre competitivo | Listo para ronda de integración |
+| Guardián | Sí | Sí, opt-in | Snapshot/replay, cierre y recuperación servidor | Integrado backend; no desplegado |
 | Memoria | Pura futura | No | No: solo estado local | Bloqueado por autoridad |
 | Batallas | Sí | No | Parcial: banco degradado y abandono deben cerrarse | Bloqueado por autoridad |
-| Rescate de estrellas | Sí | No | Para aritmética normal; falta contexto/cierre competitivo | Listo para ronda de integración |
+| Rescate de estrellas | Sí | Sí, opt-in | Snapshot/replay, cierre y recuperación servidor | Integrado backend; no desplegado |
 
-Para completar PR-I1: implementar/verificar snapshots y adaptadores por juego; persistir presencia, plazos y cierres idempotentes; resolver los bloqueos de Duelo/Memoria/banco de Batallas; conectar el módulo y probar la integración real preservando XP general/privacidad; revisar y aplicar la migración únicamente mediante un proceso autorizado posterior. No corresponde iniciar rankings TOP 50, insignias ni PR-I2.
+Para completar PR-I1: integrar Trivia con Q competitivo inmutable y cierre/presencia; Duelo con modo y fantasma inicial persistidos; Tira con R/Qpartida y presencia/cierre durable; Memoria con motor autoritativo; Batallas con banco completo y abandono asíncrono verificado. Para estos tres individuales restan la revisión/despliegue autorizado, el gate de rol/RLS y la futura activación del cliente; no falta un callback de recuperación. Mantener vigilancia de pendientes bloqueados por datos/permisos. No corresponde iniciar rankings TOP 50, insignias ni PR-I2.
 
 No se detectó contradicción interna con las reglas V1. Las carencias de evidencia actual son requisitos técnicos de integración, no decisiones de producto reabiertas. No se promete recuperar pertenencia institucional anterior a esta migración ni convertir partidas locales antiguas en competitivas.
 
@@ -191,15 +260,46 @@ Desde `backend`:
 ```powershell
 npm run build
 npm test -- --runInBand competitive
+npm test -- --runInBand 'summit|guardian|star-rescue'
 npm test -- --runInBand
 node tool/test_competitive_postgres.mjs
 npm audit --omit=dev
+git diff --check
 ```
 
-El ejecutor PostgreSQL usa Docker con socket/pipe local, contenedor con nombre/label de propiedad aleatorios, almacenamiento efímero, puerto aleatorio publicado solo en `127.0.0.1` y credenciales temporales. No carga `.env`, ignora URLs heredadas y el test valida un marcador de propiedad antes de conectar. Aplica las migraciones versionadas de HEAD y solo la migración local competitiva explícita, nunca otras pendientes. Al finalizar verifica propiedad y elimina su contenedor/directorio; no usa ni modifica servicios PostgreSQL existentes.
+El ejecutor PostgreSQL usa Docker con socket/pipe local, contenedor con nombre/label de propiedad aleatorios, almacenamiento efímero, puerto aleatorio publicado solo en `127.0.0.1` y credenciales temporales. No carga `.env`, ignora URLs heredadas y el test valida un marcador de propiedad antes de conectar. Aplica las 51 migraciones versionadas de HEAD y solo la nueva migración local `20260930180000_competitive_solo_runtime`, nunca otras pendientes. Se amplía el mismo runner para ejecutar los archivos de pruebas comunes y de los tres juegos; no se crea otro runner. Al finalizar verifica propiedad y elimina su contenedor/directorio; no usa ni modifica servicios PostgreSQL existentes.
 
 Las pruebas incluyen ocho fórmulas, half-up, límites, memoria bloqueada, reconexión, fechas Bogotá, roles, historial, ausencia de institución, banco insuficiente, ambos ausentes, correcciones, idempotencia incompatible, doble liquidación concurrente, fuentes concurrentes, correcciones concurrentes, piso, secuencias, independencia entre juegos/XP general, constraints, RLS y rollback inyectado después de insertar ledger.
 
 Resultados de la revisión previa al checkpoint: build correcto; suite dirigida competitiva **66/66**; suite completa **90 suites y 944 pruebas aprobadas** (incluye las 66); PostgreSQL 16 real **24/24**, aplicando las 50 migraciones versionadas y la nueva migración competitiva; `git diff --check` sin errores. El audit de dependencias de producción terminó con **0 vulnerabilidades**, usando temporalmente `NODE_OPTIONS=--use-system-ca` por la cadena de certificados local detectada en la primera ronda, sin desactivar TLS ni cambiar dependencias/configuración persistente. Las pruebas adicionales verifican el rechazo de invalidación, canonicalización por familia y sincronización institucional mediante servicios reales.
 
-Las pruebas PostgreSQL usan fuentes sintéticas persistidas, no telemetría ni integración de juegos en producción. Cubren también UUID con distinta capitalización, sin segundo pago. Las instancias desechables se eliminaron al finalizar. No se ejecutaron migraciones sobre Supabase, Render o producción. No se hicieron commit, push, merge ni despliegue.
+Resultados de esta ronda de integración (2026-10-01):
+
+| Comprobación | Resultado |
+|---|---|
+| `npm run build` | Correcto. |
+| `npm test -- --runInBand competitive` | 2 suites, 85/85 pruebas. |
+| Dirigidas `summit\|guardian\|star-rescue` | 7 suites, 40/40 pruebas. |
+| `npm test -- --runInBand` | 91 suites, 963/963 pruebas, incluidas las anteriores. |
+| `node tool/test_competitive_postgres.mjs` | 59/59 pruebas reales: 24 comunes y 35 de integración; 51 migraciones versionadas y la nueva migración de esta ronda. |
+| `npm audit --omit=dev` | 0 vulnerabilidades; CA del sistema temporal, TLS activo, sin cambios de dependencias. |
+| `git diff --check` | Sin errores. |
+
+Las pruebas nuevas ejercitan creación real desde los servicios, victoria, derrota/agotamiento, abandono, caducidad, evidencia inválida, roles, privacidad, historial, temporada, doble respuesta/liquidación y conservación de XP general. Cubren arranque del módulo Nest real, barrido automático/periódico, caída de DB y apagado. En PostgreSQL se omite deliberadamente la liquidación después del cierre persistido y dos reconciliadores recuperan un único ledger; también se inyecta una caída después de confirmar ledger y antes del acuse, y el reinicio reutiliza ese evento. Los rechazos de evidencia/historial y fallos inyectados producen logs esperados sin acreditar XP.
+
+Las pruebas PostgreSQL usan fixtures persistidas y servicios reales, no telemetría ni integración de juegos en producción. Cubren también UUID con distinta capitalización, sin segundo pago. Las instancias desechables se eliminaron al finalizar. No se ejecutaron migraciones sobre Supabase, Render o producción. No se hicieron commit, push, merge ni despliegue.
+
+### Revisión adicional: activación controlada y despliegue (2026-10-01)
+
+Resultados finales posteriores al feature flag y al diagnóstico explícito de esquema:
+
+| Comando | Resultado |
+|---|---|
+| `npm run build` | Correcto. |
+| `npm test -- --runInBand competitive` | 3 suites; 96/96 pruebas. |
+| `npm test -- --runInBand` | 92 suites; 974/974 pruebas. |
+| `node tool/test_competitive_postgres.mjs` | 62/62; contenedor local desechable eliminado. |
+| `npm audit --omit=dev` | 0 vulnerabilidades; CA del sistema temporal y TLS activo. |
+| `git diff --check` | Sin errores. |
+
+Las pruebas de activación rechazan valores ausentes/false/no reconocidos y permiten solo true explícito. Por cada juego, PostgreSQL verifica rechazo sin insertar filas, creación y cierre legacy, aceptación con flag true, recuperación del intento activo tras apagarlo, respuesta/cierre posterior, dos reconciliadores concurrentes con un único evento de 100 XP y rechazo de una nueva partida después de ese cierre. Las pruebas de profesores/administradores, snapshots y banco siguen ejecutándose con admisión habilitada; el flag no sustituye elegibilidad. Cuatro casos adicionales comprueban el diagnóstico de tabla/columna faltante. No se requiere otra migración para el flag ni se modifica la migración base.

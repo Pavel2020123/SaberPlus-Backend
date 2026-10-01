@@ -1,3 +1,4 @@
+import { Transform } from 'class-transformer';
 import {
   Body,
   Controller,
@@ -11,6 +12,7 @@ import {
 import { AreaIcfes, Dificultad } from '@prisma/client';
 import {
   IsEnum,
+  IsBoolean,
   IsOptional,
   IsString,
   IsUUID,
@@ -23,6 +25,10 @@ import { EmailVerificadoGuard } from '../auth/email-verificado.guard';
 import { StarRescueService } from './star-rescue.service';
 
 export class CreateStarRescueDto {
+  @IsOptional()
+  @IsBoolean()
+  @Transform(({ obj }) => obj.competitive)
+  competitive?: boolean;
   @IsEnum(AreaIcfes) area!: AreaIcfes;
   @IsOptional() @IsEnum(Dificultad) dificultad?: Dificultad;
   @IsOptional() @IsString() @Matches(/\S/) @MaxLength(100) temaId?: string;

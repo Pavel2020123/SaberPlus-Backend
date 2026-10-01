@@ -166,7 +166,7 @@ async function main() {
     for (const path of paths)
       sql.push((await run('git', ['show', `HEAD:backend/${path}`])).stdout);
     const migration =
-      'prisma/migrations/20260930120000_competitive_infrastructure/migration.sql';
+      'prisma/migrations/20260930180000_competitive_solo_runtime/migration.sql';
     if (!paths.includes(migration))
       sql.push(await readFile(join(backend, migration), 'utf8'));
     const migrationPath = join(directory, 'migration.sql');
@@ -191,7 +191,12 @@ async function main() {
     );
     const result = await run(
       process.execPath,
-      ['--test', '--test-concurrency=1', 'test/competitive-postgres.test.cjs'],
+      [
+        '--test',
+        '--test-concurrency=1',
+        'test/competitive-postgres.test.cjs',
+        'test/competitive-solo-postgres.test.cjs',
+      ],
       180_000,
     );
     console.log(

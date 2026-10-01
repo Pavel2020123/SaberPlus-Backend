@@ -1348,6 +1348,9 @@ model CuadernoError {
 }
 
 model IntentoGuardian {
+  competitiveRulesVersion Int?
+  competitiveSettledAt DateTime? @db.Timestamptz(3)
+  competitiveRetryAt DateTime @default(now()) @db.Timestamptz(3)
   id           String   @id @default(uuid()) @db.Uuid
   usuarioId    String   @db.Uuid
   usuario      Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
@@ -1364,9 +1367,13 @@ model IntentoGuardian {
   finalizadoEn DateTime?
 
   @@index([usuarioId, creadoEn])
+  @@index([competitiveRulesVersion, competitiveSettledAt, competitiveRetryAt], map: "IntentoGuardian_competitive_pending_idx")
 }
 
 model IntentoCima {
+  competitiveRulesVersion Int?
+  competitiveSettledAt DateTime? @db.Timestamptz(3)
+  competitiveRetryAt DateTime @default(now()) @db.Timestamptz(3)
   id           String      @id @default(uuid()) @db.Uuid
   usuarioId    String      @db.Uuid
   usuario      Usuario     @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
@@ -1384,9 +1391,13 @@ model IntentoCima {
   finalizadoEn DateTime?
 
   @@index([usuarioId, creadoEn])
+  @@index([competitiveRulesVersion, competitiveSettledAt, competitiveRetryAt], map: "IntentoCima_competitive_pending_idx")
 }
 
 model IntentoRescateEstrellas {
+  competitiveRulesVersion Int?
+  competitiveSettledAt DateTime? @db.Timestamptz(3)
+  competitiveRetryAt DateTime @default(now()) @db.Timestamptz(3)
   id           String      @id @default(uuid()) @db.Uuid
   usuarioId    String      @db.Uuid
   usuario      Usuario     @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
@@ -1404,6 +1415,7 @@ model IntentoRescateEstrellas {
   finalizadoEn DateTime?
 
   @@index([usuarioId, creadoEn])
+  @@index([competitiveRulesVersion, competitiveSettledAt, competitiveRetryAt], map: "IntentoRescateEstrellas_competitive_pending_idx")
 }
 
 // Historial legado: juego retirado el 27-09-2026. Sin motor ni nuevas escrituras.

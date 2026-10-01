@@ -5,13 +5,16 @@ import {
   CompetitiveVerifierRegistry,
 } from './competitive.contracts';
 import { CompetitiveService } from './competitive.service';
+import { createSoloVerifiers } from './competitive.solo';
+import { CompetitiveReconciler } from './competitive.reconciler';
 
 @Module({
   imports: [PrismaModule],
   providers: [
     CompetitiveService,
     CompetitiveVerifierRegistry,
-    { provide: COMPETITIVE_VERIFIERS, useValue: [] },
+    { provide: COMPETITIVE_VERIFIERS, useFactory: createSoloVerifiers },
+    CompetitiveReconciler,
   ],
   exports: [CompetitiveService],
 })

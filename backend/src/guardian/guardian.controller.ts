@@ -1,3 +1,4 @@
+import { Transform } from 'class-transformer';
 import {
   Body,
   Controller,
@@ -11,6 +12,7 @@ import {
 import { AreaIcfes, Dificultad } from '@prisma/client';
 import {
   IsEnum,
+  IsBoolean,
   IsOptional,
   IsString,
   IsNotEmpty,
@@ -23,6 +25,10 @@ import { EmailVerificadoGuard } from '../auth/email-verificado.guard';
 import { GuardianService } from './guardian.service';
 
 class CreateGuardianDto {
+  @IsOptional()
+  @IsBoolean()
+  @Transform(({ obj }) => obj.competitive)
+  competitive?: boolean;
   @IsEnum(AreaIcfes) area!: AreaIcfes;
   @IsEnum(Dificultad) dificultad!: Dificultad;
   @IsOptional() @IsString() @IsNotEmpty() @MaxLength(100) subtemaId?: string;

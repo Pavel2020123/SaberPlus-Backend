@@ -93,7 +93,7 @@ type Posting = {
   reason?: string;
 };
 
-/** Internal application service; no endpoint and no registered game adapters yet. */
+/** Internal application service; no endpoint, only trusted registered verifiers. */
 @Injectable()
 export class CompetitiveService {
   constructor(
