@@ -1,5 +1,7 @@
 # PR-I1 V1: infraestructura competitiva común
 
+Revisión posterior al checkpoint `76a8a47`: la [auditoría de Trivia Rush y Duelo fantasma](PR_I1_TRIVIA_DUELO_AUDITORIA.md) detecta evidencia temporal/snapshot insuficiente y falta de modo/fantasma inicial persistido. Conforme a la condición de parada de la petición, ambos siguen sin integración competitiva. Esta revisión añade documentación y pruebas de rechazo seguro, y corrige la deserialización `void` del advisory lock legacy de Trivia detectada en PostgreSQL; no registra nuevos verificadores ni modifica fórmulas o migraciones. Las secciones siguientes conservan el historial de la implementación de los tres individuales.
+
 Estado: infraestructura común y primera integración de **SUMMIT, GUARDIAN y STAR_RESCUE** implementadas para revisión; **PR-I1 sigue abierto**. Los tres módulos de juego importan `CompetitiveModule`, que registra sus verificadores reales y un reconciliador común. No hay endpoint genérico de XP. Los otros cinco juegos siguen sin integración. Código y nueva migración de esta ronda no desplegados; Flutter no se modifica.
 
 Autoridad de producto: `saber_plus/docs/PLAN_MAESTRO_COMPETITIVO.md` y sección 12 de `saber_plus/docs/PR_I1_AUDITORIA_FORMULAS.md`, Flutter `main` `6903816`. La petición de implementación de esta ronda sustituye la anterior parada documental. Backend inicial: `feat/pr-i1-competitive-infrastructure`, `fb27225d96376c3867418d9f5a1a53030d2256c0`. No se modifican Flutter, dependencias ni `Usuario.xpTotal`.

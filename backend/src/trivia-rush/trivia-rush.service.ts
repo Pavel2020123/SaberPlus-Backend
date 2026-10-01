@@ -1143,7 +1143,7 @@ export class TriviaRushService {
 
   private bloquear(tx: ClienteTransaccion, clave: string) {
     return tx.$queryRaw(
-      Prisma.sql`SELECT pg_advisory_xact_lock(hashtext(${clave}))`,
+      Prisma.sql`SELECT 1::int AS locked FROM pg_advisory_xact_lock(hashtext(${clave}))`,
     );
   }
 }

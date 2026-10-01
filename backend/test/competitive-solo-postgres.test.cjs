@@ -3,7 +3,7 @@ const { test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const { randomUUID } = require('node:crypto');
 const { readFile } = require('node:fs/promises');
-const { PrismaClient } = require('@prisma/client');
+const { Prisma, PrismaClient } = require('@prisma/client');
 const {
   CompetitiveService,
 } = require('../src/competitive/competitive.service');
@@ -16,6 +16,7 @@ const {
 const {
   createSoloVerifiers,
   SOLO_GAMES,
+  soloTable,
 } = require('../src/competitive/competitive.solo');
 const { SummitService } = require('../src/summit/summit.service');
 const { GuardianService } = require('../src/guardian/guardian.service');
@@ -521,7 +522,31 @@ for (const game of games) {
     const saved = await db[game.delegate].findUniqueOrThrow({
       where: { id: row.id },
     });
-    assert.equal(saved.estado, 'EXPIRADO');
+    let diagnostic;
+    if (saved.estado !== 'EXPIRADO') {
+      // Observe a failure without changing the scan, waiting, or retrying it.
+      const clock =
+        await db.$queryRaw`SELECT clock_timestamp()::text AS "dbNow", current_setting('TimeZone') AS timezone`;
+      const pending = await db.$queryRaw(Prisma.sql`
+        SELECT id, estado, "venceEn", "competitiveRetryAt" FROM ${soloTable(game)}
+        WHERE "competitiveRulesVersion" = 1 AND "competitiveSettledAt" IS NULL
+        AND "competitiveRetryAt" <= clock_timestamp()
+        AND (estado <> 'ACTIVO' OR "venceEn" <= timezone('UTC', clock_timestamp()))
+        ORDER BY "competitiveRetryAt", id LIMIT 25`);
+      diagnostic = JSON.stringify({
+        hostNow: new Date(),
+        clock,
+        saved: {
+          id: saved.id,
+          estado: saved.estado,
+          venceEn: saved.venceEn,
+          competitiveRetryAt: saved.competitiveRetryAt,
+          competitiveSettledAt: saved.competitiveSettledAt,
+        },
+        pending,
+      });
+    }
+    assert.equal(saved.estado, 'EXPIRADO', diagnostic);
     assert.deepEqual(saved.finalizadoEn, end);
     assert.ok(saved.competitiveSettledAt);
     const event = await competitive.settle({ ...f.ref, sourceId: row.id });

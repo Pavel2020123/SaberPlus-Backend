@@ -187,7 +187,7 @@ async function main() {
       '/tmp/competitive-migration.sql',
     );
     console.log(
-      `PostgreSQL 16 local: ${paths.length} committed migrations + competitive migration applied.`,
+      `PostgreSQL 16 local: ${paths.length} committed migrations${paths.includes(migration) ? '' : ' + pending solo competitive migration'} applied.`,
     );
     const result = await run(
       process.execPath,
@@ -196,6 +196,7 @@ async function main() {
         '--test-concurrency=1',
         'test/competitive-postgres.test.cjs',
         'test/competitive-solo-postgres.test.cjs',
+        'test/competitive-trivia-boundary-postgres.test.cjs',
       ],
       180_000,
     );
