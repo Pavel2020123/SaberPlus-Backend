@@ -101,9 +101,16 @@ async function user(rol = 'ESTUDIANTE') {
   });
 }
 const row = (id) => db.intentoTriviaRush.findUniqueOrThrow({ where: { id } });
+// New V1 actions require an authenticated server observation. This fixture
+// uses the same private SQL admission as the gateway; legacy stays untouched.
+async function connectPresence(u, id) {
+  await db.$queryRaw`SELECT trivia_presence_connect(${id}::uuid, ${u.id}::uuid,
+    ${randomUUID()}::uuid, ${randomUUID()}::uuid, NULL::timestamp)`;
+}
 async function start(modalidad = 'TRIVIA_RUSH', u) {
   u ??= await user();
   const response = await service.crear(u.id, { ...config, modalidad });
+  await connectPresence(u, response.intento.id);
   return { u, id: response.intento.id, response };
 }
 async function answer(f, correct = true, key = randomUUID()) {
@@ -332,6 +339,7 @@ test('concurrent creation and same-key answers are idempotent; conflicting paylo
     ),
   );
   assert.equal(new Set(created.map((r) => r.intento.id)).size, 1);
+  await connectPresence(u, created[0].intento.id);
   const f = { u, id: created[0].intento.id },
     key = randomUUID();
   const original = (await row(f.id)).snapshotInicial.questions[0];
@@ -736,11 +744,13 @@ for (const modalidad of [undefined, 'TRIVIA_RUSH', 'GHOST_DUEL']) {
       ).body;
       assert.equal(first.intento.fantasmaInicial, null);
       publicOnly(first);
+      await connectPresence(u, first.intento.id);
       await finish({ u, id: first.intento.id });
     }
     const payload = { ...config, ...(modalidad ? { modalidad } : {}) };
     const created = await http(u, 'post', 'intentos').send(payload).expect(201);
     const id = created.body.intento.id;
+    if (modalidad) await connectPresence(u, id);
     publicOnly(created.body);
     if (modalidad === 'GHOST_DUEL') {
       assert.ok(created.body.intento.fantasmaInicial);

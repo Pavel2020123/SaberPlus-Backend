@@ -1086,6 +1086,7 @@ model IntentoTriviaRush {
   id                       String                  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   usuarioId                String                  @db.Uuid
   evidenciaVersion         Int?
+  presenciaVersion         Int?
   modalidad                ModalidadTriviaRush?
   snapshotInicial          Json?
   estado                   EstadoIntentoTriviaRush @default(ACTIVO)
@@ -1113,10 +1114,46 @@ model IntentoTriviaRush {
   preguntas                TriviaRushPregunta[]
   respuestas               TriviaRushRespuesta[]
   potenciadores            TriviaRushPotenciador[]
+  presencia                TriviaPresence?
+  eventosPresencia         TriviaPresenceEvent[]
 
   @@index([usuarioId, estado, iniciadoEn])
   @@index([estado, venceEn])
   @@index([preguntaActualId])
+}
+
+model TriviaPresence {
+  attemptId String @id @db.Uuid
+  disconnectedAt DateTime? @db.Timestamp(3)
+  graceUntil DateTime? @db.Timestamp(3)
+  attempt IntentoTriviaRush @relation(fields: [attemptId], references: [id], onDelete: Restrict)
+  connections TriviaConnection[]
+}
+
+model TriviaConnection {
+  id String @id @db.Uuid
+  attemptId String @db.Uuid
+  instanceId String @db.Uuid
+  connectedAt DateTime @db.Timestamp(3)
+  lastSeenAt DateTime @db.Timestamp(3)
+  leaseUntil DateTime @db.Timestamp(3)
+  state String
+  closedAt DateTime? @db.Timestamp(3)
+  presence TriviaPresence @relation(fields: [attemptId], references: [attemptId], onDelete: Restrict)
+  events TriviaPresenceEvent[]
+  @@index([attemptId, state], map: "trivia_connection_attempt")
+}
+
+model TriviaPresenceEvent {
+  id BigInt @id @default(autoincrement())
+  attemptId String @db.Uuid
+  connectionId String? @db.Uuid
+  kind String
+  observedAt DateTime @db.Timestamp(3)
+  recordedAt DateTime @default(dbgenerated("timezone('UTC', clock_timestamp())")) @db.Timestamp(3)
+  attempt IntentoTriviaRush @relation(fields: [attemptId], references: [id], onDelete: Restrict)
+  connection TriviaConnection? @relation(fields: [connectionId], references: [id], onDelete: Restrict)
+  @@index([attemptId, id], map: "trivia_presence_event_attempt")
 }
 
 model TriviaRushPregunta {

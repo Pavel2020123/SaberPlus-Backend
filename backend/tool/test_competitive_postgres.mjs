@@ -169,6 +169,10 @@ async function main() {
       'prisma/migrations/20261001190000_trivia_authoritative_evidence/migration.sql';
     if (!paths.includes(migration))
       sql.push(await readFile(join(backend, migration), 'utf8'));
+    const presenceMigration =
+      'prisma/migrations/20261002190000_trivia_presence/migration.sql';
+    if (!paths.includes(presenceMigration))
+      sql.push(await readFile(join(backend, presenceMigration), 'utf8'));
     const migrationPath = join(directory, 'migration.sql');
     await writeFile(migrationPath, sql.join('\n'), 'utf8');
     await docker('cp', migrationPath, `${name}:/tmp/competitive-migration.sql`);
@@ -187,20 +191,104 @@ async function main() {
       '/tmp/competitive-migration.sql',
     );
     console.log(
-      `PostgreSQL 16 local: ${paths.length} committed migrations${paths.includes(migration) ? '' : ' + pending Trivia evidence migration'} applied.`,
+      `PostgreSQL 16 local: ${paths.length} committed migrations${paths.includes(migration) ? '' : ' + pending Trivia evidence migration'}${paths.includes(presenceMigration) ? '' : ' + pending Trivia presence migration'} applied.`,
     );
-    const result = await run(
-      process.execPath,
-      [
-        '--test',
-        '--test-concurrency=1',
-        'test/competitive-postgres.test.cjs',
-        'test/competitive-solo-postgres.test.cjs',
-        'test/competitive-trivia-boundary-postgres.test.cjs',
-        'test/competitive-trivia-evidence-postgres.test.cjs',
-      ],
-      180_000,
-    );
+    const clockDiagnostic = async (phase) => {
+      const hostBefore = Date.now();
+      const sample = await docker(
+        'exec',
+        name,
+        'psql',
+        '-X',
+        '-U',
+        user,
+        '-d',
+        'postgres',
+        '-Atc',
+        'SELECT extract(epoch FROM clock_timestamp()) * 1000',
+      );
+      const hostAfter = Date.now();
+      const database = Number(sample.stdout.trim());
+      console.log(
+        JSON.stringify({
+          phase,
+          hostBefore: new Date(hostBefore).toISOString(),
+          database: new Date(database).toISOString(),
+          hostAfter: new Date(hostAfter).toISOString(),
+          databaseMinusHostBoundsMs: [
+            database - hostAfter,
+            database - hostBefore,
+          ],
+        }),
+      );
+    };
+    const schemaDiagnostic = async (phase) => {
+      const sample = await docker(
+        'exec', name, 'psql', '-X', '-U', user, '-d', 'postgres', '-Atc',
+        `SELECT jsonb_build_object(
+          'phase', '${phase}', 'timezone', current_setting('TimeZone'),
+          'serverVersion', current_setting('server_version'),
+          'institutionHistory', to_regclass('public."HistorialInstitucionCompetitiva"') IS NOT NULL,
+          'ledger', to_regclass('public."EventoXpCompetitivo"') IS NOT NULL,
+          'balance', to_regclass('public."BalanceCompetitivo"') IS NOT NULL,
+          'presence', to_regclass('public."TriviaPresence"') IS NOT NULL,
+          'publicTables', (SELECT count(*) FROM pg_tables WHERE schemaname='public'),
+          'publicTriggers', (SELECT count(*) FROM pg_trigger t JOIN pg_class c ON c.oid=t.tgrelid JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND NOT t.tgisinternal))`,
+      );
+      console.log(sample.stdout.trim());
+    };
+    await clockDiagnostic('before-tests');
+    await schemaDiagnostic('before-tests');
+    let result;
+    try {
+      result = await run(
+        process.execPath,
+        [
+          '--test',
+          '--test-concurrency=1',
+          'test/competitive-postgres.test.cjs',
+          'test/competitive-solo-postgres.test.cjs',
+          'test/competitive-trivia-boundary-postgres.test.cjs',
+          'test/competitive-trivia-evidence-postgres.test.cjs',
+          'test/competitive-trivia-presence-postgres.test.cjs',
+        ],
+        180_000,
+      );
+    } catch (error) {
+      // Diagnostic only: preserve failure and inspect this owned instance before cleanup.
+      try {
+        await clockDiagnostic('after-failure');
+        await schemaDiagnostic('after-failure');
+        const diagnosis = await docker(
+          'exec',
+          name,
+          'psql',
+          '-X',
+          '-U',
+          user,
+          '-d',
+          'postgres',
+          '-Atc',
+          `
+          SELECT jsonb_build_object('recentSourcesBeforeFirstCoverage',count(*),
+            'minCoverageLeadMs',min(extract(epoch FROM (h.first_at-(s.evidence->>'terminalAt')::timestamptz))*1000),
+            'maxCoverageLeadMs',max(extract(epoch FROM (h.first_at-(s.evidence->>'terminalAt')::timestamptz))*1000))
+          FROM "CompetitiveTestSource" s JOIN (
+            SELECT "usuarioId",min(desde) AS first_at FROM "HistorialInstitucionCompetitiva" GROUP BY "usuarioId"
+          ) h ON h."usuarioId"=(s.evidence->'source'->>'participantId')::uuid
+          WHERE (s.evidence->>'terminalAt')::timestamptz < h.first_at
+            AND (s.evidence->>'terminalAt')::timestamptz BETWEEN clock_timestamp()-interval '10 minutes' AND clock_timestamp()+interval '10 minutes'`,
+        );
+        console.log(diagnosis.stdout.trim());
+      } catch {
+        console.error(
+          'Failure diagnostics unavailable; original failure retained.',
+        );
+      }
+      throw error;
+    }
+    await clockDiagnostic('after-tests');
+    await schemaDiagnostic('after-tests');
     console.log(
       result.stdout
         .replaceAll(url, '[temporary DB]')

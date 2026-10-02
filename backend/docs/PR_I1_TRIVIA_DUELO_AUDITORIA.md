@@ -1,5 +1,7 @@
 # PR-I1 V1 — auditoría previa de Trivia Rush y Duelo fantasma
 
+**Estado actual, base `16163b7`:** el propietario aprobó la precedencia de vencimiento normal anterior o igual al fin de gracia. Se implementan presencia PostgreSQL, canal Socket.IO, gracia de 20 s y recuperación para nuevos intentos V1, sin XP. La auditoría anterior y sus dos cambios documentales se conservan abajo como historial; su parada por precedencia queda superada por la aprobación y la implementación descritas en la última sección.
+
 **Actualización posterior al checkpoint af78ee7:** se implementa la primera etapa de evidencia autoritativa descrita al final de este informe: snapshot, modalidad y referencia inicial protegidos, y serialización de mutaciones. No se habilita XP. El diagnóstico y los resultados siguientes se conservan como historial; los puntos resueltos se detallan en la nueva sección y no deben interpretarse como carencias actuales.
 
 Fecha: 2026-10-01. Rama `feat/pr-i1-competitive-infrastructure`; HEAD inicial `76a8a47d42865e4a1813834f20f32479ed50fd35`; árbol inicialmente limpio. Infraestructura común y tres juegos individuales ya versionados. No se infiere que estén desplegados.
@@ -229,3 +231,290 @@ No hay habilitación de XP de Trivia/Duelo, verificador competitivo, gracia basa
 | `git diff --check` | Exit 0; sin errores de whitespace. |
 
 No se reprodujo el fallo de Rescate en estas dos ejecuciones y no se atribuye una causa. No se editaron migraciones confirmadas, Flutter, fórmulas ni los tres juegos integrados. No se hizo commit, push, merge, despliegue ni migración remota. Se detiene para revisión humana.
+
+## Auditoría de presencia y reconexión — base 16163b7 (2026-10-02)
+
+Inicio verificado: rama `feat/pr-i1-competitive-infrastructure`, HEAD `16163b76cb7a6f4386ec35fef54ad58bb5699bd6`, árbol limpio. Se releen este informe, la infraestructura común y las decisiones Flutter (solo lectura), en particular secciones 12.4 y 12.7 del informe de fórmulas y sección 6 del plan maestro. La migración `20261001190000_trivia_authoritative_evidence` ya está confirmada y no se modifica.
+
+### Señales existentes y alcance de su autoridad
+
+| Componente inspeccionado | Evidencia en el repositorio | Qué demuestra / qué falta |
+|---|---|---|
+| Autenticación HTTP | `auth/auth.module.ts`, `jwt.guard.ts`, `email-verificado.guard.ts`: JWT HS256 con expiración de 8 h, verificación de firma y consulta de usuario; validaciones de correo/contraseña inicial. | Identidad válida para una petición. No demuestra conexión continua, salida de pantalla ni desconexión cuando dejan de llegar solicitudes. No hay una sesión de transporte de Trivia vinculada al token. |
+| Trivia/Duelo | `trivia-rush.module.ts` registra controlador y servicio; `trivia-rush.controller.ts` expone únicamente HTTP. Prisma conserva intento, preguntas, respuestas y ayudas. | Propiedad y actividad persistidas, no conexiones, eventos de presencia, instancia propietaria o época de conexión. Una respuesta aceptada prueba esa acción, no presencia posterior. |
+| Transporte disponible | Dependencias Nest WebSockets/Socket.IO y `tira-afloja.gateway.ts`, namespace `/tira-afloja`. | Existe tecnología reutilizable; **no falta soporte WebSocket en el proyecto**. No existe gateway de Trivia/Duelo ni asociación de sus intentos con este transporte. |
+| Autenticación WS actual | `tira-afloja-ws-auth.service.ts`: verifica JWT del handshake y usuario ESTUDIANTE, correo y contraseña inicial. | Identidad en la conexión de Tira. No constituye autenticación persistida de una conexión de Trivia, ni revalidación durable en cada reconexión de estos modos. |
+| Entrada/salida observables | Gateway de Tira: `handleConnection`, `handleDisconnect`, `unirAPartida`; consulta `fetchSockets()` de la sala de usuario antes de emitir salida. | Puede observar conexión/cierre de un socket mientras vive el proceso. La salida se emite al cliente, no se registra en PostgreSQL. No demuestra una desconexión pasada si el proceso murió antes de observarla o persistirla. |
+| Detección y recuperación de transporte | `pingInterval:25000`, `pingTimeout:20000`, `connectionStateRecovery.maxDisconnectionDuration:120000`. | Son parámetros de Tira, **no la gracia V1 de Trivia/Duelo**. El instante físico de pérdida de red no equivale al de detección. No se reutilizan esos 120 s ni el ping timeout como política competitiva. |
+| Latido | `tira:latido` limita frecuencia y devuelve `new Date().toISOString()`. | No escribe presencia ni mantiene una concesión durable de conexión. No basta cambiar el nombre del evento para volverlo evidencia competitiva. |
+| Varias instancias | No se encontró `useWebSocketAdapter`, adaptador Redis/distribuido o registro compartido de conexiones en el arranque. El publisher de Tira es un `Subject` RxJS local. | El conteo local no excluye otra conexión viva en otro backend. Eventos, salas y notificaciones actuales no certifican presencia global ni sobreviven a reinicios. |
+| Política pura | `competitive.policy.ts::definitiveAbsence` y `RECONNECTION` fijan 20 s y requieren `disconnectedAt`. | Evalúan evidencia recibida; no la producen, autentican o persisten. No resuelven el orden entre resultado normal y ausencia de un juego con reloj. |
+
+Un cierre WebSocket observado es una señal servidor válida sobre **esa conexión**, pero no por sí solo sobre todas las conexiones del participante ni sobre la causa (cliente/red/backend). No se acepta `disconnected:true`, timestamp del dispositivo, falta de HTTP ni fallo del proceso como sustituto de esa evidencia.
+
+### Decisión de precedencia que falta concretar
+
+V1 sección 12.4 aprueba **20 segundos con reloj continuo**, y dice expresamente que «los latidos/presencia y el orden entre vencimiento normal y abandono requieren evidencia y contrato durable». La sección 12.7 exige serialización y evidencia, pero no selecciona el resultado de los siguientes casos. La sección 5 contiene propuestas históricas superadas; no se promueve su texto a una decisión vigente.
+
+Ejemplo con inicio en t=0 y plazo en t=60: última conexión perdida y observada en t=50; la gracia terminaría en t=70.
+
+- Retorno en t=65: no puede admitir respuestas después de t=60, pero falta explicitar si se consolida un resultado normal con fecha t=60 y cómo se registra la gracia aún abierta.
+- Sin retorno hasta t=70: falta decidir si el vencimiento t=60 ya produjo resultado normal irrevocable o si la ausencia definitiva cambia la clasificación a abandono. Ambas opciones tienen consecuencias distintas para el futuro XP y no deben elegirse por orden accidental de ejecución del worker.
+- Vencimiento, fin de gracia y reconexión en el mismo instante: falta fijar la precedencia de clasificación y el punto autoritativo de aceptación del retorno. La política pura existente considera definitiva la ausencia a partir de `disconnectedAt + 20000`; no especifica cómo ordenarla frente a un retorno simultáneo.
+
+**Incompatibilidad concreta que debe resolver el diseño elegido:** el CHECK confirmado `trivia_evidence_context` exige `finalizadoEn <= venceEn`, y para EXPIRADO exige igualdad. El trigger hace inmutable el terminal. Por tanto, abandonar en t=70 con `finalizadoEn=t=70` cuando `venceEn=t=60` sería rechazado; reabrir un EXPIRADO para reclasificarlo también. No se cambia el constraint, se retrasa el reloj ni se inventa una fecha t=50/t=60 para el abandono. Si la decisión requiere resultado provisional o fecha de resolución separada, habrá que diseñar una migración incremental y su contrato explícito.
+
+Los 20 s, fórmulas y penalizaciones aprobadas no se reabren. El almacenamiento distribuido y las épocas de conexión son requisitos técnicos implementables, no nuevas decisiones económicas. Lo pendiente de producto es la **clasificación/fecha terminal y desempate temporal** cuando se superponen los hechos indicados.
+
+### Arquitectura propuesta para la siguiente implementación (no implementada)
+
+Se puede construir un transporte dedicado a Trivia/Duelo reutilizando Socket.IO y el patrón de JWT, sin importar ni cambiar el motor de Tira. PostgreSQL sería la fuente compartida de presencia; la memoria del proceso solo representaría sus sockets locales. La propuesta requiere:
+
+1. Admisión explícita de nuevos intentos al contrato de presencia y asociación autenticada usuario–intento–conexión. No promover legacy, históricos ni intentos V1 anteriores que no aceptaron ese contrato; no sancionar una partida HTTP porque nunca abrió un socket nuevo.
+2. Identificador servidor de conexión y de arranque/instancia, generación monotónica y eventos persistidos de conexión, observación autenticada, cierre observado y reconexión. No guardar JWT, soluciones o snapshots en eventos públicos de presencia. RLS privado y tiempo común servidor/DB para ordenar hechos entre instancias.
+3. Registro compartido de conexiones simultáneas, con protección contra un callback viejo que cierre una conexión nueva. Resolver el estado agregado bajo Usuario → intento → conexión/evento; claves idempotentes servidor y secuencia durable. Un contador de sockets local no es suficiente.
+4. Distinguir una desconexión efectivamente observada de una conexión cuyo observador dejó de funcionar. La pérdida de una instancia/DB no prueba la hora de desconexión del jugador. Un lease técnico puede detectar observación obsoleta, pero no autoriza retrofechar abandono; conservar incertidumbre y diseñar recuperación explícita. No se fija aquí un timeout técnico como si fuera una regla aprobada.
+5. Tras fijar la precedencia anterior, integrar cierre/retorno/respuestas/ayudas/abandono con los mismos locks y con el plazo original. Persistir los plazos y decisiones antes de confirmar al cliente; reconciliar desde DB al arrancar y periódicamente, sin depender de callbacks perdidos ni timers en memoria. Un terminal confirmado permanece único e inmutable.
+6. Probar dos procesos/instancias reales, caída antes/después de persistir un evento, mensajes duplicados/tardíos, reloj controlado y fronteras exactas. El mecanismo de fan-out puede ser independiente de la autoridad PostgreSQL; no se exige Redis como única solución ni se da por instalado.
+
+No se presenta este diseño como una arquitectura ya utilizada en runtime. El encargo permite detener la parte que no dispone de mecanismo autoritativo suficiente: no se añade un gateway parcial que simule presencia durable, ni una tabla sin productor confiable de eventos. La implementación funcional de presencia, gracia y cierre por desconexión queda detenida para revisar los puntos anteriores.
+
+### Garantías que ya existen y pruebas que aún no existen
+
+En `16163b7`, las mutaciones de Trivia usan Usuario → intento y reconsultan estado bajo lock. El vencimiento V1 fija `finalizadoEn=venceEn`; los triggers preservan terminal, snapshot y respuestas. Las pruebas PostgreSQL existentes cubren respuesta final contra abandono, respuesta tardía contra vencimiento, creaciones/retries concurrentes, privacidad HTTP, fantasma protegido y ausencia de XP. Se ejecutan sin modificarlas ni reducir aserciones.
+
+Eso **no prueba** conexión/desconexión de Trivia, retorno dentro/fuera de gracia, vencimiento durante una desconexión observada, reinicio del observador, recuperación de presencia ni varias instancias. No se agregan tests que afirmen esas funciones inexistentes. Las pruebas WS de Tira usan un servicio de autenticación simulado; tampoco certifican JWT/presencia durable de Trivia. El reinicio de reconciliadores de los tres juegos individuales no se extrapola a estos dos modos.
+
+Funcionalidades nuevas de runtime en esta ronda: **ninguna**. Migraciones nuevas: **ninguna**. Fuente compartida TRIVIA_ATTEMPT, legacy, Usuario.xpTotal y rechazo de liquidación se mantienen intactos. La incidencia de Rescate continúa abierta sin causa demostrada.
+
+### Validación ejecutada sobre 16163b7
+
+| Comando | Resultado real |
+|---|---|
+| `npm run build` | Exit 0; Prisma y Nest correctos. |
+| `npm test -- --runInBand competitive` | Exit 0; 4 suites, 111/111 pruebas. |
+| `npm test -- --runInBand` | Exit 0; 93 suites, 989/989 pruebas. |
+| `node tool/test_competitive_postgres.mjs` | Exit 0; 78/78 pruebas, 53 migraciones confirmadas en PostgreSQL 16 local desechable; contenedor eliminado por el runner. |
+| `npm audit --omit=dev` | Exit 0; 0 vulnerabilidades, CA del sistema temporal, TLS activo. |
+| `git diff --check` | Exit 0; sin errores. |
+
+El caso `STAR_RESCUE: the worker alone expires an unattended attempt` pasó; no se demuestra la causa del fallo histórico y la incidencia sigue abierta. No hubo fallos nuevos que corregir. Los logs de esta ejecución están en el temporal del usuario, prefijo `pr-i1-presence-` (build, competitive, all y pg); describen pruebas sintéticas locales, no producción.
+
+Únicos archivos modificados: este informe y el encabezado de estado de `PR_I1_COMPETITIVE_INFRASTRUCTURE.md`. HEAD sigue en `16163b7`; no hubo commit, push, merge, despliegue, migración remota, cambios Flutter ni avance PR-I2. Se detiene para revisión humana del contrato de precedencia y del diseño de presencia.
+
+## Implementación de presencia durable — decisión aprobada y continuación sobre 16163b7
+
+### Precedencia aprobada por el propietario
+
+**El vencimiento normal prevalece si ocurre antes o al mismo instante en que termina la gracia de desconexión.** Se aplica una comparación de plazos persistidos, no el orden en que llegue el worker. La gracia dura exactamente 20 s desde la desconexión observada de la última conexión válida; no pausa, amplía ni reinicia el reloj del intento.
+
+| Evidencia (segundos desde inicio) | Resultado implementado |
+|---|---|
+| Desconexión t=10, gracia hasta t=30, vencimiento t=60; sin retorno | ABANDONADO, finalizadoEn=t=30. También si el worker reaparece después de t=60. |
+| Desconexión t=50, gracia hasta t=70, vencimiento t=60 | EXPIRADO, finalizadoEn=t=60. |
+| Retorno t=55 tras desconexión t=50 | Continúa con el mismo plazo t=60. |
+| Retorno t=65 y vencimiento t=60 | No reabre; devuelve EXPIRADO. |
+| Fin de gracia y vencimiento ambos t=60 | EXPIRADO, finalizadoEn=t=60. |
+| Retorno exactamente al fin de gracia, siendo esta anterior al vencimiento | La ausencia ya es definitiva (`>=` según la política V1 existente); no reabre ABANDONADO. |
+
+No se reescriben los terminales existentes. Se conservan las restricciones `finalizadoEn <= venceEn` y EXPIRADO en su plazo. La migración nueva añade un guard que rechaza una clasificación/fecha incompatible con una gracia que terminó antes. El cierre normal por respuestas y el abandono explícito anteriores a los plazos mantienen su comportamiento. Las ayudas oficiales preexistentes mantienen su semántica; **la presencia/reconexión no concede tiempo extra**, ni añade 20 s al plazo que tenga legalmente el intento.
+
+### Implementación real y contrato de transporte
+
+- `TriviaRushService.crear` asigna `presenciaVersion=1` solo a intentos nuevos creados con modalidad explícita y evidencia V1. Es inmutable. Los intentos existentes, incluidos V1 del checkpoint previo, conservan null; el camino legacy sigue sin presencia. No se migran ni promueven partidas históricas y no se promete XP retrospectivo.
+- Canal Socket.IO `/trivia-presence`. Handshake: `auth: { token: <JWT existente>, attemptId: <UUID del intento> }`. El servidor valida firma/expiración, estudiante, correo/contraseña inicial y propiedad del intento. Reutiliza únicamente el servicio de autenticación WS existente, no el motor ni la presencia de Tira. La admisión SQL vuelve a validar propietario, versión y rol bajo lock.
+- El servidor genera un UUID de conexión por handshake y un UUID de instancia por arranque. No acepta identidad de conexión, hora de desconexión o resultado desde Flutter. El único mensaje público de estado es `trivia:presencia: { estado }`; el error de admisión es genérico y no expone snapshots, soluciones, tokens, propietario ni filas de presencia.
+- No hay evento cliente `disconnected:true` ni latido cliente que cambie el estado. `handleDisconnect` observa el cierre real del socket; solo la última conexión observada como cerrada, sin otra OPEN o UNKNOWN, abre la gracia. Conexiones de otras instancias cuentan por su registro PostgreSQL, no por salas locales.
+- Se conserva la configuración compartida de Engine.IO usada por Tira: WebSocket, buffer 100000, ping 25 s, timeout 20 s y recuperación de transporte hasta 120 s. Una prueba compara todas las opciones salvo namespace para evitar que el orden de inicialización cambie Tira. **Los 120 s no son la gracia del juego**; un socket recuperado debe autenticarse y consultar el terminal durable, que nunca se reabre.
+
+El instante observado de cierre de transporte no es necesariamente el instante físico de pérdida de Internet. Ping timeout y cierre de socket son señales observadas por el backend mientras vive; no prueban culpa del usuario. La gracia comienza al persistir la observación servidor, sin retrofechar al último HTTP/ping ni al reloj del cliente. Si no puede persistirse, no se inventa posteriormente su hora.
+
+### Persistencia y recuperación entre instancias
+
+Nueva migración incremental **`20261002190000_trivia_presence`**. No modifica ninguna confirmada. Añade `presenciaVersion` y las tablas privadas:
+
+| Tabla | Función |
+|---|---|
+| TriviaPresence | Estado agregado por intento: desconexión observada y plazo de gracia exacto. |
+| TriviaConnection | Identidad intento/conexión/instancia, conexión y última observación, lease técnico y estado OPEN/CLOSED/UNKNOWN/RETIRED. |
+| TriviaPresenceEvent | Historial append-only de conexión, cierre, incertidumbre, retiro, gracia y cierre terminal; fecha efectiva/observada y fecha de registro DB separadas. Para EXPIRED/ABANDONED, observedAt conserva el plazo terminal que se resolvió; recordedAt muestra cuándo se persistió la recuperación. |
+
+Las funciones SQL toman Usuario → intento antes de evaluar o modificar evidencia. El tiempo de producción se obtiene de PostgreSQL **después de adquirir los locks**. Las fechas explícitas de las funciones son una entrada interna para fixtures con reloj controlado, nunca un parámetro público HTTP/WS. Su ejecución y las tablas/secuencia se revocan a PUBLIC/anon/authenticated; RLS permanece activo. Los eventos no pueden editarse/borrarse; identidad de conexión y estados cerrados no pueden reescribirse o reabrirse. Nuevos triggers rechazan respuestas/ayudas posteriores al plazo terminal también al escribir directamente en DB.
+
+Cada instancia revalida JWT/usuario y renueva sus conexiones observadas cada 5 s. El lease técnico dura 20 s, **separado de la gracia competitiva**, y su expiración solo produce UNKNOWN. No sanciona ni declara desconexión del estudiante. Es un parámetro de salud del observador; no concede tiempo de juego.
+
+Si una instancia muere, DB falla o la observación caduca, quedan filas recuperables. UNKNOWN bloquea atribuir abandono a la mera desaparición del observador. Una nueva conexión autenticada retira observadores UNKNOWN, limpia una gracia aún válida y establece presencia actual sin inferir la historia perdida. Una conexión CLOSED/RETIRED nunca vuelve a OPEN; sus callbacks tardíos/duplicados son inocuos. El apagado normal registra incertidumbre en vez de simular que el usuario abandonó. Si no vuelve a existir evidencia suficiente, el intento termina por su reloj normal; no se fabrica una penalización.
+
+`TriviaPresenceService` reconcilia al arrancar y cada 5 s, con lote de hasta 100 pendientes y exclusión de pasadas dentro de cada proceso. Varias instancias pueden ejecutar el mismo trabajo: locks y terminal inmutable impiden duplicarlo. Las filas son la cola durable. Un error se registra sin ocultarlo; el pendiente permanece en DB y las siguientes pasadas reintentan. El cierre y su evento se confirman en una sola transacción. El proceso puede caer antes del commit (rollback) o después (el siguiente reintento ve el mismo terminal, sin otro evento).
+
+Creación/reanudación y mutaciones HTTP de Trivia consultan este mismo cierre bajo locks. Los guards SQL impiden aceptar respuestas después del plazo aunque la carrera ocurra entre comprobación y escritura. No se llama a CompetitiveService ni se registra un verificador de XP; se conserva TRIVIA_ATTEMPT y Usuario.xpTotal.
+
+### Compatibilidad, límites y despliegue pendiente
+
+El contrato de presencia comienza con la primera conexión autenticada del intento nuevo. **No abrir el canal nunca se interpreta como abandono**: el intento vence normalmente. La ausencia de peticiones HTTP no abre gracia. Flutter no se modificó y deberá adoptar el canal en una etapa posterior; antes de habilitar XP habrá que exigir y verificar la admisión competitiva completa. Tener presenciaVersion=1 no es competitive=true ni autorización de pago.
+
+La detección física de cortes depende del transporte y de que exista un observador operativo. No es posible reconstruir una desconexión que ningún proceso persistió; ese caso queda explícitamente incierto, con cierre normal por reloj. Las pruebas locales no certifican latencia de producción, balanceador, reparto de carga o capacidad operativa. El worker procesa lotes limitados, por lo que la escritura del terminal puede ser eventual; su fecha efectiva no cambia por la demora.
+
+Antes de despliegue autorizado: respaldo/revisión, verificación del rol PostgreSQL efectivo y RLS (incluidos EXECUTE de funciones y uso de secuencia), aplicación de las migraciones pendientes, comprobación de esquema/permisos y luego backend. El código consulta la columna nueva también al leer intentos; no funciona contra el esquema previo y no añade fallback que oculte columnas ausentes. No se ejecutó nada remoto. No se activan flags ni liquidaciones de Trivia/Duelo, ni se cambian fórmulas, Tira, Memoria, Batallas, Cima, Guardián o Rescate.
+
+### Evidencia de pruebas de esta implementación
+
+PostgreSQL prueba ambos modos con tiempos controlados t=10/30/50/55/60/65/70, igualdad exacta, límites de respuesta SQL y terminal incompatible, varias conexiones/instancias, duplicados y callbacks antiguos, caducidad del observador, retorno autenticado y conservación del reloj. También rollback del cierre, recuperación con otro cliente/worker, respuesta frente a dos reconciliadores, eventos terminales únicos, RLS, inmutabilidad, legacy/históricos y cero XP.
+
+Hay dos aplicaciones Nest reales con puertos/IDs de instancia distintos y JWT/Socket.IO/Prisma reales: prueban conexión propia, token inválido, usuario inexistente, intento ajeno, desconexión real del primer y último socket, retorno y privacidad. La espera del test sigue la finalización de la operación SQL real, sin sleeps que oculten carreras. Además un **proceso Node hijo** persiste una conexión y termina sin ejecutar limpieza; el proceso padre recupera UNKNOWN, sin fabricar abandono. Las aplicaciones WS simultáneas comparten el proceso del test; no se presenta eso como una prueba de balanceador o despliegue distribuido real.
+
+Jest usa reloj simulado para inicio periódico, exclusión de pasadas, apagado, fallo de DB y continuación después del error. Las pruebas previas permanecen sin debilitar. La incidencia histórica de Rescate sigue abierta mientras no exista causa demostrada.
+
+### Validación final e incidencia descubierta
+
+**Esta implementación permanece pendiente de cerrar la validación PostgreSQL; no se declara lista para checkpoint.**
+
+| Validación | Resultado real más reciente |
+|---|---|
+| `npm run build` | Exit 0. |
+| `npm test -- --runInBand competitive` | Exit 0; 5 suites, 115/115 pruebas. |
+| `npm test -- --runInBand` | Exit 0; 94 suites, 993/993 pruebas. |
+| `node tool/test_competitive_postgres.mjs` | Ejecuciones incrementales 90/90, 91/91 y 92/92. La siguiente ejecución completó **58/92, con 34 fallos** en cobertura institucional de las pruebas comunes/individuales. Las 14 nuevas de presencia pasaron en esa ejecución. Las repeticiones diagnósticas posteriores no pudieron comenzar por Docker local indisponible. |
+| `npm audit --omit=dev` | Exit 0; 0 vulnerabilidades; CA del sistema temporal y TLS activo. |
+| `git diff --check` | Exit 0. |
+| Sintaxis Node del runner y test CJS | Correcta. |
+
+Los fallos de la ejecución `pr-i1-presence-complete-pg.log` incluyen `HISTORICAL_MEMBERSHIP_UNKNOWN` al resolver membresía `desde <= terminalAt`, y aserciones derivadas de ausencia de ledger. La prueba `STAR_RESCUE: ledger committed but acknowledgment lost reuses event after restart` obtuvo 0 eventos en vez de 1, acompañada por el mismo error institucional. La prueba histórica `STAR_RESCUE: the worker alone expires an unattended attempt` sí pasó; **su incidencia anterior permanece abierta y no se atribuye a esta nueva incidencia**.
+
+Se inspeccionó que la fuente sintética fija terminalAt con Date de Node, mientras el trigger institucional usa clock_timestamp de PostgreSQL. Una discrepancia entre relojes es una hipótesis verificable, **no una causa demostrada de la ejecución fallida**, que ya había eliminado su instancia conforme al runner. No se cambian validación institucional, fixtures, tiempos de espera, aserciones ni runtime de los tres juegos para hacerla pasar.
+
+El runner añade únicamente diagnóstico: antes de las pruebas compara el reloj DB con el intervalo de tiempo host que rodea la consulta; al fallar, registra otra muestra y agrega cuántas fuentes recientes tienen fecha terminal anterior a su primera cobertura, antes de eliminar la instancia propia. Conserva el error y exit code originales. No ajusta relojes ni omite/reintenta automáticamente pruebas. Este diagnóstico tiene sintaxis verificada, pero todavía no pudo ejecutarse contra DB en esta sesión.
+
+Docker Desktop no estaba ejecutándose al continuar. Se intentó iniciar su instalación local, sin cambiar configuración, volúmenes ni datos. El log de backend informa: `initializing Ingest server ... sailor-ingest.sock ... The file cannot be accessed by the system`; la API `dockerDesktopLinuxEngine` no aparece. Las repeticiones `pr-i1-presence-clock-diagnostic.log` y `pr-i1-presence-clock-final.log` terminaron antes de crear/aplicar la DB por ese error. No se hace factory reset, eliminación de sockets ajenos, reparación de permisos ni se usa una URL remota como sustituto. **Para cerrar esta validación se necesita Docker operativo y repetir el comando con el diagnóstico nuevo; la causa de los 34 fallos sigue pendiente.**
+
+Tras la última ejecución PostgreSQL también se aisló `socket.disconnect()` al namespace de Trivia: un rechazo/cierre de este canal no debe cerrar otros namespaces multiplexados del cliente. Build/Jest finales incluyen esa corrección, pero la nueva repetición PostgreSQL sigue bloqueada por Docker. Se explicita ese límite y no se presenta la pasada anterior 92/92 como validación del árbol final.
+
+Archivos creados: migración `20261002190000_trivia_presence/migration.sql`, `trivia-presence.service.ts`, `trivia-presence.gateway.ts`, `competitive.trivia-presence.spec.ts`, `competitive-trivia-presence-postgres.test.cjs`. Archivos modificados: schema Prisma, servicio/módulo de Trivia, runner PostgreSQL y los dos informes ya modificados al inicio (conciliados y conservados como historial). No se tocaron migraciones confirmadas, fórmulas, liquidación/verificadores, los tres juegos individuales ni Flutter. HEAD sigue en `16163b7`; sin commit, push, merge, despliegue ni migración remota. Se entrega para revisión humana con el gate PostgreSQL abierto.
+
+### Revisión de los 34 fallos — 2026-10-02 (bloqueada, sin checkpoint)
+
+HEAD comprobado: `16163b7`, rama `feat/pr-i1-competitive-infrastructure`. Se preservan todos los cambios de presencia y los dos informes previos. Esta revisión no corrige runtime ni modifica migraciones, fórmulas, tiempos, fixtures o aserciones: no existe todavía una causa reproducida que autorice esa corrección.
+
+**Docker:** contexto `desktop-linux`; cliente 29.7.2, Desktop 4.87.0. Los procesos de Desktop/backend existen, pero no hay servidor accesible en `dockerDesktopLinuxEngine` ni en `docker_engine`; WSL no tiene distribuciones ejecutándose. El log `com.docker.backend.exe.log`, 2026-10-02T21:06:12Z (16:06:12 Bogotá), registra fallo de arranque: `initializing Ingest server ... sailor-ingest.sock ... The file cannot be accessed by the system`. El socket existe con atributos Archive/ReparsePoint. Esto demuestra el punto inmediato de fallo del arranque; no demuestra si su causa Windows es bloqueo, permisos u otra condición. No se eliminó el socket ni se hicieron resets, limpiezas o cambios de permisos. El daemon sigue inaccesible y no pueden ejecutarse contenedores PostgreSQL desechables.
+
+Conforme al límite solicitado, se detienen las validaciones dependientes de Docker: no se ejecuta una nueva suite PostgreSQL ni las tres repeticiones independientes. No se declara aprobada PostgreSQL. El fallo de Docker actual **no se atribuye como causa de los 34 fallos anteriores**.
+
+**Evidencia conservada:** `C:\Users\luisk\AppData\Local\Temp\pr-i1-presence-complete-pg.log`, con nombres, mensajes y trazas originales. Resultado de esa ejecución previa: 58/92; 34 fallos, 14/14 pruebas nuevas de presencia aprobadas. Agrupación exacta: 27 errores directos HISTORICAL_MEMBERSHIP_UNKNOWN (15 comunes y 12 individuales); una aserción de rollback esperaba injected failure pero recibió ese mismo error; seis aserciones individuales esperaban un evento y encontraron cero, acompañadas por el error institucional del reconciliador.
+
+El punto observable es `competitive.rules.ts:28` → `competitive.service.ts:166`, dentro de la transacción: no se encuentra historia con `desde <= terminalAt` y se rechaza antes de escribir ledger/proyección. La prueba de rollback no alcanzó el fallo inyectado; las de acuse perdido no alcanzaron el commit que pretendían probar. No hay evidencia para afirmar corrupción del ledger/balance, ni que estas coberturas hayan quedado verificadas en esa ejecución.
+
+| Prueba fallida (nombre original) | Ubicación original | Mensaje / efecto observado |
+|---|---|---|
+| every existing source family canonicalizes equivalent UUIDs before idempotency | `test\competitive-postgres.test.cjs:35:1` | HISTORICAL_MEMBERSHIP_UNKNOWN |
+| INVALIDACION is unavailable in the service and PostgreSQL enum; current projection stays intact | `test\competitive-postgres.test.cjs:75:1` | HISTORICAL_MEMBERSHIP_UNKNOWN |
+| group enrollment affects membership; removal from group does not; institution deletion clears it | `test\competitive-postgres.test.cjs:225:1` | HISTORICAL_MEMBERSHIP_UNKNOWN |
+| normal settlement: individual without institution, V1, no private metadata or general XP changes | `test\competitive-postgres.test.cjs:372:1` | HISTORICAL_MEMBERSHIP_UNKNOWN |
+| twenty concurrent retries create one event and increment balance once | `test\competitive-postgres.test.cjs:387:1` | HISTORICAL_MEMBERSHIP_UNKNOWN |
+| different concurrent sources preserve a reproducible balance sequence | `test\competitive-postgres.test.cjs:407:1` | HISTORICAL_MEMBERSHIP_UNKNOWN |
+| same identity with changed evidence conflicts; version never permits another payment | `test\competitive-postgres.test.cjs:422:1` | HISTORICAL_MEMBERSHIP_UNKNOWN |
+| same Trivia source cannot pay again under Ghost identity | `test\competitive-postgres.test.cjs:434:1` | HISTORICAL_MEMBERSHIP_UNKNOWN |
+| delayed settlement preserves terminal institution; current membership is never fallback | `test\competitive-postgres.test.cjs:488:1` | HISTORICAL_MEMBERSHIP_UNKNOWN |
+| zero normal result preserves null reachedAt and still has an auditable sequence | `test\competitive-postgres.test.cjs:555:1` | HISTORICAL_MEMBERSHIP_UNKNOWN |
+| abandonment replaces any partial reward, clamps to zero and preserves nominal delta | `test\competitive-postgres.test.cjs:580:1` | HISTORICAL_MEMBERSHIP_UNKNOWN |
+| auditable corrections are concurrent, idempotent, floored and reference immutable origin | `test\competitive-postgres.test.cjs:612:1` | HISTORICAL_MEMBERSHIP_UNKNOWN |
+| isolation between games and independent sequence | `test\competitive-postgres.test.cjs:670:1` | HISTORICAL_MEMBERSHIP_UNKNOWN |
+| abandonment victory uses snapshot and accepted actions; both absent never creates a winner | `test\competitive-postgres.test.cjs:713:1` | HISTORICAL_MEMBERSHIP_UNKNOWN |
+| database constraints protect source identity across versions and append-only audit history | `test\competitive-postgres.test.cjs:759:1` | HISTORICAL_MEMBERSHIP_UNKNOWN |
+| ledger and balance roll back together when the projection update fails | `test\competitive-postgres.test.cjs:817:1` | Esperaba injected failure; recibió HISTORICAL_MEMBERSHIP_UNKNOWN |
+| SUMMIT: disabled admission preserves legacy and accepted competitive recovery | `test\competitive-solo-postgres.test.cjs:207:3` | ERR_ASSERTION: 0 !== 1; reconciliador registra HISTORICAL_MEMBERSHIP_UNKNOWN |
+| SUMMIT: verified win, replay, simultaneous settlement and crash before ledger | `test\competitive-solo-postgres.test.cjs:281:3` | HISTORICAL_MEMBERSHIP_UNKNOWN |
+| SUMMIT: defeat/exhaustion yields the exact verified partial result | `test\competitive-solo-postgres.test.cjs:324:3` | HISTORICAL_MEMBERSHIP_UNKNOWN |
+| SUMMIT: explicit abandonment pays no partial positive XP and uses the floor | `test\competitive-solo-postgres.test.cjs:333:3` | HISTORICAL_MEMBERSHIP_UNKNOWN |
+| SUMMIT: historical institution and Bogota year come from terminal time, not retry | `test\competitive-solo-postgres.test.cjs:474:3` | HISTORICAL_MEMBERSHIP_UNKNOWN |
+| SUMMIT: ledger committed but acknowledgment lost reuses event after restart | `test\competitive-solo-postgres.test.cjs:556:3` | ERR_ASSERTION: 0 !== 1; reconciliador registra HISTORICAL_MEMBERSHIP_UNKNOWN |
+| GUARDIAN: disabled admission preserves legacy and accepted competitive recovery | `test\competitive-solo-postgres.test.cjs:207:3` | ERR_ASSERTION: 0 !== 1; reconciliador registra HISTORICAL_MEMBERSHIP_UNKNOWN |
+| GUARDIAN: verified win, replay, simultaneous settlement and crash before ledger | `test\competitive-solo-postgres.test.cjs:281:3` | HISTORICAL_MEMBERSHIP_UNKNOWN |
+| GUARDIAN: defeat/exhaustion yields the exact verified partial result | `test\competitive-solo-postgres.test.cjs:324:3` | HISTORICAL_MEMBERSHIP_UNKNOWN |
+| GUARDIAN: explicit abandonment pays no partial positive XP and uses the floor | `test\competitive-solo-postgres.test.cjs:333:3` | HISTORICAL_MEMBERSHIP_UNKNOWN |
+| GUARDIAN: historical institution and Bogota year come from terminal time, not retry | `test\competitive-solo-postgres.test.cjs:474:3` | HISTORICAL_MEMBERSHIP_UNKNOWN |
+| GUARDIAN: ledger committed but acknowledgment lost reuses event after restart | `test\competitive-solo-postgres.test.cjs:556:3` | ERR_ASSERTION: 0 !== 1; reconciliador registra HISTORICAL_MEMBERSHIP_UNKNOWN |
+| STAR_RESCUE: disabled admission preserves legacy and accepted competitive recovery | `test\competitive-solo-postgres.test.cjs:207:3` | ERR_ASSERTION: 0 !== 1; reconciliador registra HISTORICAL_MEMBERSHIP_UNKNOWN |
+| STAR_RESCUE: verified win, replay, simultaneous settlement and crash before ledger | `test\competitive-solo-postgres.test.cjs:281:3` | HISTORICAL_MEMBERSHIP_UNKNOWN |
+| STAR_RESCUE: defeat/exhaustion yields the exact verified partial result | `test\competitive-solo-postgres.test.cjs:324:3` | HISTORICAL_MEMBERSHIP_UNKNOWN |
+| STAR_RESCUE: explicit abandonment pays no partial positive XP and uses the floor | `test\competitive-solo-postgres.test.cjs:333:3` | HISTORICAL_MEMBERSHIP_UNKNOWN |
+| STAR_RESCUE: historical institution and Bogota year come from terminal time, not retry | `test\competitive-solo-postgres.test.cjs:474:3` | HISTORICAL_MEMBERSHIP_UNKNOWN |
+| STAR_RESCUE: ledger committed but acknowledgment lost reuses event after restart | `test\competitive-solo-postgres.test.cjs:556:3` | ERR_ASSERTION: 0 !== 1; reconciliador registra HISTORICAL_MEMBERSHIP_UNKNOWN |
+
+**Aislamiento y regresión:** el runner ejecuta los cinco archivos con `--test-concurrency=1`, comunes/individuales antes de presencia. Los hooks comunes/individuales construyen servicios directamente; no arrancan AppModule ni el gateway/worker de presencia. El worker nuevo consulta solo intentos Trivia con presenciaVersion=1 y sus tablas; no modifica historial institucional, ledger o balances. `git diff HEAD` no muestra cambios en liquidación común, servicios de Cima/Guardián/Rescate, sus dos archivos de pruebas PostgreSQL ni migración de evidencia confirmada. Esta inspección no sustituye una comparación ejecutada contra HEAD en PostgreSQL; la regresión sigue sin determinarse.
+
+**Relojes y migraciones:** Node fecha las fuentes sintéticas; la cobertura institucional se crea con clock_timestamp de PostgreSQL. El runner anterior informó aplicación de 53 migraciones confirmadas más presencia antes de probar. La instancia fallida fue eliminada por el runner; no se conservaron catálogo inicial/final, configuración horaria DB ni muestras simultáneas de ambos relojes que demuestren un desfase. La hipótesis de relojes sigue abierta. El diagnóstico añadido previamente al runner queda pendiente de ejecución: no se inventan resultados ni historial, y no se cambia el guard institucional. La precedencia EXPIRADO cuando venceEn <= graceUntil se conserva.
+
+**Siguiente verificación pendiente:** daemon operativo, suite completa con diagnóstico de reloj/cobertura y estado del esquema, reproducción del defecto y comparación controlada con HEAD; corregir solo la causa demostrada y luego tres ejecuciones limpias independientes. La incidencia histórica de vencimiento Rescate permanece abierta y separada (esa prueba pasó en el log de los 34 fallos).
+
+Validaciones ejecutadas nuevamente en esta revisión (logs temporales `pr-i1-review34-*.log`): build exit 0; Jest competitivo exit 0, 5 suites y 115/115; Jest completo exit 0, 94 suites y 993/993; audit de producción exit 0, 0 vulnerabilidades con CA del sistema temporal y TLS activo. PostgreSQL no ejecutado por daemon inaccesible, cero repeticiones nuevas; los 58/92 son evidencia previa fallida, no resultado nuevo. Diff check exit 0. No se hizo commit, push, merge, despliegue ni migración remota; XP de Trivia/Duelo continúa deshabilitado.
+
+### Reanudación con Docker recuperado — 2026-10-02
+
+Esta sección actualiza el bloqueo de daemon de la revisión anterior, conservando su historial. HEAD principal sigue en `16163b7` y rama `feat/pr-i1-competitive-infrastructure`.
+
+**Protección del entorno.** Docker Client/Server 29.7.2, Desktop 4.87.0, contexto desktop-linux y docker info operativos. Se registró antes/después `postgres-local`, ID `20d971cc043fe04cf2fd14be83c906d2210f298381e58ac480a478ea305b7927`, Running, StartedAt `2026-10-02T21:24:22.476116454Z`, puerto 127.0.0.1:5432. No se conectó a esa DB, ni se detuvo/reutilizó/modificó/eliminó ese contenedor. Solo el runner creó instancias propias con nonce/label, credenciales aleatorias, tmpfs y puerto loopback aleatorio; verificó propiedad antes de eliminarlas. Al terminar solo quedó el contenedor original. No hubo URL remota ni migraciones Supabase.
+
+**Resultados completos conservados.** Logs en `C:\Users\luisk\AppData\Local\Temp`:
+
+| Ejecución | Log | Resultado real |
+|---|---|---|
+| Árbol actual 1 | pr-i1-recovered-pg-1.log | Exit 0; 92/92; 72232.1931 ms. |
+| Árbol actual 2 | pr-i1-recovered-pg-2.log | Exit 1; 68 aprobadas y 1 archivo fallido, 69 entradas; 77452.1356 ms. La suite común no cargó: PrismaClient indefinido. No equivale a ejecutar 92 pruebas. |
+| Árbol actual 3 | pr-i1-recovered-pg-3.log | Exit 0; 92/92; 71202.2798 ms. Primera de las tres pasadas secuenciales finales. |
+| Árbol actual 4 | pr-i1-recovered-pg-4.log | Exit 0; 92/92; 70052.4767 ms. Segunda pasada final. |
+| Árbol actual 5 | pr-i1-recovered-pg-5.log | Exit 0; 92/92; 62014.2937 ms. Tercera pasada final. |
+| HEAD aislado, sin inyección | pr-i1-baseline-pg.log | Exit 0; 78/78; 57737.0431 ms; runner confirmado, 53 migraciones, sin presencia. |
+| HEAD aislado, reloj Node atrasado deliberadamente 2000 ms | pr-i1-baseline-clock-probe.log | Exit 1 esperado del experimento; 43/78, 35 fallos; 54936.9463 ms. No se presenta como validación aprobada. |
+
+Las pasadas finales 3/4/5 usan tres bases nuevas, sin datos compartidos, con el mismo árbol de código y diagnóstico final. La segunda pasada se ejecutó mientras el build regeneraba Prisma; la traza muestra `src/prisma/prisma.service.ts:6`, `Class extends value undefined is not a constructor or null`. Se reprodujo separadamente **en las dependencias de la copia aislada**, cargando el cliente mientras `prisma generate` lo reescribía: tres observaciones de PrismaClient indefinido, sin error de conexión DB (`pr-i1-prisma-race-probe.log`). Corrección de ejecución: completar build/generación antes de cargar las suites PostgreSQL; no se modificó runtime, dependencias, aserciones o esperas para encubrirlo. Este fallo es distinto de los 34 institucionales anteriores.
+
+**Comparación aislada.** Se creó worktree detached en `C:\Users\luisk\AppData\Local\Temp\saberplus-pr-i1-baseline-65e810f921724863bfd8ad058ae0d49a`, HEAD completo `16163b76cb7a6f4386ec35fef54ad58bb5699bd6`, con npm ci y cliente Prisma propios. No se compartió node_modules ni se regeneró el cliente del árbol principal desde esa copia. Los archivos fuente, pruebas y migraciones confirmados de HEAD quedaron intactos; solo existe allí un runner diagnóstico adicional no versionado. npm ci exit 0 (su auditoría de todas las dependencias informó 36 vulnerabilidades, 6 moderadas/30 altas; no es la auditoría omit=dev solicitada, que dio cero en el árbol principal). No se actualizó ninguna dependencia.
+
+**Mecanismo demostrado, límite histórico.** El preload externo `C:\Users\luisk\AppData\Local\Temp\pr-i1-clock-probe.cjs` altera únicamente Date sin argumentos/Date.now de los procesos de los dos archivos PostgreSQL comunes/individuales: -2000 ms. No altera PostgreSQL, fechas explícitas de fixtures ni presencia. El runner diagnóstico de la copia aplica las 53 migraciones originales, no presencia, y añade las mismas muestras de reloj/esquema. Se ejecutó con NODE_OPTIONS=--require apuntando a ese preload; se restauró la variable al finalizar. No está incorporado a las validaciones regulares ni al backend.
+
+El experimento reprodujo **todos los 34 nombres originales**, más `real student creation, existing-user enrollment and CSV import all update historical membership` (competitive-postgres.test.cjs:175 también rechazado por HISTORICAL_MEMBERSHIP_UNKNOWN). Compare-Object entre los nombres de ambos reportes confirmó que no falta ninguno de los originales. La consulta SQL antes de eliminar la instancia encontró 37 fuentes sintéticas recientes con terminal anterior a primera cobertura, diferencias positivas de **1734 a 1994 ms**. Ese número cuenta fuentes, no pruebas. Las trazas mantienen `competitive.rules.ts:28` → `competitive.service.ts:166`, antes de ledger/proyección. Las seis aserciones de cero eventos y el rollback interceptado también se reproducen.
+
+Esto demuestra que un reloj Node atrasado frente a PostgreSQL puede producir el conjunto original y que la dependencia de dos relojes ya existe en HEAD, sin worker de presencia. **No demuestra que ese desfase ocurriera en la ejecución original 58/92**: no hay muestra simultánea ni DB conservada de aquella ejecución. No se afirma causa raíz histórica resuelta, ni se convierte el reinicio de Docker en prueba de ella. Tampoco se demuestra una regresión funcional causada por esta ronda. La fuente sintética usa Date de Node; los tres servicios individuales usan Date de Node para sus terminales; el trigger institucional usa clock_timestamp DB. El guard rechaza correctamente evidencia anterior a su cobertura y no debe relajarse ni inventar historial. No se cambia ahora el runtime temporal de los tres juegos sobre la sola atribución hipotética del incidente original. Queda abierto el requisito técnico de consistencia de reloj entre fuente terminal y cobertura DB, además de confirmar la causa histórica si vuelve a ocurrir con diagnóstico.
+
+**Relojes, zona horaria, esquema y aislamiento.** Node v24.14.1: America/Bogota (offset 300), ISO UTC; PostgreSQL 16.15: Etc/UTC. Las muestras antes/después de las tres pasadas finales incluyen cero en el intervalo DB-host: no prueban desfase positivo ni sincronía exacta milisegundo a milisegundo. No se atribuye un cambio de zona horaria al rechazo; se comparan instantes absolutos. Las pruebas de frontera de temporada 04:59:59.999Z/05:00Z y membresía terminal pasan. Cada instancia parte de cero con 53 migraciones confirmadas más presencia, ledger/balance/historial/presencia presentes; 65 tablas y 17 triggers públicos antes, 66 tablas y 17 triggers después. La tabla adicional es CompetitiveTestSource creada por la suite común, no una migración inesperada. La copia HEAD inicia 62 tablas/12 triggers y termina 63/12, sin presencia. El runner aplica SQL secuencial con ON_ERROR_STOP; no administra _prisma_migrations ni ejecuta prisma migrate remoto. Sus archivos de pruebas siguen con --test-concurrency=1 y usuarios/fuentes UUID propios. Las pruebas de concurrencia, ledger, balances, historial, liquidación, privacidad y las 14 de presencia pasan en las tres pasadas finales; esto no elimina la incertidumbre del registro histórico fallido.
+
+**Cambios de esta revisión.** Solo se amplió `tool/test_competitive_postgres.mjs` con muestras de reloj al terminar y diagnóstico de zona horaria/versión/tablas/triggers al inicio/final/fallo; no ajusta fechas ni reintenta u omite pruebas. Se actualizaron los dos documentos ya modificados. Se preservaron todos los archivos previos de presencia, la migración pendiente y la precedencia EXPIRADO si venceEn <= graceUntil. No hubo corrección de producto/runtime ni nuevas migraciones en esta revisión; no se alteraron migraciones confirmadas, fórmulas, Flutter, otros juegos o XP de Trivia/Duelo.
+
+**Validaciones restantes:** build exit 0 (`pr-i1-recovered-build.log`); Jest competitivo 5 suites, 115/115, exit 0 (`pr-i1-recovered-competitive.log`); Jest completo 94 suites, 993/993, exit 0 (`pr-i1-recovered-full.log`); npm audit --omit=dev exit 0, cero vulnerabilidades (`pr-i1-recovered-audit.log`), CA del sistema temporal y TLS activo; git diff --check exit 0. La incidencia anterior `STAR_RESCUE: the worker alone expires an unattended attempt` pasó en las ejecuciones normales y controlada, pero **continúa abierta sin causa demostrada**. No hay commit, push, merge, despliegue ni migración remota. Se detiene para revisión humana: tres pasadas completas aprobadas, pero la causa histórica de los 34 fallos permanece sin confirmación directa.
+
+### Regla aprobada: suspender nuevas acciones sin presencia vigente (2026-10-02)
+
+Decisión explícita del propietario para los **nuevos intentos con presenciaVersion=1** de TRIVIA_RUSH y GHOST_DUEL: después de la desconexión confirmada de todas las conexiones válidas, no se admiten respuestas ni potenciadores nuevos hasta una reconexión autenticada. También se exige presencia para la primera acción, aunque todavía nunca se haya abierto el canal. UNKNOWN no prueba desconexión/abandono, pero tampoco habilita acciones. Legacy e históricos con presenciaVersion=null conservan íntegro su camino previo.
+
+**Admisión servidor y DB.** `requireTriviaPresence` consulta la función privada `trivia_presence_require_open` dentro de la misma transacción de la acción, después de comprobar propietario/estado y buscar el reintento. Se exige una fila vinculada al intento con state=OPEN, connectedAt/lastSeenAt no futuros y leaseUntil estrictamente posterior al reloj PostgreSQL. CLOSED, UNKNOWN, RETIRED y lease vencido nunca autorizan. Falta de presencia produce HTTP 409, TRIVIA_PRESENCE_REQUIRED. Otros errores DB/esquema se propagan; no se ocultan como desconexión.
+
+El gateway fue auditado y se conserva: handshake JWT validado por servidor y propiedad del intento, UUID de conexión/instancia generado por backend, renovación tras revalidar autenticación, apagado/error tratado como incertidumbre. El cliente no puede enviar un indicador de conexión para autorizar HTTP. La evidencia OPEN proviene del canal servidor y sus funciones privadas; HTTP **no renueva leases, no crea presencia ni abre gracia**. El lease vigente es evidencia reciente del observador autenticado; no constituye telemetría del instante físico de un corte de Internet.
+
+**Idempotencia.** Respuestas y ayudas buscan la operación previa antes de exigir presencia, y vuelven a buscarla bajo locks. Propietario, intento, clave y payload deben coincidir; un conflicto conserva el rechazo existente. Un reintento exacto recupera evaluación/activación sin insertar ni consumir otra concesión, incluso durante desconexión o tras un terminal. La lectura puede ejecutar la recuperación terminal normal, pero nunca añade una acción. Se prueba que payload, usuario o intento ajenos reciben 403 y que no hay segunda escritura.
+
+**Transacciones y orden de locks.** Todos los contendientes de presencia/admisión toman Usuario → IntentoTriviaRush. La nueva función reutiliza `trivia_presence_lock`, sin esperar conexiones antes del padre. El trigger de INSERT de respuesta/potenciador se llama ahora `trivia_a_presence_action_guard`, para ejecutarse alfabéticamente **antes** del guard de evidencia confirmado que bloquea el intento. Así una inserción directa no invierte el orden tomando primero intento y después Usuario. El guard SQL repite presencia y plazo justo antes de insertar: si el lease/plazo vence entre admisión y escritura, la operación se rechaza y la transacción revierte sus efectos, incluida una concesión consumida. La comprobación del servicio no sustituye este guard.
+
+La prueba PostgreSQL específica retiene Usuario en una transacción de desconexión y comprueba en pg_stat_activity que la inserción competidora está esperando un lock; solo entonces libera el contendiente. La desconexión adquiere intento y se confirma; la inserción falla con TRIVIA_PRESENCE_REQUIRED, sin respuesta ni interbloqueo. No usa sleeps para decidir quién gana. Las dos carreras adicionales por HTTP real (una por modo), desconexión y reconexión aceptan únicamente los resultados seriales posibles: 201 con evaluación válida o 409 de presencia; el reintento final deja exactamente una fila. Esto verifica este protocolo de locks, no certifica ausencia de interbloqueos en operaciones ajenas al protocolo.
+
+**Tiempo y terminales.** La función privada `trivia_presence_now` centraliza el mismo clock_timestamp UTC de DB para presencia, leases y admisión. La nueva respuesta/ayuda V1 usa el instante devuelto por DB; legacy/históricos mantienen su reloj anterior. Producción no tiene entrada HTTP ni setting para cambiar ese reloj. La gracia continúa exactamente 20 s, HTTP/reconexión no pausa ni amplía venceEn, retorno válido conserva tiempo restante y una reconexión tardía no reabre terminales. Se mantiene EXPIRADO cuando venceEn ocurre antes o exactamente al fin de gracia. Recuperación, reconciliación y terminal durable siguen habilitados independientemente de admitir acciones nuevas; no se habilita XP ni verificador competitivo.
+
+**Migración.** Se modifica únicamente la migración nueva y aún no confirmada `20261002190000_trivia_presence`: funciones privadas de reloj/admisión, trigger temprano y uso del mismo reloj en funciones existentes. Se conserva su evidencia/tablas/constraints/RLS y se revocan EXECUTE de las dos funciones nuevas a PUBLIC/anon/authenticated. No se edita ninguna migración confirmada, no se aplica nada remoto y el rol/RLS de producción continúa pendiente de verificación antes del despliegue autorizado.
+
+**Pruebas y aislamiento.** Se agregan doce casos PostgreSQL: cinco por modo para presencia inicial, t10/t15 desconectado, ayuda suspendida/concesión intacta, t20 retorno, retries exactos/conflictivos, UNKNOWN, OPEN vencido, conexiones múltiples/antiguas, carrera HTTP, precedencia de plazo y retorno tardío; un caso de compatibilidad legacy/histórica; un caso de locks SQL. Todos comprueban ausencia de XP competitivo cuando corresponde. Los casos previos de evidencia/privacy siguen con sus aserciones: sus fixtures V1 ahora registran una observación autenticada del servidor antes de actuar, usando el mismo contrato SQL privado que el gateway. No se simula presencia mediante datos del cliente.
+
+El tiempo de los nuevos casos se controla únicamente en la DB local desechable: el test reemplaza allí la función de reloj por una versión que lee un setting de transacción SET LOCAL. Un proxy de Prisma fija ese valor antes de las transacciones del controlador HTTP real; se conservan JWT, DTO, Prisma y triggers reales. La función de producción en la migración no acepta ese setting, y ninguna ruta permite fijarlo. Las fechas explícitas de los fixtures no son telemetría. La compatibilidad legacy se prueba con fechas reales, coherentes con su reloj preexistente.
+
+| Validación | Resultado |
+|---|---|
+| npm run build | Exit 0; Prisma generado antes de ejecutar PostgreSQL. |
+| npm test -- --runInBand competitive | Exit 0; 5 suites, 118/118. |
+| npm test -- --runInBand | Exit 0; 94 suites, 996/996. |
+| PostgreSQL inicial, pr-i1-presence-gate-pg-1.log | Exit 1; 102/103. Único fallo en el nuevo fixture histórico: inició en 2050, pero el camino legacy respondió con reloj actual; SQL rechazó Answer outside time window (23514). Se corrigió el fixture usando inicio real, sin tocar guard ni aserción. No se atribuye a presencia, historial institucional o Rescate. |
+| PostgreSQL tras corrección y prueba SQL, pr-i1-presence-gate-pg-2.log | Exit 0; 104/104; 92809.1716 ms. |
+| PostgreSQL final con carrera por HTTP real, pr-i1-presence-gate-pg-final.log | Exit 0; 104/104; 79435.7095 ms. 53 migraciones confirmadas + presencia en instancia nueva propia, eliminada al finalizar. |
+| npm audit --omit=dev | Exit 0; cero vulnerabilidades, CA del sistema temporal y TLS activo. |
+| git diff --check | Exit 0. |
+
+Logs conservados en C:/Users/luisk/AppData/Local/Temp, prefijo pr-i1-presence-gate-. Se preservó postgres-local: mismo ID y StartedAt, sin acceso a sus datos. Los tres juegos solo no muestran cambios de código; las fórmulas, Usuario.xpTotal y la ausencia de XP Trivia/Duelo se mantienen. Tres nuevas unitarias comprueban tiempo de admisión DB, conflicto de presencia y propagación de errores de esquema.
+
+Archivos ajustados en esta revisión: trivia-presence.service.ts, trivia-rush.service.ts, migración pendiente, competitive.trivia-presence.spec.ts, competitive-trivia-presence-postgres.test.cjs, competitive-trivia-evidence-postgres.test.cjs y los dos documentos existentes. Gateway, schema, módulo y runner previamente pendientes se preservan. No hay nuevas migraciones adicionales. La incertidumbre histórica de los 34 fallos sigue abierta: el experimento de reloj previo demuestra un mecanismo, no su causa histórica. La incidencia intermitente de vencimiento Rescate también sigue abierta pese a pasar en estas ejecuciones. HEAD continúa 16163b7, sin commit/push/merge/despliegue/migración remota ni cambios Flutter. Se detiene antes del quinto commit para revisión humana.

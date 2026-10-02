@@ -107,6 +107,11 @@ export interface DiagnosticoTriviaRush {
   errores: number;
 }
 
+import {
+  requireTriviaPresence,
+  resolveTriviaPresence,
+} from './trivia-presence.service';
+
 function mezclar<T>(elementos: T[]): T[] {
   const copia = [...elementos];
   for (let indice = copia.length - 1; indice > 0; indice -= 1) {
@@ -138,10 +143,16 @@ export class TriviaRushService {
       await this.bloquear(tx, `trivia-rush:usuario:${usuarioId}`);
       await this.bloquearUsuario(tx, usuarioId);
       const ahora = new Date();
-      const activa = await tx.intentoTriviaRush.findFirst({
+      let activa = await tx.intentoTriviaRush.findFirst({
         where: { usuarioId, estado: EstadoIntentoTriviaRush.ACTIVO },
         orderBy: { iniciadoEn: 'desc' },
       });
+      if (activa?.presenciaVersion === 1) {
+        await resolveTriviaPresence(tx, activa.id);
+        activa = await tx.intentoTriviaRush.findFirst({
+          where: { id: activa.id, estado: 'ACTIVO' },
+        });
+      }
       if (activa && intentoTriviaRushVencido(activa.venceEn, ahora)) {
         await tx.intentoTriviaRush.update({
           where: { id: activa.id },
@@ -202,6 +213,7 @@ export class TriviaRushService {
           ...(snapshot
             ? {
                 evidenciaVersion: 1,
+                presenciaVersion: 1,
                 modalidad: entrada.modalidad,
                 snapshotInicial: snapshot as unknown as Prisma.InputJsonValue,
               }
@@ -392,7 +404,10 @@ export class TriviaRushService {
       this.validarPropietario(intento, usuarioId);
       this.validarActivo(intento);
 
-      const ahora = new Date();
+      const ahora =
+        intento.presenciaVersion === 1
+          ? await requireTriviaPresence(tx, intentoId)
+          : new Date();
       if (intentoTriviaRushVencido(intento.venceEn, ahora)) {
         await this.marcarExpirado(tx, intento.id, ahora);
         return { respuestaId: null, vencido: true };
@@ -545,7 +560,10 @@ export class TriviaRushService {
       if (!intento) throw new NotFoundException('Intento no encontrado.');
       this.validarPropietario(intento, usuarioId);
       this.validarActivo(intento);
-      const ahora = new Date();
+      const ahora =
+        intento.presenciaVersion === 1
+          ? await requireTriviaPresence(tx, intentoId)
+          : new Date();
       if (intentoTriviaRushVencido(intento.venceEn, ahora)) {
         await this.marcarExpirado(tx, intento.id, ahora);
         return { potenciadorId: null, vencido: true };
@@ -1303,13 +1321,15 @@ export class TriviaRushService {
   ) {
     const owner = await tx.intentoTriviaRush.findUnique({
       where: { id: intentoId },
-      select: { usuarioId: true },
+      select: { usuarioId: true, presenciaVersion: true },
     });
     if (!owner) throw new NotFoundException('Intento no encontrado.');
     if (usuarioId && owner.usuarioId !== usuarioId)
       throw new ForbiddenException('El intento no pertenece a tu cuenta.');
     await this.bloquearUsuario(tx, owner.usuarioId);
     await tx.$queryRaw`SELECT id FROM "IntentoTriviaRush" WHERE id = ${intentoId}::uuid FOR UPDATE`;
+    if (owner.presenciaVersion === 1)
+      await resolveTriviaPresence(tx, intentoId);
   }
 
   private async fijarFantasma(
