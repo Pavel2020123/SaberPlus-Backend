@@ -1,5 +1,7 @@
 # PR-I1 V1 — auditoría previa de Trivia Rush y Duelo fantasma
 
+**Actualización posterior al checkpoint af78ee7:** se implementa la primera etapa de evidencia autoritativa descrita al final de este informe: snapshot, modalidad y referencia inicial protegidos, y serialización de mutaciones. No se habilita XP. El diagnóstico y los resultados siguientes se conservan como historial; los puntos resueltos se detallan en la nueva sección y no deben interpretarse como carencias actuales.
+
 Fecha: 2026-10-01. Rama `feat/pr-i1-competitive-infrastructure`; HEAD inicial `76a8a47d42865e4a1813834f20f32479ed50fd35`; árbol inicialmente limpio. Infraestructura común y tres juegos individuales ya versionados. No se infiere que estén desplegados.
 
 **Resultado: integración competitiva de ambos juegos detenida por insuficiencia de evidencia autoritativa del runtime actual.** Existe un motor servidor real para preguntas, pero no el contrato completo necesario para certificar el resultado competitivo. Se aplica la condición expresa de esta petición: «Si alguno de los juegos no posee un motor servidor suficientemente autoritativo, NO simules esa capacidad. Detalla el bloqueo y detén la integración de ese juego». No se registra un adaptador que convierta contadores legacy en evidencia competitiva.
@@ -126,3 +128,104 @@ Validación final: `npm run build` correcto; `npm test -- --runInBand` **93 suit
 **Incidencia de Rescate: ABIERTA, NO REPRODUCIDA en estas cuatro ejecuciones. Causa no demostrada.** Los resultados verdes no anulan el fallo histórico ni permiten atribuirlo al reloj, al intervalo, al lote o a una carrera. El diagnóstico agregado conserva el fallo y permitirá obtener más evidencia si reaparece. No hubo corrección de runtime ni nueva prueba que se presente como regresión de una causa desconocida.
 
 Archivos tocados en este seguimiento: esta auditoría, `competitive.trivia-boundary.spec.ts`, `competitive-trivia-boundary-postgres.test.cjs` y `competitive-solo-postgres.test.cjs`. Se preservan los demás cambios de la auditoría anterior. Sin commit/push/merge, despliegue, cambios Flutter, migraciones nuevas ni integración de juegos.
+
+## Primera etapa autoritativa — base af78ee7, sin XP
+
+Rama verificada `feat/pr-i1-competitive-infrastructure`, HEAD inicial `af78ee79c13e654e996010ceb47ab4cab717347d`, working tree inicialmente limpio. Se releen ambos informes backend y las decisiones V1 de Flutter (12.1–12.4): Q 10..30 fijado al inicio, misma fuente TRIVIA_ATTEMPT, fantasma fijo y ausencia inicial explícita. No cambian fórmulas, importes ni tiempos aprobados.
+
+### Contrato y compatibilidad
+
+El POST de creación acepta opcionalmente `modalidad: TRIVIA_RUSH | GHOST_DUEL`. Es una solicitud de modo para **evidencia V1 sin XP**, no `competitive:true`. El servidor valida estudiante, configuración, banco y referencia; rechaza XP, Q, snapshot, versión de evidencia o fantasma suministrados por cliente. No se crea un flag de XP ni se registra un verificador.
+
+Omitir modalidad al crear mantiene el camino legacy, con los tres campos nuevos null y mínimo previo de 4 preguntas. Nunca se infiere modo de una pantalla, ayuda o récord. Los registros históricos conservan null. Si ya hay intento activo, omitir modalidad recupera ese intento sin cambiarlo; pedir explícitamente otra modalidad o promover un legacy produce conflicto. Las modalidades explícitas requieren 10..30 preguntas y no se degradan silenciosamente a legacy si falta banco.
+
+Las respuestas públicas de los intentos con evidencia añaden `modalidad`, `competitive:false` y `fantasmaInicial` (referencia resumida o null). Los payloads legacy conservan sus campos anteriores. La clave compartida futura seguirá siendo TRIVIA_ATTEMPT/intento/participante; no se inventa otra fuente para Duelo.
+
+**evidenciaVersion=1 no es admisión competitiva ni xpRulesVersion.** No se concede XP ni se promete acreditar después estas partidas. Una futura habilitación necesitará su propio contrato de admisión para nuevos intentos, presencia durable y cierre/liquidación verificables; no debe activar retroactivamente los intentos de esta etapa.
+
+### Snapshot y referencia fija
+
+Nueva migración incremental `20261001190000_trivia_authoritative_evidence`; añade enum ModalidadTriviaRush y campos nullable evidenciaVersion, modalidad y snapshotInicial a IntentoTriviaRush. No modifica migraciones confirmadas ni rellena historia.
+
+El snapshot JSON conserva versión, Q, áreas normalizadas, duración, versión del motor, modo, preguntas ordenadas, IDs/orden de opciones, contenido de pregunta/caso, imágenes por URL, tema/subtema, explicaciones y solución original de cada opción. No copia binarios de imágenes externas. Calificación, 50/50, presentación de preguntas y revisión/evaluación consultan esos valores para intentos V1. Las relaciones al banco se mantienen por compatibilidad/FK, pero sus valores actuales no sustituyen la evidencia original. Los intentos legacy mantienen su lectura anterior del banco.
+
+El DB valida Q, unicidad, orden, cuatro opciones con una correcta, configuración y fechas; impide cambiar origen/modo/snapshot/configuración, promover históricos y borrar evidencia V1. Preguntas asignadas, respuestas y ayudas V1 son append-only mientras ACTIVO; una fila terminal queda inmutable. Las respuestas se contrastan con la solución del snapshot y su ventana temporal. Se conserva RLS y se revocan accesos públicos/anon/authenticated de las cuatro tablas de Trivia.
+
+Para GHOST_DUEL se selecciona al inicio, bajo el lock de Usuario, el mejor registro propio FINALIZADO/EXPIRADO sin ayudas, con evidencia V1 protegida, mismas áreas, duración, versión del motor y Q. Puede proceder de cualquiera de los dos modos del motor compartido. Conserva el orden de mérito legacy (puntaje, aciertos, mejor combo, fecha); un empate completo de esas claves usa ID como desempate técnico estable. No se elige una referencia enviada por cliente. La referencia copia identidad, resultado, configuración, Q, fecha y checkpoints ordenados por pregunta/envío originales; nunca se recalcula en las consultas del intento.
+
+Los récords legacy sin snapshot no son fuentes autoritativas: siguen visibles en el GET legacy de fantasma, pero no se promueven a referencia protegida. Si no existe candidato compatible protegido, el snapshot guarda ghost:null. Significa **ausencia de referencia elegible al inicio**, no inexistencia histórica de cualquier récord. No se calcula victoria/empate/derrota ni se otorga bono. El GET legacy puede seguir mostrando un récord nuevo: no modifica fantasmaInicial de ningún intento V1.
+
+Duelo explícito rechaza ayudas también en backend/DB, conforme al contrato documentado; las ayudas oficiales de Trivia siguen permitidas. El combo propio del motor conserva escudo/salto/segunda oportunidad. No se introduce una métrica M competitiva ni se usa automáticamente ese contador como racha estricta para XP.
+
+### Concurrencia y fecha terminal
+
+Creación mantiene advisory por usuario y añade lock de Usuario/revalidación de rol. Respuesta y ayuda serializan su clave idempotente UUID canónica, luego Usuario → intento; la ayuda bloquea además su concesión. Reconsultan la clave dentro de la transacción y validan payload/propietario antes de decidir que una respuesta es nueva. El mismo retry, incluso con capitalización UUID distinta, reutiliza el registro; no aumenta respuesta/puntaje/consumo. IDs de preguntas/opciones no se normalizan como UUID.
+
+Abandono y vencimiento usan también Usuario → intento. Creación, respuestas, abandono y expiración ya no pueden cerrar el mismo intento mediante caminos sin ese bloqueo común. No se llama a CompetitiveService desde estas transacciones ni se altera su orden de locks. Los triggers de hijos serializan además sobre el intento antes de aceptar evidencia.
+
+Para evidencia V1, la expiración detectada después usa finalizadoEn=venceEn, incluso si se detecta al abandonar; no acepta respuestas con timestamp igual o posterior al límite. Finalizar sigue sin permitir que el cliente elija el resultado. Si el banco ya se agotó, un abandono posterior no cambia ese terminal. Los históricos/legacy conservan su fecha anterior de detección de vencimiento. Tiempo extra oficial conserva su +10 s y se registra una sola vez por concesión/retry.
+
+Esto no implementa presencia ni gracia de 20 s. EXPIRADO por reloj no se transforma en abandono competitivo y no genera penalización. No hay worker de cierre/recompensa de Trivia ni ledger de estos juegos. Una caída revierte la transacción en curso y conserva lo ya confirmado; no se afirma recuperación competitiva terminal→ledger todavía.
+
+### Despliegue y pendientes
+
+La migración nueva debe aplicarse, con autorización y respaldo, antes del backend que consulta las columnas nuevas. Verificar esquema, funciones/triggers y rol efectivo/RLS del backend; los resultados locales con owner no confirman permisos de Supabase. No se ocultan errores por columnas ausentes. No se aplicó ninguna migración remota ni se tocó el esquema de los tres juegos ya integrados.
+
+Quedan pendientes presencia/desconexión autenticada durable, gracia real de 20 s, resolución definitiva del cierre normal frente a ausencia, futuros controles de admisión competitiva, replay competitivo completo, verificador y recuperación/liquidación idempotente. Las fórmulas V1 siguen intactas. **La incidencia intermitente de vencimiento de Rescate permanece abierta sin causa demostrada.**
+
+### Validación de esta etapa
+
+| Comando | Resultado final |
+|---|---|
+| `npm run build` | Correcto; cliente Prisma generado localmente. |
+| `npm test -- --runInBand competitive` | 4 suites, 111/111 pruebas. |
+| `npm test -- --runInBand` | 93 suites, 989/989 pruebas. |
+| `node tool/test_competitive_postgres.mjs` | 73/73 pruebas; 52 migraciones confirmadas más la nueva migración local. |
+| `npm audit --omit=dev` | 0 vulnerabilidades; CA del sistema temporal, TLS activo. |
+| `git diff --check` | Sin errores. |
+
+Los diez casos PostgreSQL nuevos prueban snapshot frente a cambios de contenido/soluciones, privacidad y protección SQL; banco insuficiente con compatibilidad legacy; modo y ausencia/referencia fija; exclusión de récord legacy y duración incompatible; creación/respuesta concurrentes e idempotencia UUID; última respuesta contra abandono; vencimiento contra respuesta tardía; 50/50 contra banco editado y prohibición de ayudas en Duelo; segunda oportunidad, tiempo extra, salto y escudo; RLS/denegación de roles públicos. Los casos de evidencia mantienen cero ledger/balance competitivo y XP general intacto. La referencia sigue fija aunque el GET legacy pase a mostrar un récord mejor.
+
+Primera ejecución PostgreSQL antes de ampliar cobertura de ayudas/referencias: 71/71. Ejecución final: 73/73, incluidos los 63 casos previos. Ambas instancias fueron eliminadas por el runner; no hubo fallos intermitentes en esta etapa. Esto no resuelve la incidencia histórica de Rescate. No se modificaron su test/diagnóstico ni el runtime de los tres individuales.
+
+Se comprobó por diff que fórmulas, CompetitiveService, registry/módulo, reconciliador y migraciones ya confirmadas no cambiaron. HEAD final permanece af78ee79c13e654e996010ceb47ab4cab717347d. No commit, push, merge, despliegue, migración remota ni cambio Flutter. Se detiene para revisión humana con PR-I1 abierto.
+
+## Revisión del cuarto checkpoint — privacidad HTTP e integridad del fantasma (2026-10-02)
+
+Esta revisión conserva los cambios de la etapa anterior y refuerza únicamente el test PostgreSQL de evidencia, la migración **nueva sin confirmar** `20261001190000_trivia_authoritative_evidence` y este informe. HEAD sigue siendo `af78ee7`. Las cifras de la sección anterior corresponden a aquella etapa.
+
+### Contrato HTTP verificado
+
+El test levanta una aplicación Nest local con `TriviaRushController`, `TriviaRushService`, `JwtGuard`, `EmailVerificadoGuard`, JWT de prueba, Prisma/PostgreSQL real y el mismo ValidationPipe de producción. No sustituye el servicio ni los guards por mocks. No levanta el AppModule completo ni certifica proxy, límites HTTP o configuración de producción.
+
+- Se ejercitan creación y reanudación, intento activo, consulta por ID, consulta legacy de fantasma, respuestas/retry, potenciadores, finalizar y abandonar. Se cubren los modos explícitos TRIVIA_RUSH/GHOST_DUEL y creación legacy sin modalidad.
+- Mientras la partida está activa se rechazan recursivamente claves privadas (`snapshotInicial`, `questions`, `esCorrecta`, `explicacion`, `respuestaCorrectaId`, datos privados de usuario), excepto el objeto de evaluación expresamente autorizado y comprobado con lista exacta de campos escalares. La evaluación final revela únicamente la solución de la respuesta aceptada; la siguiente pregunta permanece pública sin solución. La primera respuesta errónea con segunda oportunidad mantiene solución y explicación en null.
+- El primer Duelo sin referencia y el siguiente con referencia se comprueban vía HTTP; `fantasmaInicial` tiene solo identidad, resumen, configuración y checkpoints, sin preguntas/soluciones. La revisión terminal solo contiene la pregunta efectivamente respondida; las pendientes no se incluyen.
+- Se comprueban autenticación, lectura/retry de otro usuario rechazados, rechazo de snapshot enviado por cliente, ruta de snapshot inexistente y retry sin respuesta duplicada. El terminal y su consulta por finalizar conservan la misma revisión. Se mantienen cero eventos/balances y `Usuario.xpTotal` intacto.
+
+### Validación independiente en PostgreSQL
+
+El trigger reconstruye los checkpoints desde respuestas finales persistidas y el orden original de preguntas del snapshot: orden de pregunta, número de intento, suma acumulada de `puntosOtorgados` y segundos transcurridos limitados a la duración base. Conserva un checkpoint por respuesta, incluso si varias comparten segundo. No sustituye el orden por timestamps ni coalesce checkpoints. Fechas y segundos usan la precisión canónica de milisegundos de Prisma/JavaScript; el formato de fecha es UTC ISO con tres decimales, independiente de la zona horaria de la sesión SQL.
+
+Se exige igualdad JSON del objeto completo con la referencia reconstruida: identidad, puntaje, aciertos, combo, fecha terminal, Q, configuración y checkpoints. Se rechazan también claves extra, de modo que no se pueda añadir un snapshot privado al fantasma. No se cambia el resultado fuente ni se implementa una nueva fórmula de puntos/XP.
+
+Las condiciones de elegibilidad siguen documentadas arriba: registro propio protegido V1, FINALIZADO/EXPIRADO, sin ayudas y configuración/Q compatibles. El servicio sigue seleccionando el mejor elegible; no se introduce elección por cliente, una modalidad fuente exclusiva ni una nueva política de bonos. Históricos sin evidencia no se promueven y `ghost:null` sigue siendo válido. La DB verifica correspondencia y elegibilidad; la elección del mejor candidato continúa bajo el lock de Usuario del servicio.
+
+Las pruebas intentan insertar fecha terminal falsificada, checkpoints con tiempo/puntaje/cantidad/orden alterados, marcador/aciertos/combo incompatibles, otro propietario, referencia legacy FINALIZADO, fecha ausente y claves privadas adicionales. Todas deben fallar por el guard; las inserciones legítimas con referencia y sin ella deben pasar.
+
+### Límites conservados
+
+No hay habilitación de XP de Trivia/Duelo, verificador competitivo, gracia basada en ausencia HTTP ni cambios en fórmulas o juegos ya integrados. RLS permanece activo; los permisos del rol efectivo de producción siguen como gate de despliegue, no certificados por el owner local. **La incidencia intermitente de Rescate permanece abierta sin causa demostrada**; no se alteran esperas, aserciones ni runtime para ocultarla.
+
+### Resultados de esta revisión
+
+| Comando | Resultado |
+|---|---|
+| `npm run build` | Exit 0; generación Prisma y compilación correctas. |
+| `npm test -- --runInBand competitive` | Exit 0; 4 suites, 111/111 pruebas. |
+| `npm test -- --runInBand` | Exit 0; 93 suites, 989/989 pruebas. |
+| `node tool/test_competitive_postgres.mjs` | Dos ejecuciones locales: 78/78 en ambas; segunda con las aserciones finales reforzadas. 52 migraciones confirmadas más la nueva pendiente, PostgreSQL 16 desechable. Instancias eliminadas por el runner. |
+| `npm audit --omit=dev` | Exit 0; 0 vulnerabilidades. `--use-system-ca` temporal y TLS activo. |
+| `git diff --check` | Exit 0; sin errores de whitespace. |
+
+No se reprodujo el fallo de Rescate en estas dos ejecuciones y no se atribuye una causa. No se editaron migraciones confirmadas, Flutter, fórmulas ni los tres juegos integrados. No se hizo commit, push, merge, despliegue ni migración remota. Se detiene para revisión humana.

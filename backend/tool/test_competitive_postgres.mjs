@@ -166,7 +166,7 @@ async function main() {
     for (const path of paths)
       sql.push((await run('git', ['show', `HEAD:backend/${path}`])).stdout);
     const migration =
-      'prisma/migrations/20260930180000_competitive_solo_runtime/migration.sql';
+      'prisma/migrations/20261001190000_trivia_authoritative_evidence/migration.sql';
     if (!paths.includes(migration))
       sql.push(await readFile(join(backend, migration), 'utf8'));
     const migrationPath = join(directory, 'migration.sql');
@@ -187,7 +187,7 @@ async function main() {
       '/tmp/competitive-migration.sql',
     );
     console.log(
-      `PostgreSQL 16 local: ${paths.length} committed migrations${paths.includes(migration) ? '' : ' + pending solo competitive migration'} applied.`,
+      `PostgreSQL 16 local: ${paths.length} committed migrations${paths.includes(migration) ? '' : ' + pending Trivia evidence migration'} applied.`,
     );
     const result = await run(
       process.execPath,
@@ -197,6 +197,7 @@ async function main() {
         'test/competitive-postgres.test.cjs',
         'test/competitive-solo-postgres.test.cjs',
         'test/competitive-trivia-boundary-postgres.test.cjs',
+        'test/competitive-trivia-evidence-postgres.test.cjs',
       ],
       180_000,
     );

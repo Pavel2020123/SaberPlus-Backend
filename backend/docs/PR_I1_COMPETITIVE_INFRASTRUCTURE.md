@@ -1,5 +1,7 @@
 # PR-I1 V1: infraestructura competitiva común
 
+Etapa posterior a `af78ee7`: se preparan snapshots inmutables, modalidad explícita y referencia inicial de Trivia/Duelo, con bloqueos e idempotencia reforzados. **No se habilita XP ni se añaden verificadores**; TRIVIA_ATTEMPT continúa rechazado. Véase la sección «Primera etapa autoritativa» de [la auditoría](PR_I1_TRIVIA_DUELO_AUDITORIA.md) para el contrato opcional, la nueva migración y los límites. El flag de los tres individuales no habilita estos juegos.
+
 Revisión posterior al checkpoint `76a8a47`: la [auditoría de Trivia Rush y Duelo fantasma](PR_I1_TRIVIA_DUELO_AUDITORIA.md) detecta evidencia temporal/snapshot insuficiente y falta de modo/fantasma inicial persistido. Conforme a la condición de parada de la petición, ambos siguen sin integración competitiva. Esta revisión añade documentación y pruebas de rechazo seguro, y corrige la deserialización `void` del advisory lock legacy de Trivia detectada en PostgreSQL; no registra nuevos verificadores ni modifica fórmulas o migraciones. Las secciones siguientes conservan el historial de la implementación de los tres individuales.
 
 Estado: infraestructura común y primera integración de **SUMMIT, GUARDIAN y STAR_RESCUE** implementadas para revisión; **PR-I1 sigue abierto**. Los tres módulos de juego importan `CompetitiveModule`, que registra sus verificadores reales y un reconciliador común. No hay endpoint genérico de XP. Los otros cinco juegos siguen sin integración. Código y nueva migración de esta ronda no desplegados; Flutter no se modifica.

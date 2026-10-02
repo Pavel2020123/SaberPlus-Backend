@@ -9,7 +9,7 @@ import { createSoloVerifiers } from './competitive.solo';
 
 // Safety boundary while the audited runtime lacks competitive evidence.
 // These tests do NOT certify a Trivia/Ghost competitive implementation.
-// Both labels share a blocked source; this is NOT persisted mode isolation.
+// Both labels share a blocked XP source. Persisted evidence modes are tested separately.
 describe('Trivia and Ghost remain closed without authoritative competitive evidence', () => {
   const previous = process.env.COMPETITIVE_SOLO_ENABLED;
   afterEach(() => {
@@ -41,6 +41,16 @@ describe('Trivia and Ghost remain closed without authoritative competitive evide
     transformOptions: { enableImplicitConversion: true },
   });
   const config = { areas: ['MATEMATICAS'], duracionSegundos: 60 };
+  it.each(['TRIVIA_RUSH', 'GHOST_DUEL'])(
+    'accepts explicit evidence modality %s without XP admission',
+    async (modalidad) => {
+      const result = await pipe.transform(
+        { ...config, modalidad },
+        { type: 'body', metatype: dto },
+      );
+      expect(result.modalidad).toBe(modalidad);
+    },
+  );
   it('preserves the legacy creation contract', async () => {
     const result = await pipe.transform(config, {
       type: 'body',
@@ -50,6 +60,9 @@ describe('Trivia and Ghost remain closed without authoritative competitive evide
     expect(result.duracionSegundos).toBe(60);
   });
   it.each([
+    { modalidad: 'INVALID' },
+    { snapshotInicial: {} },
+    { evidenciaVersion: 1 },
     { competitive: true },
     { gameId: 'GHOST_DUEL' },
     { ghostMode: true },

@@ -4,6 +4,7 @@ import {
   IsArray,
   IsEnum,
   IsIn,
+  IsOptional,
   IsString,
   IsUUID,
   MaxLength,
@@ -21,13 +22,21 @@ import {
   Request,
   UseGuards,
 } from '@nestjs/common';
-import { AreaIcfes, TipoPotenciadorTriviaRush } from '@prisma/client';
+import {
+  AreaIcfes,
+  ModalidadTriviaRush,
+  TipoPotenciadorTriviaRush,
+} from '@prisma/client';
 import { AuthenticatedRequest } from '../auth/auth.types';
 import { EmailVerificadoGuard } from '../auth/email-verificado.guard';
 import { JwtGuard } from '../auth/jwt.guard';
 import { TriviaRushService } from './trivia-rush.service';
 
 class CrearTriviaRushDto {
+  @IsOptional()
+  @IsEnum(ModalidadTriviaRush)
+  modalidad?: ModalidadTriviaRush;
+
   @IsArray()
   @ArrayMinSize(1)
   @ArrayMaxSize(5)

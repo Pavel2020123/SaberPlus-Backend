@@ -1077,9 +1077,17 @@ enum EstadoConcesionRecompensa {
   EXPIRADA
 }
 
+enum ModalidadTriviaRush {
+  TRIVIA_RUSH
+  GHOST_DUEL
+}
+
 model IntentoTriviaRush {
   id                       String                  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   usuarioId                String                  @db.Uuid
+  evidenciaVersion         Int?
+  modalidad                ModalidadTriviaRush?
+  snapshotInicial          Json?
   estado                   EstadoIntentoTriviaRush @default(ACTIVO)
   areas                    AreaIcfes[]
   duracionBaseSegundos     Int
