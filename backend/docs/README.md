@@ -7,9 +7,9 @@ a otro repositorio, no a archivos dentro de este árbol.
 
 ## PR-I1 competitivo V1
 
-Rama `feat/pr-i1-competitive-infrastructure`, HEAD `1c12245`: once checkpoints
-confirmados. Ronda 12 local: núcleo transaccional del par aislado y pruebas de
-ledger; admisión y replay autoritativo pendientes; TUG_MATCH no registrado ni
+Rama `feat/pr-i1-competitive-infrastructure`, HEAD `fdfa9aa`: doce checkpoints
+confirmados. Ronda 13 local: admisión Tira persistida y protegida desde creación;
+replay autoritativo pendiente; núcleo del par aislado; TUG_MATCH no registrado ni
 habilitado. La auditoría registra garantías, diagnósticos y resultados. PR-I1 no fusionado a main. Implementación local
 no equivale a migración remota aplicada, backend desplegado o juego activado.
 
@@ -21,7 +21,10 @@ no equivale a migración remota aplicada, backend desplegado o juego activado.
   snapshot/R durables, compatibilidad, privacidad, brechas y precedencia; sin XP.
 
 Los tres flags servidor (`COMPETITIVE_SOLO_ENABLED`, `COMPETITIVE_TRIVIA_ENABLED`,
-`COMPETITIVE_GHOST_ENABLED`) están apagados por defecto. Solo nuevas admisiones
+`COMPETITIVE_GHOST_ENABLED`) están apagados por defecto. El nuevo
+`COMPETITIVE_TUG_ENABLED=false` prepara únicamente admisión Tira, sin verificador
+ni XP. La política aprobada es automática por servidor y separa las colas por
+clasificación persistida. Solo nuevas admisiones
 consultan el flag de su grupo/modo; apagarlo no detiene recuperación o pagos
 pendientes. Tira, Memoria y Batallas siguen sin integrar; PR-I2 no ha comenzado.
 Mantener abiertos rol/RLS de producción, causa histórica de los 34 fallos y

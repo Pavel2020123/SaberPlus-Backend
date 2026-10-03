@@ -11,9 +11,10 @@
 
 ## Estado competitivo PR-I1 V1
 
-Once checkpoints están confirmados hasta `1c12245`. La ronda 12 prepara un núcleo
-atómico del par aislado para pruebas de ledger, sin registrar ni habilitar XP Tira:
-admisión y replay autoritativo siguen pendientes. La auditoría enlazada conserva las
+Doce checkpoints están confirmados hasta `fdfa9aa`. La ronda 13 local prepara
+admisión Tira persistida e inmutable desde la creación, con colas separadas y
+`COMPETITIVE_TUG_ENABLED=false`. Replay y verificador TUG_MATCH siguen pendientes;
+no hay liquidación ni XP Tira. El núcleo del par permanece aislado. La auditoría conserva las
 decisiones deportivas, pruebas actuales e historial de validaciones.
 PR-I1 no está fusionado a main. Código implementado no significa desplegado ni
 activado: no se aplicaron migraciones remotas en esta revisión; la nueva evidencia
@@ -21,7 +22,8 @@ Tira se prueba únicamente en PostgreSQL desechable local.
 
 `COMPETITIVE_SOLO_ENABLED` controla Cima/Guardián/Rescate;
 `COMPETITIVE_TRIVIA_ENABLED` controla Trivia Rush y `COMPETITIVE_GHOST_ENABLED`
-Duelo. Todos apagados por defecto: solo el literal servidor `true` permite nuevas
+Duelo. `COMPETITIVE_TUG_ENABLED` solo decide admisión futura de Tira, sin habilitar
+verificador ni pagos. Todos apagados por defecto: solo el literal servidor `true` permite nuevas
 admisiones. El flag solo no autoriza Trivia/Duelo. Apagarlos no bloquea cierre o
 liquidación de intentos previamente admitidos; no hay conversión retroactiva.
 

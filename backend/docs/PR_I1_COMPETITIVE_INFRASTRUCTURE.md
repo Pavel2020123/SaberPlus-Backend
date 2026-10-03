@@ -1,6 +1,68 @@
 # PR-I1 V1: infraestructura competitiva común
 
-## Estado vigente — checkpoint 12, protocolo del par aislado
+## Estado vigente — checkpoint 13, admisión persistida Tira sin XP
+
+Rama feat/pr-i1-competitive-infrastructure, HEAD fdfa9aa: doce checkpoints
+confirmados, árbol limpio al inicio. Ronda 13 local, sin commit. La decisión
+aprobada por el propietario es admisión automática del backend para búsquedas
+nuevas elegibles con el futuro flag activo, y emparejamiento solo entre la misma
+clasificación persistida. A queda fijado al INSERT; B en su primer emparejamiento.
+
+[Contrato, migración y pruebas de admisión](PR_I1_TIRA_AFLOJA_AUDITORIA.md#estado-vigente--checkpoint-13-admisión-persistida-sin-liquidación).
+COMPETITIVE_TUG_ENABLED está apagado por defecto y en .env.example. No es un
+permiso del cliente ni reutiliza SOLO. No se activa para usuarios: los tests
+positivos cambian únicamente el entorno del proceso de pruebas desechables.
+TUG_MATCH permanece SOURCE_NOT_INTEGRATED, sin provider/verificador/reconciliador
+de XP. Admisión no demuestra replay ni transforma certificados R en elegibilidad.
+El núcleo del par del checkpoint 12 continúa aislado y con sus barreras.
+
+Nueva migración incremental
+[20261004010000_tug_competitive_admission](../prisma/migrations/20261004010000_tug_competitive_admission/migration.sql),
+posterior a evidencia, presencia y visibilidad Tira. Históricos quedan NULL,
+sin backfill; UPDATE no puede promoverlos ni cambiar decisión/política/versiones.
+El backend nuevo requiere aplicar y verificar esta migración antes del despliegue,
+incluso con flags apagados: Prisma lee los nuevos campos. No se ocultan errores
+de esquema ni se ejecutan migraciones remotas. Mantener respaldo/revisión,
+verificación de rol/RLS, migración autorizada, esquema, backend con flags apagados,
+pruebas operativas y activación explícita posterior a resolver el replay.
+
+Pendientes: replay completo, terminales neutrales/fase ACTIVA, integración final
+TUG_MATCH, WAL productivo, rol/RLS, incertidumbre de 34 fallos históricos,
+intermitencia Rescate y límites multiinstancia. PR-I1 no fusionado ni desplegado.
+Los registros inferiores son historial; no describen habilitación actual.
+
+Validación final: build exit 0 (27922 ms); Jest competitivo 213/213 en 14 suites
+(16,931 s), completo 1094/1094 en 103 suites (72,235 s); PostgreSQL 205/205 en
+trece archivos completos, incluidos nueve casos de admisión (352842 ms bloque /
+366248 ms runner); cero fallos, cancelados, omitidos, TODO o incompletos.
+Audit omit=dev cero vulnerabilidades, TLS activo; diff --check exit 0;
+75 enlaces locales existentes. La auditoría de Tira conserva las tres ejecuciones
+PG: primera 202/203 por inventario desactualizado de funciones privadas, segunda
+203/203 con ese inventario corregido, tercera 205/205 tras agregar procedencia
+de UUID y sus dos regresiones. No se relajó la comprobación de permisos.
+TugMatchIdentity, privado e inmutable, evita que borrar/renombrar una fila legacy
+permita reutilizar su UUID como admisión nueva. No inventa admisiones históricas.
+Se aplica y prueba únicamente en PostgreSQL propio desechable.
+
+### Checkpoints
+
+| Etapa | Commit / estado | Entrega |
+|---|---|---|
+| 1 | 08fa13b, confirmado | Infraestructura común y reglas V1. |
+| 2 | 76a8a47, confirmado | Cima, Guardián y Rescate. |
+| 3 | af78ee7, confirmado | Auditoría de frontera Trivia/Duelo. |
+| 4 | 16163b7, confirmado | Evidencia, snapshot y fantasma inicial. |
+| 5 | 88f7045, confirmado | Presencia y acciones Trivia/Duelo. |
+| 6 | ebe40e3, confirmado | Verificación/liquidación Trivia/Duelo. |
+| 7 | 39d3881, confirmado | Auditoría e idempotencia Tira. |
+| 8 | a4d010b, confirmado | Snapshot y presentaciones R Tira. |
+| 9 | 3d0e625, confirmado | Presencia/gracia Tira y runner. |
+| 10 | 7edef15, confirmado | Auditoría de locks y visibilidad. |
+| 11 | 1c12245, confirmado | Certificación R independiente post-COMMIT. |
+| 12 | fdfa9aa, confirmado | Núcleo aislado del par, con barreras de evidencia. |
+| 13 | Local, sin commit | Admisión persistida, flag apagado; sin replay/verificador/XP Tira. |
+
+## Historial — checkpoint 12 confirmado en fdfa9aa
 
 Rama feat/pr-i1-competitive-infrastructure, HEAD 1c12245, once checkpoints
 confirmados. Árbol limpio al inicio; checkpoint 12 local sin commit. Se prepara
@@ -163,7 +225,7 @@ prevalecen. Sin acciones aceptadas, futura recompensa del rival = 0 XP; todavía
 no se calcula ni liquida XP TUG_MATCH. EXPLICIT conserva su contrato.
 Véase [la revisión y evidencia de Tira](PR_I1_TIRA_AFLOJA_AUDITORIA.md).
 
-### Checkpoints
+### Tabla histórica de checkpoints
 
 | Etapa | Commit / estado | Entrega |
 |---|---|---|

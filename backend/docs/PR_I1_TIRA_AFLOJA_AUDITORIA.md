@@ -1,6 +1,152 @@
 # PR-I1 V1 — auditoría y preparación de Tira y afloja
 
-## Estado vigente — checkpoint 12: núcleo del par preparado, NO integración XP
+## Estado vigente — checkpoint 13: admisión persistida sin liquidación
+
+Base feat/pr-i1-competitive-infrastructure / fdfa9aa: doce checkpoints
+confirmados; árbol limpio al iniciar. Ronda 13 local y sin commit.
+
+### Auditoría de rutas y decisión aprobada
+
+La única creación productiva encontrada es TiraAflojaService.emparejar(), invocada
+por POST /tira-afloja/emparejamiento y protegida por JWT, correo verificado y rol
+ESTUDIANTE. Primero recupera una partida abierta del usuario; si no existe,
+selecciona banco publicado, toma el advisory de emparejamiento del usuario y
+revalida el retry. Busca BUSCANDO por área, sin B, y serializa la incorporación
+con el advisory de partida y updateMany condicionado. Si no se incorpora,
+crea BUSCANDO con A y preguntas, evidencia preparada, presenciaVersion=1 y
+certificacionRVersion=1. Estas tres inscripciones NO son admisión competitiva.
+Snapshot completo y ambos participantes se congelan al pasar a ACTIVA;
+presentaciones y testigo R siguen su protocolo confirmado post-COMMIT.
+
+El propietario aprobó expresamente admisión automática por backend para nuevas
+búsquedas de estudiantes elegibles cuando el futuro flag esté activo y colas
+separadas por clasificación persistida. No se inventa modalidad elegible del
+cliente. BuscarPartidaDto solo aporta área; ninguna opción competitive del
+cliente determina admisión. Legacy y nuevas no admitidas comparten la cola
+no competitiva; admitidas solo emparejan con nuevas solicitudes de clasificación
+admitida. Repetir una búsqueda existente recupera su decisión original, aunque
+el flag haya cambiado. No se reclasifica una búsqueda en espera.
+
+### Prueba persistida y garantías PostgreSQL
+
+[tira-afloja.admission.ts](../src/tira-afloja/tira-afloja.admission.ts) decide una
+sola vez dentro de la transacción nueva. COMPETITIVE_TUG_ENABLED debe ser el
+literal true; ausente, false, TRUE, 1 o vacío no admiten. Por defecto está apagado,
+independiente de SOLO/TRIVIA/GHOST. No se cambia configuración de despliegue.
+
+La migración [20261004010000_tug_competitive_admission](../prisma/migrations/20261004010000_tug_competitive_admission/migration.sql)
+añade campos privados a PartidaTiraAfloja:
+
+- competitiveAdmissionVersion=1 para decisiones nuevas, incluso no admisión.
+- competitiveRulesVersion=1 solamente para admitidas; NULL para no admitidas.
+- competitivePolicy: policyVersion=1, nombre COMPETITIVE_TUG_ENABLED y decisión
+  booleana observada. CHECK exige correspondencia exacta con la versión XP.
+- competitiveAdmissionAt y competitiveOriginalAId fijados por PostgreSQL al
+  INSERT, no desde timestamps/identidades enviados por cliente.
+- competitiveOriginalBId fijado por trigger al primer BUSCANDO → PREPARANDO;
+  después B no se sustituye ni retira. El vínculo es consistente con jugadorBId.
+
+Históricos, incluidos V1 preparados/certificados, conservan todos esos campos
+NULL: no admitidos para XP y sin historial inventado. Las decisiones nuevas no
+admitidas conservan versión/política propia, pero nunca se promueven mediante
+UPDATE. SQL directo y Prisma no pueden cambiar decisión, versiones, política,
+fecha ni A, ni reemplazar B después de su incorporación. Identidad, área y
+versionReglas quedan vinculadas al contexto nuevo; DELETE conserva el registro.
+No se introducen restricciones deportivas nuevas para filas legacy NULL.
+
+TugMatchIdentity conserva los UUID originales sin FK al padre: al activar la
+migración copia solo las identidades existentes, sin inventar admisiones ni
+fechas históricas. Cada INSERT nuevo registra su UUID en la misma transacción;
+duplicarlo se rechaza con TUG_ADMISSION_ID_REUSED. Por eso borrar una fila legacy
+que permita el contrato anterior no permite recrearla como competitiva. Este
+registro privado es append-only, sin TRUNCATE, con RLS y permisos revocados;
+no cambia resultados deportivos ni ofrece una ruta pública.
+Un renombrado de UUID que permita el contrato legacy también reserva la identidad
+nueva, conservando la anterior; renombrar/borrar no reinicia la procedencia.
+
+Una admisión positiva exige BUSCANDO nuevo sin B/rondas, preparación de evidencia,
+presencia/visibilidad V1, reglas deportivas V1 y A estudiante con correo verificado.
+Al incorporar B, PostgreSQL comprueba ambos estudiantes verificados y fija su
+identidad. No se añaden locks de usuarios después del lock de partida: las
+comprobaciones de rol son lecturas MVCC. El protocolo advisory y updateMany
+existente conserva su orden. La admisión registra elegibilidad observada, no
+garantiza que los roles nunca cambien; el futuro verificador debe revalidar las
+políticas y reconstruir toda la evidencia bajo el protocolo de usuarios del par.
+
+readTugAdmission distingue ADMITTED, NOT_ADMITTED y error específico
+TUG_ADMISSION_EVIDENCE_INSUFFICIENT para evidencia incompleta/contradictoria.
+ADMITTED no es resultado deportivo verificado. Un INSERT directo realizado por
+el owner sigue siendo una operación privilegiada confiable; el trigger no puede
+leer el entorno Node ni certificar que un owner no lo falsificó. Las restricciones
+sí impiden promociones/reconfiguraciones retroactivas sin desactivar guards.
+No se presenta seguridad frente a quien puede alterar los propios triggers.
+
+Los contratos públicos siguen seleccionando campos explícitos: no retornan
+admisión/política/participantes internos ni soluciones; alias A/B se conservan.
+Los permisos privados y RLS existentes se mantienen; función nueva revocada
+para PUBLIC/anon/authenticated. No hay endpoint para configurar flags.
+
+### Límites y validación
+
+TUG_MATCH no está admitido por el registry para liquidación: sin verificador
+registrado, sin XP ni recuperación de pagos deportivos reales. La nueva admisión
+solo preparará la condición necesaria que el futuro adapter deberá exigir,
+además del replay, todos los certificados R, fase ACTIVA y terminales correctos.
+Los cierres deportivos, tiempos, gracia, UNKNOWN, snapshots y fórmulas no cambian.
+El núcleo aislado del checkpoint 12 conserva sus barreras de abandono/neutral.
+
+Pendientes: replay completo, clasificación neutral/fase ACTIVA, integración TUG,
+WAL/durabilidad física, rol/RLS productivos, 34 fallos históricos, Rescate y
+limitaciones multiinstancia. PR-I1 no fusionado a main ni desplegado.
+La migración nueva requiere revisión/aplicación autorizada antes del backend,
+incluido despliegue con flag apagado; solo se prueba en PostgreSQL desechable.
+
+Se conservan los doce archivos PostgreSQL anteriores y sus aserciones, y se
+añade [competitive-tug-admission-postgres.test.cjs](../test/competitive-tug-admission-postgres.test.cjs).
+Nueve casos: compatibilidad/cierre legacy, creación real con flag apagado y
+evidencia V1 sin XP, promoción SQL bloqueada, colas/flags/reinicio/retries,
+emparejamientos concurrentes desde dos clientes, inmutabilidad de metadata y
+participantes, prerrequisitos/origen, recreación y renombrado/borrado de UUID.
+No se usan esperas arbitrarias ni se registra un verificador de prueba productivo.
+Los siete casos Jest nuevos cubren flag, colas, boundary del registry y
+clasificación privada fail-closed. Las pruebas de flags positivos modifican
+solo el proceso local de pruebas, no archivos/env de despliegue ni usuarios reales.
+
+### Validación exacta del checkpoint 13
+
+Build inicial: exit 0, 16989 ms. Build final después del registro de identidades:
+exit 0, 27922 ms. Jest competitivo inicial: 213/213, 14 suites, 11,580 s;
+final: 213/213, 14 suites, 16,931 s (19076 ms con npm). Completo inicial:
+1094/1094, 103 suites, 68,946 s; final: 1094/1094, 103 suites, 72,235 s
+(74413 ms con npm). No hubo suites Jest fallidas.
+
+| PostgreSQL desechable completo | Resultado | Bloque / runner (ms) | Diagnóstico |
+|---|---|---|---|
+| 1 | 202/203, exit 1, trece archivos completos | 363022 / 375685 | Inventario exacto de funciones privadas no incluía tug_admission_guard. Los siete casos nuevos pasaron. No fue un fallo de Docker, historial institucional ni concesión de permisos. |
+| 2 | 203/203, exit 0, trece archivos completos | 355316 / 369172 | Inventario actualizado con una entrada; conserva igualdad exacta y comprobación EXECUTE=false de cada función para anon/authenticated. Validación anterior al registro de identidades y sus dos casos nuevos. |
+| 3 final | 205/205, exit 0, trece archivos completos | 352842 / 366248 | Registro privado de identidades aplicado; nueve/nueve casos nuevos, 3959,775 ms. Cero fallos/cancelados/omitidos/TODO, archivos inválidos o incompletos. |
+
+La revisión de diseño detectó que un guard solo de UPDATE no cubría
+borrado/recreación del UUID legacy. Se añadió el registro de identidad en la
+migración todavía no confirmada y se probó el rechazo, incluido renombrado legacy,
+sin modificar migraciones confirmadas. No se presenta la segunda ejecución verde
+como validación del diseño final reforzado: esa evidencia corresponde a la tercera.
+
+Audit omit=dev exit 0: cero vulnerabilidades, 2297 ms, TLS activo con CA del
+sistema, NODE_OPTIONS restaurado. Diff --check exit 0 y 75 enlaces locales
+existentes. Docker desktop-linux, Engine 29.7.2; solo recursos propios con nonce
+y loopback, eliminados por cada runner. postgres-local conserva ID
+20d971cc043fe04cf2fd14be83c906d2210f298381e58ac480a478ea305b7927 y StartedAt
+2026-10-02T21:24:22.476116454Z. Se aplican 58 migraciones confirmadas más esta
+migración nueva únicamente en el PostgreSQL desechable; nunca Supabase/remoto.
+Logs conservados en TEMP con prefijo saberplus-thirteenth-.
+
+Archivos: helper y spec/archivo PG nuevos, migración nueva; schema, servicio de
+emparejamiento, .env.example, runner y un inventario exacto de funciones PG;
+seis documentos/índices backend actualizados. No cambian CompetitiveService,
+kernel del par, fórmulas ni motores de otros juegos. Detenido para revisión humana.
+
+## Historial — checkpoint 12 confirmado en fdfa9aa
 
 Base verificada: feat/pr-i1-competitive-infrastructure / 1c12245, once
 checkpoints confirmados y árbol limpio al comenzar. Trabajo nuevo local, sin

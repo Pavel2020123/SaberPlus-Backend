@@ -20,6 +20,7 @@ import { preguntaPublicadaWhere } from '../common/contenido-publicado';
 import { TiraAflojaRealtimePublisher } from './tira-afloja-realtime.publisher';
 import { requireTugPresence } from './tira-afloja-presence.service';
 import { TiraAflojaVisibilityWitness } from './tira-afloja-visibility.witness';
+import { tugAdmissionDecision, tugAdmissionQueue } from './tira-afloja.admission';
 import {
   buildTugSnapshot,
   TUG_QUESTION_INCLUDE,
@@ -108,8 +109,13 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
       const repetida = await this.buscarActiva(usuarioId, tx);
       if (repetida) return repetida.id;
 
+      // Decide once under the matchmaking transaction; reused matches retain
+      // their original admission regardless of the current environment.
+      const admission = tugAdmissionDecision();
+
       const candidata = await tx.partidaTiraAfloja.findFirst({
         where: {
+          ...tugAdmissionQueue(admission.competitiveRulesVersion === 1),
           estado: EstadoPartidaTiraAfloja.BUSCANDO,
           jugadorAId: { not: usuarioId },
           jugadorBId: null,
@@ -159,6 +165,7 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
       }
       const creada = await tx.partidaTiraAfloja.create({
         data: {
+          ...admission,
           prepararEvidencia: true,
           presenciaVersion: 1,
           certificacionRVersion: 1,

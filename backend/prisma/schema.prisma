@@ -974,7 +974,18 @@ enum TipoEventoTiraAfloja {
   CANCELADA
 }
 
+// Retains identity even if a legacy parent is deleted; prevents recreation as admitted.
+model TugMatchIdentity {
+  id String @id @db.Uuid
+}
+
 model PartidaTiraAfloja {
+  competitiveAdmissionVersion Int?
+  competitiveRulesVersion Int?
+  competitivePolicy Json?
+  competitiveAdmissionAt DateTime? @db.Timestamp(6)
+  competitiveOriginalAId String? @db.Uuid
+  competitiveOriginalBId String? @db.Uuid
   certificacionRVersion Int?
   certificacionesR TugRoundVisibility[]
   presenciaVersion    Int?
