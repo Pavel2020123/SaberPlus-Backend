@@ -1,6 +1,30 @@
 # PR-I1 V1: infraestructura competitiva común
 
-## Estado vigente — checkpoint 13, admisión persistida Tira sin XP
+## Estado vigente — checkpoint 14: replay Tira aislado y parcial
+
+Rama `feat/pr-i1-competitive-infrastructure`, HEAD `d18a676`: trece checkpoints
+confirmados; ronda 14 local sin commit. [Auditoría vigente del replay](PR_I1_TIRA_AFLOJA_AUDITORIA.md).
+El adaptador privado reconstruye únicamente terminales normales demostrables
+sin gracia previa, con admisión persistida, snapshot, respuestas y todas las
+parejas R certificadas. No se registra en Nest/registry, no llama al kernel de
+liquidación y no paga XP. TUG_MATCH sigue SOURCE_NOT_INTEGRATED.
+
+Abandonos, neutrales, gracia histórica incompleta y discrepancias de microsegundos
+permanecen bloqueados; no se cambia VerifiedTerminal ni CompetitivePairProtocol.
+COMPETITIVE_TUG_ENABLED=false, independiente de los tres flags anteriores, también
+apagados por defecto. Sin migración nueva: depende de evidencia, presencia,
+visibilidad y admisión confirmadas (última 20261004010000).
+
+La futura integración debe resolver estos bloqueos antes de registrar/pagar;
+conservar respaldo, verificación rol/RLS, migración autorizada, esquema, despliegue
+con flags apagados, pruebas operativas y activación explícita. Nada se despliega
+ni migra remotamente aquí. Pendientes WAL, rol/RLS productivo, incertidumbre de
+los 34 fallos, Rescate intermitente, multiinstancia y PR-I1 sin fusionar a main.
+Revisión humana del checkpoint 14: corregida la contención P2028 del barrido, que ahora espera cada transacción y su testigo antes de despachar la siguiente, priorizando certificados pendientes. Se conserva connection_limit=1 y todos los deadlines. La regresión pasó y la validación completa terminó 219/219 en 14 archivos (cero fail/cancelled/skipped/todo/incompletos); replay 13/13. Build, Jest competitivo 216/216, Jest completo 1097/1097, audit y diff correctos. Los resultados fallidos 205/217 y 217/218 se conservan como historial. El checkpoint permanece sin commit y pendiente de autorización humana. Los resultados finales se registran en la auditoría de Tira; los siguientes
+apartados son historial, no validación ni habilitación de la ronda 14.
+
+
+## Historial — checkpoint 13, admisión persistida Tira sin XP
 
 Rama feat/pr-i1-competitive-infrastructure, HEAD fdfa9aa: doce checkpoints
 confirmados, árbol limpio al inicio. Ronda 13 local, sin commit. La decisión
@@ -8,7 +32,7 @@ aprobada por el propietario es admisión automática del backend para búsquedas
 nuevas elegibles con el futuro flag activo, y emparejamiento solo entre la misma
 clasificación persistida. A queda fijado al INSERT; B en su primer emparejamiento.
 
-[Contrato, migración y pruebas de admisión](PR_I1_TIRA_AFLOJA_AUDITORIA.md#estado-vigente--checkpoint-13-admisión-persistida-sin-liquidación).
+[Contrato, migración y pruebas de admisión](PR_I1_TIRA_AFLOJA_AUDITORIA.md).
 COMPETITIVE_TUG_ENABLED está apagado por defecto y en .env.example. No es un
 permiso del cliente ni reutiliza SOLO. No se activa para usuarios: los tests
 positivos cambian únicamente el entorno del proceso de pruebas desechables.
@@ -60,7 +84,8 @@ Se aplica y prueba únicamente en PostgreSQL propio desechable.
 | 10 | 7edef15, confirmado | Auditoría de locks y visibilidad. |
 | 11 | 1c12245, confirmado | Certificación R independiente post-COMMIT. |
 | 12 | fdfa9aa, confirmado | Núcleo aislado del par, con barreras de evidencia. |
-| 13 | Local, sin commit | Admisión persistida, flag apagado; sin replay/verificador/XP Tira. |
+| 13 | d18a676, confirmado | Admisión persistida, flag apagado; sin verificador/XP Tira. |
+| 14 | Local, sin commit | Replay normal aislado; terminales no representables bloqueados; sin XP. |
 
 ## Historial — checkpoint 12 confirmado en fdfa9aa
 

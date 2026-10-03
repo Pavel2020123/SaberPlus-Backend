@@ -3,6 +3,25 @@ import { TiraAflojaService } from '../tira-afloja/tira-afloja.service';
 
 // Operational witness behavior only. Visibility proof is tested on PostgreSQL.
 describe('competitive TUG visibility witness boundary', () => {
+  it('keeps failed sweep work observable and continues without changing transaction budgets', async () => {
+    const db = {
+      partidaTiraAfloja: { findMany: jest.fn().mockResolvedValue([{ id: 'expired' }]) },
+      $queryRaw: jest.fn().mockResolvedValueOnce([]).mockResolvedValueOnce([])
+        .mockResolvedValueOnce([{ id: 'certificate' }]),
+    };
+    const service = new TiraAflojaService(db as any, {} as any);
+    const log = jest.spyOn((service as any).log, 'error').mockImplementation(() => {});
+    const state = jest.spyOn(service as any, 'procesarEstado')
+      .mockRejectedValueOnce({ code: 'P2028', meta: { error: 'Unable to start a transaction in the given time.' } })
+      .mockResolvedValueOnce(undefined);
+    await (service as any).procesarPartidasVencidas();
+    expect(state.mock.calls).toEqual([['certificate'], ['expired']]);
+    expect(JSON.parse(log.mock.calls[0][0] as string)).toMatchObject({
+      event: 'TUG_RECOVERY_PENDING', partidaId: 'certificate', code: 'P2028',
+      transactionError: 'Unable to start a transaction in the given time.',
+    });
+    expect((service as any).barridoEnCurso).toBe(false);
+  });
   function fixture() {
     const witness = new TiraAflojaVisibilityWitness({} as any);
     const db = { $queryRaw: jest.fn(), $disconnect: jest.fn() };

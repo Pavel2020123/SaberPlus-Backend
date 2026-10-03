@@ -732,19 +732,25 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
           AND NOT EXISTS(SELECT 1 FROM "TugRoundVisibility" c
             WHERE c."partidaId"=m.id AND c.ronda=r.ronda)
         ORDER BY m.id LIMIT 50`;
-      const results = await Promise.allSettled(
-        [
-          ...new Set(
-            [...partidas, ...presentables, ...presencia, ...certificables].map(
-              (p) => p.id,
-            ),
-          ),
-        ].map((id) => this.procesarEstado(id)),
-      );
-      if (results.some((r) => r.status === 'rejected'))
-        this.log.error(
-          'TUG_RECOVERY_PENDING: durable work retained; verify schema/database.',
-        );
+      // Do not enqueue the whole batch as interactive transactions: even a
+      // one-connection pool must release each sports transaction AND finish its
+      // independent post-COMMIT witness before scheduling the next match.
+      // Observe committed evidence first, while its original deadline permits.
+      const ids = [...new Set(
+        [...certificables, ...presentables, ...partidas, ...presencia].map(p => p.id),
+      )];
+      for (const id of ids) {
+        try {
+          await this.procesarEstado(id);
+        } catch (error) {
+          this.log.error(JSON.stringify({
+            event: 'TUG_RECOVERY_PENDING', partidaId: id,
+            code: error?.code ?? 'RECOVERY_ERROR', sqlState: error?.meta?.code ?? null,
+            transactionError: error?.code === 'P2028' ? error?.meta?.error : undefined,
+            reason: 'Durable work retained; verify schema/database',
+          }));
+        }
+      }
     } finally {
       this.barridoEnCurso = false;
     }

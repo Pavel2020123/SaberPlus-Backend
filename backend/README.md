@@ -11,9 +11,7 @@
 
 ## Estado competitivo PR-I1 V1
 
-Doce checkpoints están confirmados hasta `fdfa9aa`. La ronda 13 local prepara
-admisión Tira persistida e inmutable desde la creación, con colas separadas y
-`COMPETITIVE_TUG_ENABLED=false`. Replay y verificador TUG_MATCH siguen pendientes;
+Trece checkpoints están confirmados hasta `d18a676`. La ronda 14 local prepara replay normal aislado y parcial; abandonos/neutrales/gracia no demostrada siguen bloqueados. Admisión persistida y `COMPETITIVE_TUG_ENABLED=false`; verificador TUG_MATCH pendiente;
 no hay liquidación ni XP Tira. El núcleo del par permanece aislado. La auditoría conserva las
 decisiones deportivas, pruebas actuales e historial de validaciones.
 PR-I1 no está fusionado a main. Código implementado no significa desplegado ni

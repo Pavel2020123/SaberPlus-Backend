@@ -1,6 +1,255 @@
 # PR-I1 V1 — auditoría y preparación de Tira y afloja
 
-## Estado vigente — checkpoint 13: admisión persistida sin liquidación
+## Revisión humana del checkpoint 14 — contención P2028 corregida
+
+Se preserva íntegro el replay aislado y sus trece pruebas. La rama/HEAD siguen
+feat/pr-i1-competitive-infrastructure / d18a676; todos los cambios son locales.
+
+### Diagnóstico y reproducción
+
+Prueba afectada: «TUG visibility: restart before source COMMIT recovers only
+actual committed evidence; aborted witness leaves no certificate», en
+[test/competitive-tug-visibility-postgres.test.cjs](../test/competitive-tug-visibility-postgres.test.cjs).
+Falla en proof(), assert.ok(r), por certificado ausente. Los logs históricos de
+las dos ejecuciones completas se conservan abajo: 205/217 y 217/218, no aprobadas.
+El stack completo y meta de P2028 están en %TEMP%/saberplus-fourteenth-postgres-2.log:
+Prisma._transactionWithCallback → procesarEstado() (inicio de la transacción)
+→ Promise.allSettled → procesarPartidasVencidas(). Meta.error exacto:
+«Unable to start a transaction in the given time.»
+
+La prueba afectada sola aprobó 1/1 (5148,9565 ms Node; 19580 ms runner) con
+connection_limit=1. Todo su archivo, sin los fixtures de archivos anteriores,
+aprobó 13/13 (88636 ms bloque). Por eso P2028 no se atribuyó automáticamente a una
+transacción expirada/cerrada ni al testigo. El barrido original lanzaba toda su
+unión de candidatos mediante Promise.allSettled sobre el mismo PrismaClient.
+Los archivos anteriores dejan trabajo deportivo durable en la misma DB del
+runner; el número de candidatos recuperables aumenta. El pool de ese fixture
+es de una conexión y el inicio interactivo conserva el maxWait por defecto;
+ni su límite ni los timeouts se alteraron. Prisma usa el maxWait interactivo por defecto de 2000 ms y timeout de transacción de 5000 ms; no se confunden con pool_timeout ni con el deadline deportivo. Las sondas completas duraron 9036 y 6982 ms de bloque, incluyendo preparación e inicio de ronda, no solo la espera de adquisición.
+
+Se reprodujo contención de forma determinista sobre PostgreSQL propio: una
+transacción real adquiere la única conexión y se retiene con una barrera de
+promesas, sin sleep; el barrido solicita la siguiente antes de liberar la primera.
+El diagnóstico registra requests=2, callbacks=1 y P2028 de inicio. La partida
+identificada como segunda solicitud no entró en su callback ni alcanzó el
+testigo; el certificado faltaba aunque seguían quedando segundos antes del
+rondaVenceEn PostgreSQL. En la sonda correlacionada: solicitud pendiente e800b47a-5140-497b-a7d8-b3cbd124f30f, deadline 2026-10-03T22:33:50.932Z; diagnóstico final 22:33:43.182Z. El primer callback adquirido tenía PID 108; no se llamó al callback de la solicitud rechazada. No fue una transacción ya cerrada ni un COMMIT tardío,
+ni una espera circular entre source y observer: fue cola del propio barrido
+contra su capacidad de conexión, amplificada por los fixtures compartidos.
+
+Las dos sondas antes de corregir finalizaron con error y sus logs se conservan:
+saberplus-p2028-capacity.log y saberplus-p2028-capacity-2.log. La primera reprodujo
+P2028, pero falló su expectativa de certificado ausente: en ese orden de solicitudes
+el certificado sobrevivió. La segunda añadió IDs de cada solicitud, correlacionó
+P2028 con la partida pendiente y falló proof() por certificado ausente. No se
+presenta la primera expectativa como causa demostrada ni se ocultan esos fallos.
+Las sondas temporales se retiraron después; no eran pruebas del runner completo.
+
+### Corrección mínima y regresión
+
+[procesarPartidasVencidas()](../src/tira-afloja/tira-afloja.service.ts) despacha ahora
+una partida por vez y espera su operación deportiva y el testigo post-COMMIT
+antes de pasar a la siguiente. Atiende primero certificados ya pendientes,
+sin extender ventanas ni fabricar evidencia. El error inesperado mantiene el
+trabajo durable y registra TUG_RECOVERY_PENDING por partida, código/SQLSTATE y
+meta de P2028; no lo convierte en una certificación exitosa. Continúan intactos
+TUG_VISIBILITY_PENDING, los locks y los límites de PostgreSQL.
+
+La nueva regresión PostgreSQL retiene una conexión real con una barrera,
+comprueba una sola solicitud propia pendiente, libera la barrera y verifica
+el certificado auténtico, máximo de concurrencia 1, cero solicitudes pendientes
+y cero XP de la partida. Aprobó aislada 1/1 (4938,8118 ms Node; 5117 ms bloque).
+No se aumenta connection_limit, maxWait ni timeout. Se conserva el testigo con
+su pool independiente y la comprobación de misma DB. Los casos anteriores de
+caída, rollback, recuperación, deadline vencido y falta de certificado permanecen.
+La prueba Jest adicional verifica que un P2028 siga siendo observable y no
+impida intentar el siguiente trabajo durable.
+
+No se alteró el replay ni se habilitó TUG_MATCH. Se mantienen sus límites:
+neutrales, abandonos y precedencia de gracia no reconstruida; integración final,
+WAL/durabilidad física, rol/RLS productivos, 34 fallos históricos y Rescate.
+El barrido serial evita su propia sobreasignación; tráfico externo/otras instancias
+puede todavía competir por conexiones. No se promete capacidad ilimitada ni
+certificación tras el deadline. Validación completa posterior terminada: los apartados inferiores conservan el historial previo. La autorización del checkpoint sigue siendo humana.
+
+
+### Validación final de esta corrección
+
+| Comprobación | Resultado |
+|---|---|
+| npm run build | exit 0, 30926 ms |
+| Jest competitivo | 216/216, 15 suites, 42,374 s |
+| Jest completo | 1097/1097, 104 suites, 115,526 s |
+| PostgreSQL completo | 219/219, 14 archivos; 478884 ms bloque / 507836 ms runner |
+| Archivo visibilidad, incluida nueva regresión | 14/14; 95223,196 ms Node / 95506 ms archivo |
+| Archivo replay conservado | 13/13; 91294,009 ms Node / 91529 ms archivo |
+| npm audit --omit=dev | exit 0, cero vulnerabilidades; TLS activo |
+| git diff --check | exit 0 |
+
+Resumen completo PostgreSQL: fail=cancelled=skipped=todo=0; failedFiles,
+incompleteFiles e invalidFiles vacíos. La prueba anteriormente fallida pasó en
+la secuencia real con todos los fixtures anteriores y el pool restrictivo.
+No se omitieron los trece escenarios de replay ni se relajaron aserciones.
+Log íntegro: %TEMP%/saberplus-p2028-postgres-final.log. Los logs aislados y las
+sondas fallidas se conservan en %TEMP% con prefijo saberplus-p2028-. Se retiraron
+solo las sondas temporales propias, no pruebas existentes ni cambios del replay.
+
+Sin migración nueva ni modificación de migraciones confirmadas. Sin commit,
+push, merge, despliegue, Supabase, activación XP, Flutter ni otros juegos.
+La instancia PostgreSQL propia fue retirada tras comprobar propiedad; el
+contenedor ajeno postgres-local sigue running/healthy, misma identidad.
+
+## Implementación preservada — checkpoint 14: replay normal aislado, sin XP
+
+Rama `feat/pr-i1-competitive-infrastructure`, HEAD `d18a676`; trece
+checkpoints confirmados por el propietario. Árbol limpio al iniciar esta ronda.
+Checkpoint 14 local, sin commit. TUG_MATCH continúa sin verificador registrado,
+sin integración deportiva de XP ni liquidación. COMPETITIVE_TUG_ENABLED=false.
+
+### Auditoría de evidencia e interfaz
+
+[TugSportsReplay](../src/competitive/competitive.tug-replay.ts) implementa únicamente
+la interfaz privada CompetitivePairEvidence del checkpoint 12. No se importa
+por módulos, controllers, gateways ni workers. No invoca settlePair ni escribe
+ledger, balances, estado deportivo o Usuario.xpTotal. originalParticipants lee
+admisión y TugMatchIdentity sin lock de partida; loadLockedPair recibe la
+transacción y toma tug_presence_lock: Usuario original ordenado, advisory de
+partida y padre. Es compatible con los locks del kernel; no toma locks de claves
+de respuestas después del padre. Ambas evidencias se reconstruyen juntas.
+
+Se exige readTugAdmission=ADMITTED, identidad persistente, originales A/B y las
+versiones 1 de snapshot, presencia y certificación. Nunca se consulta el flag
+actual para reinterpretar la admisión ni se promueven históricos. No se consulta
+el banco editorial. Se contrastan snapshot completo, orden, opciones únicas,
+correcta única, contenido y asignaciones inmutables; Q permanece entre 4 y 20.
+
+R solo cuenta parejas originales completas con certificado independiente:
+misma pregunta, ventanas, XID/PID de origen, testigo distinto, observación después
+del registro y antes del menor deadline. La condición de origen confirmado fue
+comprobada por el trigger al emitir el certificado inmutable; no se exige que
+PostgreSQL conserve indefinidamente pg_xact_status de ese XID. Sin certificado
+para una pareja existente, se bloquea ambos terminales; nunca se fabrica/backfill.
+Una ronda sin pareja ni respuestas puede contribuir R=0; no se infiere R de la
+mera programación. Certificados huérfanos o acciones sin pareja se rechazan.
+
+Las respuestas persistidas se comprueban contra opciones congeladas, propietario,
+ventana, unicidad por ronda/participante y clave idempotente; C<=R. Se reconstruyen
+movimiento, motivo, posición, meta/agotamiento, ganador y resultado de ambos,
+contrastándolos con todos los eventos secuenciados y el terminal almacenado. Las
+pausas deben corresponder exactamente a 1.500 ms desde la resolución anterior.
+No se admite el resultado guardado como prueba autosuficiente.
+
+### Precisión y variantes soportadas/bloqueadas
+
+Los tiempos PostgreSQL timestamp(6) se leen como microsegundos enteros textuales
+y se comparan con BigInt, incluidos los límites y la igualdad de rapidez 200 ms.
+El hash canónico incluye los microsegundos y JSON original de eventos, admisión,
+snapshot, parejas, certificados y respuestas; no depende del orden de claves,
+del proceso ni del flag actual. Las ventanas ISO de los eventos se generaron en
+milisegundos por el motor y se contrastan con los tiempos exactos de las parejas.
+startedAt corresponde al inicio programado de la primera ronda; terminalAt al
+terminal persistido. Si terminalAt no cabe exactamente en Date milisegundo, se
+rechaza con TERMINAL_PRECISION_UNSUPPORTED, sin redondear silenciosamente.
+
+Soportados: FINALIZADA normal por meta o preguntas agotadas, victoria/derrota
+recíprocas o empate, sin historial GRACE/ABANDONED y con evidencia completa.
+R=0 conserva C=0 y resultado normal; la regla V1 existente calcula cero sin bono.
+El replay no calcula ni paga XP. UNKNOWN por sí solo no se clasifica abandono.
+
+Bloqueados: históricos/no admitidos, abiertos, evidencia incompleta o contradictoria,
+parejas sin certificado, CANCELADA/EXPIRADA, EXPLICIT pre-ACTIVA, cualquier abandono
+y normales con gracia previa cuya precedencia completa aún no reconstruye este
+adaptador. Los dos abandonos simultáneos conservan CANCELADA, nunca EMPATE ni dos
+penalizaciones. VerifiedTerminal no expresa terminal neutral ni prueba de fase
+ACTIVA del abandono; se conserva intacta la barrera del kernel del checkpoint 12.
+Hace falta ampliar de manera aprobada ese contrato antes de integrar esas variantes.
+
+El motor deportivo existente compara rapidez usando Date milisegundo. Una
+respuesta SQL válida con fracción microsegundo puede provocar una discrepancia
+alrededor de 200 ms; el replay exacto falla SPORTS_CONFLICT, no modifica el motor
+ni acepta una igualdad basada en pérdida de precisión. Es una limitación técnica
+pendiente, no una nueva regla de producto. Reconstruir toda la historia de gracia,
+reconexión y deadlines prioritarios queda pendiente; no se afirma haberlo resuelto.
+
+### Pruebas y límites de esta ronda
+
+Nuevas pruebas unitarias verifican 200.000/200.001 µs en ambos sentidos. Las
+pruebas PostgreSQL usan emparejar, marcarListo, responder/retry, presencia y
+obtener reales: normal con R distinto de Q, empate, R=0, snapshot tras cambio
+editorial, caída del testigo, admisión, cierres de abandono y hashes iguales entre
+clientes. Las pruebas de corrupción privilegiada deshabilitan triggers solo
+sobre la DB desechable dentro de transacciones que siempre hacen rollback;
+comprueban al lector independientemente de las barreras de almacenamiento.
+No son evidencia de protección contra un owner capaz de cambiar el esquema.
+Las rutas HTTP previas de privacidad se conservan; el nuevo adaptador no tiene
+ruta HTTP y sus pruebas nuevas no se presentan como ensayos HTTP adicionales.
+
+No hay migración nueva ni cambio en contratos/kernel/motores registrados.
+Pendientes: integración definitiva TUG_MATCH, terminal neutral/fase de abandono,
+replay de gracia, límites multiinstancia, WAL/durabilidad física, rol/RLS productivo,
+los 34 fallos históricos y la intermitencia Rescate. Migraciones remotas no
+aplicadas en esta ronda; PR-I1 no fusionado a main. Los resultados actuales constan a continuación; las validaciones históricas no acreditan esta ronda.
+
+
+### Build, Jest y comprobaciones finales
+
+| Verificación | Resultado real |
+|---|---|
+| Build inicial | exit 1, TS2550 Array.at; corregido sin cambiar target |
+| Build tras corrección | exit 0, ejecución no cronometrada |
+| Builds siguientes | exit 0: 22144 ms y 23442 ms (último código) |
+| Jest competitivo 1 / 2 / final | 215/215 en 15 suites; 24,815 / 22,393 / 18,457 s |
+| Jest completo 1 / 2 / final | 1096/1096 en 104 suites; 75,357 / 81,735 / 67,628 s |
+| npm audit --omit=dev | exit 0, cero vulnerabilidades; TLS activo con CA del sistema |
+| git diff --check | exit 0 |
+| Enlaces Markdown locales en seis documentos | 77 comprobados, cero archivos ausentes |
+
+Las repeticiones corresponden a ajustes del código/las pruebas, no a ocultar
+resultados PostgreSQL fallidos. No se hace commit/push/merge ni despliegue.
+No hay migración nueva; migraciones confirmadas, fórmulas, otros juegos,
+Flutter y las rutas productivas de Tira permanecen intactos.
+
+### Historial anterior a la corrección — validación PostgreSQL bloqueada
+
+Se conservaron los trece archivos previos; el runner agrega el archivo de replay
+al final y mantiene los gates de resumen completo, sin skip/TODO/cancelados.
+
+| Ejecución completa | Resultado | Duración |
+|---|---|---|
+| PostgreSQL 1 | 205/217; 12 fallos, 14 archivos completos | 365032 ms bloque; 379922 ms runner |
+| PostgreSQL 2 | 217/218; 1 fallo, 14 archivos completos | 429864 ms bloque; 445073 ms runner |
+
+Primera ejecución: once fallos nuevos por deserializar void de tug_presence_lock
+y pg_sleep con Prisma. Se corrigieron ambas consultas con ::text. También se
+corrigió la compilación inicial TS2550 por Array.at incompatible con el target
+vigente, usando índice; no se cambió tsconfig. El caso adicional de COMMIT tardío
+usa psql nativo sobre el contenedor propio, verifica SQLSTATE 23514, dos filas
+antes del COMMIT, reloj PostgreSQL vencido y rollback de ambas filas. La segunda
+ejecución aprobó los trece escenarios nuevos de replay (87390,584 ms Node /
+87521 ms archivo), sin XP sobre sus partidas reales.
+
+El fallo previo repetido es «TUG visibility: restart before source COMMIT recovers
+only actual committed evidence; aborted witness leaves no certificate», assert.ok(r)
+en proof(), por certificado ausente. El diagnóstico añadido conserva todas sus
+aserciones y la ruta real del worker. La segunda ejecución registró P2028
+«Unable to start a transaction in the given time» dentro de procesarEstado,
+invocado por Promise.allSettled del barrido. Ese fixture limita Prisma a una
+conexión; se observan rechazos de inicio de varias transacciones en la cola.
+No se aumentó el pool, las esperas ni los deadlines, ni se relajó la prueba.
+Falta aislar la relación exacta entre cada rechazo y la partida sin certificado:
+no se declara una causa única resuelta ni validación PostgreSQL aprobada.
+El adaptador no está registrado/importado por el worker; este fallo ocurre en
+un archivo anterior a cargar el nuevo replay. No constituye evidencia de una
+regresión introducida por ejecutar el adaptador. La incidencia queda abierta
+como límite adicional de recuperación/carga, sin sustituir los pendientes
+históricos de 34 fallos o Rescate ni alterar el motor en esta ronda aislada.
+
+Logs íntegros conservados en %TEMP%: saberplus-fourteenth-postgres.log y
+saberplus-fourteenth-postgres-2.log. Ambas instancias propias fueron retiradas
+por el runner tras validar propiedad. postgres-local ajeno permanece running
+healthy, misma identidad. No hay migraciones nuevas ni remotas.
+
+## Historial — checkpoint 13: admisión persistida (confirmado después en d18a676)
 
 Base feat/pr-i1-competitive-infrastructure / fdfa9aa: doce checkpoints
 confirmados; árbol limpio al iniciar. Ronda 13 local y sin commit.

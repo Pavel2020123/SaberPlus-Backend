@@ -338,6 +338,30 @@ test('TUG visibility: restart before source COMMIT recovers only actual committe
     db,
     new TiraAflojaRealtimePublisher(),
   );
+  // Keep the original worker path and assertions. Expose the actual per-match
+  // error otherwise reduced to TUG_RECOVERY_PENDING by production logging.
+  const processState = restarted.procesarEstado.bind(restarted);
+  console.log(JSON.stringify({ diagnostic: 'visibility-recovery-target', id: f.m.id,
+    connectionLimit: 1, roundDeadline: f.m.rondaVenceEn.toISOString() }));
+  restarted.procesarEstado = async (id) => {
+    const start = process.hrtime.bigint();
+    try {
+      return await processState(id);
+    } catch (error) {
+      console.error(
+        JSON.stringify({
+          diagnostic: 'visibility-recovery-error',
+          id,
+          code: error.code,
+          meta: error.meta,
+          elapsedMs: Number(process.hrtime.bigint() - start) / 1e6,
+          message: error.message,
+          stack: error.stack,
+        }),
+      );
+      throw error;
+    }
+  };
   try {
     await restarted.procesarPartidasVencidas();
     await proof(f);
@@ -345,6 +369,50 @@ test('TUG visibility: restart before source COMMIT recovers only actual committe
     await restarted.onModuleDestroy();
   }
   await noXP(f);
+});
+
+test('TUG visibility: recovery does not queue transactions against its own single-connection pool', async () => {
+  const f = await fixture();
+  await start(writer, f);
+  assert.equal(await record(writer, f), true);
+  // Real earlier work in the same sweep, not a synthetic sports terminal.
+  await db.partidaTiraAfloja.create({ data: { jugadorAId: f.users[0].id,
+    expiraEn: new Date(0) } });
+  const restarted = new TiraAflojaService(db, new TiraAflojaRealtimePublisher());
+  const transact = db.$transaction.bind(db);
+  let entered, release;
+  const firstEntered = new Promise(resolve => { entered = resolve; });
+  const gate = new Promise(resolve => { release = resolve; });
+  let pending = 0, maximum = 0, requests = 0, callbacks = 0;
+  db.$transaction = async (work, options) => {
+    requests++; pending++; maximum = Math.max(maximum, pending);
+    try {
+      return await transact(async tx => {
+        callbacks++;
+        if (callbacks === 1) {
+          const [session] = await tx.$queryRaw`SELECT pg_backend_pid() AS pid`;
+          console.log(JSON.stringify({ diagnostic: 'capacity-first-acquired', pid: session.pid }));
+          entered(); await gate;
+        }
+        return work(tx);
+      }, options);
+    } finally { pending--; }
+  };
+  let sweeping;
+  try {
+    sweeping = restarted.procesarPartidasVencidas();
+    await firstEntered;
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(requests, 1, 'The sweep must release its source transaction before scheduling another');
+    release(); await sweeping;
+    assert.equal(maximum, 1);
+    assert.equal(pending, 0);
+    await proof(f); await noXP(f);
+  } finally {
+    release(); await sweeping;
+    db.$transaction = transact;
+    await restarted.onModuleDestroy();
+  }
 });
 
 test('TUG visibility: timely source COMMIT without a committed witness is unknown after deadline, never backfilled on restart', async () => {

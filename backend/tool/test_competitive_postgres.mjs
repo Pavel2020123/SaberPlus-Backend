@@ -299,6 +299,7 @@ async function main() {
         'test/competitive-tug-visibility-postgres.test.cjs',
         'test/competitive-pair-protocol-postgres.test.cjs',
         'test/competitive-tug-admission-postgres.test.cjs',
+        'test/competitive-tug-replay-postgres.test.cjs',
       ];
       const totals = {
         tests: 0,

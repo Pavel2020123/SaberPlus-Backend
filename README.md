@@ -8,7 +8,7 @@
 > validaciones; no hay que reponer la revisión editorial histórica obligatoria.
 > Consultar la Ruta vigente del equipo en Flutter (`docs/ETAPAS_PENDIENTES.md`)
 > y `docs/AUDITORIA_RELEVO_2026-09-28.md` de ese repositorio para Flutter. PR-I1
-> ya tiene doce checkpoints confirmados hasta fdfa9aa; la ronda 13 prepara admisión Tira persistida, con flag apagado y sin verificador ni XP;
+> ya tiene trece checkpoints confirmados hasta d18a676; la ronda 14 prepara replay normal Tira aislado y parcial, con flag apagado y sin verificador ni XP;
 > su estado backend vigente está en el [índice de documentación](backend/docs/README.md).
 
 API oficial de SaberPlus. Centraliza autenticacion, permisos, contenido
