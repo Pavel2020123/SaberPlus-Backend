@@ -12,6 +12,7 @@ const {
   TiraAflojaController,
 } = require('../src/tira-afloja/tira-afloja.controller');
 const { TiraAflojaGateway } = require('../src/tira-afloja/tira-afloja.gateway');
+const { TiraAflojaPresenceService } = require('../src/tira-afloja/tira-afloja-presence.service');
 const {
   TiraAflojaWsAuthService,
 } = require('../src/tira-afloja/tira-afloja-ws-auth.service');
@@ -85,6 +86,7 @@ before(async () => {
     controllers: [TiraAflojaController],
     providers: [
       TiraAflojaGateway,
+      TiraAflojaPresenceService,
       TiraAflojaWsAuthService,
       TiraAflojaWsExceptionFilter,
       { provide: TiraAflojaService, useValue: facade },
@@ -567,7 +569,15 @@ test('TUG V1: anon/authenticated cannot read evidence or invoke private recordin
   for (const role of ['anon', 'authenticated']) {
     const permissions =
       await db.$queryRaw`SELECT p.proname, has_function_privilege(${role}, p.oid, 'EXECUTE') AS allowed FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND p.proname LIKE 'tug_%'`;
-    assert.equal(permissions.length, 6);
+    assert.deepEqual(permissions.map((p) => p.proname).sort(), [
+      'tug_snapshot_original_valid', 'tug_match_evidence_guard',
+      'tug_presented_guard', 'tug_presented_pair_guard',
+      'tug_record_presented_round', 'tug_child_evidence_guard',
+      'tug_presence_now', 'tug_presence_origin_guard', 'tug_presence_immutable',
+      'tug_connection_guard', 'tug_presence_lock', 'tug_presence_refresh',
+      'tug_presence_connect', 'tug_presence_observe',
+      'tug_presence_require_open', 'tug_presence_answer_guard',
+    ].sort());
     assert.ok(permissions.every((p) => p.allowed === false));
   }
   for (const role of ['anon', 'authenticated'])

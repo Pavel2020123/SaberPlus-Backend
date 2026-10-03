@@ -211,6 +211,8 @@ model Usuario {
   partidasTiraAflojaA       PartidaTiraAfloja[]           @relation("JugadorATiraAfloja")
   partidasTiraAflojaB       PartidaTiraAfloja[]           @relation("JugadorBTiraAfloja")
   partidasTiraAflojaGanadas PartidaTiraAfloja[]           @relation("GanadorTiraAfloja")
+  tugPresences TugPresence[]
+  tugPresenceEvents TugPresenceEvent[]
   respuestasTiraAfloja      TiraAflojaRespuesta[]
   intentosTriviaRush        IntentoTriviaRush[]
   intentosGuardian          IntentoGuardian[]
@@ -973,6 +975,9 @@ enum TipoEventoTiraAfloja {
 }
 
 model PartidaTiraAfloja {
+  presenciaVersion    Int?
+  tugPresences TugPresence[]
+  tugPresenceEvents TugPresenceEvent[]
   prepararEvidencia   Boolean                     @default(false)
   evidenciaVersion    Int?
   snapshotInicial     Json?
@@ -1010,6 +1015,57 @@ model PartidaTiraAfloja {
   @@index([jugadorAId, estado])
   @@index([jugadorBId, estado])
   @@index([ganadorId])
+}
+
+model TugPresence {
+  matchId String @db.Uuid
+  userId String @db.Uuid
+  disconnectedAt DateTime? @db.Timestamp(6)
+  graceUntil DateTime? @db.Timestamp(6)
+  match PartidaTiraAfloja @relation(fields: [matchId], references: [id], onDelete: Restrict)
+  user Usuario @relation(fields: [userId], references: [id], onDelete: Restrict)
+  connections TugConnection[]
+  abandonment TugAbandonment?
+  @@id([matchId,userId])
+}
+
+model TugConnection {
+  id String @id @db.Uuid
+  matchId String @db.Uuid
+  userId String @db.Uuid
+  instanceId String @db.Uuid
+  connectedAt DateTime @db.Timestamp(6)
+  lastSeenAt DateTime @db.Timestamp(6)
+  leaseUntil DateTime @db.Timestamp(6)
+  authUntil DateTime? @db.Timestamp(6)
+  state String
+  closedAt DateTime? @db.Timestamp(6)
+  presence TugPresence @relation(fields: [matchId,userId], references: [matchId,userId], onDelete: Restrict)
+  events TugPresenceEvent[]
+  @@index([matchId,state,leaseUntil], map: "tug_connection_match")
+}
+
+model TugPresenceEvent {
+  id BigInt @id @default(autoincrement())
+  matchId String @db.Uuid
+  userId String @db.Uuid
+  connectionId String? @db.Uuid
+  kind String
+  observedAt DateTime @db.Timestamp(6)
+  recordedAt DateTime @default(dbgenerated("tug_presence_now()")) @db.Timestamp(6)
+  match PartidaTiraAfloja @relation(fields: [matchId], references: [id], onDelete: Restrict)
+  user Usuario @relation(fields: [userId], references: [id], onDelete: Restrict)
+  connection TugConnection? @relation(fields: [connectionId], references: [id], onDelete: Restrict)
+  @@index([matchId,id], map: "tug_presence_events_match")
+}
+
+model TugAbandonment {
+  matchId String @db.Uuid
+  userId String @db.Uuid
+  effectiveAt DateTime @db.Timestamp(6)
+  reason String
+  presence TugPresence @relation(fields: [matchId,userId], references: [matchId,userId], onDelete: Restrict)
+  @@id([matchId,userId])
 }
 
 model TiraAflojaRondaPresentada {

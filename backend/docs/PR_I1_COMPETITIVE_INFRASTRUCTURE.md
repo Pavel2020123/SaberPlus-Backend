@@ -1,12 +1,25 @@
 # PR-I1 V1: infraestructura competitiva común
 
-## Estado vigente — evidencia Tira sobre el séptimo checkpoint
+## Estado vigente — auditoría de presencia Tira sobre el octavo checkpoint
 
-Rama `feat/pr-i1-competitive-infrastructure`, HEAD `39d3881`: siete checkpoints
-confirmados en Git; evidencia Tira y revisión actual **sin commit**, pendientes
-de revisión humana. PR-I1 sigue abierto y **no fusionado a main**. Implementación
+Rama `feat/pr-i1-competitive-infrastructure`, HEAD `a4d010b`: ocho checkpoints
+confirmados en Git. Ronda 9 implementa presencia/gracia durable Tira localmente,
+sin XP y SIN COMMIT. Diagnóstico de corte por timeout reproducido/corregido;
+la base completa pasó 145/145. Ajuste definitivo de GRACE validado localmente: PostgreSQL 160/160, sin omisiones.
+PR-I1 sigue abierto y **no fusionado a main**. Implementación
 local no acredita despliegue/activación productiva; estas rondas no han aplicado
 migraciones remotas. No se modifican Flutter, Usuario.xpTotal ni fórmulas V1.
+
+Revisión humana de la ronda 9: runner endurecido para exigir resumen completo
+y cero fallos/cancelados/omitidos/TODO, sin cambiar límites ni cobertura.
+JWT sin exp mantiene compatibilidad con el verificador existente; el lease de
+presencia sigue vigente solo 45 s renovables por observación autenticada.
+Decisión definitiva: primera gracia confirmada vencida asigna victoria deportiva
+al rival aunque esté UNKNOWN o en gracia posterior; igualdad exacta cancela con
+dos abandonos. Meta/agotamiento anteriores y plazo global anterior o igual
+prevalecen. Sin acciones aceptadas, futura recompensa del rival = 0 XP; todavía
+no se calcula ni liquida XP TUG_MATCH. EXPLICIT conserva su contrato.
+Véase [la revisión y evidencia de Tira](PR_I1_TIRA_AFLOJA_AUDITORIA.md).
 
 ### Checkpoints
 
@@ -19,7 +32,8 @@ migraciones remotas. No se modifican Flutter, Usuario.xpTotal ni fórmulas V1.
 | 5 | `88f7045`, confirmado | Presencia durable, gracia/reconexión y protección de acciones V1, sin XP. |
 | 6 | `ebe40e3`, confirmado | Admisión, verificador común TRIVIA_ATTEMPT y liquidación/recuperación Trivia/Duelo; contrato estricto de fantasma. |
 | 7 | `39d3881`, confirmado | Auditoría Tira, corrección de bloqueo/idempotencia legacy y pruebas de frontera; sin XP TUG_MATCH. |
-| 8 | Local, sin commit | Snapshot original y R durable Tira, guards SQL, privacidad/compatibilidad; sin admisión/verificador/XP TUG_MATCH. |
+| 8 | `a4d010b`, confirmado | Snapshot original y R durable Tira, guards SQL, privacidad/compatibilidad; sin admisión/verificador/XP TUG_MATCH. |
+| 9 | Local, en revisión | Presencia/gracia durable Tira; migración nueva y runner estricto. Decisión deportiva de rival UNKNOWN resuelta; sin XP ni commit. |
 
 Cima/Guardián/Rescate y Trivia/Duelo están versionados.
 Tira, Memoria y Batallas siguen sin integración competitiva; Memoria requiere
@@ -27,12 +41,12 @@ autoridad backend. No se avanza PR-I2. Las fórmulas puras de ocho juegos no
 equivalen a ocho motores/verificadores integrados.
 
 [Auditoría vigente de Tira](PR_I1_TIRA_AFLOJA_AUDITORIA.md): Qpartida confirmado,
-precedencia durante gracia aprobada en el checkpoint 7. Snapshot/R se preparan
-en esta ronda; presencia/cierre/admisión/verificador siguen pendientes. No hay
+precedencia durante gracia aprobada en el checkpoint 7. Snapshot/R están
+confirmados en el checkpoint 8; presencia/cierre implementados localmente en la ronda 9, admisión/verificador XP siguen pendientes. No hay
 flag competitivo Tira. Las reglas de gracia de 20 s inferiores
 son de Trivia/Duelo, no se extrapolan a Tira (30 s).
 
-### Revisión de habilitación durable Tira (octava ronda local)
+### Habilitación durable Tira (octavo checkpoint confirmado)
 
 R cuenta rondas efectivamente habilitadas por servidor, sin ACK, entrega ni
 visualización demostrada. La transición privada SQL registra ambos participantes
@@ -48,11 +62,27 @@ Respuestas V1 requieren la evidencia; abandono no la crea. Un worker tardío no
 reconstruye rondas vencidas: sin habilitación oportuna no aumenta R. No se pausa
 el reloj ni se promete puntualidad durante una caída. Véanse mecanismos, límites
 de scheduler y orden de locks en [la auditoría Tira](PR_I1_TIRA_AFLOJA_AUDITORIA.md).
-Se ajusta únicamente la migración incremental pendiente de Tira, no confirmadas.
-Presencia/gracia de 30 s, admisión y liquidación continúan pendientes, sin XP.
+La migración de evidencia Tira está confirmada e inalterada; la ronda 9 requiere
+la migración incremental local [20261003160000_tug_presence](../prisma/migrations/20261003160000_tug_presence/migration.sql) antes del backend.
+Presencia/gracia de 30 s implementadas localmente; admisión y liquidación continúan pendientes, sin XP.
 La validación previa al COMMIT no certifica su instante físico de WAL/visibilidad;
 la auditoría documenta esa limitación y la certificación posterior necesaria
 antes de habilitar XP. No se atribuyen fechas ficticias de commit.
+
+### Validación local de presencia Tira (ronda 9)
+
+Revisión final con decisión GRACE: build exit 0; competitivo 178/178 (10 suites,
+12,156 s); Jest completo 1059/1059 (99 suites, 58,435 s); PostgreSQL 160/160
+(9 archivos secuenciales, 212,111 s del bloque; 224,284 s del runner completo,
+sin fallos, cancelados, omisiones, TODO ni resúmenes incompletos/inválidos);
+audit omit=dev cero vulnerabilidades con TLS activo. El detalle por archivo y
+los resultados anteriores preservados están en la auditoría de Tira.
+Cortes y fallos de fixtures quedan documentados en la auditoría Tira, junto con
+su corrección y resultados, sin presentarlos como validaciones aprobadas.
+El runner tiene límite existente 120 s por archivo y resumen agregado: ningún
+fallo oculta las familias posteriores. Incidencias históricas/Rescate y WAL
+siguen abiertas; la liquidación TUG futura debe resolver además los locks de
+los dos participantes antes de habilitar su verificador/admisión XP.
 
 ### Reglas vigentes y flags
 
@@ -98,7 +128,7 @@ Orden y dependencias del esquema requerido:
 3. [Evidencia Trivia/Duelo](../prisma/migrations/20261001190000_trivia_authoritative_evidence/migration.sql), checkpoint 4.
 4. [Presencia](../prisma/migrations/20261002190000_trivia_presence/migration.sql), checkpoint 5, depende de evidencia.
 5. [Competitivo Trivia/Duelo](../prisma/migrations/20261002230000_trivia_competitive_v1/migration.sql), checkpoint 6, depende de base/evidencia/presencia.
-6. [Evidencia Tira](../prisma/migrations/20261003010000_tug_authoritative_evidence/migration.sql), ronda 8 local sin commit, requiere esquema legacy Tira; snapshot y R, sin liquidación XP.
+6. [Evidencia Tira](../prisma/migrations/20261003010000_tug_authoritative_evidence/migration.sql), checkpoint 8 confirmado, requiere esquema legacy Tira; snapshot y R, sin liquidación XP.
 
 Incluso con flags apagados, el backend nuevo exige esquema compatible antes de
 usar campos Prisma/recuperadores. Respaldo/revisión → verificar rol real de

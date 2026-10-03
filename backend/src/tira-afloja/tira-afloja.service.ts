@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
   OnModuleDestroy,
   OnModuleInit,
@@ -17,6 +18,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { preguntaPublicadaWhere } from '../common/contenido-publicado';
 import { TiraAflojaRealtimePublisher } from './tira-afloja-realtime.publisher';
+import { requireTugPresence } from './tira-afloja-presence.service';
 import {
   buildTugSnapshot,
   TUG_QUESTION_INCLUDE,
@@ -69,6 +71,7 @@ function mezclar<T>(elementos: T[]): T[] {
 export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
   private barridoEnCurso = false;
   private temporizador?: NodeJS.Timeout;
+  private readonly log = new Logger(TiraAflojaService.name);
 
   constructor(
     private readonly prisma: PrismaService,
@@ -152,6 +155,7 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
       const creada = await tx.partidaTiraAfloja.create({
         data: {
           prepararEvidencia: true,
+          presenciaVersion: 1,
           jugadorAId: usuarioId,
           area,
           expiraEn: sumarMinutos(ahora, MINUTOS_BUSQUEDA),
@@ -454,13 +458,17 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
       if (await this.registrarPresentacion(tx, partida))
         nuevaPresentacion = { id: partida.id, ronda: partida.rondaActual };
       ahora = await this.ahora(tx, partida.evidenciaVersion);
+      if (partida.presenciaVersion === 1)
+        ahora = await requireTugPresence(tx, partidaId, usuarioId);
       // Recording can wait for a PostgreSQL row lock held by another instance.
       // Recheck after that wait; SQL also checks its clock after acquiring the row.
       if (
         partida.evidenciaVersion === 1 &&
         (ahora >= partida.rondaVenceEn || ahora >= partida.expiraEn)
       ) {
-        throw new BadRequestException('Se agoto el tiempo de la ronda o partida.');
+        throw new BadRequestException(
+          'Se agoto el tiempo de la ronda o partida.',
+        );
       }
       const frozenQuestion = tugSnapshot(partida)?.questions[entrada.ronda - 1];
       const opcion = frozenQuestion
@@ -526,6 +534,11 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
   }
 
   async abandonar(usuarioId: string, partidaId: string) {
+    const origin = await this.prisma.partidaTiraAfloja.findUnique({
+      where: { id: partidaId },
+      select: { presenciaVersion: true },
+    });
+    if (origin?.presenciaVersion === 1) await this.procesarEstado(partidaId);
     await this.prisma.$transaction(async (tx) => {
       await this.bloquear(tx, `partida:${partidaId}`);
       const partida = await tx.partidaTiraAfloja.findUnique({
@@ -534,6 +547,10 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
       if (!partida) throw new NotFoundException('Partida no encontrada.');
       const lado = this.obtenerLado(partida, usuarioId);
       if (!ESTADOS_ABIERTOS.includes(partida.estado)) return;
+      if (partida.presenciaVersion === 1) {
+        await this.cerrarAusencia(tx, partida, [usuarioId], 'EXPLICIT');
+        return;
+      }
       // Closing never manufactures enablement; only confirmed rows count.
 
       const sinRival = !partida.jugadorBId;
@@ -581,11 +598,24 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
     let nuevaPresentacion: { id: string; ronda: number } | undefined;
     const cambio = await this.prisma.$transaction(async (tx) => {
       await this.bloquear(tx, `partida:${partidaId}`);
-      const partida = await tx.partidaTiraAfloja.findUnique({
+      let partida = await tx.partidaTiraAfloja.findUnique({
         where: { id: partidaId },
       });
       if (!partida || !ESTADOS_ABIERTOS.includes(partida.estado)) return false;
-      const ahora = await this.ahora(tx, partida.evidenciaVersion);
+      let ahora = await this.ahora(tx, partida.evidenciaVersion);
+      let presenciaCambio = false;
+      if (partida.presenciaVersion === 1) {
+        // Catch up earlier frozen round deadlines before deciding grace/global.
+        // At most Qpartida rounds: no new presentations are manufactured here.
+        while (await this.resolverPresencia(tx, partida)) {
+          presenciaCambio = true;
+          partida = await tx.partidaTiraAfloja.findUniqueOrThrow({
+            where: { id: partidaId },
+          });
+          if (!ESTADOS_ABIERTOS.includes(partida.estado)) return true;
+        }
+        ahora = await this.ahora(tx, partida.evidenciaVersion);
+      }
       if (await this.registrarPresentacion(tx, partida))
         nuevaPresentacion = { id: partida.id, ronda: partida.rondaActual };
 
@@ -622,7 +652,8 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
       const respuestas = await tx.tiraAflojaRespuesta.findMany({
         where: { partidaId, ronda: partida.rondaActual },
       });
-      if (respuestas.length < 2 && ahora < partida.rondaVenceEn) return false;
+      if (respuestas.length < 2 && ahora < partida.rondaVenceEn)
+        return presenciaCambio;
       await this.resolverRondaActual(tx, partida, respuestas, ahora);
       return true;
     });
@@ -666,14 +697,163 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
           AND (SELECT count(*) FROM "TiraAflojaRondaPresentada" r
             WHERE r."partidaId"=m.id AND r.ronda=m."rondaActual") < 2
         ORDER BY m."rondaIniciaEn", m.id LIMIT 50`);
-      await Promise.allSettled(
-        [...new Set([...partidas, ...presentables].map((p) => p.id))].map(
-          (id) => this.procesarEstado(id),
-        ),
+      const presencia = await this.prisma.$queryRaw<{ id: string }[]>`
+        SELECT m.id FROM "PartidaTiraAfloja" m WHERE m."presenciaVersion"=1
+          AND m.estado IN ('BUSCANDO','PREPARANDO','ACTIVA') AND
+          (m."expiraEn"<=tug_presence_now() OR EXISTS(SELECT 1 FROM "TugPresence" p WHERE p."matchId"=m.id
+            AND p."graceUntil"<=tug_presence_now()) OR
+           EXISTS(SELECT 1 FROM "TugConnection" c WHERE c."matchId"=m.id
+            AND c.state='OPEN' AND c."leaseUntil"<=tug_presence_now()))
+        ORDER BY m.id LIMIT 50`;
+      const results = await Promise.allSettled(
+        [
+          ...new Set(
+            [...partidas, ...presentables, ...presencia].map((p) => p.id),
+          ),
+        ].map((id) => this.procesarEstado(id)),
       );
+      if (results.some((r) => r.status === 'rejected'))
+        this.log.error(
+          'TUG_RECOVERY_PENDING: durable work retained; verify schema/database.',
+        );
     } finally {
       this.barridoEnCurso = false;
     }
+  }
+
+  private async resolverPresencia(
+    tx: ClienteTransaccion,
+    partida: Awaited<
+      ReturnType<ClienteTransaccion['partidaTiraAfloja']['findUniqueOrThrow']>
+    >,
+  ): Promise<boolean> {
+    await tx.$queryRaw`SELECT tug_presence_refresh(${partida.id}::uuid,NULL::timestamp)`;
+    if (partida.estado !== EstadoPartidaTiraAfloja.ACTIVA) return false;
+    const respuestas = await tx.tiraAflojaRespuesta.findMany({
+      where: { partidaId: partida.id, ronda: partida.rondaActual },
+    });
+    // PostgreSQL compares microseconds; JS Date cannot distinguish two grace
+    // deadlines within the same millisecond. Carry exact text for terminal SQL.
+    const [candidate] = await tx.$queryRaw<
+      {
+        roundAt: Date | null;
+        roundFirst: boolean;
+        globalFirst: boolean;
+        graceDue: boolean;
+        absent: string[];
+      }[]
+    >`
+      WITH g AS (SELECT min("graceUntil") AS at FROM "TugPresence" WHERE "matchId"=${partida.id}::uuid),
+      r AS (SELECT CASE WHEN count(*)=2 THEN max("recibidaEn") ELSE ${partida.rondaVenceEn}::timestamp END AS at
+        FROM "TiraAflojaRespuesta" WHERE "partidaId"=${partida.id}::uuid AND ronda=${partida.rondaActual})
+      SELECT r.at AS "roundAt",
+        coalesce(r.at<=tug_presence_now() AND r.at<least(g.at,${partida.expiraEn}::timestamp),false) AS "roundFirst",
+        coalesce(${partida.expiraEn}::timestamp<=tug_presence_now() AND
+          (g.at IS NULL OR ${partida.expiraEn}::timestamp<=g.at),false) AS "globalFirst",
+        coalesce(g.at<=tug_presence_now(),false) AS "graceDue",
+        ARRAY(SELECT "userId"::text FROM "TugPresence" WHERE "matchId"=${partida.id}::uuid AND "graceUntil"=g.at ORDER BY "userId") AS absent
+      FROM g CROSS JOIN r`;
+    if (candidate.roundFirst && candidate.roundAt) {
+      await this.resolverRondaActual(
+        tx,
+        partida,
+        respuestas,
+        candidate.roundAt,
+      );
+      return true;
+    }
+    if (candidate.globalFirst) {
+      // Existing global-expiry result is CANCELADA, not an invented normal win.
+      await tx.partidaTiraAfloja.update({
+        where: { id: partida.id },
+        data: {
+          estado: EstadoPartidaTiraAfloja.EXPIRADA,
+          resultado: ResultadoPartidaTiraAfloja.CANCELADA,
+          ganadorId: null,
+          fechaFinalizacion: partida.expiraEn,
+          preguntaActualId: null,
+          rondaIniciaEn: null,
+          rondaVenceEn: null,
+          version: { increment: 1 },
+        },
+      });
+      await this.crearEvento(
+        tx,
+        partida.id,
+        partida.version + 1,
+        TipoEventoTiraAfloja.CANCELADA,
+        { motivo: 'EXPIRADA' },
+      );
+      return true;
+    }
+    if (candidate.graceDue) {
+      await this.cerrarAusencia(tx, partida, candidate.absent, 'GRACE');
+      return true;
+    }
+    return false;
+  }
+
+  private async cerrarAusencia(
+    tx: ClienteTransaccion,
+    partida: Awaited<
+      ReturnType<ClienteTransaccion['partidaTiraAfloja']['findUniqueOrThrow']>
+    >,
+    absent: string[],
+    reason: 'GRACE' | 'EXPLICIT',
+  ) {
+    const [time] = await tx.$queryRaw<{ at: string }[]>`
+      SELECT CASE WHEN ${reason}='GRACE' THEN min("graceUntil")
+        ELSE tug_presence_now() END::text AS at
+      FROM "TugPresence" WHERE "matchId"=${partida.id}::uuid`;
+    const rival =
+      absent.length === 1
+        ? absent[0] === partida.jugadorAId
+          ? partida.jugadorBId
+          : partida.jugadorAId
+        : null;
+    // GRACE candidates already exclude earlier/simultaneous rival grace and
+    // priority normal terminals. UNKNOWN never cancels the sporting victory.
+    // Keep the existing EXPLICIT contract; reward eligibility is separate.
+    let ganadorId = rival;
+    if (reason === 'EXPLICIT') {
+      const [presence] = await tx.$queryRaw<{ valid: boolean }[]>`
+      SELECT EXISTS(SELECT 1 FROM "TugConnection" c
+        WHERE c."matchId"=${partida.id}::uuid AND c."userId"=${rival}::uuid
+          AND c.state='OPEN' AND c."leaseUntil">tug_presence_now()
+          AND NOT EXISTS(SELECT 1 FROM "TugPresence" p WHERE p."matchId"=c."matchId" AND p."userId"=c."userId" AND p."graceUntil" IS NOT NULL)
+          AND (${reason}='EXPLICIT' OR c."lastSeenAt">(
+            SELECT "disconnectedAt" FROM "TugPresence" WHERE "matchId"=${partida.id}::uuid AND "userId"=${absent[0]}::uuid))) AS valid`;
+      ganadorId = presence.valid ? rival : null;
+    }
+    const resultado =
+      ganadorId === partida.jugadorAId
+        ? 'JUGADOR_A'
+        : ganadorId && ganadorId === partida.jugadorBId
+          ? 'JUGADOR_B'
+          : 'CANCELADA';
+    for (const userId of absent) {
+      await tx.$executeRaw`INSERT INTO "TugPresence"("matchId","userId") VALUES(${partida.id}::uuid,${userId}::uuid) ON CONFLICT DO NOTHING`;
+      await tx.$executeRaw`INSERT INTO "TugAbandonment"("matchId","userId","effectiveAt",reason)
+        VALUES(${partida.id}::uuid,${userId}::uuid,${time.at}::timestamp,${reason}) ON CONFLICT DO NOTHING`;
+      await tx.$executeRaw`INSERT INTO "TugPresenceEvent"("matchId","userId",kind,"observedAt")
+        VALUES(${partida.id}::uuid,${userId}::uuid,'ABANDONED',${time.at}::timestamp)`;
+    }
+    await tx.$executeRaw`UPDATE "PartidaTiraAfloja" SET
+      estado=${ganadorId ? 'FINALIZADA' : 'CANCELADA'}::"EstadoPartidaTiraAfloja",
+      resultado=${resultado}::"ResultadoPartidaTiraAfloja","ganadorId"=${ganadorId}::uuid,
+      "fechaFinalizacion"=${time.at}::timestamp,"preguntaActualId"=NULL,"rondaIniciaEn"=NULL,"rondaVenceEn"=NULL,version=version+1
+      WHERE id=${partida.id}::uuid`;
+    await this.crearEvento(
+      tx,
+      partida.id,
+      partida.version + 1,
+      TipoEventoTiraAfloja.ABANDONO,
+      {
+        motivo: reason,
+        abandonoUsuarioId: absent.length === 1 ? absent[0] : null,
+        ganadorId,
+      },
+    );
   }
 
   private async resolverRondaActual(
@@ -943,7 +1123,9 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
       where: { partidaId: nueva.id, ronda: nueva.ronda },
     });
     if (count !== 2)
-      throw new BadRequestException('La habilitacion no pudo confirmarse dentro del plazo.');
+      throw new BadRequestException(
+        'La habilitacion no pudo confirmarse dentro del plazo.',
+      );
   }
 
   private buscarActiva(
@@ -976,6 +1158,16 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
       (_, tipo: string, id: string) =>
         `${tipo.toLowerCase()}:${id.toLowerCase()}`,
     );
+    if (clave.startsWith('partida:')) {
+      const id = clave.slice('partida:'.length);
+      // No key is acquired while holding these locks. Historical matches keep
+      // their old lock contract; new presence uses sorted Usuario -> match.
+      await tx.$queryRaw(Prisma.sql`
+        SELECT u.id FROM "Usuario" u JOIN "PartidaTiraAfloja" m
+          ON u.id IN (m."jugadorAId",m."jugadorBId")
+        WHERE m.id=${id}::uuid AND m."presenciaVersion"=1
+        ORDER BY u.id FOR UPDATE OF u`);
+    }
     await tx.$queryRaw(
       Prisma.sql`SELECT pg_advisory_xact_lock(hashtext(${clave}))::text`,
     );

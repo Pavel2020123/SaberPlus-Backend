@@ -8,7 +8,7 @@
 > validaciones; no hay que reponer la revisión editorial histórica obligatoria.
 > Consultar la Ruta vigente del equipo en Flutter (`docs/ETAPAS_PENDIENTES.md`)
 > y `docs/AUDITORIA_RELEVO_2026-09-28.md` de ese repositorio para Flutter. PR-I1
-> ya tiene siete checkpoints confirmados y evidencia de Tira local sin commit;
+> ya tiene ocho checkpoints confirmados; presencia durable Tira está implementada localmente y en revisión, sin XP;
 > su estado backend vigente está en el [índice de documentación](backend/docs/README.md).
 
 API oficial de SaberPlus. Centraliza autenticacion, permisos, contenido

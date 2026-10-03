@@ -1,6 +1,431 @@
 # PR-I1 V1 — auditoría y preparación de Tira y afloja
 
-## Estado vigente — primera etapa de evidencia autoritativa
+## Estado vigente — novena ronda local, presencia durable sin XP
+
+2026-10-03, rama feat/pr-i1-competitive-infrastructure, HEAD a4d010b.
+Ocho checkpoints confirmados; esta implementación sigue SIN COMMIT y requiere
+revisión humana. Se preservan los seis archivos locales de la auditoría anterior.
+No hay admisión, flag ni verificador TUG_MATCH: XP competitivo Tira permanece
+inhabilitado. Las secciones posteriores son historial, no el estado del runtime.
+
+### Decisión definitiva y ajuste focalizado de GRACE (2026-10-03)
+
+El propietario resolvió expresamente el resultado: la primera gracia vencida
+por desconexión confirmada produce abandono de ese participante y victoria
+deportiva del rival, aunque esté UNKNOWN, sin OPEN o con una gracia posterior.
+No depende del número de acciones del rival. UNKNOWN no prueba su abandono ni
+borra sus respuestas. Si ambas gracias confirmadas coinciden exactamente,
+CANCELADA, ningún ganador y abandono individual de ambos. PostgreSQL conserva
+la comparación y fecha terminal en microsegundos, sin desempatar por UUID.
+
+`cerrarAusencia()` deja de consultar OPEN como requisito de ganador GRACE.
+La selección autoritativa anterior excluye primero meta/agotamiento anterior
+a la primera gracia y plazo global anterior o igual; toma solo los participantes
+con la gracia mínima exacta. Se conservan causa GRACE y evidencia append-only.
+EXPLICIT mantiene su comprobación de presencia y resultado vigente; esta
+decisión no extiende la nueva regla a ese contrato ni a partidas legacy.
+
+Una victoria deportiva no constituye admisión ni liquidación competitiva.
+Sin acciones aceptadas del beneficiario, su futura recompensa por abandono
+será exactamente 0 XP; con acciones se conserva la evidencia sin calcularla.
+No hay verificador/admisión TUG_MATCH ni eventos XP. Snapshot, Qpartida, R,
+protección de COMMIT tardío, privacidad, alias, retries, locks y temporizadores
+se mantienen. Reconexión tardía no reabre terminales.
+
+Las pruebas PostgreSQL amplían las aserciones: rival OPEN y UNKNOWN sin acciones,
+UNKNOWN con respuesta aceptada y retry exacto tras cierre, primera gracia de
+cualquiera de los participantes con rival en gracia posterior (1 s o 1 µs),
+empate exacto, causa/fecha conservada y un solo cierre entre instancias/reinicio.
+EXPLICIT se verifica separadamente con rival OPEN/UNKNOWN. Se conservan las
+pruebas de vencimiento normal, meta/agotamiento, privacidad, lease/UNKNOWN,
+legacy y ausencia de XP. Todas pasaron sobre PostgreSQL real desechable.
+
+Validación final del ajuste: build exit 0; competitivo 178/178 (10 suites,
+12,156 s); Jest completo 1059/1059 (99 suites, 58,435 s); audit omit=dev cero
+vulnerabilidades con TLS activo; git diff --check exit 0. PostgreSQL: 160/160 en 9 archivos, 212111 ms
+del bloque de pruebas; 224284 ms del runner completo con preparación/limpieza,
+exit 0. Cero fallos, cancelados, omitidos, TODO, archivos fallidos/incompletos/
+inválidos. Una ejecución completa, sin intentos fallidos en este ajuste.
+
+| Archivo PostgreSQL (en test/) | Aprobados / total | Duración del proceso (ms) |
+|---|---:|---:|
+| competitive-postgres.test.cjs | 25/25 | 6824 |
+| competitive-solo-postgres.test.cjs | 38/38 | 11062 |
+| competitive-trivia-boundary-postgres.test.cjs | 1/1 | 2580 |
+| competitive-trivia-evidence-postgres.test.cjs | 15/15 | 23450 |
+| competitive-trivia-presence-postgres.test.cjs | 26/26 | 19410 |
+| competitive-trivia-xp-postgres.test.cjs | 17/17 | 34230 |
+| competitive-tug-boundary-postgres.test.cjs | 8/8 | 4067 |
+| competitive-tug-evidence-postgres.test.cjs | 15/15 | 77915 |
+| competitive-tug-presence-postgres.test.cjs | 15/15 | 32572 |
+
+El runner/gate conserva el rechazo de procesos con error/timeout (aunque tengan
+resumen), campos faltantes, cancelados, omitidos, TODO y total distinto de pass.
+No se cambia el límite de 120 s por archivo, la lista ni el orden secuencial.
+Los logs anteriores se conservan. Logs nuevos en TEMP del propietario con
+prefijo saberplus-ninth-approved-grace-: build.log, competitive.log, jest.log,
+postgres.log, audit.log y diff.log. El contenedor de prueba propio se eliminó
+tras verificar ownership; postgres-local conserva su ID y StartedAt originales.
+
+Archivos ajustados en esta entrega: TiraAflojaService, prueba PostgreSQL de
+presencia y cuatro documentos backend (README, índice, infraestructura y este
+informe). Ningún archivo nuevo en este ajuste; se preservan todas las entradas
+locales anteriores (13 modificadas y 7 nuevas en el árbol completo).
+
+Continúan pendientes WAL/visibilidad física, rol/RLS productivo, causa de los
+34 fallos históricos, intermitencia Rescate y protocolo de liquidación futura
+de dos usuarios. No se crean ni modifican migraciones en este ajuste; la
+migración local de presencia anterior sigue sin commit ni aplicación remota.
+
+### Historial: revisión humana inicial del noveno checkpoint (2026-10-03)
+
+Se conserva íntegra la implementación local; ningún cambio está confirmado.
+El caso A con abandono confirmado / B UNKNOWN con respuestas aceptadas tenía
+una decisión de resultado deportivo pendiente. `cerrarAusencia()` entonces
+producía CANCELADA porque exigía OPEN vigente de B. Esto describía el código, **no
+una decisión de producto aprobada para ese escenario**. A se registra abandonado;
+UNKNOWN de B no registra su abandono ni borra respuestas aceptadas. Se preguntó
+si debía conservar CANCELADA o finalizar con B ganador deportivo, separando la
+verificación futura de recompensa. La decisión y el ajuste definitivos están arriba.
+La cancelación por dos gracias confirmadas exactamente simultáneas sí está
+aprobada y conserva dos abandonos individuales, sin ganador ni XP positivo.
+
+El runner tenía un defecto comprobable: solo exigía la clave tests y el exit
+del proceso. Ahora [el gate de resumen](../tool/competitive_postgres_summary.cjs)
+exige exactamente una entrada numérica válida de tests, suites, pass, fail,
+cancelled, skipped, todo y duration_ms; rechaza errores de archivo, campos
+ausentes/duplicados/malformados, cero cobertura, pruebas no aprobadas y total
+distinto de pass. Conserva resultados por archivo y agregado, ejecución
+secuencial, diagnóstico y límite de 120000 ms por archivo. Las
+[regresiones](../src/competitive/competitive.postgres-runner.spec.ts) incluyen
+un proceso Node real con exit 0 que contiene skip y TODO y debe rechazarse.
+
+Autenticación: AuthModule emite HS256 con expiresIn=8h y AuthService firma
+el payload sin reemplazar ese contrato. JwtGuard y el autenticador websocket
+verifican la firma; no exigen exp. jsonwebtoken verifica expiración solo cuando
+exp existe. Un JWT firmado válido sin exp sigue siendo compatible: authUntil
+NULL expresa ausencia de límite absoluto, **no** presencia indefinida. El lease
+OPEN continúa limitado a 45 s y debe renovarse con observación autenticada;
+caduca a UNKNOWN, sin fabricar abandono. Con exp, el lease queda acotado por él.
+Pruebas con JWT real cubren ausencia, propagación de exp y token expirado; el
+socket PostgreSQL confirma authUntil NULL y lease exacto de 45 s sin exponerlos.
+
+Locks auditados: respuesta nueva toma clave idempotente, usuarios ordenados,
+advisory de partida y fila de partida; ningún escritor de presencia/cierre
+adquiere después esa clave. SQL connect/observe/refresh toma el mismo par de
+usuarios, advisory y fila antes de modificar presencia/conexiones. Ambas
+conexiones e instancias compiten por ese mismo orden, no por locks inversos de
+conexiones. Los retries recuperan primero la evidencia aceptada. El gateway
+espera su renovación en curso antes de cerrar el socket y no mantiene una
+transacción abierta durante autenticación. No se detectó inversión en esos
+caminos actuales; las carreras PostgreSQL existentes se conservan. Esto no
+certifica transacciones arbitrarias del owner que primero bloqueen una partida
+y luego llamen presencia: los escritores privados deben respetar el protocolo.
+La liquidación futura de dos usuarios sigue pendiente y no se habilita TUG_MATCH.
+
+Validación final de esta revisión: build exit 0; Jest competitivo 178/178,
+10 suites, 12,686 s; Jest completo 1059/1059, 99 suites, 43,307 s. PostgreSQL
+157/157, 9 archivos, 201453 ms del bloque, exit 0: cero fallos, cancelados,
+omitidos, TODO, archivos fallidos, incompletos o inválidos. Audit omit=dev:
+cero vulnerabilidades con TLS activo; diff --check exit 0. 54 enlaces locales
+comprobados, ninguno inexistente. Docker desktop-linux/Engine 29.7.2 disponible;
+postgres-local conserva ID 20d971cc043f y StartedAt 2026-10-02T21:24:22.476116454Z.
+Contenedor de prueba propio eliminado verificando ownership. Ningún intento
+falló en esta revisión; los fallos históricos se conservan debajo sin ocultarlos.
+Logs TEMP: saberplus-ninth-review-build.log, -competitive.log, -jest.log,
+-postgres.log, -audit.log y -diff.log, todos con ese mismo prefijo.
+
+Cambios de esta revisión: gate de resumen CJS y prueba Jest nuevos; runner,
+pruebas unitarias/PG de presencia y documentación de estado actualizados.
+`cerrarAusencia()` no se cambió en esa revisión inicial sin decisión. No se
+modifican migraciones en esta revisión. El árbol completo conserva 13 archivos
+modificados y 7 entradas nuevas, incluyendo todo el trabajo anterior.
+
+### Diagnóstico reproducible del corte PostgreSQL
+
+El reporter conserva la salida spec completa y agrega test:dequeue/pass/fail,
+archivo, instante y duración. Con el límite original de 180000 ms se reprodujo
+SIGTERM/killed=true: 144 pruebas aprobadas, cero aserciones fallidas, última
+prueba iniciada a los 171,281 s y todavía incompleta al cortar. Era
+«service detects Prisma silent deferred-COMMIT rollback instead of reporting
+enablement». Sus operaciones esperan el vencimiento PostgreSQL real de 10 s
+más countdown, igual que los escenarios de COMMIT tardío/bloqueo. Las ejecuciones
+anteriores no tenían marcas de inicio: solo puede identificarse su última
+prueba terminada y la siguiente candidata, no afirmar dónde estaba su cuerpo.
+
+Corrección limitada del runner: presupuesto total 240 s, calculado a partir de
+180 s más hasta tres pruebas restantes de ~13 s (219 s), redondeado a 240 s.
+No se modifican relojes del juego, esperas SQL, aserciones, concurrencia ni
+cobertura. Primera ejecución completa de la base: 145/145, 218031,7168 ms,
+exit 0.
+La ejecución posterior con migración nueva también alcanzó SIGTERM a 240 s,
+antes de la familia de presencia, y mostró una aserción obsoleta de permisos
+que contaba solo seis funciones Tira. Se reemplazó por la lista explícita de
+las 16 funciones privadas, manteniendo denegación de EXECUTE en ambos roles.
+El presupuesto global se sustituyó por el límite existente de 120 s POR ARCHIVO,
+secuencialmente, con la misma lista completa de familias/aislamiento Node.
+Una familia fallida no omite las siguientes; el resumen agregado registra
+fallos e incompletos y exit 1 en cualquiera de ellos. No se subieron límites
+individuales, ni se omiten/filtran casos. Se conservan timestamps/errores/trazas.
+
+Primera ejecución completa con presencia: 156 casos, 153 aprobados, 3 fallidos,
+cero cancelados/omitidos/incompletos, 232814 ms del bloque completo, exit 1.
+Los tres fallos correspondieron a pruebas nuevas: segunda clave de una ronda
+ya respondida devuelve el rechazo de duplicado antes del gate de presencia;
+JS Date truncaba el lease en microsegundos, dejando el clock test justo ANTES
+del límite; conteo global de ledger incluía tres eventos sintéticos de los
+verificadores de prueba comunes. Correcciones: HTTP de B aún sin respuesta
+exige 409 por ausencia, mientras A exige 400 de duplicado y su retry exacto
+recupera la aceptación; límite lease nativo PostgreSQL sin truncar; cero eventos
+para TODOS los sourceId propios, saldo general de TODOS los usuarios propios
+intacto y conteo global sin aumento respecto del inicio de la familia. No se
+sustituyen resultados por verde ni se atribuye a regresión del ledger.
+ Las muestras de pg_stat_activity no mostraron esperas de lock en los
+instantes consultados; no prueban ausencia de cualquier espera entre muestras.
+No hay una regresión de presencia que explicar en esa base: su runtime y
+migraciones eran exactamente los de HEAD, sin cambios de presencia todavía.
+La variación de duración total respecto de la ejecución previa de ~169 s no
+está atribuida a una causa única. El timeout demostrado se distingue de esa
+variación y de las incidencias históricas.
+
+### Implementación y contratos
+
+Nueva [migración incremental de presencia](../prisma/migrations/20261003160000_tug_presence/migration.sql),
+dependiente de 20261003010000_tug_authoritative_evidence, confirmada e inalterada.
+Prisma debe tener aplicado este esquema ANTES de arrancar el backend. El runner
+usa únicamente PostgreSQL propio, loopback, tmpfs y credenciales privadas; el
+contenedor postgres-local ajeno se mantiene intacto. No hay aplicación remota.
+
+- presenciaVersion=1 se inscribe exclusivamente al crear partidas nuevas desde
+  el servidor. Inscripción inmutable; NULL histórico conserva su contrato.
+- Conexiones privadas por UUID servidor, usuario, partida e instancia; estados
+  OPEN/CLOSED/UNKNOWN/RETIRED; eventos append-only y abandono por participante.
+- Lease técnico 45 s corresponde a pingInterval=25 s y pingTimeout=20 s ya
+  compartidos por Socket.IO. NO es gracia. Solo autenticación vigente más
+  conexión inicial, pong observado o latido/acción autenticados renuevan;
+  nunca un indicador del cliente o socket.connected aislado. Lease limitado
+  también por el vencimiento del JWT cuando contiene exp.
+- Cierre observado client namespace disconnect/transport close es confirmado.
+  Ping timeout, error, parada de instancia, observador perdido o lease vencido
+  producen UNKNOWN, no abandono. Un fallo de persistencia se registra sin
+  retrofechar desconexiones; el lease posterior acaba UNKNOWN.
+- Última conexión cerrada de un participante ACTIVO y sin otras OPEN/UNKNOWN
+  inicia gracia de 30 s. Una CLOSED/RETIRED antigua no puede renovarse ni
+  cancelar la conexión nueva. UNKNOWN se retira en reconexión autenticada.
+- Gracia no pausa/amplía rondas o plazo global. OPEN nuevo se rechaza si hay un
+  terminal o plazo terminal pendiente; no reabre ni revierte resultados.
+- Respuestas nuevas: clave idempotente → usuarios ordenados → advisory de partida
+  → fila de partida. Se recupera primero la respuesta aceptada exacta; después
+  se exige OPEN vigente en PostgreSQL, y el trigger lo vuelve a comprobar antes
+  de insertar. Ningún lease vencido autoriza acciones.
+- El reconciliador consulta evidencia compartida, no sockets locales. Recupera
+  plazos pendientes entre instancias y compara candidatos en PostgreSQL con
+  microsegundos. Primero resuelve rondas anteriores ya vencidas, sin inventar R;
+  meta/agotamiento anteriores a gracia cierran normal, plazo global anterior o
+  igual prevalece, luego gracia vencida. Fecha terminal efectiva preservada.
+- Abandono confirmado de A no requiere OPEN de B. B UNKNOWN no equivale a
+  abandono ni borra participación previa. La primera gracia confirmada vencida
+  asigna victoria deportiva al rival sin exigir OPEN; no concede XP. Abandonos
+  exactamente simultáneos: CANCELADA, dos registros individuales, ningún XP.
+  Las diferencias de un microsegundo no se colapsan a empate por JS Date.
+- Publisher sigue local; otros procesos recuperan estado por HTTP/sincronizar
+  y PostgreSQL. No se promete entrega distribuida de notificaciones RxJS ni
+  se inventa un adaptador Redis. La autoridad de cierres no depende del aviso.
+
+Snapshot, Qpartida, R atómico, rechazo de COMMIT tardío, comprobación poscommit,
+privacidad/alias, calificación original e idempotencia del checkpoint 8 quedan
+preservados. La distinción de victoria normal/abandono permanece en eventos y
+TugAbandonment; no se reutiliza ni implementa una recompensa normal para ese cierre.
+No cambia Usuario.xpTotal, balances, ledger, fórmulas ni otros juegos.
+
+### Verificaciones de esta ronda
+
+Build final exit 0; competitivo 162/162, 9 suites, 29,344 s. Primera suite Jest
+completa: 1042 aprobadas/1 fallo, 98 suites, 105,413 s; mock legacy del gateway
+sin enrolled causaba cierre del socket y espera del evento. Se completó ese
+mock con enrolled=false, sin cambiar timeout ni aserciones. Prueba aislada 2/2
+(19,093 s); repetición completa 1043/1043, 98 suites, 85,262 s, exit 0.
+Auditoría omit=dev: cero vulnerabilidades, TLS activo y CA del sistema;
+NODE_OPTIONS restaurado. PostgreSQL final: 156/156, 9 archivos, 251139 ms del bloque completo, exit 0;
+cero fallos/cancelados/omitidos/incompletos. Esquema: 56 migraciones confirmadas
+más la nueva de presencia, 70 tablas antes/71 después por CompetitiveTestSource,
+31 triggers, PostgreSQL 16.15, timezone Etc/UTC. Todos los archivos anteriores
+se ejecutaron y pasaron; no se filtró cobertura para conseguir ese resultado.
+El contenedor propio fue eliminado verificando etiqueta y nonce; postgres-local
+mantiene ID y StartedAt originales. La incertidumbre histórica de los 34 fallos
+y Rescate sigue abierta, sin atribuirles una causa por estas pasadas verdes.
+
+Logs completos locales (TEMP del propietario): saberplus-ninth-pg-diagnostic.log,
+saberplus-ninth-pg-complete1.log, saberplus-ninth-pg-implementation1/2/3.log,
+saberplus-ninth-final-build.log, saberplus-ninth-final-competitive.log,
+saberplus-ninth-final-jest.log, saberplus-ninth-gateway-regression.log,
+saberplus-ninth-final-jest2.log, saberplus-ninth-final-postgres.log y
+saberplus-ninth-final-audit.log. Conservan cortes/fallos y su validación posterior,
+no se sobrescriben como si los intentos anteriores hubieran aprobado. Primera
+aplicación de la migración local: error sintáctico de delimitador SQL en la nueva
+función de reloj, antes de pruebas (exit 1); corregido solo en la migración nueva.
+Las pruebas controlan el reloj exclusivamente dentro de PostgreSQL desechable;
+ninguna ruta HTTP/socket admite un timestamp de presencia remitido por cliente.
+
+Para la futura liquidación TUG también debe resolverse el protocolo de locks de
+DOS participantes: CompetitiveService hoy bloquea un usuario por liquidación;
+no basta añadir un verificador que luego intente adquirir el par empezando por
+el otro usuario. La admisión/verificador TUG siguen ausentes: esta ronda serializa
+sus escritores con el par ordenado antes de la partida y no ejecuta ese flujo
+futuro ni certifica que el contrato monousuario ya resuelva ese problema.
+
+Siguen abiertas durabilidad física WAL/instante real de visibilidad de R,
+verificación de rol/RLS productivo, incertidumbre histórica de los 34 fallos e
+intermitencia de vencimiento Rescate. Una pasada exitosa no demuestra su causa.
+Tira sigue sin XP; Memoria/Batallas y PR-I2 no se implementan. PR-I1 no fusionado
+a main. Sin commit, push, merge, despliegue ni migraciones remotas.
+
+### Inventario y cierre para revisión humana
+
+13 archivos modificados: README raíz; backend/README.md; índices/docs PR-I1
+(README.md, PR_I1_COMPETITIVE_INFRASTRUCTURE.md, este informe); Prisma schema;
+TiraAfloja service/gateway/module/ws-auth y prueba gateway; prueba PostgreSQL
+Tug evidence y runner. Cinco creados: migración 20261003160000_tug_presence;
+TiraAflojaPresenceService; competitive.tug-presence.spec.ts;
+competitive-tug-presence-postgres.test.cjs; competitive_postgres_reporter.cjs.
+Los seis archivos iniciales de auditoría conservan sus cambios; no se descartan.
+En la prueba antigua de evidencia se eliminó únicamente ruido de formato y se
+comprobó igualdad exacta de AST con la versión probada; se mantienen sus cambios
+reales de proveedor y lista exhaustiva de funciones privadas.
+
+Diff check exit 0. 51 referencias Markdown locales comprobadas en los cinco
+README/índices/informes modificados: cero destinos faltantes. Rama y HEAD
+siguen feat/pr-i1-competitive-infrastructure / a4d010b. No hay cambios de
+migraciones confirmadas ni del repositorio Flutter. Docker Engine 29.7.2,
+desktop-linux; postgres-local conserva ID
+20d971cc043fe04cf2fd14be83c906d2210f298381e58ac480a478ea305b7927 y StartedAt
+2026-10-02T21:24:22.476116454Z, funcionando. Sin contenedores de prueba remanentes.
+No commit, push, merge, despliegue, migraciones remotas, activación XP ni PR-I2.
+
+## Historial — auditoría previa de presencia, antes de la implementación
+
+
+## Estado vigente — auditoría previa de presencia (noveno checkpoint)
+
+2026-10-03, rama feat/pr-i1-competitive-infrastructure, HEAD a4d010b.
+Se verificaron los ocho checkpoints en el historial local y árbol limpio al
+comenzar; su publicación en GitHub fue informada por el propietario.
+La ronda 9 está en auditoría; **no se implementó todavía presencia/gracia Tira**.
+No hay migración nueva, admisión XP ni verificador TUG_MATCH. Los apartados
+inferiores se conservan como historial del checkpoint 8 confirmado.
+
+### Evidencia y arquitectura propuesta, sin implementación
+
+El gateway autentica JWT, estudiante, correo y cambio de contraseña inicial.
+La pertenencia se comprueba por el servicio antes de unir la sala. Sin embargo,
+handleDisconnect consulta salas locales, y RxJS publica solo en la instancia:
+ninguno demuestra ausencia global ni una desconexión durable. No hay adaptador
+distribuido en main.ts. La recuperación Socket.IO de 120 s no es gracia de juego.
+
+Trivia/Duelo persisten OPEN/CLOSED/UNKNOWN/RETIRED, identidad de instancia,
+leases y eventos append-only. Su observador caído produce UNKNOWN. Es reutilizable
+la técnica de leases, identidad, eventos privados y autenticación, pero no su
+resolución: Tira requiere evidencia del rival, dos participantes y precedencia
+por meta/agotamiento/plazo global, además de gracia 30 s en lugar de 20 s.
+No se modifica Trivia/Duelo para esta ronda.
+
+Diseño técnico propuesto: conexiones identificadas por servidor y vinculadas
+inmutablemente a usuario/partida/instancia; registro PostgreSQL UTC; renovación
+basada en observaciones autenticadas del canal; leases vencidos o pérdida del
+observador como UNKNOWN; eventos privados inmutables; serialización común con
+respuestas y cierres. Una nueva inscripción de presencia debe distinguirse de
+partidas históricas del checkpoint 8, sin convertirlas ni modificar su runtime.
+La futura migración debe ser incremental: la de evidencia Tira ya está confirmada.
+
+CONNECTED exige conexión autenticada vigente. CONFIRMED_DISCONNECTED requiere
+observación atribuible del cierre de todas las conexiones válidas, sin otras
+conexiones inciertas. UNKNOWN incluye observador perdido, token/renovación no
+verificable y lease vencido; no implica abandono. socket.connected, fetchSockets
+local o ausencia de HTTP no son por sí solos prueba global. Un timeout/caída del
+proceso no debe clasificarse como abandono del estudiante. La publicación entre
+instancias requerirá recuperación desde PostgreSQL; el publisher local por sí
+solo no resuelve esa garantía. Estas son exigencias del diseño, no código hecho.
+
+Las operaciones nuevas necesitarán comprobar presencia transaccionalmente,
+después de recuperar reintentos exactos, y nuevamente tras esperas por locks.
+El orden debe coordinar clave idempotente y participantes ordenados antes de
+partida, sin invertir Usuario → origen de CompetitiveService. No se añade un
+lock aislado ni se reutiliza el resolver de Trivia con resultados ficticios.
+
+El resolver actual comprueba primero vencimiento global y después la ronda;
+no es aún un árbitro de candidatos normal/gracia. La integración tendrá que
+comparar sus instantes autoritativos y orden de aceptación, no solo el momento
+de detección del worker: resultado normal anterior cierra sin esperar gracia;
+plazo global anterior o igual al final de gracia prevalece; abandono requiere
+que gracia venza primero y exista evidencia individual de desconexión. La
+presencia suficiente del rival se evalúa por separado para su resultado.
+Una reconexión nunca ampliará rondas/plazo global ni reabrirá un terminal.
+R, snapshot, Qpartida, guard de COMMIT tardío, comprobación posterior Prisma,
+calificación original, privacidad y contratos legacy del checkpoint 8 se conservan.
+
+### Decisiones de producto aprobadas para presencia durable V1
+
+El propietario resolvió las precisiones anteriores el 2026-10-03:
+
+- Desconexión confirmada de A y gracia de 30 s vencida sin reconexión válida:
+  registrar abandono de A si no existe cierre normal prioritario. No se exige
+  OPEN de B para reconocer ese abandono; UNKNOWN de B no demuestra abandono.
+  El resultado de B depende exclusivamente de las reglas V1 y evidencia real;
+  reconocer abandono de A no inventa presencia, participación ni premio de B.
+- Toda respuesta nueva requiere OPEN autenticado, vigente y persistido.
+  UNKNOWN o falta de OPEN bloquean acciones nuevas, pero nunca prueban abandono.
+  Los reintentos exactos previamente aceptados se recuperan antes de ese bloqueo.
+  Los intentos históricos conservan su contrato.
+- Meta/preguntas agotadas antes de gracia tienen prioridad; luego plazo global
+  anterior o igual al vencimiento de gracia; finalmente abandono si vence primero
+  la gracia. Reconectar no amplía ningún reloj ni reabre un terminal.
+- Si ambas desconexiones están confirmadas y las gracias vencen exactamente a la
+  vez, sin cierre normal/global prioritario: CANCELADA, sin ganador ni XP positivo,
+  con abandono individual de ambos. Decisión explícita del propietario; no se
+  escoge un ganador por orden de consulta.
+
+Estas decisiones autorizan el diseño e implementación posterior al diagnóstico
+PostgreSQL. No significan presencia implementada ni admisión/liquidación TUG_MATCH.
+
+### Validación de la base publicada
+
+Build exit 0; Jest competitivo 159/159 (8 suites, 26,563 s); Jest completo
+1040/1040 (97 suites, 104,169 s); auditoría omit=dev cero vulnerabilidades con
+TLS y CA del sistema, NODE_OPTIONS restaurado.
+
+Primera ejecución PostgreSQL: exit 1 sin resumen final, interrumpida alrededor
+de los 180 s del presupuesto del proceso. No aparece ninguna aserción fallida;
+las últimas pruebas terminadas incluyen habilitación oportuna de Tira, faltan
+los cuatro escenarios finales. Diagnósticos DB antes/después: timezone Etc/UTC,
+56 migraciones confirmadas y sin fuentes recientes anteriores a cobertura
+institucional. La coincidencia con el timeout es evidencia de posible corte por
+presupuesto, no prueba de una regresión de presencia aún inexistente. El wrapper
+anterior no conservaba killed/signal/code; se añadieron solo esos metadatos al
+runner, sin cambiar timeout, pruebas, aserciones ni runtime. Segunda ejecución
+independiente secuencial, sin otros tests paralelos, también terminó exit 1:
+metadatos del hijo node.exe signal=SIGTERM, killed=true, timeoutMs=180000.
+Quedó demostrado el corte por presupuesto del runner; faltó el resumen completo
+tras llegar a la prueba de worker tardío de Tira. No se certifica PostgreSQL
+aprobado, ni se atribuye a una aserción de presencia/historial. No se amplió
+ningún timeout ni ventana, ni se omitieron o relajaron pruebas. La razón del
+mayor tiempo total respecto de ejecuciones anteriores no está demostrada.
+El límite del runner y la validación completa quedan pendientes para la próxima
+continuación, además de las dos precisiones de producto.
+
+Estas pruebas verifican a4d010b y el checkpoint 8; no certifican
+funcionalidades de presencia Tira inexistentes. Docker desktop-linux / Engine
+29.7.2 está disponible; el runner aplica 56 migraciones confirmadas en su propio
+PostgreSQL desechable. postgres-local ajeno no se modifica.
+Diff check exit 0 y 49 destinos Markdown locales verificados sin faltantes.
+Modificados únicamente cinco documentos/índices backend y el diagnóstico de
+terminación del runner; no hay cambios en motores, Prisma ni migraciones. Persisten la garantía
+pendiente de durabilidad física WAL, los 34 fallos históricos, la incidencia
+intermitente de Rescate y la verificación de rol/RLS productivo. No hay migraciones
+remotas, Flutter, otros juegos, PR-I2, commit, push, merge ni despliegue.
+
+## Historial — estado del octavo checkpoint
+
+## Primera etapa de evidencia autoritativa
 
 Base `39d3881`, rama `feat/pr-i1-competitive-infrastructure`; se conservan
 los cambios locales de la octava ronda. Siete checkpoints confirmados por el propietario; esta octava ronda

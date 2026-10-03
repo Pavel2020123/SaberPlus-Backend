@@ -5,6 +5,7 @@ import { mkdtemp, readFile, writeFile, realpath, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import summaryGate from './competitive_postgres_summary.cjs';
 
 const execute = promisify(execFile);
 const backend = fileURLToPath(new URL('../', import.meta.url));
@@ -72,6 +73,16 @@ async function main() {
         maxBuffer: 16 * 1024 * 1024,
       });
     } catch (error) {
+      console.error(
+        JSON.stringify({
+          phase: 'command-failure',
+          command: basename(command),
+          code: error.code ?? null,
+          signal: error.signal ?? null,
+          killed: error.killed ?? false,
+          timeoutMs: timeout,
+        }),
+      );
       throw new Error(
         `${basename(command)} failed: ${error.stdout || ''}\n${error.stderr || error.message}`
           .replaceAll(password, '[redacted]')
@@ -184,6 +195,10 @@ async function main() {
       'prisma/migrations/20261003010000_tug_authoritative_evidence/migration.sql';
     if (!paths.includes(tugMigration))
       sql.push(await readFile(join(backend, tugMigration), 'utf8'));
+    const tugPresenceMigration =
+      'prisma/migrations/20261003160000_tug_presence/migration.sql';
+    if (!paths.includes(tugPresenceMigration))
+      sql.push(await readFile(join(backend, tugPresenceMigration), 'utf8'));
     await writeFile(migrationPath, sql.join('\n'), 'utf8');
     await docker('cp', migrationPath, `${name}:/tmp/competitive-migration.sql`);
     await docker(
@@ -259,22 +274,110 @@ async function main() {
     await schemaDiagnostic('before-tests');
     let result;
     try {
-      result = await run(
-        process.execPath,
-        [
-          '--test',
-          '--test-concurrency=1',
-          'test/competitive-postgres.test.cjs',
-          'test/competitive-solo-postgres.test.cjs',
-          'test/competitive-trivia-boundary-postgres.test.cjs',
-          'test/competitive-trivia-evidence-postgres.test.cjs',
-          'test/competitive-trivia-presence-postgres.test.cjs',
-          'test/competitive-trivia-xp-postgres.test.cjs',
-          'test/competitive-tug-boundary-postgres.test.cjs',
-          'test/competitive-tug-evidence-postgres.test.cjs',
-        ],
-        180_000,
+      // Node already isolated each file in a child; keep that isolation and
+      // order, but bound each process rather than truncate the whole growing
+      // suite. The existing command budget is 120 s; no test/window is extended.
+      const files = [
+        'test/competitive-postgres.test.cjs',
+        'test/competitive-solo-postgres.test.cjs',
+        'test/competitive-trivia-boundary-postgres.test.cjs',
+        'test/competitive-trivia-evidence-postgres.test.cjs',
+        'test/competitive-trivia-presence-postgres.test.cjs',
+        'test/competitive-trivia-xp-postgres.test.cjs',
+        'test/competitive-tug-boundary-postgres.test.cjs',
+        'test/competitive-tug-evidence-postgres.test.cjs',
+        'test/competitive-tug-presence-postgres.test.cjs',
+      ];
+      const totals = {
+        tests: 0,
+        pass: 0,
+        fail: 0,
+        cancelled: 0,
+        skipped: 0,
+        todo: 0,
+      };
+      const failedFiles = [],
+        incompleteFiles = [],
+        invalidFiles = [];
+      const suiteStart = Date.now();
+      for (const file of files) {
+        const start = Date.now();
+        console.log(
+          JSON.stringify({
+            phase: 'postgres-file-start',
+            file,
+            at: new Date().toISOString(),
+            timeoutMs: 120000,
+          }),
+        );
+        let output;
+        try {
+          const one = await run(process.execPath, [
+            '--test',
+            '--test-concurrency=1',
+            '--test-reporter=./tool/competitive_postgres_reporter.cjs',
+            file,
+          ]);
+          output = one.stdout;
+          if (one.stderr)
+            console.error(
+              one.stderr
+                .replaceAll(url, '[temporary DB]')
+                .replaceAll(password, '[redacted]'),
+            );
+        } catch (error) {
+          failedFiles.push(file);
+          output = error.message;
+        }
+        console.log(
+          output
+            .replaceAll(url, '[temporary DB]')
+            .replaceAll(password, '[redacted]'),
+        );
+        const assessment = summaryGate.inspectSummary(
+          output,
+          failedFiles.includes(file),
+        );
+        const { summary } = assessment;
+        for (const key of Object.keys(totals))
+          if (summary[key] !== undefined) totals[key] += summary[key];
+        if (assessment.missing.length) incompleteFiles.push(file);
+        if (!assessment.valid)
+          invalidFiles.push({ file, errors: assessment.errors });
+        console.log(
+          JSON.stringify({
+            phase: 'postgres-file-end',
+            file,
+            durationMs: Date.now() - start,
+            summary,
+            summaryErrors: assessment.errors,
+          }),
+        );
+      }
+      console.log(
+        JSON.stringify({
+          phase: 'postgres-summary',
+          files: files.length,
+          totals,
+          failedFiles,
+          incompleteFiles,
+          invalidFiles,
+          durationMs: Date.now() - suiteStart,
+        }),
       );
+      if (
+        failedFiles.length ||
+        incompleteFiles.length ||
+        invalidFiles.length ||
+        totals.tests !== totals.pass ||
+        ['fail', 'cancelled', 'skipped', 'todo'].some(
+          (key) => totals[key] !== 0,
+        )
+      )
+        throw new Error(
+          'PostgreSQL validation failed or incomplete; all file results retained above.',
+        );
+      result = { stdout: '', stderr: '' };
     } catch (error) {
       // Diagnostic only: preserve failure and inspect this owned instance before cleanup.
       try {
