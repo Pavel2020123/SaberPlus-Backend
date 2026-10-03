@@ -1,5 +1,101 @@
 # PR-I1 V1: infraestructura competitiva común
 
+## Estado vigente — revisión del sexto checkpoint
+
+Rama `feat/pr-i1-competitive-infrastructure`, HEAD `88f7045`: cinco checkpoints
+confirmados en Git; sexta ronda y revisión actual **sin commit**, pendientes de
+revisión humana. PR-I1 sigue abierto y **no fusionado a main**. Implementación
+local no acredita despliegue/activación productiva; estas rondas no han aplicado
+migraciones remotas. No se modifican Flutter, Usuario.xpTotal ni fórmulas V1.
+
+### Checkpoints
+
+| Etapa | Commit / estado | Entrega |
+|---|---|---|
+| 1 | `08fa13b`, confirmado | Infraestructura común, ledger/balance, reglas V1 e institución histórica. |
+| 2 | `76a8a47`, confirmado | Cima/Guardián/Rescate con admisión apagada por defecto. |
+| 3 | `af78ee7`, confirmado | Auditoría y protección de frontera Trivia/Duelo, sin XP. |
+| 4 | `16163b7`, confirmado | Snapshot, modalidad, fantasma fijo y evidencia/privacidad protegida, sin XP. |
+| 5 | `88f7045`, confirmado | Presencia durable, gracia/reconexión y protección de acciones V1, sin XP. |
+| 6 | Local, sin commit | Admisión, verificador común TRIVIA_ATTEMPT y liquidación/recuperación Trivia/Duelo; contrato estricto de fantasma. |
+
+Cima/Guardián/Rescate están versionados; Trivia/Duelo integrados localmente.
+Tira, Memoria y Batallas siguen sin integración competitiva; Memoria requiere
+autoridad backend. No se avanza PR-I2. Las fórmulas puras de ocho juegos no
+equivalen a ocho motores/verificadores integrados.
+
+### Reglas vigentes y flags
+
+Trivia: half-up((70C+30M)/Q), Q congelado 10..30. M usa cada resultado definitivo
+una vez, en orden original: fallo no final con segunda oportunidad no lo rompe;
+fallo definitivo y salto sí. Duelo: half-up(80C/Q), comparando solo puntajes
+verificados contra la referencia fija. Igual puntaje es empate sin desempates.
+
+| Referencia | Resultado exigido | XP con C=Q=10 |
+|---|---|---|
+| `ghostId=null` | `outcome=null` | 80, solo base. |
+| Fantasma presente | VICTORIA | 100. |
+| Fantasma presente | EMPATE | 90. |
+| Fantasma presente | DERROTA | 80. |
+
+Toda combinación incompatible se rechaza antes de ledger/balance. No existen
+resultados ficticios sin referencia. Ayudas oficiales de Trivia no invalidan
+por sí solas la partida; Duelo conserva su restricción servidor de ayudas.
+
+| Flag servidor | Nuevas admisiones | Valor por defecto |
+|---|---|---|
+| `COMPETITIVE_SOLO_ENABLED` | Cima/Guardián/Rescate | Apagado. |
+| `COMPETITIVE_TRIVIA_ENABLED` | Trivia Rush | Apagado. |
+| `COMPETITIVE_GHOST_ENABLED` | Duelo fantasma | Apagado. |
+
+Solo el literal `true` habilita su grupo/modalidad. Apagarlos no detiene cierre,
+reconciliación o liquidación de intentos ya admitidos. Sin admisión retroactiva
+de históricos ni V1 preparados. Presencia OPEN autenticada con lease vigente
+para acciones nuevas, reintentos exactos sin escritura, UNKNOWN sin abandono
+inventado, gracia exacta de 20 s y reloj sin pausa/ampliación por reconexión.
+EXPIRADO prevalece antes o exactamente al fin de gracia; terminales no se reabren.
+Abandono demostrado aplica -10 en Trivia/Duelo, sin recompensa positiva parcial;
+vencimiento normal produce resultado normal. TRIVIA_ATTEMPT es compartida y su
+idempotencia impide pagar por dos modos. Temporada/membresía son las del terminal;
+historial desconocido falla sin inventarlo.
+
+### Migraciones y gate productivo
+
+Orden y dependencias del esquema requerido:
+
+1. [Base competitiva](../prisma/migrations/20260930120000_competitive_infrastructure/migration.sql), checkpoint 1.
+2. [Runtime individual](../prisma/migrations/20260930180000_competitive_solo_runtime/migration.sql), checkpoint 2, depende de la base.
+3. [Evidencia Trivia/Duelo](../prisma/migrations/20261001190000_trivia_authoritative_evidence/migration.sql), checkpoint 4.
+4. [Presencia](../prisma/migrations/20261002190000_trivia_presence/migration.sql), checkpoint 5, depende de evidencia.
+5. [Competitivo Trivia/Duelo](../prisma/migrations/20261002230000_trivia_competitive_v1/migration.sql), sexta ronda sin commit, depende de base/evidencia/presencia.
+
+Incluso con flags apagados, el backend nuevo exige esquema compatible antes de
+usar campos Prisma/recuperadores. Respaldo/revisión → verificar rol real de
+DATABASE_URL y RLS (owner/BYPASSRLS o policy/grant privado), acceso backend y
+denegación anon/authenticated → migración autorizada → comprobar esquema/guards →
+backend con tres flags apagados → pruebas operativas → activación explícita.
+Rol/RLS productivo **aún no verificado**; pruebas locales no lo confirman. RLS se
+mantiene. Migraciones remotas no aplicadas por estas rondas; confirmadas intactas.
+
+Siguen abiertas la incertidumbre histórica de los 34 fallos institucionales y
+la incidencia intermitente de Rescate. [Auditoría y validaciones](PR_I1_TRIVIA_DUELO_AUDITORIA.md).
+Navegación: [índice backend](README.md), [README API](../README.md).
+
+## Historial de implementación y validación
+
+Los registros siguientes describen su etapa, fecha/base. Expresiones anteriores
+«sin verificador», «otros cinco pendientes» o «Docker bloqueado» no son el estado
+vigente. Se preservan como evidencia, no como reglas activas. El resumen anterior
+y las precisiones finales superan las propuestas o compatibilidades antiguas.
+
+**Estado vigente — integración Trivia/Duelo sobre `88f7045`:** el propietario aprobó las dos precisiones y se implementan admisión explícita, verificador común TRIVIA_ATTEMPT y recuperación durable. `COMPETITIVE_TRIVIA_ENABLED` y `COMPETITIVE_GHOST_ENABLED` requieren exactamente `true` y están apagados por defecto; COMPETITIVE_SOLO_ENABLED no autoriza estas modalidades. Requiere la nueva migración incremental `20261002230000_trivia_competitive_v1` antes del backend. No hay activación en producción ni elegibilidad retroactiva. La parada de la revisión documental siguiente queda superada, conservándose su diagnóstico e historial.
+
+**Decisiones aprobadas:** M usa únicamente resultados definitivos, en el orden original: fallo no final con segunda oportunidad no corta M; fallo final o salto sí. Cada pregunta cuenta una vez. Duelo compara exclusivamente puntajes servidor verificables: mayor/victoria, igual/empate, menor/derrota. Sin fantasma inicial válido no hay bono. El selector de mejor referencia mantiene sus criterios existentes; esos desempates no se aplican al resultado del duelo. Fórmulas y half-up V1 permanecen intactos. La implementación y validación de esta ronda se detallan al final de [la auditoría](PR_I1_TRIVIA_DUELO_AUDITORIA.md).
+
+**Revisión previa detenida, historial sobre `88f7045` (2026-10-02):** evidencia inmutable y presencia de Trivia/Duelo disponibles; todavía sin admisión XP, verificador TRIVIA_ATTEMPT ni liquidación de estas modalidades. Antes de implementar pagos se solicitaron dos precisiones: si el fallo no final de segunda oportunidad corta M, y si igual puntaje en Duelo siempre significa empate o aplica desempate por aciertos/racha. La selección de mejor referencia no se adopta implícitamente como regla del bono. Véase «Auditoría de admisión y liquidación XP sobre 88f7045» en [la auditoría](PR_I1_TRIVIA_DUELO_AUDITORIA.md), con ejemplos de pagos distintos y fuentes concretas. No hay respuesta asumida, verificadores simulados, migraciones nuevas ni cambios runtime; no se paga retroactivamente a los intentos preparados. Las fórmulas V1 siguen aprobadas e intactas.
+
+Validación de esta base: build exit 0; competitivo 118/118 (5 suites); Jest completo 996/996 (94 suites); PostgreSQL local independiente 104/104, 54 migraciones confirmadas; audit omit=dev cero vulnerabilidades y TLS activo. Docker desktop-linux/29.7.2 operativo, postgres-local existente intacto. La incertidumbre histórica de los 34 fallos y la incidencia intermitente de Rescate permanecen abiertas. Las secciones anteriores de estado se conservan debajo como historial, no como diagnóstico actual de Docker o de ausencia de snapshots/presencia. Sin commit, push, merge, despliegue ni migraciones remotas; pendiente revisión humana y resolución de las dos precisiones.
+
 Estado de presencia, base `16163b7`: el propietario aprobó vencimiento normal prioritario cuando su plazo es anterior o igual al fin de gracia. La continuación implementa canal `/trivia-presence`, presencia privada PostgreSQL, gracia de 20 s y reconciliador para **nuevos** intentos explícitos V1; continúa sin XP. Migración incremental `20261002190000_trivia_presence`, pendiente de revisión/aplicación autorizada antes del backend. Los intentos anteriores conservan presenciaVersion=null. Caída del observador produce incertidumbre, no abandono inventado. Véase «Implementación de presencia durable» en [la auditoría](PR_I1_TRIVIA_DUELO_AUDITORIA.md); la auditoría anterior se conserva como historial y su bloqueo de precedencia queda resuelto. Los tres juegos individuales y sus verificadores permanecen intactos.
 
 **Gate de validación abierto:** build/Jest pasan; una ejecución posterior PostgreSQL produjo 34 fallos de cobertura institucional tras pasadas verdes. La causa sigue sin demostrar y la repetición diagnóstica está bloqueada por el arranque local de Docker (`sailor-ingest.sock`). No se declara listo este checkpoint ni se ocultan esos fallos. La última sección de la auditoría conserva resultados, límites y siguiente verificación necesaria.
@@ -88,7 +184,7 @@ La fecha normal de cierre se fija dentro de la transacción que mantiene bloquea
 | ID | Cálculo normal V1 |
 |---|---|
 | TRIVIA_RUSH | half-up((70C + 30M) / Q), Q entero 10..30, M verificable ≤ C ≤ Q. |
-| GHOST_DUEL | half-up(80C/Q) + 20/10/0 por victoria/empate/derrota; primer intento sin referencia: bono 0. Exige modo separado, referencia inicial inmutable (incluido null) y configuración compatible. |
+| GHOST_DUEL | half-up(80C/Q) + 20/10/0 por victoria/empate/derrota; sin referencia exige outcome=null y bono 0; con referencia exige resultado válido. Exige modo separado, referencia inicial inmutable y configuración compatible. |
 | SUMMIT | 15H + 25V, altura máxima 0..5; sin velocidad ni preguntas sobrantes. |
 | TUG_OF_WAR | half-up(60C/R) + 40/20/0; R=0 da 0. No paga rondas favorables ni terreno. |
 | GUARDIAN | 10C + V(10 + 10E); invariantes del motor actual: 6 aciertos ganan, 3 errores agotan escudos, 8 preguntas. |
@@ -335,3 +431,20 @@ La comprobación ocurre dentro de la transacción después del lookup idempotent
 Resultados: build exit 0; competitivo 118/118 (5 suites); completo 996/996 (94 suites); PostgreSQL final 104/104 con carreras por rutas HTTP reales; audit omit=dev cero vulnerabilidades y TLS activo; diff check correcto. Se conserva un primer fallo de fixture histórico incompatible entre fecha futura y reloj legacy, diagnosticado/corregido sin relajar aserciones; la pasada intermedia también dio 104/104. Detalles y logs en «Regla aprobada: suspender nuevas acciones sin presencia vigente» de PR_I1_TRIVIA_DUELO_AUDITORIA.md.
 
 Solo se ajusta la migración nueva no confirmada, no las confirmadas. No se cambian Cima/Guardián/Rescate, fórmulas ni Flutter. La causa histórica de los 34 fallos y la incidencia de Rescate siguen abiertas como antes. Todos los cambios previos se preservan. Sin XP Trivia/Duelo, commit/push/merge/despliegue ni migraciones remotas; pendiente revisión humana del quinto checkpoint.
+
+
+### Validación final de integración Trivia/Duelo (88f7045)
+
+Decisiones de M y empate cerradas por el propietario. Adaptador común TRIVIA_ATTEMPT y recuperador independiente registrados; solo nuevos intentos admitidos explícitamente con versión 1 pueden liquidarse. COMPETITIVE_TRIVIA_ENABLED y COMPETITIVE_GHOST_ENABLED siguen apagados por defecto; ningún flag ni despliegue fue activado para usuarios. Nueva migración 20261002230000_trivia_competitive_v1, probada exclusivamente en PostgreSQL local desechable; no se alteran migraciones confirmadas ni los tres motores individuales.
+
+Resultados finales: build exit 0; competitivo 137/137 (6 suites); Jest completo 1015/1015 (95 suites); PostgreSQL 121/121 con cierre/abandono/ledger/recuperación concurrentes; audit omit=dev cero vulnerabilidades/TLS activo; diff check exit 0. Los fallos iniciales de fixtures Q compartido y reloj futuro no sincronizado, y el ajuste de lifecycle del módulo, están documentados con resultados y logs en la auditoría; no se debilitaron reglas/aserciones para ocultarlos. No quedan decisiones de producto abiertas de esta integración. La incertidumbre histórica de los 34 fallos y el vencimiento intermitente Rescate siguen abiertos. El gate de migración previa y verificación real de rol/RLS de producción permanece obligatorio. Sin commit/push/merge/despliegue/migraciones remotas; pendiente revisión humana.
+
+
+Cierre de representación de primera referencia: sin fantasma, outcome=null y bono cero; con fantasma, resultado obligatorio por puntajes verificados. Ninguna derrota ficticia ni cambio de fórmula V1. Revalidación final: build exit 0; competitivo 138/138 (6 suites); Jest completo 1016/1016 (95 suites); PostgreSQL 121/121; audit 0 vulnerabilidades/TLS activo; diff check exit 0. Detalles, inventario y logs de cierre en la auditoría. HEAD 88f7045, flags independientes apagados por defecto y pendiente revisión humana, sin acciones remotas ni commit/push.
+
+
+### Revisión mínima de contrato y navegación del sexto checkpoint
+
+La correspondencia ghostId/outcome es estricta: null/null paga base; referencia presente exige VICTORIA/EMPATE/DERROTA. Resultado ficticio sin referencia se rechaza sin ledger/balance. Supera explícitamente la compatibilidad anterior; fórmulas, M, empate por puntaje y presencia permanecen intactos. Sexta ronda todavía local sin commit, cinco checkpoints previos confirmados. Los README y el índice docs enlazan a los resúmenes vigentes; registros históricos se conservan señalados como tales.
+
+Resultados: build exit 0; competitivo 144/144 (6 suites); Jest completo 1022/1022 (95 suites); PostgreSQL local 122/122; audit cero vulnerabilidades/TLS activo; diff check exit 0. 42 enlaces Markdown locales y anclas comprobados en cinco documentos, todos válidos. Rol/RLS productivo, causa histórica de los 34 fallos e incidencia Rescate permanecen abiertos. No hay nuevas migraciones de esta revisión ni acciones remotas/commit/push/merge/despliegue. Detalle en la revisión final de la auditoría.

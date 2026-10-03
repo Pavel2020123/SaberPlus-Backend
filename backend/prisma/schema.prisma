@@ -1087,6 +1087,10 @@ model IntentoTriviaRush {
   usuarioId                String                  @db.Uuid
   evidenciaVersion         Int?
   presenciaVersion         Int?
+  competitiveRulesVersion Int?
+  competitiveAdmittedAt DateTime? @db.Timestamp(3)
+  competitiveSettledAt DateTime? @db.Timestamp(3)
+  competitiveRetryAt DateTime @default(dbgenerated("timezone('UTC', clock_timestamp())")) @db.Timestamp(3)
   modalidad                ModalidadTriviaRush?
   snapshotInicial          Json?
   estado                   EstadoIntentoTriviaRush @default(ACTIVO)
@@ -1170,6 +1174,7 @@ model TriviaRushPregunta {
 }
 
 model TriviaRushRespuesta {
+  competitiveActionSeq BigInt? @unique
   id                      String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   intentoId               String            @db.Uuid
   preguntaId              String
@@ -1207,6 +1212,8 @@ model ConcesionRecompensaJuego {
 }
 
 model TriviaRushPotenciador {
+  competitiveActionSeq BigInt? @unique
+  competitiveGrant Json?
   id                 String                    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   intentoId          String                    @db.Uuid
   preguntaId         String?

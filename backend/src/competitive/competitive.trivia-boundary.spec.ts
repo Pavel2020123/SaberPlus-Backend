@@ -7,10 +7,9 @@ import {
 } from './competitive.contracts';
 import { createSoloVerifiers } from './competitive.solo';
 
-// Safety boundary while the audited runtime lacks competitive evidence.
-// These tests do NOT certify a Trivia/Ghost competitive implementation.
-// Both labels share a blocked XP source. Persisted evidence modes are tested separately.
-describe('Trivia and Ghost remain closed without authoritative competitive evidence', () => {
+// The solo-only registry cannot enable the shared Trivia source. Production now
+// registers an adapter, whose persisted admission checks are covered separately.
+describe('Trivia and Ghost admission boundary', () => {
   const previous = process.env.COMPETITIVE_SOLO_ENABLED;
   afterEach(() => {
     if (previous === undefined) delete process.env.COMPETITIVE_SOLO_ENABLED;
@@ -63,7 +62,7 @@ describe('Trivia and Ghost remain closed without authoritative competitive evide
     { modalidad: 'INVALID' },
     { snapshotInicial: {} },
     { evidenciaVersion: 1 },
-    { competitive: true },
+    { competitive: 'true' },
     { gameId: 'GHOST_DUEL' },
     { ghostMode: true },
     { ghostId: 'client-selected-reference' },

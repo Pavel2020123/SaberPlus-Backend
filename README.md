@@ -7,7 +7,9 @@
 > el flujo actual `/admin/simple` guarda/publica directamente con permisos y
 > validaciones; no hay que reponer la revisión editorial histórica obligatoria.
 > Consultar la Ruta vigente del equipo en Flutter (`docs/ETAPAS_PENDIENTES.md`)
-> y `docs/AUDITORIA_RELEVO_2026-09-28.md`. PR-I1 espera decisiones del propietario.
+> y `docs/AUDITORIA_RELEVO_2026-09-28.md` de ese repositorio para Flutter. PR-I1
+> ya tiene cinco checkpoints confirmados y una sexta ronda local sin commit;
+> su estado backend vigente está en el [índice de documentación](backend/docs/README.md).
 
 API oficial de SaberPlus. Centraliza autenticacion, permisos, contenido
 academico, diagnosticos, intentos, calificacion, gamificacion, instituciones y
@@ -41,6 +43,14 @@ reglas de negocio. La aplicacion Flutter no accede directamente a PostgreSQL.
   banderas reales. [Repetir pruebas y límites](backend/EDITORIAL_POSTGRES_TESTS.md).
 
 ## Desarrollo local
+
+PR-I1 competitivo V1 sigue abierto y sin fusionar a main. La infraestructura y
+Cima/Guardián/Rescate están versionados; Trivia/Duelo tienen integración local
+pendiente del sexto commit y revisión. Esto no acredita despliegue, migraciones
+remotas ni activación para usuarios. Los tres flags de admisión están apagados
+por defecto; apagar nuevas admisiones permite recuperar/liquidar las existentes.
+Consultar [checkpoints, flags y dependencias](backend/docs/PR_I1_COMPETITIVE_INFRASTRUCTURE.md)
+y [auditoría, pruebas e incidencias](backend/docs/PR_I1_TRIVIA_DUELO_AUDITORIA.md).
 
 Requisitos: Node.js 24 y PostgreSQL compatible con las migraciones Prisma.
 

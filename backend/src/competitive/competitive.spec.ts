@@ -147,7 +147,7 @@ describe('competitive V1 pure rules', () => {
       NormalEvidence,
       { gameId: 'GHOST_DUEL' }
     >;
-    expect(normalXp({ ...ghost, ghostId: null })).toBe(80);
+    expect(normalXp({ ...ghost, ghostId: null, outcome: null })).toBe(80);
     expect(normalXp({ ...ghost, outcome: 'EMPATE' })).toBe(90);
     for (const field of [
       'distinctMode',

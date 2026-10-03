@@ -1,0 +1,39 @@
+# Documentación backend
+
+Entrada vigente para colaboradores. [README de la API](../README.md) contiene
+desarrollo local y contratos generales; [README del repositorio](../../README.md)
+describe su estructura. Las referencias a documentación Flutter corresponden
+a otro repositorio, no a archivos dentro de este árbol.
+
+## PR-I1 competitivo V1
+
+Estado de la revisión del sexto checkpoint, rama
+`feat/pr-i1-competitive-infrastructure`, HEAD `88f7045`: cinco commits confirmados
+y sexta ronda local sin commit. PR-I1 no fusionado a main. Implementación local
+no equivale a migración remota aplicada, backend desplegado o juego activado.
+
+- [Infraestructura competitiva](PR_I1_COMPETITIVE_INFRASTRUCTURE.md): resumen
+  vigente, checkpoints, flags, arquitectura/ledger, migraciones y gate de despliegue.
+- [Auditoría de Trivia Rush y Duelo](PR_I1_TRIVIA_DUELO_AUDITORIA.md): evidencia,
+  decisiones aprobadas, implementación local, historial de pruebas e incidencias.
+
+Los tres flags servidor (`COMPETITIVE_SOLO_ENABLED`, `COMPETITIVE_TRIVIA_ENABLED`,
+`COMPETITIVE_GHOST_ENABLED`) están apagados por defecto. Solo nuevas admisiones
+consultan el flag de su grupo/modo; apagarlo no detiene recuperación o pagos
+pendientes. Tira, Memoria y Batallas siguen sin integrar; PR-I2 no ha comenzado.
+Mantener abiertos rol/RLS de producción, causa histórica de los 34 fallos y
+vencimiento intermitente de Rescate. Migraciones remotas no aplicadas por estas
+rondas; no inferir su aplicación a partir del código versionado.
+
+Los documentos especializados comienzan con estado vigente; los registros
+anteriores se conservan como historial explícito, con fechas/bases y resultados
+de cada ejecución. Las decisiones posteriores superan las propuestas antiguas.
+
+## Evidencia académica
+
+- [Catálogo académico](ACADEMIC_CATALOG.md).
+- [Evidencia de aprendizaje](LEARNING_EVIDENCE.md).
+
+Otros contratos de la API se enlazan desde el README backend. Los informes
+editoriales de indexación describen datos/procedimientos editoriales, no son
+índices generales de documentación ni determinan el estado de PR-I1.

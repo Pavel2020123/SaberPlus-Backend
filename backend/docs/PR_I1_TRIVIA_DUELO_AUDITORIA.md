@@ -1,5 +1,38 @@
 # PR-I1 V1 — auditoría previa de Trivia Rush y Duelo fantasma
 
+## Estado vigente de la revisión del sexto checkpoint
+
+Rama `feat/pr-i1-competitive-infrastructure`, HEAD `88f7045`. Los
+[seis checkpoints, flags y dependencias](PR_I1_COMPETITIVE_INFRASTRUCTURE.md#checkpoints)
+distinguen cinco commits confirmados de la sexta ronda local sin commit. PR-I1
+no está fusionado a main. Trivia/Duelo tienen verificador y recuperación local;
+no están desplegados/activados para usuarios. Tira, Memoria y Batallas siguen
+pendientes de integración; no se inicia PR-I2. Migraciones remotas no aplicadas
+por estas rondas; rol PostgreSQL/RLS productivo todavía sin verificación.
+
+Contrato actual estricto: `ghostId=null` exige `outcome=null` y XP base;
+fantasma presente exige VICTORIA/EMPATE/DERROTA verificable y el bono correspondiente.
+Combinaciones incompatibles se rechazan sin ledger/balance. M solo considera
+resultados definitivos: segunda oportunidad no final no corta; fallo definitivo
+y salto sí. Igual puntaje en Duelo es empate sin desempates. Presencia autenticada,
+gracia 20 s sin pausar/ampliar reloj por reconexión, EXPIRADO antes/igual al fin
+de gracia y liquidación idempotente permanecen aprobados e implementados.
+
+Los tres flags están apagados por defecto; no bloquean recuperación de admitidos.
+Se conservan las incidencias históricas de los 34 fallos y vencimiento de Rescate.
+[Índice backend](README.md) · [Estado y arquitectura](PR_I1_COMPETITIVE_INFRASTRUCTURE.md).
+
+## Historial técnico por etapa
+
+Los registros siguientes conservan diagnósticos, propuestas y resultados en su
+fecha/base. No confundir sus bloqueos ya superados ni sus conteos anteriores con
+el estado vigente. La revisión del contrato al final supera la compatibilidad
+antigua que aceptaba un resultado no nulo sin fantasma; no elimina el historial.
+
+**Estado vigente — decisiones aprobadas e integración sobre `88f7045`:** segunda oportunidad no final no rompe M; M considera resultados definitivos y un fallo definitivo o salto lo interrumpe. Duelo compara solamente puntajes servidor, sin desempates de récord. Se implementa integración XP V1, con admisión nueva explícita y flags separados apagados por defecto. La parada descrita a continuación es historial superado por la aprobación expresa del propietario; véase la sección final de implementación y validación. No hay cambios Flutter, activación productiva ni liquidación retroactiva.
+
+**Revisión para integración XP, base `88f7045` (2026-10-02):** snapshots, modalidad, referencia inicial y presencia ya están implementados y protegidos. La integración de liquidación sigue sin registrar `TRIVIA_ATTEMPT`. Esta revisión identifica dos precisiones de producto necesarias antes de convertir la evidencia en pagos; se detallan en la sección final. Los estados anteriores se conservan como historial.
+
 **Estado actual, base `16163b7`:** el propietario aprobó la precedencia de vencimiento normal anterior o igual al fin de gracia. Se implementan presencia PostgreSQL, canal Socket.IO, gracia de 20 s y recuperación para nuevos intentos V1, sin XP. La auditoría anterior y sus dos cambios documentales se conservan abajo como historial; su parada por precedencia queda superada por la aprobación y la implementación descritas en la última sección.
 
 **Actualización posterior al checkpoint af78ee7:** se implementa la primera etapa de evidencia autoritativa descrita al final de este informe: snapshot, modalidad y referencia inicial protegidos, y serialización de mutaciones. No se habilita XP. El diagnóstico y los resultados siguientes se conservan como historial; los puntos resueltos se detallan en la nueva sección y no deben interpretarse como carencias actuales.
@@ -518,3 +551,111 @@ El tiempo de los nuevos casos se controla únicamente en la DB local desechable:
 Logs conservados en C:/Users/luisk/AppData/Local/Temp, prefijo pr-i1-presence-gate-. Se preservó postgres-local: mismo ID y StartedAt, sin acceso a sus datos. Los tres juegos solo no muestran cambios de código; las fórmulas, Usuario.xpTotal y la ausencia de XP Trivia/Duelo se mantienen. Tres nuevas unitarias comprueban tiempo de admisión DB, conflicto de presencia y propagación de errores de esquema.
 
 Archivos ajustados en esta revisión: trivia-presence.service.ts, trivia-rush.service.ts, migración pendiente, competitive.trivia-presence.spec.ts, competitive-trivia-presence-postgres.test.cjs, competitive-trivia-evidence-postgres.test.cjs y los dos documentos existentes. Gateway, schema, módulo y runner previamente pendientes se preservan. No hay nuevas migraciones adicionales. La incertidumbre histórica de los 34 fallos sigue abierta: el experimento de reloj previo demuestra un mecanismo, no su causa histórica. La incidencia intermitente de vencimiento Rescate también sigue abierta pese a pasar en estas ejecuciones. HEAD continúa 16163b7, sin commit/push/merge/despliegue/migración remota ni cambios Flutter. Se detiene antes del quinto commit para revisión humana.
+## Auditoría de admisión y liquidación XP sobre 88f7045
+
+### Evidencia disponible y límites actuales
+
+Se verificó HEAD `88f7045`, rama `feat/pr-i1-competitive-infrastructure`, con árbol inicialmente limpio. Se consultaron los dos documentos backend obligatorios, contratos/reglas/registro de verificadores/liquidación, Prisma, motores y presencia; también las decisiones V1 en `saber_plus/docs/PR_I1_AUDITORIA_FORMULAS.md` y el plan maestro, sin modificar Flutter.
+
+Los nuevos intentos explícitos ya conservan Q 10..30, orden, contenido y soluciones originales, modalidad y fantasma inicial o ausencia de referencia. Los guards SQL de evidencia y presencia protegen esas estructuras y las acciones aceptadas. La presencia vigente se exige transaccionalmente, con orden Usuario → intento, lease PostgreSQL y cierre durable: UNKNOWN no demuestra abandono, y vencimiento anterior o igual al fin de gracia prevalece. Estos requisitos resueltos no se vuelven a presentar como carencias del motor.
+
+La evidencia V1 preparada **no equivale a admisión competitiva**. No hay campos de admisión XP/reconciliación en IntentoTriviaRush ni verificador registrado para TRIVIA_ATTEMPT. Crear esos campos, un verificador común que derive gameId de modalidad inmutable y una recuperación durable es trabajo técnico autorizado, pero su implementación pagadora se detiene mientras estén sin resolver las precisiones siguientes. Ningún intento anterior puede obtener elegibilidad retroactiva.
+
+La infraestructura común ya comparte fuente TRIVIA_ATTEMPT y UUID canónico para ambas modalidades; la clave fuente/intento/participante no depende de modo ni rulesVersion. El XP usa half-up racional con enteros BigInt. Historial institucional desconocido rechaza liquidación, sin sustituirlo por institución actual. No se modifica Usuario.xpTotal.
+
+### Precisiones solicitadas al propietario, sin respuesta asumida
+
+1. **Racha M y segunda oportunidad de Trivia.** `src/trivia-rush/trivia-rush.rules.ts`, resolverRespuestaTriviaRush, guarda el fallo aceptado no final de segunda oportunidad sin cortar el combo del marcador. El contrato competitivo exige reconstruir M, sin copiar mejorCombo, pero no explicita si ese fallo no final corta la racha competitiva o si M se calcula solo sobre respuestas finales. Ejemplo con Q=10: dos aciertos; fallo no final en tercera pregunta, seguido de acierto final; cuarta pregunta correcta; seis fallos finales. C=4. Contando solo finales, M=4 y XP=40; cortando con el fallo no final, M=2 y XP=34. Ambas mantienen la fórmula aprobada y admiten la ayuda legal, pero producen pagos distintos. No se escoge una interpretación sin aprobación.
+
+2. **Comparación de Duelo cuando hay igual puntaje.** La selección del mejor fantasma en fijarFantasma ordena por puntaje, aciertos, mejor combo y fecha. Es una regla de selección de referencia; no demuestra que esos desempates definan el bono competitivo. En Flutter, GhostRun.isBetterThan (`lib/features/games/ghost_duel/domain/ghost_duel_models.dart`) también desempata, mientras la presentación de Trivia (`lib/features/games/trivia_rush/presentation/trivia_rush_page.dart`) describe igual puntaje como empate. Las decisiones V1 fijan bonos +20/+10/+0, pero no resuelven explícitamente esa diferencia. Con Q=10, C=4 y el mismo puntaje que el fantasma, base=32: empate paga 42; una victoria por desempate pagaría 52; derrota pagaría 32. La fecha posterior usada para seleccionar récords no se convierte en una victoria automática. La ausencia inicial sigue inequívocamente sin bono.
+
+Se solicitaron ambas precisiones al propietario. Las opciones presentadas no constituyen autorización ni se adoptan por falta de respuesta. No se modifican coeficientes, selección de fantasma, ayudas ni comportamiento legacy. Tampoco se registran verificadores simulados, flags habilitables incompletos o rutas de pago. Tras resolverlas, la integración deberá añadir admisión explícita inmutable, flags separados apagados por defecto y orden total verificable de acciones, sin editar migraciones confirmadas.
+
+### Validación de la base y riesgos conservados
+
+Resultados de esta ronda: build exit 0; Jest competitivo 5 suites, 118/118, exit 0; Jest completo 94 suites, 996/996, exit 0; PostgreSQL 104/104, sin fallos, cancelaciones ni omitidos, exit 0 (72 452 ms); audit --omit=dev exit 0, cero vulnerabilidades, CA del sistema y TLS activo. Logs locales: `%TEMP%/pr-i1-xp-integration-build.log`, `%TEMP%/pr-i1-integration-competitive.log`, `%TEMP%/pr-i1-integration-jest.log` y `%TEMP%/pr-i1-integration-postgres.log`. Son verificaciones del motor e infraestructura existentes; no prueban una integración XP Trivia/Duelo aún ausente. El runner aplicó las 54 migraciones confirmadas en PostgreSQL 16.15 propio y desechable local, sin reutilizar postgres-local ni credenciales remotas; retiró únicamente su contenedor al terminar. Docker Server 29.7.2, contexto desktop-linux. Build/generación Prisma terminó antes de cargar las suites PostgreSQL.
+
+La causa histórica de los 34 fallos institucionales permanece sin confirmación directa; el experimento previo de desfase demuestra un mecanismo y no su causa histórica. La incidencia intermitente de vencimiento de Rescate también permanece abierta mientras no exista causa demostrada. No hay nuevas migraciones ni cambios runtime en esta revisión, ni commit, push, merge, despliegue o migraciones remotas.
+
+
+## Integración XP Trivia/Duelo tras decisiones aprobadas (base 88f7045)
+
+### Auditoría y decisiones cerradas
+
+Se preservan los dos documentos sin commit de la ronda anterior. HEAD sigue 88f7045 y no se modifican las migraciones confirmadas. Las decisiones pendientes de la sección anterior quedan resueltas por instrucción expresa del propietario: solo resultados definitivos para M, fallo no final con segunda oportunidad no corta racha, fallo definitivo y salto sí; Duelo usa únicamente puntuación verificada y sin desempates por aciertos/racha/fecha. El ejemplo C=4, Q=10, dos aciertos, fallo no final recuperado y otro acierto da M=4 y XP=40. Igual puntuación entre un fantasma de cuatro aciertos/racha cuatro y un duelo de seis aciertos/racha dos constituye empate.
+
+Se revisaron los contratos comunes, fórmulas, registro de verificadores, fuentes/idempotencia, esquema/migraciones y motores/presencia. Snapshot inmutable completo, modo, referencia inicial protegida y observación autenticada están disponibles. No quedan decisiones de producto nuevas para esta integración. La evidencia antigua preparada carece de admisión XP y de secuencia total de ayudas/respuestas; por eso permanece inelegible, sin rellenarla o convertirla. Un registro anterior limpio con snapshot puede seguir siendo referencia de fantasma conforme al selector existente, sin recibir XP retroactivo.
+
+### Admisión y persistencia
+
+CrearTriviaRushDto acepta competitive booleano estricto opcional; true requiere modalidad explícita, estudiante y flag servidor específico. El servicio rechaza strings incluso con conversión implícita del DTO. Solo nuevas creaciones consultan COMPETITIVE_TRIVIA_ENABLED o COMPETITIVE_GHOST_ENABLED, exactamente true, independientes del flag solo. Recuperar un competitivo ya admitido sigue funcionando con ambos apagados; un intento existente no competitivo no puede convertirse mediante una solicitud nueva. Omitir competitive o false conserva el camino existente.
+
+La migración nueva 20261002230000_trivia_competitive_v1 agrega competitiveRulesVersion=1 y competitiveAdmittedAt inmutables, competitiveSettledAt y competitiveRetryAt como cola durable. Inicio/admisión y acciones competitivas usan reloj PostgreSQL; el vencimiento competitivo no se recalcula usando un reloj Node adelantado. Los registros previos conservan admisión null. Checks y trigger rechazan enrollment posterior, cambio de versión/mode y terminal inicialmente fabricado. La evidencia terminal de juego sigue inmutable: la nueva definición incremental del guard solo permite cambiar acuse/backoff, no respuestas, configuración, score ni fecha terminal.
+
+Una secuencia privada PostgreSQL ordena INSERT de respuestas y ayudas de nuevos competitivos bajo Usuario → intento. El cliente/servicio no aporta la secuencia; SQL rechaza valores explícitos. Las ayudas aceptadas congelan además identidad/propietario/caducidad de la concesión consumida, sin depender después de su estado mutable. El trigger existente mantiene append-only de esa evidencia. Se conservan RLS y revocaciones; anon/authenticated no obtienen tablas, evidencia, funciones privadas ni la secuencia nueva.
+
+### Replay y fantasma
+
+TriviaCompetitiveVerifier es el único adaptador TRIVIA_ATTEMPT; deriva gameId de modalidad persistida, nunca del cliente. Valida origen, propietario, reglas, Q 10..30, soluciones/opciones/orden/configuración, acciones en su secuencia servidor y dentro del plazo vigente al aceptarlas, fecha terminal y completitud. Reproduce los puntos con las reglas existentes y efectos de ayudas legales, contrastando contadores persistidos sin usarlos como fuente para XP. Reconstruye C y M por pregunta definitiva: no finales no duplican preguntas ni cortan M; escudo conserva el combo del juego, pero no convierte un fallo definitivo en continuidad de M; salto siempre corta M.
+
+Duelo no permite ayudas. Se reconstruyen ambos puntajes: el actual y el de la referencia elegible limpia del mismo usuario/configuración/Q y finalizada antes del inicio. Se verifica identidad, terminal, estadísticas y checkpoints originales contra el snapshot fijo. Los registros preparados sin secuencia solo pueden reconstruirse como fantasmas limpios sin ayudas; nunca se admiten por ello como competitivos. No se consulta el mejor récord actual como sustituto. Referencia null da bono cero; internamente el marcador neutro sin rival no declara una victoria/empate. XP pasa por normalXp V1 y roundRatio BigInt existentes: Trivia half-up((70C+30M)/Q), Duelo half-up(80C/Q)+20/10/0. No cambian coeficientes ni Usuario.xpTotal.
+
+### Terminales, liquidación y recuperación
+
+EXPIRADO por vencimiento normal es resultado normal de Trivia/Duelo con los aciertos válidos recibidos; ABANDONADO demostrado aplica nominal -10 y elimina recompensa positiva parcial. El abandono explícito competitivo añade evento durable ABANDONED dentro de la misma transacción; el abandono por gracia usa el evento generado por el resolver existente. El verificador exige evento coincidente para abandono. UNKNOWN no se transforma en abandono. Siguen la gracia exacta de 20 s, presencia OPEN vigente para acciones nuevas, reintentos exactos de solo lectura, y EXPIRADO cuando su plazo es anterior o igual al fin de gracia. Ayuda oficial de tiempo extra conserva la regla del juego existente; reconexión/gracia no añade tiempo ni cambia ese plazo.
+
+TriviaCompetitiveReconciler usa una cola independiente en IntentoTriviaRush, limitada a admisión versión 1. Al arrancar y cada 5 s busca terminales o vencimientos/gracias debidos. Resuelve cierre bajo Usuario → intento, confirma esa transacción y luego llama settle fuera de ella. No consulta flags de creación ni modifica el recuperador de Cima/Guardián/Rescate. Error de esquema se registra expresamente; no se simula un entorno compatible. Fallos dejan trabajo durable y backoff de un minuto; no hay bucle de pagos.
+
+CompetitiveService conserva fuente/UUID canónico/participante/SETTLEMENT como clave común a ambos modos y todas las versiones. No hay segunda fuente de Duelo. Verificación y liquidación bloquean evidencia frente a escrituras y el balance conserva piso cero, delta nominal/aplicado, secuencia y alcanzadoEn. El hash ordena acciones por secuencia y excluye acuse/backoff; reintentar después de un acuse no cambia evidencia. Caída antes del ledger mantiene cero eventos; después del commit y antes del acuse recupera el mismo evento. Varias instancias pueden intentar liquidar/confirmar sin duplicarlo. Temporada se toma del resultado terminal en America/Bogota; institución del historial a esa fecha. HISTORICAL_MEMBERSHIP_UNKNOWN falla sin inventar historial.
+
+### Despliegue y límites
+
+La nueva migración es requisito previo para Prisma/verificador/recuperador, incluso con flags apagados. Orden seguro: respaldo/revisión, rol DATABASE_URL y RLS/grants privados verificados, migración autorizada compatible, comprobación de esquema/guards, backend con ambos flags apagados, pruebas operativas, activación expresa posterior por modalidad. No se aplicó nada en Supabase, Render o bases remotas, ni se confirmó rol productivo sin evidencia. Mantener guards/tablas mientras haya liquidaciones pendientes. No hay endpoints públicos de liquidación, cambios Flutter, otros juegos ni PR-I2.
+
+La causa histórica de los 34 fallos institucionales y la incidencia de vencimiento Rescate continúan abiertas. Los experimentos y errores de fixtures de esta ronda no se atribuyen a esas incidencias históricas. Los resultados finales se registran tras completar las validaciones.
+
+
+### Resultados de validación de la integración
+
+| Ejecución | Resultado y diagnóstico |
+|---|---|
+| Build inicial y final | Exit 0; prisma generate terminado antes de PostgreSQL. Log final: %TEMP%/pr-i1-trivia-xp-final-build.log. |
+| Jest competitivo inicial | 135/136, una prueba de lifecycle esperaba solo tres consultas. El módulo incorpora ahora el recuperador Trivia; se añadió aserción explícita de esa consulta y se mantienen las tres consultas solo. No se cambia runtime solo para ocultar el fallo. |
+| Jest competitivo final | Exit 0; 6 suites, 137/137. Log: %TEMP%/pr-i1-trivia-xp-final-competitive.log. |
+| Jest completo final | Exit 0; 95 suites, 1015/1015. Log: %TEMP%/pr-i1-trivia-xp-final-jest.log. |
+| PostgreSQL inicial | Exit 1; 110/114. Cuatro expectativas del fixture nuevo suponían Q=10, pero el banco de Inglés compartido de la suite previa produjo Q=20. Se aisló el fixture en Lectura Crítica y se añadió aserción Q=10 al inicio; sin cambiar fórmula ni expectativas XP. Log: %TEMP%/pr-i1-trivia-xp-pg-1.log. |
+| PostgreSQL segunda | Exit 1; 116/118. Dos casos de tiempo controlado PostgreSQL usaron terminales futuros con reloj Node real; validateTerminal rechazó correctamente terminalAt > Date.now. El fixture controla Date.now únicamente al liquidar esos casos y lo restaura en finally; guard productivo intacto. Log: %TEMP%/pr-i1-trivia-xp-pg-2.log. |
+| PostgreSQL tercera | Exit 0; 120/120. Log: %TEMP%/pr-i1-trivia-xp-pg-3.log. |
+| PostgreSQL final tras añadir carrera de cierre/liquidación | Exit 0; 121/121, 0 fallos/canceladas/omitidas; 92 419 ms. Log: %TEMP%/pr-i1-trivia-xp-final-postgres.log. |
+| npm audit --omit=dev | Exit 0; cero vulnerabilidades, CA del sistema temporal; TLS permanece activo. |
+| git diff --check | Exit 0; sin errores de whitespace. |
+
+Cada ejecución PostgreSQL creó su propia base y aplicó las 54 migraciones confirmadas más la nueva incremental, sin editar las confirmadas. El runner eliminó únicamente sus recursos propios. postgres-local conserva ID 20d971cc043fe04cf2fd14be83c906d2210f298381e58ac480a478ea305b7927, estado Running e inicio 2026-10-02T21:24:22.476116454Z. Docker Server 29.7.2/desktop-linux permanece operativo. No hay migraciones remotas, commit, push, merge, despliegue ni cambios Flutter.
+
+Cobertura nueva: gates independientes y elegibilidad por HTTP; booleano estricto y legacy; no conversión/admisión histórica; ayudas, resultados definitivos, M y saltos; fórmulas/half-up; primer duelo y resultados win/tie/loss; igualdad con distintas estadísticas; referencia fija incluso después de otro récord; UUID equivalente e idempotencia; dos recuperadores y caídas antes/después del ledger; última respuesta/abandono/liquidación/recuperación concurrentes; terminal/secuencia inmutables y privacidad HTTP/RLS; abandono nominal/piso, gracia/UNKNOWN/expiración tardía, temporada y membresía histórica, XP general intacto. Las pruebas anteriores de presencia, socket JWT, lease, reconexión y snapshots siguen formando parte de la regresión; no se presentan como nuevas capacidades de esta ronda.
+
+La prueba histórica de vencimiento Rescate pasó en las ejecuciones de esta ronda, pero su incidencia continúa abierta sin causa demostrada. Lo mismo ocurre con la causa histórica de los 34 fallos institucionales: no se declara resuelta por las pasadas actuales. Sin bloqueos nuevos de producto para Trivia/Duelo; persiste gate operativo de migraciones, rol PostgreSQL/RLS productivo y consistencia de relojes. Se detiene para revisión humana con ambos flags apagados por defecto.
+
+
+### Cierre inicial: ausencia de resultado sin fantasma (compatibilidad superada)
+
+La revisión final elimina el placeholder interno DERROTA cuando no existe fantasma: NormalEvidence permite outcome=null únicamente para ausencia de referencia; una referencia real requiere resultado verificable. El adaptador emite null en primera referencia y el bono sigue siendo cero. Ese cierre inicial no cambió fórmulas ni coeficientes, pero todavía aceptaba un resultado ignorado para ghostId=null. Esa compatibilidad se elimina en la revisión estricta del sexto checkpoint; no es una regla activa. competitive.rules.ts solo cambia esa representación/validación en Ghost, sin alterar reglas de otros juegos.
+
+Validación final tras ese ajuste: npm run build exit 0; npm test -- --runInBand competitive exit 0, 6 suites/138 pruebas; npm test -- --runInBand exit 0, 95 suites/1016 pruebas; node tool/test_competitive_postgres.mjs exit 0, 121/121, 0 fallos/omitidos/cancelados, 88 419 ms; npm audit --omit=dev exit 0, 0 vulnerabilidades, TLS activo; git diff --check exit 0. Logs de cierre en %TEMP%/pr-i1-trivia-xp-approved-build.log, pr-i1-trivia-xp-approved-competitive.log, pr-i1-trivia-xp-approved-jest.log y pr-i1-trivia-xp-approved-postgres.log. La prueba PostgreSQL verifica también outcome=null, además del XP base sin bono. No se cambian las causas y resultados históricos registrados arriba.
+
+Archivos de esta ronda: los dos documentos existentes; prisma/schema.prisma; nueva migración 20261002230000_trivia_competitive_v1/migration.sql; competitive.activation.ts, competitive.module.ts, competitive.rules.ts; nuevos competitive.trivia.ts, competitive.trivia-reconciler.ts y competitive.trivia.spec.ts; competitive.solo.spec.ts (lifecycle del módulo), competitive.trivia-boundary.spec.ts (DTO de admisión); trivia-rush.controller.ts y trivia-rush.service.ts; nuevo test/competitive-trivia-xp-postgres.test.cjs; tool/test_competitive_postgres.mjs. No hay cambios en los motores individuales, migraciones confirmadas, dependencias ni Flutter. HEAD sigue 88f7045 en feat/pr-i1-competitive-infrastructure. Sin commit/push/merge/despliegue/migraciones remotas, pendientes revisión y gates productivos; los documentos sin commit previos se conservaron.
+
+
+## Revisión mínima del sexto checkpoint — contrato estricto y documentación
+
+Rama feat/pr-i1-competitive-infrastructure, HEAD 88f7045, todos los cambios locales de la sexta ronda preservados. No hay nuevo commit ni migración en esta revisión. Corrección en competitive.rules.ts: ghostId=null exige outcome=null (GHOST_RESULT_WITHOUT_REFERENCE si existe un resultado ficticio). Fantasma presente exige VICTORIA/EMPATE/DERROTA válido; null se rechaza con GHOST_RESULT_REQUIRED. Ausencia paga solo base; presencia usa el bono aprobado. No cambian fórmulas ni las decisiones de M, empate, presencia o liquidación.
+
+Pruebas ajustadas: competitive.spec.ts ahora usa null/null para primera referencia; competitive.trivia.spec.ts conserva los cuatro casos válidos y rechaza expresamente los tres resultados sin fantasma y resultados malformados con referencia. competitive-postgres.test.cjs conserva la prueba de identidad compartida usando evidencia válida null/null y añade cinco combinaciones incompatibles, exigiendo rechazo con cero eventos/balances y xpTotal intacto. No se sustituyó la aserción IDEMPOTENCY_CONFLICT por un error genérico ni se relajaron pruebas anteriores.
+
+Auditoría documental: README raíz y README API conservaban «PR-I1 espera decisiones/no comenzar»; se actualizó solo esa referencia y se añadió navegación de estado. No había índice general bajo docs; EDITORIAL_LEGACY_INDEX describe indexación de contenido, no documentación. Se añade docs/README.md con enlaces a los cuatro documentos especializados existentes y a ambos README. Los informes de arquitectura/pendientes/relevo encontrados corresponden a auditorías antiguas o a Flutter; no se reescriben. PR_I1_COMPETITIVE_INFRASTRUCTURE y esta auditoría ahora separan resumen vigente de historial explícito: cinco checkpoints confirmados y sexta ronda sin commit, tres flags apagados por defecto, reglas estrictas y dependencias de las cinco migraciones competitivas. La antigua compatibilidad sin fantasma se marca superada.
+
+Rol PostgreSQL y RLS de producción siguen sin verificación; no se aplicaron migraciones remotas. Incertidumbre histórica de los 34 fallos y vencimiento intermitente Rescate siguen abiertos. Tira/Memoria/Batallas continúan pendientes; PR-I1 no fusionado a main y PR-I2 no iniciado. La comprobación local git merge-base --is-ancestor 88f7045 main devuelve 1: HEAD no contenido en main local; no se consultó/remodificó el remoto. Código implementado no se declara desplegado ni activado.
+
+Validaciones de esta revisión: build exit 0; Jest competitivo exit 0, 6 suites/144 pruebas; Jest completo exit 0, 95 suites/1022 pruebas; PostgreSQL exit 0, 122/122, cero fallos/omitidas/canceladas, 88 061 ms; audit --omit=dev exit 0, cero vulnerabilidades con CA del sistema temporal/TLS activo; diff check exit 0. Logs: %TEMP%/pr-i1-sixth-review-build.log, pr-i1-sixth-review-competitive.log, pr-i1-sixth-review-jest.log y pr-i1-sixth-review-postgres.log. No hubo fallos nuevos en esta ejecución. La prueba de Rescate pasó, sin declarar resuelta su incidencia histórica.
+
+Enlaces: se comprobaron los cinco documentos modificados/creados, 42 enlaces Markdown locales y sus anclas, sin destinos faltantes. Recursos PostgreSQL propios desechables: 54 migraciones confirmadas más la incremental previa de la sexta ronda, intacta; contenedor propio eliminado por el runner. Docker Server 29.7.2/desktop-linux operativo; postgres-local ajeno conserva ID/inicio/estado Running. Sin commit, push, merge, despliegue, Supabase, Flutter ni TLS desactivado. Se detiene antes del sexto commit para revisión humana.

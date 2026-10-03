@@ -187,7 +187,7 @@ describe.each([SummitController, GuardianController, StarRescueController])(
 );
 
 describe('production registry and reconciler lifecycle', () => {
-  it('boots the real Nest module with its three verifiers and recovery provider', async () => {
+  it('boots the real Nest module with solo and shared Trivia recovery providers', async () => {
     const prisma = { $queryRaw: jest.fn().mockResolvedValue([]) };
     const module = await Test.createTestingModule({
       imports: [CompetitiveModule],
@@ -200,14 +200,19 @@ describe('production registry and reconciler lifecycle', () => {
       const scan = jest.spyOn(worker, 'reconcile');
       await module.init();
       await scan.mock.results[0].value;
-      expect(prisma.$queryRaw).toHaveBeenCalledTimes(3);
+      expect(prisma.$queryRaw).toHaveBeenCalledTimes(4);
+      expect(
+        prisma.$queryRaw.mock.calls.filter(([query]) =>
+          String(query).includes('TriviaPresence'),
+        ),
+      ).toHaveLength(1);
       await worker.reconcile();
       expect(module.get(CompetitiveService)).toBeDefined();
       for (const game of SOLO_GAMES)
         expect(
           module.get(CompetitiveVerifierRegistry).get(game.sourceType),
         ).toBeDefined();
-      expect(prisma.$queryRaw).toHaveBeenCalledTimes(6);
+      expect(prisma.$queryRaw).toHaveBeenCalledTimes(7);
     } finally {
       await module.close();
     }

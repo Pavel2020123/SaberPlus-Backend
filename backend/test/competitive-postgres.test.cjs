@@ -444,7 +444,7 @@ test('same Trivia source cannot pay again under Ghost identity', async () => {
         gameId: 'GHOST_DUEL',
         correct: 10,
         questions: 10,
-        outcome: 'VICTORIA',
+        outcome: null,
         ghostId: null,
         ghostFixedAtStart: true,
         distinctMode: true,
@@ -454,6 +454,37 @@ test('same Trivia source cannot pay again under Ghost identity', async () => {
   }));
   await assert.rejects(service.settle(ref), /IDEMPOTENCY_CONFLICT/);
   assert.equal((await balances(u)).length, 1);
+});
+test('incompatible ghost identity and result never write ledger or balance', async () => {
+  for (const facts of [
+    ...['VICTORIA', 'EMPATE', 'DERROTA'].map((outcome) => ({
+      outcome,
+      ghostId: null,
+    })),
+    { outcome: null, ghostId: 'fixed' },
+    { outcome: 'INVALID', ghostId: 'fixed' },
+  ]) {
+    const u = await user();
+    const ref = await source(u, {
+      gameId: 'GHOST_DUEL',
+      correct: 10,
+      questions: 10,
+      distinctMode: true,
+      ghostFixedAtStart: true,
+      compatibleConfiguration: true,
+      ...facts,
+    });
+    await assert.rejects(
+      service.settle(ref),
+      /GHOST_RESULT_WITHOUT_REFERENCE|GHOST_RESULT_REQUIRED|INVALID_EVIDENCE/,
+    );
+    assert.equal((await events(u)).length, 0);
+    assert.equal((await balances(u)).length, 0);
+    assert.equal(
+      (await db.usuario.findUniqueOrThrow({ where: { id: u.id } })).xpTotal,
+      123,
+    );
+  }
 });
 test('professor/admin/null role never get a competitive balance', async () => {
   for (const role of ['PROFESOR', 'ADMIN', null]) {
@@ -845,11 +876,17 @@ test('public roles cannot read/write competitive tables, RLS remains enabled', a
       const [row] =
         await db.$queryRaw`SELECT has_table_privilege(${role}, ${'"' + table + '"'}, 'SELECT,INSERT,UPDATE,DELETE,TRUNCATE') AS allowed`;
       assert.equal(row.allowed, false);
-      for (const statement of [`SELECT * FROM "${table}"`, `INSERT INTO "${table}" DEFAULT VALUES`]) {
-        await assert.rejects(db.$transaction(async tx => {
-          await tx.$executeRawUnsafe(`SET LOCAL ROLE "${role}"`);
-          await tx.$queryRawUnsafe(statement);
-        }), error => error.meta?.code === '42501');
+      for (const statement of [
+        `SELECT * FROM "${table}"`,
+        `INSERT INTO "${table}" DEFAULT VALUES`,
+      ]) {
+        await assert.rejects(
+          db.$transaction(async (tx) => {
+            await tx.$executeRawUnsafe(`SET LOCAL ROLE "${role}"`);
+            await tx.$queryRawUnsafe(statement);
+          }),
+          (error) => error.meta?.code === '42501',
+        );
       }
     }
   const rows =

@@ -2,6 +2,7 @@ import {
   ArrayMaxSize,
   ArrayMinSize,
   IsArray,
+  IsBoolean,
   IsEnum,
   IsIn,
   IsOptional,
@@ -9,6 +10,7 @@ import {
   IsUUID,
   MaxLength,
 } from 'class-validator';
+import { Transform } from 'class-transformer';
 import {
   BadRequestException,
   Body,
@@ -33,6 +35,11 @@ import { JwtGuard } from '../auth/jwt.guard';
 import { TriviaRushService } from './trivia-rush.service';
 
 class CrearTriviaRushDto {
+  @IsOptional()
+  @Transform(({ obj }) => obj.competitive)
+  @IsBoolean()
+  competitive?: boolean;
+
   @IsOptional()
   @IsEnum(ModalidadTriviaRush)
   modalidad?: ModalidadTriviaRush;

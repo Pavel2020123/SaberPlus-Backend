@@ -76,7 +76,7 @@ export type NormalEvidence =
       gameId: 'GHOST_DUEL';
       correct: number;
       questions: number;
-      outcome: Outcome;
+      outcome: Outcome | null;
       distinctMode: boolean;
       ghostFixedAtStart: boolean;
       ghostId: string | null;
@@ -127,7 +127,11 @@ export function normalXp(
     case 'GHOST_DUEL':
       integer(e.questions, 10, 30);
       integer(e.correct, 0, e.questions);
-      result(e.outcome);
+      requireEvidence(
+        e.ghostId !== null || e.outcome === null,
+        'GHOST_RESULT_WITHOUT_REFERENCE',
+      );
+      if (e.outcome !== null) result(e.outcome);
       requireEvidence(
         e.distinctMode === true &&
           e.ghostFixedAtStart === true &&
@@ -138,11 +142,15 @@ export function normalXp(
         e.ghostId === null ||
           (typeof e.ghostId === 'string' && e.ghostId.length > 0),
       );
+      requireEvidence(
+        e.ghostId === null || e.outcome !== null,
+        'GHOST_RESULT_REQUIRED',
+      );
       return (
         roundRatio(80 * e.correct, e.questions) +
         (e.ghostId === null
           ? 0
-          : { VICTORIA: 20, EMPATE: 10, DERROTA: 0 }[e.outcome])
+          : { VICTORIA: 20, EMPATE: 10, DERROTA: 0 }[e.outcome!])
       );
     case 'SUMMIT':
       integer(e.maxHeight, 0, 5);

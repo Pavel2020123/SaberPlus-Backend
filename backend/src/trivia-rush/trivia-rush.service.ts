@@ -18,6 +18,7 @@ import {
   TipoPotenciadorTriviaRush,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { assertTriviaCompetitiveCreationAllowed } from '../competitive/competitive.activation';
 import { preguntaPublicadaWhere } from '../common/contenido-publicado';
 import {
   freezeQuestion,
@@ -40,6 +41,7 @@ const PREGUNTAS_POR_DIFICULTAD = 10;
 const MINIMO_PREGUNTAS = 4;
 
 interface CrearTriviaRushEntrada {
+  competitive?: boolean;
   modalidad?: ModalidadTriviaRush;
   areas: AreaIcfes[];
   duracionSegundos: number;
@@ -127,6 +129,15 @@ export class TriviaRushService {
 
   async crear(usuarioId: string, entrada: CrearTriviaRushEntrada) {
     if (
+      entrada.competitive !== undefined &&
+      typeof entrada.competitive !== 'boolean'
+    )
+      throw new BadRequestException('competitive debe ser booleano.');
+    if (entrada.competitive === true && !entrada.modalidad)
+      throw new BadRequestException(
+        'La admision competitiva requiere modalidad explicita.',
+      );
+    if (
       entrada.modalidad !== undefined &&
       !Object.values(ModalidadTriviaRush).includes(entrada.modalidad)
     )
@@ -153,7 +164,11 @@ export class TriviaRushService {
           where: { id: activa.id, estado: 'ACTIVO' },
         });
       }
-      if (activa && intentoTriviaRushVencido(activa.venceEn, ahora)) {
+      if (
+        activa &&
+        activa.competitiveRulesVersion !== 1 &&
+        intentoTriviaRushVencido(activa.venceEn, ahora)
+      ) {
         await tx.intentoTriviaRush.update({
           where: { id: activa.id },
           data: {
@@ -165,6 +180,13 @@ export class TriviaRushService {
           },
         });
       } else if (activa) {
+        if (
+          entrada.competitive === true &&
+          activa.competitiveRulesVersion !== 1
+        )
+          throw new ConflictException(
+            'No se puede convertir un intento existente en competitivo.',
+          );
         if (
           entrada.modalidad !== undefined &&
           entrada.modalidad !== activa.modalidad
@@ -181,6 +203,8 @@ export class TriviaRushService {
         );
       }
 
+      if (entrada.competitive === true)
+        assertTriviaCompetitiveCreationAllowed(entrada.modalidad);
       const preguntas = await this.seleccionarPreguntas(areas, tx);
       const asignadas = preguntas.map((p, orden) =>
         freezeQuestion(p, orden, mezclar(p.respuestas.map((r) => r.id))),
@@ -206,10 +230,20 @@ export class TriviaRushService {
         if (entrada.modalidad === 'GHOST_DUEL')
           snapshot.ghost = await this.fijarFantasma(tx, usuarioId, snapshot);
       }
-      const inicio = new Date();
+      const inicio =
+        entrada.competitive === true
+          ? (
+              await tx.$queryRaw<
+                { ahora: Date }[]
+              >`SELECT trivia_presence_now() AS ahora`
+            )[0].ahora
+          : new Date();
       const creada = await tx.intentoTriviaRush.create({
         data: {
           usuarioId,
+          ...(entrada.competitive === true
+            ? { competitiveRulesVersion: 1, competitiveAdmittedAt: inicio }
+            : {}),
           ...(snapshot
             ? {
                 evidenciaVersion: 1,
@@ -666,7 +700,14 @@ export class TriviaRushService {
         where: { id: intentoId },
       });
       if (intento.estado !== EstadoIntentoTriviaRush.ACTIVO) return;
-      const ahora = new Date();
+      const ahora =
+        intento.competitiveRulesVersion === 1
+          ? (
+              await tx.$queryRaw<
+                { ahora: Date }[]
+              >`SELECT trivia_presence_now() AS ahora`
+            )[0].ahora
+          : new Date();
       if (
         intento.evidenciaVersion === 1 &&
         intentoTriviaRushVencido(intento.venceEn, ahora)
@@ -685,6 +726,10 @@ export class TriviaRushService {
           segundaOportunidadActiva: false,
         },
       });
+      if (intento.competitiveRulesVersion === 1)
+        await tx.triviaPresenceEvent.create({
+          data: { attemptId: intentoId, kind: 'ABANDONED', observedAt: ahora },
+        });
     });
     return this.obtener(usuarioId, intentoId);
   }
@@ -895,6 +940,7 @@ export class TriviaRushService {
       });
       if (
         intento?.estado === EstadoIntentoTriviaRush.ACTIVO &&
+        intento.competitiveRulesVersion !== 1 &&
         intentoTriviaRushVencido(intento.venceEn, new Date())
       ) {
         await this.marcarExpirado(tx, intento.id, new Date());

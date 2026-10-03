@@ -6,7 +6,31 @@
 > en el HEAD auditado; MA-2A/B/C y MA-3A/B/C están implementadas localmente.
 > Ensayos integrados y despliegue siguen sin acreditarse en esta auditoría.
 > Consultar la Ruta vigente del equipo en Flutter (`docs/ETAPAS_PENDIENTES.md`)
-> y su auditoría de relevo. No comenzar PR-I1 antes de resolver las decisiones.
+> y su auditoría de relevo para Flutter. Las decisiones PR-I1 V1 ya están aprobadas;
+> consultar el [índice backend vigente](docs/README.md) para los checkpoints y gates.
+
+## Estado competitivo PR-I1 V1
+
+Cinco checkpoints están confirmados hasta `88f7045`; la sexta ronda de
+Trivia/Duelo permanece local **sin commit**, pendiente de revisión humana.
+PR-I1 no está fusionado a main. Código implementado no significa desplegado ni
+activado: no se aplicaron migraciones remotas en esta revisión y la sexta ronda
+solo se probó en PostgreSQL desechable local.
+
+`COMPETITIVE_SOLO_ENABLED` controla Cima/Guardián/Rescate;
+`COMPETITIVE_TRIVIA_ENABLED` controla Trivia Rush y `COMPETITIVE_GHOST_ENABLED`
+Duelo. Todos apagados por defecto: solo el literal servidor `true` permite nuevas
+admisiones. El flag solo no autoriza Trivia/Duelo. Apagarlos no bloquea cierre o
+liquidación de intentos previamente admitidos; no hay conversión retroactiva.
+
+[Infraestructura, seis checkpoints y orden de migraciones](docs/PR_I1_COMPETITIVE_INFRASTRUCTURE.md)
+y [auditoría de Trivia/Duelo y validaciones](docs/PR_I1_TRIVIA_DUELO_AUDITORIA.md)
+son las referencias de esta rama. Siguen pendientes rol PostgreSQL/RLS de
+producción, activación/despliegue autorizados, causa histórica de los 34 fallos
+e incidencia de Rescate. Tira, Memoria y Batallas siguen sin integración
+competitiva; no comienza PR-I2. Aplicar/verificar el esquema requerido antes del
+backend incluso con flags apagados; no usar los comandos de despliegue como
+autorización para ejecutar migraciones remotas.
 
 MA-3B: [Agenda y sincronización del repaso diferido](DEFERRED_REVIEW.md).
 Implementada/probada localmente: API privada, recibos idempotentes y migración

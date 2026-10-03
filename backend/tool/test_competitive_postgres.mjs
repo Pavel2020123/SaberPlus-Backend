@@ -173,6 +173,12 @@ async function main() {
       'prisma/migrations/20261002190000_trivia_presence/migration.sql';
     if (!paths.includes(presenceMigration))
       sql.push(await readFile(join(backend, presenceMigration), 'utf8'));
+    const competitiveTriviaMigration =
+      'prisma/migrations/20261002230000_trivia_competitive_v1/migration.sql';
+    if (!paths.includes(competitiveTriviaMigration))
+      sql.push(
+        await readFile(join(backend, competitiveTriviaMigration), 'utf8'),
+      );
     const migrationPath = join(directory, 'migration.sql');
     await writeFile(migrationPath, sql.join('\n'), 'utf8');
     await docker('cp', migrationPath, `${name}:/tmp/competitive-migration.sql`);
@@ -191,7 +197,7 @@ async function main() {
       '/tmp/competitive-migration.sql',
     );
     console.log(
-      `PostgreSQL 16 local: ${paths.length} committed migrations${paths.includes(migration) ? '' : ' + pending Trivia evidence migration'}${paths.includes(presenceMigration) ? '' : ' + pending Trivia presence migration'} applied.`,
+      `PostgreSQL 16 local: ${paths.length} committed migrations${paths.includes(migration) ? '' : ' + pending Trivia evidence migration'}${paths.includes(presenceMigration) ? '' : ' + pending Trivia presence migration'}${paths.includes(competitiveTriviaMigration) ? '' : ' + pending Trivia competitive V1 migration'} applied.`,
     );
     const clockDiagnostic = async (phase) => {
       const hostBefore = Date.now();
@@ -224,7 +230,15 @@ async function main() {
     };
     const schemaDiagnostic = async (phase) => {
       const sample = await docker(
-        'exec', name, 'psql', '-X', '-U', user, '-d', 'postgres', '-Atc',
+        'exec',
+        name,
+        'psql',
+        '-X',
+        '-U',
+        user,
+        '-d',
+        'postgres',
+        '-Atc',
         `SELECT jsonb_build_object(
           'phase', '${phase}', 'timezone', current_setting('TimeZone'),
           'serverVersion', current_setting('server_version'),
@@ -251,6 +265,7 @@ async function main() {
           'test/competitive-trivia-boundary-postgres.test.cjs',
           'test/competitive-trivia-evidence-postgres.test.cjs',
           'test/competitive-trivia-presence-postgres.test.cjs',
+          'test/competitive-trivia-xp-postgres.test.cjs',
         ],
         180_000,
       );
