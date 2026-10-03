@@ -1,6 +1,32 @@
 # PR-I1 V1: infraestructura competitiva común
 
-## Estado vigente — auditoría de presencia Tira sobre el octavo checkpoint
+## Estado vigente — décima ronda, preflight XP Tira bloqueado
+
+Rama feat/pr-i1-competitive-infrastructure, HEAD 3d0e625: nueve checkpoints
+confirmados. La ronda 10 agrega pruebas/auditoría, sin habilitar ni registrar XP
+TUG_MATCH. CompetitiveService aún bloquea un participante antes del verificador;
+Tira necesita el par ordenado antes de la partida. Se detiene el registro hasta
+extender el contrato con liquidación atómica del par, validar terminal por replay
+y certificar R. Véase [la auditoría vigente](PR_I1_TIRA_AFLOJA_AUDITORIA.md).
+No se cambian flags, fórmulas, integraciones existentes ni migraciones confirmadas.
+Pruebas locales: ciclo per-user→par reproducido (40P01), kernel con clave común
+y usuarios ordenados sin deadlock, y SET CONSTRAINTS anticipado permite COMMIT
+tardío de R. No se confunde una prueba con marcadores con dos premios ledger
+atómicos implementados. APROBADO: normal con R_A=R_B=0 da 0 XP para ambos sin
+bonos; R inconsistente entre participantes o respuestas incompatibles bloquean
+la futura liquidación y requieren registro del problema. EXPLICIT antes de
+ACTIVA da 0 XP para ambos, sin penalización ni recompensa de ganador,
+conservando el resultado deportivo. No implementa liquidación. WAL productivo,
+rol/RLS, 34 fallos históricos y Rescate permanecen abiertos.
+Revisión final: build exit 0; competitivo 194/194 (24,557 s), completo 1075/1075
+(90,895 s); PostgreSQL 167/167, 10 archivos (los nueve anteriores más preflight),
+254,588 s del bloque, 270,686 s del runner total; cero fallos/cancelados/omitidos/
+TODO/incompletos. SQLSTATE 40P01 comprobado explícitamente en meta.code de
+P2010 con Prisma 5.22, conservando también la aserción del mensaje.
+Audit omit=dev 0 vulnerabilidades; diff --check exit 0. Sin verificador TUG
+registrado, nuevas migraciones, activación XP, commit o despliegue.
+
+## Historial — estado y validaciones del noveno checkpoint
 
 Rama `feat/pr-i1-competitive-infrastructure`, HEAD `a4d010b`: ocho checkpoints
 confirmados en Git. Ronda 9 implementa presencia/gracia durable Tira localmente,
@@ -33,7 +59,8 @@ Véase [la revisión y evidencia de Tira](PR_I1_TIRA_AFLOJA_AUDITORIA.md).
 | 6 | `ebe40e3`, confirmado | Admisión, verificador común TRIVIA_ATTEMPT y liquidación/recuperación Trivia/Duelo; contrato estricto de fantasma. |
 | 7 | `39d3881`, confirmado | Auditoría Tira, corrección de bloqueo/idempotencia legacy y pruebas de frontera; sin XP TUG_MATCH. |
 | 8 | `a4d010b`, confirmado | Snapshot original y R durable Tira, guards SQL, privacidad/compatibilidad; sin admisión/verificador/XP TUG_MATCH. |
-| 9 | Local, en revisión | Presencia/gracia durable Tira; migración nueva y runner estricto. Decisión deportiva de rival UNKNOWN resuelta; sin XP ni commit. |
+| 9 | `3d0e625`, confirmado | Presencia/gracia durable Tira y runner estricto. Decisión deportiva de rival UNKNOWN resuelta; sin XP TUG_MATCH. |
+| 10 | Local, sin commit | Auditoría/pruebas de locks del par y certificación de R; verificador XP no registrado. |
 
 Cima/Guardián/Rescate y Trivia/Duelo están versionados.
 Tira, Memoria y Batallas siguen sin integración competitiva; Memoria requiere

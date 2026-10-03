@@ -11,9 +11,10 @@
 
 ## Estado competitivo PR-I1 V1
 
-Ocho checkpoints están confirmados hasta `a4d010b`; el noveno está en
-revisión de presencia durable Tira, implementada localmente sin XP.
-Diagnóstico del timeout PostgreSQL resuelto. Decisión deportiva resuelta: primera gracia confirmada vencida da victoria al rival aunque esté UNKNOWN; XP Tira sigue inhabilitado. Validación final: build, competitivo 178/178, Jest 1059/1059 y PostgreSQL 160/160. La auditoría enlazada conserva el detalle y su historial.
+Nueve checkpoints están confirmados hasta `3d0e625`. La décima ronda prepara y
+audita XP Tira, sin registrarlo ni habilitarlo: el contrato de locks del par y la
+certificación de R requieren resolución. La auditoría enlazada conserva las
+decisiones deportivas, pruebas actuales e historial de validaciones.
 PR-I1 no está fusionado a main. Código implementado no significa desplegado ni
 activado: no se aplicaron migraciones remotas en esta revisión; la nueva evidencia
 Tira se prueba únicamente en PostgreSQL desechable local.

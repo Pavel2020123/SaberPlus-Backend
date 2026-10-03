@@ -287,6 +287,7 @@ async function main() {
         'test/competitive-tug-boundary-postgres.test.cjs',
         'test/competitive-tug-evidence-postgres.test.cjs',
         'test/competitive-tug-presence-postgres.test.cjs',
+        'test/competitive-tug-preflight-postgres.test.cjs',
       ];
       const totals = {
         tests: 0,

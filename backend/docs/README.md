@@ -7,10 +7,10 @@ a otro repositorio, no a archivos dentro de este árbol.
 
 ## PR-I1 competitivo V1
 
-Auditoría de presencia Tira sobre el octavo checkpoint, rama
-`feat/pr-i1-competitive-infrastructure`, HEAD `a4d010b`: ocho commits confirmados;
-novena ronda con presencia durable implementada localmente y sin XP TUG_MATCH;
-decisión deportiva de rival UNKNOWN resuelta: victoria del rival ante la primera gracia confirmada vencida, sin habilitar XP. PostgreSQL 160/160; la auditoría registra validaciones e historial. PR-I1 no fusionado a main. Implementación local
+Rama `feat/pr-i1-competitive-infrastructure`, HEAD `3d0e625`: nueve checkpoints
+confirmados. Décima ronda local de auditoría/preparación XP Tira: protocolo de
+liquidación del par y certificación de R pendientes; TUG_MATCH no registrado ni
+habilitado. La auditoría registra garantías, diagnósticos y resultados. PR-I1 no fusionado a main. Implementación local
 no equivale a migración remota aplicada, backend desplegado o juego activado.
 
 - [Infraestructura competitiva](PR_I1_COMPETITIVE_INFRASTRUCTURE.md): resumen

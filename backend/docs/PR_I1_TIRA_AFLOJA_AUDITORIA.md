@@ -1,6 +1,182 @@
 # PR-I1 V1 — auditoría y preparación de Tira y afloja
 
-## Estado vigente — novena ronda local, presencia durable sin XP
+## Estado vigente — décima ronda: preparación XP, sin verificador funcional
+
+2026-10-03, rama feat/pr-i1-competitive-infrastructure, HEAD 3d0e625.
+Árbol inicialmente limpio; nueve checkpoints confirmados, incluida presencia
+durable Tira. La ronda 10 agrega exclusivamente auditoría y pruebas preparatorias.
+No se registra TUG_MATCH, no existe admisión/flag XP Tira ni se modifican los
+verificadores actuales. No hay migraciones nuevas o cambios a las confirmadas.
+
+### Evidencia auditada
+
+| Hecho | Fuente autoritativa | Límite para liquidación |
+|---|---|---|
+| Participantes originales | snapshotInicial.participants y jugadorAId/jugadorBId congelados al activar evidenciaVersion=1 | Leer ambos antes del lock y revalidarlos bajo el par ordenado; pertenencia/elegibilidad histórica no se inventa. |
+| Preguntas y Qpartida | Snapshot completo original, opciones y soluciones; qPartida 4..20 y preguntas asignadas | No consultar banco mutable ni reducir Q al número respondido. No equivale a admisión competitiva. |
+| R individual | TiraAflojaRondaPresentada, PK partida/ronda/usuario; pareja atómica y ventana SQL | Cuenta habilitaciones, no sockets/ACK; validación diferida no es un certificado de instante físico de COMMIT. |
+| Respuestas y C | TiraAflojaRespuesta, propietario/ronda/clave únicos; solución validada contra snapshot y OPEN por trigger | Recalificar independientemente, conservar orden/instantes; no aceptar C o resultado del cliente. |
+| Resultado normal | Resolver rondas, posición/meta y agotamiento; eventos append-only | Replay obligatorio: una fila terminal sola no demuestra un resultado. |
+| Abandono y cierre | TugAbandonment + TugPresence/Event/Connection, GRACE o EXPLICIT y fecha efectiva | UNKNOWN no prueba abandono. GRACE deportiva del rival no certifica elegibilidad para recompensa. |
+| Precisión temporal | PostgreSQL timestamp(6), selección de primera gracia y fecha exacta | No ordenar gracias por UUID ni truncarlas con JS Date para decidir ganador. |
+| Liquidación previa | EventoXpCompetitivo, clave fuente/usuario/SETTLEMENT sin rulesVersion | Ninguna liquidación funcional TUG; fixtures sintéticos de tests comunes no son integración del motor. |
+
+### Bloqueo y protocolo propuesto
+
+CompetitiveService.settle obtiene clave de fuente **por participante**, bloquea
+ese Usuario y luego llama loadTerminal. Tira obtiene ambos Usuario en orden UUID,
+advisory de partida, fila de partida y después respuestas/presencia. Añadir
+loadTerminal que tome el segundo usuario después del primero sería incompatible:
+A puede retener Usuario A y esperar B, mientras B retiene B y espera A.
+Las nuevas pruebas invocan las primitivas reales de CompetitiveService y
+tug_presence_lock en PostgreSQL: el ciclo se reprodujo con P2010/SQLSTATE
+40P01 (una transacción abortada por deadlock y otra completada). Es un diagnóstico
+esperado dentro de una prueba aprobada, no una ejecución fallida oculta ni una
+regresión de los verificadores registrados. No se instala un verificador de
+prueba como si fuera funcional.
+
+La revisión final añade aserción estructurada failure.code=P2010 y
+failure.meta.code=40P01, además del mensaje. Prisma 5.22 expone ese SQLSTATE
+de forma fiable para este camino PostgreSQL/$queryRaw, observado en la ejecución
+anterior. No se generaliza a todos los errores o futuras versiones de Prisma:
+un timeout u otro error SQL no puede satisfacer la prueba de deadlock.
+
+Modificación mínima necesaria del contrato común antes de registrar TUG:
+un camino interno de liquidación **del par en una sola transacción**. Orden:
+clave común de idempotencia de partida canónica → ambos Usuario ordenados →
+advisory/fila de partida → replay/elegibilidad/historial → balances en orden
+estable → ambos eventos ledger y proyecciones → COMMIT. Revalidar participantes
+bajo lock; mantener claves individuales fuente/usuario/SETTLEMENT existentes
+y tratar un par parcialmente liquidado como conflicto, no completar a ciegas.
+La extensión debe adquirir el par antes del lock individual, no introducir una
+excepción dentro del verificador. Correcciones actuales conservan clave de
+operación → Usuario → balance; los verificadores monousuario no se alteran.
+
+El kernel propuesto pasó con **marcadores desechables**, no con premios:
+serialización, unicidad/retry, lectura tras reinicio, rollback total de un fallo
+intermedio y observación coherente frente al cierre EXPLICIT real. Esto no
+demuestra una liquidación ledger de dos usuarios implementada. Se detiene el
+registro del verificador; CompetitiveService y el módulo permanecen intactos.
+
+### Fórmulas y variantes
+
+Normal: half-up exacto 60*C/R +40/+20/+0. Abandono propio: nominal -15,
+delta aplicado con piso cero. Victoria por abandono: sin acciones = 0; con
+acciones y elegibilidad suficiente, min(80, half-up(60*C/Qpartida)+20).
+No combinar bonos. C=1,R=1,Q=20 da normal 100 frente a abandono 23;
+C=1,R=8 da 48/28/8; máximo especial 80. Ayudas, ready y heartbeat no inventan C.
+
+**Decisiones adicionales APROBADAS por el propietario en la revisión final:**
+normal con R_A=0 y R_B=0 produce 0 XP para ambos, sin bonos de victoria/empate
+ni inferencia de participación desde el resultado deportivo. Si R_A=0 y R_B>0
+(o a la inversa), o hay respuestas aceptadas incompatibles con R, bloquear la
+futura liquidación y registrar la inconsistencia. Los tests aritméticos cubren
+los tres resultados con R=0 y rechazan C>R; no verifican la coherencia del par
+ni todas las respuestas aceptadas, que requerirán el futuro verificador real.
+
+EXPLICIT antes de llegar a ACTIVA produce 0 XP para ambos, sin penalización -15
+ni recompensa de ganador. Se conserva el resultado deportivo vigente. El
+nominal -15 permanece para abandono competitivo aplicable después de activarse;
+no se ejecuta aquí. Estas dos decisiones ya no están pendientes de producto,
+pero no habilitan admisión, integración ni liquidación TUG_MATCH. No se cambian
+CompetitiveService, fórmulas, motor deportivo o migraciones.
+CANCELADA simultánea tiene dos abandonos confirmados y ninguna recompensa
+positiva; CANCELADA por plazo global sin abandono no se convierte en empate.
+EXPLICIT con rival sin presencia conserva CANCELADA deportiva; no inventar
+victoria ni aplicar fórmula normal a esa variante. La presencia insuficiente
+del ganador deportivo UNKNOWN/gracia posterior no autoriza un premio positivo.
+
+### R, visibilidad y WAL
+
+Se distinguen filas confirmadas/visibles, atomicidad e idempotencia, flush físico
+WAL y configuración de producción. El constraint diferido comprueba el reloj al
+ejecutarse; PostgreSQL reprodujo SET CONSTRAINTS tug_presented_pair IMMEDIATE
+temprano, espera controlada hasta el deadline y COMMIT posterior aceptado.
+Una conexión independiente vio cero filas antes de ese COMMIT y dos filas
+después, ya fuera de plazo. El código actual no emite ese SET CONSTRAINTS: el
+hallazgo limita la garantía del constraint frente a SQL privado, no atribuye
+el mismo comportamiento al camino normal. Sus pruebas de COMMIT tardío usual
+siguen pasando. No se modifican guards confirmados ni se oculta el diagnóstico.
+Un verificador no debe tomar filas/timestamps de inserción como prueba suficiente
+de confirmación dentro de ventana; esas filas de diagnóstico no conceden XP.
+
+La prueba obtuvo fsync=on, synchronous_commit=on, full_page_writes=on y
+wal_level=replica del contenedor local. El runner usa tmpfs: ni esos settings ni una reconexión Prisma
+demuestran persistencia en medio no volátil, recuperación física tras crash o
+instante exacto de visibilidad productivo. Resolver certificación de habilitación
+o una definición técnica aprobada antes de XP; mantener gate de revisión/autorización
+de migraciones, rol/RLS y configuración WAL productiva, sin acceder a producción.
+
+### Validación final de la revisión humana de la ronda 10
+
+Decisiones R_A=R_B=0 y EXPLICIT antes de ACTIVA aprobadas documentalmente,
+sin verificador ficticio. Jest añade victoria/empate/derrota sin bonos con R=0
+y rechazo de C>R. El diagnóstico PostgreSQL conservó el mensaje y comprobó
+explícitamente P2010 + meta.code=40P01; la aserción estructurada pasó sobre
+Prisma 5.22/PostgreSQL 16, sin aceptar timeouts como prueba de deadlock.
+
+Build exit 0; Jest competitivo 194/194 (11 suites, 24,557 s); Jest completo
+1075/1075 (100 suites, 90,895 s). PostgreSQL 167/167 en 10 archivos completos,
+254588 ms del bloque y 270686 ms del runner con preparación/limpieza, exit 0.
+Cero fallos/cancelados/omitidos/TODO, archivos fallidos/incompletos/ inválidos.
+Audit omit=dev: 0 vulnerabilidades con TLS activo; diff --check exit 0.
+Ninguna validación falló en esta revisión. Los logs previos se conservan; nuevos
+logs TEMP con prefijo saberplus-tenth-final-review-: build.log, competitive.log,
+jest.log, postgres.log, audit.log y diff.log.
+
+Se mantienen separados kernel de locks con marcadores, liquidación ledger del
+par todavía inexistente, visibilidad de R antes del deadline no garantizada y
+durabilidad física/configuración productiva pendientes. Sin cambios de runtime,
+CompetitiveService, registro, flags o migraciones. Se preserva íntegro el árbol
+preparatorio; los ajustes finales afectan únicamente las dos pruebas y ambos
+informes PR-I1. Sin commit/push/merge/despliegue ni operaciones remotas.
+
+### Historial: validación inicial de la ronda 10
+
+Se conservan los nueve archivos PostgreSQL anteriores y se agrega
+[preflight PostgreSQL](../test/competitive-tug-preflight-postgres.test.cjs),
+con [pruebas Jest preparatorias](../src/competitive/competitive.tug-preflight.spec.ts).
+Runner/gate mantienen resúmenes completos, cero cancelados/omitidos/TODO y
+120 s por archivo secuencial. Build exit 0; Jest competitivo 190/190 (11 suites,
+29,056 s), Jest completo 1071/1071 (100 suites, 84,717 s). PostgreSQL 167/167,
+10 archivos, 264477 ms del bloque de pruebas y 280034 ms del runner completo
+incluyendo preparación/limpieza, exit 0. Cero fallos/cancelados/omitidos/TODO,
+archivos fallidos/incompletos/ inválidos. Una ejecución completa; ningún intento
+de validación falló en esta ronda. Audit omit=dev: 0 vulnerabilidades con TLS
+activo y CA del sistema, sin conservar cambios en NODE_OPTIONS. Diff --check
+exit 0. Logs TEMP con prefijo saberplus-tenth-preflight-: build.log,
+competitive.log, jest.log, postgres.log, audit.log y diff.log.
+
+| Archivo PostgreSQL (test/) | Aprobados / total | Proceso (ms) |
+|---|---:|---:|
+| competitive-postgres.test.cjs | 25/25 | 8364 |
+| competitive-solo-postgres.test.cjs | 38/38 | 13931 |
+| competitive-trivia-boundary-postgres.test.cjs | 1/1 | 3258 |
+| competitive-trivia-evidence-postgres.test.cjs | 15/15 | 29877 |
+| competitive-trivia-presence-postgres.test.cjs | 26/26 | 20296 |
+| competitive-trivia-xp-postgres.test.cjs | 17/17 | 42404 |
+| competitive-tug-boundary-postgres.test.cjs | 8/8 | 6473 |
+| competitive-tug-evidence-postgres.test.cjs | 15/15 | 81595 |
+| competitive-tug-presence-postgres.test.cjs | 15/15 | 38465 |
+| competitive-tug-preflight-postgres.test.cjs | 7/7 | 19811 |
+
+El último archivo prueba el deadlock actual, el kernel de locks y marcadores,
+rollback completo, observación concurrente de cierre real, terminal privilegiado
+ficticio rechazado por la frontera no integrada, COMMIT diferido anticipado y
+settings WAL locales. No afirma probar pagos TUG reales, dos premios ledger
+atómicos ni recuperación física tras crash. La tabla de marcadores se elimina
+en la DB desechable. El contenedor propio se elimina con ownership; postgres-local
+conserva ID 20d971cc043f y StartedAt 2026-10-02T21:24:22.476116454Z.
+
+Archivos: cinco documentos de estado (README raíz/backend, índice e informes
+Infra/Tira), runner y dos pruebas nuevas; sin cambios de runtime, schema o
+migraciones. Estado: 6 modificados y 2 nuevos. El verificador TUG permanece
+sin implementar/registrar; el protocolo descrito es preparación, no un pago listo.
+Siguen abiertos los 34 fallos históricos, Rescate y limitaciones multiinstancia:
+publisher local, sin entrega distribuida garantizada; PostgreSQL es la autoridad.
+No commit/push/merge/despliegue/Supabase/Flutter/PR-I2 ni cambios de otros juegos.
+
+## Historial — novena ronda y revisiones, confirmadas en 3d0e625
 
 2026-10-03, rama feat/pr-i1-competitive-infrastructure, HEAD a4d010b.
 Ocho checkpoints confirmados; esta implementación sigue SIN COMMIT y requiere
