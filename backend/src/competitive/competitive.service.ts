@@ -259,7 +259,7 @@ export class CompetitiveService {
     );
   }
 
-  private validateTerminal(
+  protected validateTerminal(
     source: CompetitiveSource,
     terminal: VerifiedTerminal,
   ): void {
@@ -288,10 +288,10 @@ export class CompetitiveService {
     );
     requireEvidence(/^[a-f0-9]{64}$/.test(terminal.evidenceHash));
   }
-  private async lock(tx: Prisma.TransactionClient, key: string): Promise<void> {
+  protected async lock(tx: Prisma.TransactionClient, key: string): Promise<void> {
     await tx.$queryRaw`SELECT 1::int FROM pg_advisory_xact_lock(hashtextextended(${key}, 0))`;
   }
-  private async lockStudent(
+  protected async lockStudent(
     tx: Prisma.TransactionClient,
     id: string,
   ): Promise<void> {
@@ -300,7 +300,7 @@ export class CompetitiveService {
     >`SELECT rol FROM "Usuario" WHERE id = ${id}::uuid FOR UPDATE`;
     requireEvidence(user[0]?.rol === 'ESTUDIANTE', 'STUDENT_REQUIRED');
   }
-  private async post(
+  protected async post(
     tx: Prisma.TransactionClient,
     p: Posting,
   ): Promise<EventoXpCompetitivo> {

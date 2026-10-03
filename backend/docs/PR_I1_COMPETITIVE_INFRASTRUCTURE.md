@@ -1,6 +1,65 @@
 # PR-I1 V1: infraestructura competitiva común
 
-## Estado vigente — ronda 11, certificación de visibilidad R sin XP Tira
+## Estado vigente — checkpoint 12, protocolo del par aislado
+
+Rama feat/pr-i1-competitive-infrastructure, HEAD 1c12245, once checkpoints
+confirmados. Árbol limpio al inicio; checkpoint 12 local sin commit. Se prepara
+un núcleo de ledger atómico para dos participantes, NO una integración XP Tira.
+Véase [alcance, locks y bloqueos](PR_I1_TIRA_AFLOJA_AUDITORIA.md).
+
+Orden: clave compartida de fuente → usuarios originales ordenados → evidencia
+de partida mediante adapter confiable → validación de ambos/cobertura histórica
+→ dos postings en una transacción. Reutiliza las primitivas del ledger existente;
+no usa dos transacciones individuales ni modifica Usuario.xpTotal. El núcleo
+rechaza parcialidad previa, hashes contradictorios, R/resultados incompatibles y
+coverage desconocida; reintentos recuperan los mismos dos eventos.
+
+La revisión humana del checkpoint 12 bloquea dos ABANDONO con
+PAIR_DOUBLE_ABANDONMENT_UNAPPROVED y cualquier abandono de fase no demostrable
+con PAIR_ABANDONMENT_PHASE_UNVERIFIED. definitive=true no prueba ACTIVA; el
+contrato compartido no contiene esa evidencia. Se bloquea todo el par antes de
+postings, sin penalizar ni premiar y sin cambiar el cierre deportivo. Las otras
+combinaciones no normales reciben PAIR_TERMINAL_CLASSIFICATION_UNSUPPORTED.
+El adapter futuro necesita replay de fase y representación neutral; no se añaden
+campos ni se habilita un verificador. La consulta institucional conserva el log
+de transiciones (desde,id), incluida institución nula: el registro siguiente
+termina implícitamente el anterior. Una regresión usa el trigger real y verifica
+los límites exactos sin modificar historial ni consultas de los otros juegos.
+
+CompetitivePairProtocol NO está registrado ni conectado a HTTP, sockets o
+workers. El adapter de las pruebas es un fixture sintético, no un verificador
+autoritativo de Tira. La ausencia de admisión persistida y replay deportivo
+completo impide registrar TUG_MATCH: se mantiene SOURCE_NOT_INTEGRATED. Las
+pruebas reales de ledger del núcleo no demuestran liquidaciones deportivas con
+certificados, UNKNOWN, gracia o terminales falsificados. No se habilita XP,
+ningún flag ni otros juegos. Sin nuevas migraciones. Los flags existentes siguen
+apagados por defecto; no se modifican las fórmulas V1.
+
+Revisión humana del checkpoint 12: build exit 0 (30894 ms), competitivo
+206/206 (13 suites, 27,291 s), completo 1087/1087 (102 suites, 90,561 s),
+PostgreSQL 196/196 en doce archivos completos (351017 ms del bloque / 365909 ms
+del runner), incluidos 16/16 casos del núcleo. Cero fallos, omitidos, cancelados,
+TODO o archivos incompletos. Audit omit=dev cero vulnerabilidades con TLS activo;
+diff --check exit 0 y 70 enlaces locales existentes. No hubo intentos fallidos en
+esta revisión; los anteriores se conservan abajo y en la auditoría de Tira.
+Las barreras no crean eventos/balances; la regresión institucional usa el trigger
+real, sin inventar historial. Logs TEMP: saberplus-twelfth-review-.
+
+Se preservan WAL/durabilidad física, rol/RLS productivos, los 34 fallos históricos,
+Rescate y límites multiinstancia. PR-I1 no fusionado a main ni desplegado; no se
+aplican migraciones remotas. Los apartados siguientes son historial confirmado.
+
+Validación anterior a esta revisión humana: build exit 0 (27507 ms); competitivo 206/206 (13 suites, 27,859 s); completo 1087/1087
+(102 suites, 88,364 s); PostgreSQL 192/192 en 12 archivos completos (354169 ms
+del bloque, 367677 ms del runner); audit omit=dev cero vulnerabilidades y TLS
+activo; diff --check exit 0 y 70 enlaces locales válidos. La auditoría conserva
+los dos Jest iniciales con error de compilación de la prueba de versión y la
+primera ejecución PG 191/192. La segunda demuestra el snapshot de actividad
+retenido dentro de la transacción del harness y su refresco; el observador
+independiente corrige la barrera sin aumentar tiempos ni relajar aserciones.
+La cobertura nueva es del núcleo aislado con fixtures, no del replay deportivo.
+
+## Historial — checkpoint 11 confirmado en 1c12245
 
 Rama `feat/pr-i1-competitive-infrastructure`, HEAD `7edef15`: diez checkpoints
 confirmados, árbol limpio al iniciar. Ronda 11 local y sin commit: añade un

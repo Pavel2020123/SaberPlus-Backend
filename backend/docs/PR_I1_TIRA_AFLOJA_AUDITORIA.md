@@ -1,6 +1,205 @@
 # PR-I1 V1 — auditoría y preparación de Tira y afloja
 
-## Estado vigente — ronda 11: testigo de visibilidad de R, sin XP
+## Estado vigente — checkpoint 12: núcleo del par preparado, NO integración XP
+
+Base verificada: feat/pr-i1-competitive-infrastructure / 1c12245, once
+checkpoints confirmados y árbol limpio al comenzar. Trabajo nuevo local, sin
+commit. El checkpoint 11 y su revisión de visibilidad están confirmados.
+
+Se prepara [CompetitivePairProtocol](../src/competitive/competitive.pair-protocol.ts),
+aislado: no es un verificador deportivo, provider Nest ni API de admisión;
+no se importa desde endpoints, sockets, registry o reconciliadores productivos.
+TUG_MATCH sigue rechazado por el registro habitual con SOURCE_NOT_INTEGRATED.
+No hay flag Tira, nuevas admisiones ni liquidaciones automáticas. Los tres flags
+existentes permanecen apagados por defecto. No se convierten partidas históricas,
+preparadas o certificadas en competitivas.
+
+### Protocolo preparado y alcance de su prueba
+
+Una transacción ReadCommitted: clave compartida hash(TUG_MATCH, partida,
+SETTLEMENT), independiente de participante/version → leer identidades originales
+sin lock de partida → bloquear ambos Usuario por UUID canónico ordenado → adapter
+bloquea partida/evidencia y revalida identidades → validar ambos terminales,
+R/resultados compatibles, cálculos e historial institucional → publicar ambos
+ledger/balances con las primitivas existentes → COMMIT único. No se invoca dos
+veces settle individual. La clave de cada evento conserva el contrato habitual
+fuente/partida/participante/SETTLEMENT, sin versión en la identidad.
+
+CompetitiveService solo cambia cuatro métodos de private a protected para
+reutilizar su validación/locks/post; el comportamiento de liquidación individual
+y correcciones no cambia. El writer común conserva piso cero, nominal/aplicado,
+secuencia, alcanzadoEn, temporada Bogotá e institución histórica. Usuario.xpTotal
+no se modifica. Solo dos eventos previos con hashes compatibles son un retry;
+un evento solo o evidencia divergente bloquea todo el par. Cualquier error
+intermedio revierte ambos eventos y balances.
+
+La prueba nueva [PostgreSQL del núcleo](../test/competitive-pair-protocol-postgres.test.cjs)
+usa ledger/balances reales y conexiones independientes, pero su adapter lee una
+tabla de fixtures sintéticos: NO son partidas Tira verificadas ni un verificador
+ficticio registrado. Prueba cálculos normales, half-up, cero R sin
+bonos, barreras de abandono, validación de ambos, rollback después del primer ledger,
+idempotencia, reinicio del objeto, concurrencia entre instancias, conflicto de
+hash/parcialidad e historial ausente. La prueba de locks combina el núcleo real
+de ledger con el protocolo Usuario ordenados → advisory de partida de un fixture;
+no se presenta como carrera con un cierre deportivo real. Los once archivos
+anteriores siguen incluidos, con su evidencia deportiva/visibilidad independiente.
+
+### Bloqueos: todavía NO hay verificador autoritativo TUG
+
+No existe inscripción/admisión competitiva persistida en PartidaTiraAfloja;
+certificacionRVersion=1 solo certifica visibilidad. Es indispensable diseñar
+inscripción inmutable para nuevos intentos admitidos por servidor; las partidas
+existentes deben seguir excluidas. No se crea ni simula esa autoridad aquí.
+
+El adapter productivo aún debe reconstruir el resultado completo desde snapshot,
+Qpartida, respuestas aceptadas, todos los R originales y sus certificados,
+eventos de resolución y abandono/presencia, conservando precisión temporal SQL.
+El núcleo recibe VerifiedTerminal de un adapter confiable: no demuestra por sí
+solo C/R, resultado, UNKNOWN, prioridad de gracia/plazo o ausencia de falsificación
+parcial. Registro y conexión productivos quedan bloqueados hasta ese replay.
+El adapter debe leer participantes terminales inmutables sin locks de partida
+antes de los Usuario y no adquirir usuarios adicionales después de ese prefijo.
+VerifiedTerminal actualmente solo representa RESULTADO, ABANDONO y
+VICTORIA_POR_ABANDONO: hace falta representar los cierres neutrales legítimos
+sin inventar EMPATE deportivo ni aplicar -15 a un EXPLICIT anterior a ACTIVA.
+La revisión humana del checkpoint 12 establece una barrera explícita:
+
+- Dos clasificaciones ABANDONO se rechazan con
+  PAIR_DOUBLE_ABANDONMENT_UNAPPROVED. CANCELADA por gracias confirmadas exactamente
+  simultáneas conserva su contrato deportivo, sin ganador ni XP positivo; no
+  hay aprobación inequívoca de dos penalizaciones de -15.
+- Cualquier par con un ABANDONO se rechaza íntegramente con
+  PAIR_ABANDONMENT_PHASE_UNVERIFIED, incluso definitive=true y aunque el rival
+  declare activeCompetitiveMatch=true. VerifiedTerminal no prueba la fase del
+  abandono; no basta la elegibilidad declarada del premio del rival.
+- Otras combinaciones no normales se rechazan con
+  PAIR_TERMINAL_CLASSIFICATION_UNSUPPORTED. No se fabrican EMPATE ni premios
+  neutrales. Estas barreras preceden a la lectura de idempotencia y a cualquier
+  posting: no crean eventos ni balances para ninguno de los participantes.
+
+La futura adaptación debe reconstruir la fase desde la evidencia deportiva
+persistida y ordenada: transición ACTIVA/RONDA_INICIADA frente al evento
+TugAbandonment (reason EXPLICIT/GRACE y effectiveAt), bajo los locks del par.
+No basta mirar el estado terminal actual ni definitive=true. EXPLICIT anterior
+a ACTIVA exige cero XP para ambos, sin penalización ni cambio deportivo, y
+necesita una representación neutral aprobada en el contrato futuro. No se añaden
+campos al contrato compartido ni se implementa ese verificador en esta ronda.
+Las pruebas de protocolo simulan y rechazan la clasificación ambigua de un
+adapter; no se presentan como replay deportivo de un EXPLICIT real.
+
+El núcleo no resuelve ese contrato mediante un verificador ficticio.
+Un R sin certificado debe bloquear la partida completa; nunca recortar R ni
+inventar certificados/backfill. Esa exigencia NO está implementada en el adapter
+del fixture, y por tanto NO se afirma liquidación real segura de Tira.
+
+Todas las variantes deportivas permanecen bloqueadas para XP. En particular,
+certificado ausente/tardío, R real distinto de Q, rival UNKNOWN, cancelación
+simultánea y EXPLICIT pre-ACTIVA conservan los contratos aprobados, pero no se
+presentan como liquidaciones verificadas por las pruebas del núcleo. El adapter
+futuro debe justificar individualmente cualquier tratamiento negativo de una
+cancelación; este trabajo no decide ni activa esa variante.
+
+### Vigencia institucional comprobada
+
+HistorialInstitucionCompetitiva no representa intervalos independientes con
+fecha de fin. Es un log inmutable de transiciones, definido en schema.prisma y
+la migración 20260930120000_competitive_infrastructure: el trigger de Usuario
+registra cada cambio de institucionId con clock_timestamp(), incluida una salida
+con institucionId=null. Un estado termina implícitamente al comenzar el siguiente.
+Se selecciona el máximo (desde, id) con desde <= terminalAt; id resuelve empates
+en la precisión de milisegundos. En el límite exacto corresponde el estado nuevo,
+no el anterior. No hay columna hasta que falte filtrar ni otra migración que
+reemplace esta representación. La ausencia de cualquier registro anterior o
+igual sigue bloqueada con HISTORICAL_MEMBERSHIP_UNKNOWN.
+
+La regresión PostgreSQL utiliza cambios reales de Usuario y su trigger, sin
+insertar ni inventar historial: null → institución A → institución B → null;
+liquida después de la salida fuentes cerradas en los límites exactos reales y
+una fuente anterior. Comprueba institución original, sustitución y salida nula
+para ambos eventos del par. No se cambia la consulta común ni otros juegos.
+
+Sin migraciones nuevas ni cambios a migraciones confirmadas. WAL/durabilidad
+física, rol/RLS productivos, 34 fallos históricos, Rescate y límites multiinstancia
+siguen abiertos. Validación local no autoriza despliegue. PR-I1 no fusionado a main.
+
+### Validaciones e intentos del checkpoint 12
+
+#### Revisión humana: barreras de abandono y vigencia institucional
+
+Build exit 0, 30894 ms. Jest competitivo: 206/206, 13 suites, 27,291 s
+(29508 ms con npm). Jest completo: 1087/1087, 102 suites, 90,561 s
+(92660 ms con npm). PostgreSQL desechable: 196/196, los doce archivos completos,
+351017 ms del bloque y 365909 ms del runner, exit 0; cero fallos, cancelados,
+omitidos, TODO, archivos inválidos o incompletos. El archivo del núcleo conserva
+los doce casos, ajustando el caso de penalización ahora no autorizada a exigir
+rechazo íntegro, y añade cuatro: dos abandonos, clasificación EXPLICIT pre-ACTIVA,
+combinación no normal y transiciones institucionales. Resultado 16/16,
+2888,822 ms; ningún caso está omitido. Las pruebas comunes del piso cero y las
+fórmulas V1 permanecen intactas. Los fixtures no prueban un replay deportivo.
+
+Audit omit=dev: exit 0, cero vulnerabilidades, 2501 ms, TLS activo y CA del
+sistema; NODE_OPTIONS restaurado. Diff --check exit 0; 70 enlaces locales
+comprobados, ninguno roto. Docker desktop-linux / Engine 29.7.2 disponible;
+postgres-local conserva ID y StartedAt. Solo el PostgreSQL propio desechable
+recibe las 58 migraciones confirmadas y se elimina al finalizar.
+No hubo ejecuciones fallidas en esta revisión. Los intentos anteriores siguientes
+se conservan como historial; no se confunden con esta validación.
+Logs: TEMP, prefijo saberplus-twelfth-review-.
+
+Cambios de esta revisión: kernel aislado, su archivo PostgreSQL y los dos
+documentos especializados de infraestructura/Tira. Se preservan todos los otros
+cambios locales. Sin nuevas migraciones, cambios al contrato compartido, motores,
+fórmulas o liquidación productiva TUG. Se requiere revisión humana antes del commit.
+
+#### Ejecuciones preparatorias anteriores a la revisión humana
+
+Build final exit 0, 27507 ms. Los tres builds anteriores también pasaron:
+20525, 15774 y 34209 ms. No se regenera Prisma mientras el runner mantiene
+conexiones activas. El último build usa los archivos ya formateados.
+
+Jest competitivo inicial: una suite no compiló (TS2345), con las 12 anteriores
+y 205 pruebas aprobadas, exit 1; 16,805 s. Completo inicial: una suite no compiló,
+las 101 anteriores y 1086 pruebas pasaron, exit 1; 71,620 s. La prueba nueva
+intentaba la versión 2; el default había inferido el literal TypeScript 1.
+Se declaró version:number y se conserva la validación V1 en runtime; no se
+eliminó el caso ni se convirtió su argumento a any. Después: competitivo
+206/206, 13 suites, 27,859 s; completo 1087/1087, 102 suites, 88,364 s; exit 0.
+
+PostgreSQL: se conservan los once archivos anteriores y se añade el duodécimo,
+sin cambiar el límite de 120 s por archivo ni el gate estricto.
+
+| Ejecución completa | Resultado | Bloque / runner (ms) | Diagnóstico |
+|---|---|---|---|
+| Primera | 191/192, exit 1; 12 archivos completos | 344541 / 357290 | Los 11 archivos anteriores y 11 casos nuevos pasaron. La prueba de espera por locks agotó su transacción de 20 s (P2028); también se registró su rechazo asíncrono posterior. |
+| Segunda | 192/192, exit 0; 12 archivos completos | 354169 / 367677 | 12/12 casos del núcleo, 2718,223 ms; cero cancelados/omitidos/TODO, fallos o archivos incompletos. |
+
+La causa del fallo de observación se demuestra en la segunda ejecución:
+una transacción lee actividad antes de iniciar el competidor (before=false);
+otro backend en autocommit confirma el bloqueo real; la primera transacción
+sigue viendo stale=false; pg_stat_clear_snapshot permite refreshed=true.
+El diagnóstico queda registrado como activity-snapshot-versus-independent-lock-observer.
+La barrera ahora usa esa conexión independiente. No se aumentan los 20 s,
+ni se elimina/reduce la aserción: se agregan las tres comparaciones exactas.
+Esto corrige el harness, no una regresión demostrada del protocolo de ledger.
+
+Las ocho solicitudes concurrentes desde dos instancias recuperan los mismos
+dos IDs, sin duplicates y con versión 1 de ambos balances. El fallo inyectado
+tras el primer post real deja cero eventos y cero balances. La parcialidad
+previa se genera mediante un writer deliberadamente roto SOLO en el fixture;
+el núcleo normal la detecta y no completa ni repaga silenciosamente.
+
+Audit omit=dev exit 0, cero vulnerabilidades, 4811 ms; TLS activo, usando CA
+del sistema y restaurando NODE_OPTIONS. Diff --check exit 0, 70 enlaces locales
+válidos. Ambos runners aplican las 58 migraciones confirmadas solo en PostgreSQL
+desechable propio. No se interviene postgres-local, que conserva ID/StartedAt.
+Los logs se conservan en TEMP con prefijo saberplus-twelfth-.
+
+Archivos: núcleo aislado, spec Jest y archivo PG nuevos; CompetitiveService
+(solo cuatro accesos protected), runner (+1 archivo) y los seis documentos de
+estado/índices. No se cambian schema, fórmulas, motores ni verificadores actuales.
+Sin nuevas migraciones, commit, push, merge, despliegue o acceso a Supabase.
+
+## Historial — checkpoint 11 confirmado en 1c12245: visibilidad R
 
 2026-10-03, rama `feat/pr-i1-competitive-infrastructure`, HEAD `7edef15`.
 Diez checkpoints confirmados; árbol limpio al iniciar. La ronda 11 permanece
