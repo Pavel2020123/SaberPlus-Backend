@@ -1,6 +1,279 @@
 # PR-I1 V1 — auditoría y preparación de Tira y afloja
 
-## Estado vigente
+## Estado vigente — primera etapa de evidencia autoritativa
+
+Base `39d3881`, rama `feat/pr-i1-competitive-infrastructure`; se conservan
+los cambios locales de la octava ronda. Siete checkpoints confirmados por el propietario; esta octava ronda
+es local y sin commit. **Tira no admite ni liquida XP competitivo**; no se registra
+verificador TUG_MATCH, ni flag de admisión competitiva. Preparación de evidencia
+no equivale a admisión, despliegue ni autorización de pagos.
+
+Se implementan snapshot original inmutable, Qpartida persistido, calificación
+y presentación desde el snapshot, R durable por participante y protecciones
+SQL de evidencia. Los registros inferiores corresponden al séptimo checkpoint:
+sus carencias de snapshot/R quedan superadas por esta sección; las decisiones
+V1, precedencia de 30 s e incidencias conservan vigencia.
+
+### Congelación y compatibilidad
+
+Solo nuevas creaciones del servicio tienen `prepararEvidencia=true`; el default
+SQL false conserva históricos y fixtures legacy. Ese marcador no se modifica
+después de crear y no se expone al cliente. Recuperar/emparejar una partida
+histórica no la convierte. El marcador **no concede XP** ni habilita un juego.
+
+Cuando ambos están listos, la misma transacción bajo lock de partida toma locks
+SHARE ordenados de preguntas/opciones, reconstruye el banco y activa la primera
+ronda. PostgreSQL contrasta snapshot contra asignaciones y contenido original,
+no solo contra datos calculados por el servicio. Falla y revierte el inicio si
+el banco no permite evidencia coherente (4..20, orden único, opciones completas,
+una solución por pregunta). No rellena ni reduce Qpartida después de iniciar.
+
+Se conservan enunciado, imagen, explicación, dificultad, contexto/caso, área,
+tema/subtema, opciones con sus explicaciones y corrección original, orden,
+participantes internos A/B, configuración y evidenciaVersion=1. Preguntas y
+opciones usan IDs TEXT exactos. No se guarda información mutable de usuario
+como nombre/correo/foto. Calificación, pantalla y explicación de ronda resuelta
+consultan ese contenido congelado. Legacy mantiene su banco mutable.
+
+SQL impide modificar snapshot/Qpartida/configuración/participantes, cambiar
+la marca histórica, alterar asignaciones, editar/borrar respuestas aceptadas o
+eventos V1 y reabrir un terminal. Respuestas se contrastan con solución congelada,
+participante, ronda y ventana. Se conservan los locks de clave → partida y la
+idempotencia exacta del checkpoint 7. No se llama al liquidador ni se incorpora
+un lock Usuario aislado; el orden competitivo futuro deberá coordinarse con
+CompetitiveService antes de registrar el verificador.
+
+### R, Qpartida y C
+
+Qpartida es el total inicial (4..20), independiente de R. **Decisión aprobada:
+R cuenta habilitaciones efectivas registradas por servidor para cada participante,
+sin ACK del cliente.** No demuestra entrega, visualización ni participación.
+La cuenta regresiva de 3 s, pausa de 1,5 s y evento RONDA_INICIADA solo programan
+una ronda; no habilitan acciones ni crean R anticipadamente.
+
+La transición SQL privada tug_record_presented_round bloquea la partida y crea
+las dos filas de TiraAflojaRondaPresentada en una transacción. Cada inserción
+verifica ACTIVA, ronda/pregunta congeladas, pertenencia e identidad de ambos
+participantes y sus roles ESTUDIANTE actuales en PostgreSQL. No exige conexión
+ni respuesta. Un constraint diferido exige ambas filas: una habilitación parcial
+no puede confirmarse. Además vuelve a comprobar el plazo de la ronda registrada
+(y el global) durante la validación diferida del COMMIT. Un COMMIT solicitado
+cuando ahora >= min(venceEn, expiraEn) revierte las dos filas. Usa venceEn de la
+fila original, aunque la partida haya cerrado o avanzado dentro de la misma
+transacción. La PK partida/ronda/participante impide duplicados.
+
+programadaEn guarda el inicio programado; presentadaEn la habilitación efectiva
+con reloj PostgreSQL, a precisión de milisegundos; registradaEn la escritura,
+a microsegundos. Los triggers asignan las fechas, ignorando fechas de habilitación
+enviadas por quien inserta. Después de adquirir el lock verifican
+inicio <= ahora < min(vencimiento de ronda, vencimiento global). El límite
+superior es exclusivo, incluida la igualdad. SQL rechaza inserciones tardías,
+anticipadas, de terceros, legacy o terminales y toda mutación/eliminación.
+
+HTTP/Socket.IO y el barrido usan esa misma transición antes de admitir nuevas
+respuestas. Una respuesta V1 requiere una fila confirmada de su participante,
+y su fecha no puede preceder la habilitación. La comprobación se hace también
+en PostgreSQL. responder() obtiene el reloj después de esperar los advisory locks,
+lo refresca y revalida tras registrar la habilitación. El guard de respuestas
+obtiene su propio reloj después del lock de fila y rechaza escritura fuera del
+plazo aunque recibidaEn anterior pareciera válida. El abandono no crea
+presentaciones; conserva solo las existentes.
+La función invocada tarde devuelve sin insertar: procesamiento de vencimiento,
+recuperación o HTTP tardío no reconstruyen una disponibilidad histórica.
+
+El barrido de 1 s busca rondas dentro de ventana todavía sin dos filas. Si pierde
+toda la ventana por caída, bloqueo o retraso, R de esa ronda queda cero; la
+resolución legacy sin respuestas sigue su curso, sin inventar habilitación ni
+cambiar relojes. El arranque recupera registros confirmados, nunca habilitaciones
+pasadas no registradas. No se garantiza latencia del worker bajo una caída.
+La transición durable y el guard de respuestas evitan acciones realmente
+aceptadas sin evidencia, más allá de filtrar por fecha. Una futura integración
+competitiva debe validar resultados con rondas omitidas antes de pagar XP.
+Si se exige garantizar una habilitación puntual incluso sin solicitudes, se
+necesita un scheduler durable con reclamación de trabajos entre instancias y
+monitoreo; tampoco puede prometer ejecución durante indisponibilidad total de DB.
+
+Orden conservado: clave idempotente (solo respuesta) → advisory de partida →
+fila de partida → inserciones. SQL directo empieza por fila de partida y nunca
+espera advisory/clave; los guards no bloquean filas Usuario después de partida.
+La elegibilidad es la lectura servidor del rol al habilitar, sin afirmar que
+serializa cambios administrativos de rol posteriores. Las dos filas son
+atómicas; cada fecha efectiva pertenece a su inserción dentro de esa transacción.
+Reinicios e instancias concurrentes reutilizan filas inmutables, sin sumar R.
+C deriva de respuestas correctas aceptadas únicas, no de contadores cliente.
+
+### Privacidad, migración y despliegue
+
+HTTP y Socket.IO conservan listas cerradas y asientos públicos A/B: no devuelven
+snapshot, IDs internos, soluciones de preguntas pendientes ni explicaciones
+privadas. La solución/explicación autorizada solo aparece al resolver su ronda.
+No se añaden rutas de evidencia privada.
+
+Nueva [migración incremental](../prisma/migrations/20261003010000_tug_authoritative_evidence/migration.sql),
+dependiente del esquema Tira legacy y de las migraciones confirmadas anteriores.
+Añade columnas de preparación/snapshot/Q y tabla de presentación, guards y
+función de registro. RLS activado y acceso directo anon/authenticated revocado
+en las tablas Tira y función de registro. Producción requiere confirmar el rol
+real de DATABASE_URL y grants/policies privados; pruebas como owner local no
+certifican ese rol. Migración remota **no aplicada**. Verificar permisos, respaldo,
+migración autorizada y esquema antes de desplegar: las lecturas Prisma ya usan
+las columnas nuevas y no ocultan un esquema faltante.
+
+### Pendientes y validación
+
+Persisten presencia durable entre instancias, desconexión confirmada/gracia
+30 s/UNKNOWN/ambos ausentes, máquina de cierre con precedencia aprobada,
+admisión competitiva y verificación/replay/liquidación/recuperación de pagos.
+No se interpreta HTTP sin solicitudes como abandono. No se certifica aún la
+semántica completa de resultados competitivos por disponer de un snapshot.
+Usuario.xpTotal, fórmulas, las cinco integraciones existentes y Flutter intactos.
+Riesgos históricos de los 34 fallos y Rescate siguen abiertos; PR-I1 no fusionado
+a main, Memoria/Batallas y PR-I2 fuera de alcance.
+
+### Revisión final: COMMIT tardío y respuestas tras bloqueos
+
+Reproducción real, previa a la corrección: 143 pruebas, 142 aprobadas y únicamente
+la nueva regresión fallida (150,288 s). La transacción insertó ambas filas dentro
+de la ventana: su lectura interna vio 2 y una transacción independiente vio 0.
+Esperó en PostgreSQL hasta rondaVenceEn y después confirmó: quedaron 2 filas,
+sin error. Quedó demostrado que validar solamente al insertar y exigir una
+pareja al COMMIT no bastaba. No fue un fallo de Docker ni del historial institucional.
+
+Corrección limitada a la migración pendiente y responder(): comprobación temporal
+adicional diferida al COMMIT y comprobaciones renovadas después de bloqueos.
+Se descubrió además un comportamiento de Prisma 5.22: la transacción interactiva
+resolvió sin excepción aunque el COMMIT rechazado dejó cero filas. La función de
+habilitación devuelve ahora si insertó una pareja nueva; responder/procesarEstado
+verifican después del COMMIT que esa pareja exista, y rechazan el resultado si
+falta. No interpretan la promesa Prisma resuelta como prueba de confirmación.
+La prueba nativa usa psql del contenedor propio y exige el error SQL al COMMIT;
+otra conserva la reproducción del comportamiento Prisma y exige rechazo del
+servicio. Se preservan las aserciones de atomicidad y conservación de datos;
+las comparaciones ordenan por ronda/usuario porque SQL no garantiza un orden
+sin ORDER BY. No cambió ningún campo de las filas previamente confirmadas.
+
+Se mantienen constraint inicialmente diferido y las transacciones normales del
+backend; no existe SET CONSTRAINTS en el runtime. Las pruebas nuevas verifican
+rollback de ambas filas tras COMMIT tardío y respuesta bloqueada hasta el límite,
+conservando las presentaciones previamente confirmadas. No se amplían plazos.
+
+Límite de la garantía: el trigger valida dentro del procesamiento del COMMIT;
+no proporciona el instante físico de flush WAL o visibilidad posterior. No se
+presenta presentadaEn/registradaEn como timestamp de commit. Tampoco se afirma
+una garantía de tiempo real ante una pausa del motor después del último check,
+ni si un operador fuerza anticipadamente SET CONSTRAINTS. Para certificar
+estrictamente durabilidad observable antes del plazo, antes de habilitar XP,
+hará falta evidencia posterior al commit observada dentro de ventana (o una
+fuente de tiempo de commit comprobable), y excluir registros no certificados.
+Esta revisión cierra el COMMIT solicitado tarde reproducido; Tira continúa sin
+admisión ni liquidación competitiva, y no se declara resuelto ese límite físico.
+
+Validación intermedia tras el guard: 144 pruebas, 142 aprobadas y dos fallidas
+(155,891 s). Una exigía excepción Prisma, aunque la DB había revertido ambas
+filas; motivó la prueba nativa y el control posterior del servicio. La otra
+comparaba arrays sin ORDER BY y mostró solo permutación de las mismas filas.
+Se corrigió el orden de consulta, manteniendo comparación completa. Una
+invocación inicial de build desde la raíz falló ENOENT por no tener package.json;
+se ejecutó correctamente en backend. Ninguno de estos fallos se atribuye a Docker,
+PostgreSQL institucional o Rescate.
+
+Resultados finales de esta revisión:
+
+| Validación | Resultado final |
+|---|---|
+| npm run build (backend) | Exit 0; Prisma generado antes de las pruebas. |
+| npm test -- --runInBand competitive | 159/159, 8 suites, exit 0; 15,316 s. |
+| npm test -- --runInBand | 1040/1040, 97 suites, exit 0; 56,490 s. |
+| node tool/test_competitive_postgres.mjs | 145/145, exit 0; 168,849 s; sin skips/cancelaciones. |
+| npm audit --omit=dev | Exit 0, cero vulnerabilidades; TLS activo, CA del sistema y NODE_OPTIONS restaurado. |
+| git diff --check | Exit 0. |
+| Enlaces locales | 53 destinos existentes, sin enlaces nuevos rotos. |
+
+Tres escenarios adicionales respecto a la revisión anterior: COMMIT nativo
+posterior al límite, responder bloqueado hasta el límite y rollback Prisma
+rechazado por el servicio. Persisten los casos de confirmación oportuna,
+countdown, inserción tardía, atomicidad, reinicio, concurrencia, idempotencia,
+privacidad, banco congelado, legacy y cero XP competitivo. Las esperas se fijan
+contra los plazos originales y reloj PostgreSQL; no hay colchones/reintentos.
+Las tres ejecuciones PostgreSQL de esta revisión fueron independientes y
+usaron 55 migraciones confirmadas más la pendiente, en contenedores propios
+desechables. La ejecución final valida la corrección, no resuelve las incidencias
+históricas de 34 fallos o Rescate. El contenedor ajeno sigue intacto.
+
+Archivos ajustados en esta revisión final: migración Tira pendiente, servicio
+Tira, prueba PostgreSQL Tira y las dos auditorías especializadas. Schema, helper,
+pruebas y documentos previamente modificados se preservan. Rama y HEAD siguen
+feat/pr-i1-competitive-infrastructure / 39d3881; sin commit, push, merge,
+despliegue, migraciones remotas, Flutter, otros juegos ni activación de XP.
+
+### Historial: validación de la revisión anterior de R
+
+- Build: exit 0, Prisma generado antes de cargar las pruebas.
+- Jest competitivo: 159/159, 8 suites, 16,256 s.
+- Jest completo: 1040/1040, 97 suites, 60,985 s.
+- PostgreSQL final: 142/142, exit 0, 139,762 s, sin skips ni cancelaciones.
+  Incluye dos escenarios nuevos de fechas/roles/habilitación atómica y límite
+  superior/worker tardío, además de las pruebas previas de countdown, abandono,
+  reinicio/concurrencia, idempotencia, SQL privado, privacidad, legacy y cero XP.
+  La prueba de escrituras parciales ahora exige rechazo al commit y el test de
+  permisos verifica las seis funciones privadas, sin reducir aserciones.
+- Primera ejecución de esta revisión: exit 1 antes de las pruebas, por un
+  delimitador de función SQL incorrecto en la migración pendiente editada.
+  Se corrigió el delimitador; la ejecución final aplicó limpiamente las 55
+  migraciones confirmadas más la incremental local. No fue un fallo de Docker
+  ni una reproducción de HISTORICAL_MEMBERSHIP_UNKNOWN.
+- npm audit --omit=dev: exit 0, cero vulnerabilidades, TLS activo con CA del
+  sistema y NODE_OPTIONS restaurado. git diff --check: exit 0.
+- 53 enlaces Markdown locales comprobados en los seis documentos; sin destinos
+  faltantes. Docker Engine 29.7.2 / desktop-linux operativo; el contenedor ajeno
+  postgres-local conserva ID y fecha de arranque, sin operaciones sobre él.
+
+Solo se ajustaron en esta revisión schema, servicio Tira, migración pendiente,
+prueba PostgreSQL Tira y los dos documentos especializados. Se preservan los
+otros cambios locales de la ronda, incluido el helper de snapshot. No se
+editaron migraciones confirmadas, fórmulas, los cinco juegos integrados ni Flutter.
+Las incidencias históricas de 34 fallos y Rescate siguen abiertas sin causa nueva
+demostrada. El rol/RLS de producción sigue pendiente; no hay migraciones remotas,
+activación competitiva Tira, commit, push, merge ni despliegue.
+
+| Historial de validación antes de esta revisión de R | Resultado real |
+|---|---|
+| npm run build | Exit 0; generación Prisma y compilación Nest terminadas antes de las pruebas. |
+| Jest competitivo | 159/159, 8 suites; seis pruebas nuevas del constructor/lector de snapshot. |
+| Jest completo | 1040/1040, 97 suites; la fixture de privacidad incorpora esCorrecta del SELECT real, sin reducir aserciones. |
+| PostgreSQL exploratorio | 138/138, exit 0; ocho escenarios iniciales. |
+| PostgreSQL tras emparejamiento real/guards | 139/139, exit 0. |
+| PostgreSQL final | 140/140, exit 0; diez escenarios nuevos, incluye histórico con banco incompatible con preparación V1, registro de presentación según la interpretación anterior (superada) y permisos de las cinco funciones originales. 113,912 s; sin skips/cancelaciones. |
+| npm audit --omit=dev | Exit 0; cero vulnerabilidades, certificados del sistema y TLS activo. NODE_OPTIONS temporal restaurado. |
+| git diff --check | Exit 0. |
+| Enlaces Markdown | 52 enlaces locales/anclas comprobados en seis documentos; todos válidos. |
+
+Cada ejecución PostgreSQL utilizó su propio contenedor/banco efímero, 55
+migraciones confirmadas más la incremental Tira pendiente. Una cuarta ejecución
+140/140 verificó la declaración final de defaults/FK coherente con Prisma y
+revocaciones explícitas de funciones también ante defaults de permisos.
+No se observaron fallos PostgreSQL ni intermitencias en estas cuatro ejecuciones,
+que prueban versiones sucesivas de esta ronda, no cuatro repeticiones idénticas. No se declara
+resuelta ninguna incidencia histórica por esos resultados.
+
+Las pruebas reales usan guards/JWT y gateway Socket.IO existentes. Cubren
+snapshot/orden, banco modificado tras inicio, reloj de disponibilidad original
+(espera únicamente hasta ese plazo, sin colchones), R sin respuestas/duplicados,
+concurrencia/reinicio/barrido, manipulaciones SQL, participantes, rechazo de
+acceso directo anon/authenticated, creación/emparejamiento nuevos, legacy sin
+conversión y rechazo de liquidación TUG_MATCH. No certifican presencia/gracia
+ni pagos competitivos todavía inexistentes. La validación de banco V1 se hace
+solo al crear una partida nueva; unirse a un candidato legacy conserva su
+validación original, incluso si su banco no admite snapshot V1.
+
+Docker desktop-linux / Engine 29.7.2 disponible; `postgres-local` conserva ID
+`20d971cc043f`, running y StartedAt `2026-10-02T21:24:22.476116454Z`.
+Solo se retiraron contenedores propios del runner. Migraciones confirmadas
+intactas. Cambios: schema, servicio/helper Tira, fixture de privacidad, dos
+pruebas nuevas, runner, migración incremental y seis documentos/índices.
+Sin commit/push/merge/despliegue/migraciones remotas; detenido para revisión.
+
+## Historial — auditoría y correcciones del séptimo checkpoint
 
 Base `ebe40e3`, rama `feat/pr-i1-competitive-infrastructure`: seis checkpoints
 confirmados. Esta ronda local corrige idempotencia del motor existente y prueba

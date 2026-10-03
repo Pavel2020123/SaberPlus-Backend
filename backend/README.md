@@ -11,11 +11,11 @@
 
 ## Estado competitivo PR-I1 V1
 
-Seis checkpoints están confirmados hasta `ebe40e3`; la preparación de
+Siete checkpoints están confirmados hasta `39d3881`; la evidencia de
 Tira permanece local **sin commit**, pendiente de revisión humana.
 PR-I1 no está fusionado a main. Código implementado no significa desplegado ni
-activado: no se aplicaron migraciones remotas en esta revisión y la sexta ronda
-solo se probó en PostgreSQL desechable local.
+activado: no se aplicaron migraciones remotas en esta revisión; la nueva evidencia
+Tira se prueba únicamente en PostgreSQL desechable local.
 
 `COMPETITIVE_SOLO_ENABLED` controla Cima/Guardián/Rescate;
 `COMPETITIVE_TRIVIA_ENABLED` controla Trivia Rush y `COMPETITIVE_GHOST_ENABLED`
@@ -23,7 +23,7 @@ Duelo. Todos apagados por defecto: solo el literal servidor `true` permite nueva
 admisiones. El flag solo no autoriza Trivia/Duelo. Apagarlos no bloquea cierre o
 liquidación de intentos previamente admitidos; no hay conversión retroactiva.
 
-[Infraestructura, seis checkpoints y orden de migraciones](docs/PR_I1_COMPETITIVE_INFRASTRUCTURE.md)
+[Infraestructura, checkpoints y orden de migraciones](docs/PR_I1_COMPETITIVE_INFRASTRUCTURE.md)
 y [auditoría de Trivia/Duelo y validaciones](docs/PR_I1_TRIVIA_DUELO_AUDITORIA.md)
 son las referencias de esta rama. Siguen pendientes rol PostgreSQL/RLS de
 producción, activación/despliegue autorizados, causa histórica de los 34 fallos
@@ -33,7 +33,7 @@ backend incluso con flags apagados; no usar los comandos de despliegue como
 autorización para ejecutar migraciones remotas.
 
 [Auditoría de Tira y afloja](docs/PR_I1_TIRA_AFLOJA_AUDITORIA.md): precedencia
-aprobada, correcciones de bloqueo/idempotencia legacy y brechas de evidencia.
+aprobada, snapshot original/R durables y brechas restantes de presencia/cierre.
 No se registra un verificador ni se habilita XP de Tira en esta preparación.
 
 MA-3B: [Agenda y sincronización del repaso diferido](DEFERRED_REVIEW.md).

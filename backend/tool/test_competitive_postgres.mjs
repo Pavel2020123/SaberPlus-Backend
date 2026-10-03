@@ -180,6 +180,10 @@ async function main() {
         await readFile(join(backend, competitiveTriviaMigration), 'utf8'),
       );
     const migrationPath = join(directory, 'migration.sql');
+    const tugMigration =
+      'prisma/migrations/20261003010000_tug_authoritative_evidence/migration.sql';
+    if (!paths.includes(tugMigration))
+      sql.push(await readFile(join(backend, tugMigration), 'utf8'));
     await writeFile(migrationPath, sql.join('\n'), 'utf8');
     await docker('cp', migrationPath, `${name}:/tmp/competitive-migration.sql`);
     await docker(
@@ -197,7 +201,7 @@ async function main() {
       '/tmp/competitive-migration.sql',
     );
     console.log(
-      `PostgreSQL 16 local: ${paths.length} committed migrations${paths.includes(migration) ? '' : ' + pending Trivia evidence migration'}${paths.includes(presenceMigration) ? '' : ' + pending Trivia presence migration'}${paths.includes(competitiveTriviaMigration) ? '' : ' + pending Trivia competitive V1 migration'} applied.`,
+      `PostgreSQL 16 local: ${paths.length} committed migrations${paths.includes(migration) ? '' : ' + pending Trivia evidence migration'}${paths.includes(presenceMigration) ? '' : ' + pending Trivia presence migration'}${paths.includes(competitiveTriviaMigration) ? '' : ' + pending Trivia competitive V1 migration'}${paths.includes(tugMigration) ? '' : ' + pending Tug evidence migration'} applied.`,
     );
     const clockDiagnostic = async (phase) => {
       const hostBefore = Date.now();
@@ -267,6 +271,7 @@ async function main() {
           'test/competitive-trivia-presence-postgres.test.cjs',
           'test/competitive-trivia-xp-postgres.test.cjs',
           'test/competitive-tug-boundary-postgres.test.cjs',
+          'test/competitive-tug-evidence-postgres.test.cjs',
         ],
         180_000,
       );

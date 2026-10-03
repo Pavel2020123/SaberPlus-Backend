@@ -78,7 +78,10 @@ function escenario() {
       findMany: jest.fn().mockResolvedValue(
         Array.from({ length: 4 }, (_, i) => ({
           id: `p${i}`,
-          respuestas: [{ id: 'x' }, { id: 'y' }],
+          respuestas: [
+            { id: 'x', esCorrecta: true },
+            { id: 'y', esCorrecta: false },
+          ],
         })),
       ),
     },

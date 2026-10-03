@@ -18,6 +18,11 @@ import { PrismaService } from '../prisma/prisma.service';
 import { preguntaPublicadaWhere } from '../common/contenido-publicado';
 import { TiraAflojaRealtimePublisher } from './tira-afloja-realtime.publisher';
 import {
+  buildTugSnapshot,
+  TUG_QUESTION_INCLUDE,
+  tugSnapshot,
+} from './tira-afloja.evidence';
+import {
   ganadorPorPosicion,
   moverCuerda,
   resolverRonda,
@@ -134,13 +139,24 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
         }
       }
 
+      // Legacy candidates keep their existing contract. Validate the bank for
+      // evidence preparation only when creating a genuinely new match.
+      const preparadas = preguntas.filter(
+        (p) => p.respuestas.filter((r) => r.esCorrecta).length === 1,
+      );
+      if (preparadas.length < MINIMO_PREGUNTAS) {
+        throw new BadRequestException(
+          'Banco insuficiente para preparar evidencia Tira.',
+        );
+      }
       const creada = await tx.partidaTiraAfloja.create({
         data: {
+          prepararEvidencia: true,
           jugadorAId: usuarioId,
           area,
           expiraEn: sumarMinutos(ahora, MINUTOS_BUSQUEDA),
           preguntas: {
-            create: preguntas.map((pregunta, indice) => ({
+            create: preparadas.map((pregunta, indice) => ({
               preguntaId: pregunta.id,
               orden: indice + 1,
               opcionesOrden: mezclar(
@@ -204,8 +220,19 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
       (pregunta) => pregunta.orden === partida.rondaActual,
     );
     const ordenOpciones = this.leerIds(preguntaAsignada?.opcionesOrden);
-    const opciones = partida.preguntaActual
-      ? [...partida.preguntaActual.respuestas]
+    const snapshot = tugSnapshot(partida);
+    const frozen = snapshot?.questions[partida.rondaActual - 1]?.pregunta;
+    const preguntaActual = frozen
+      ? {
+          ...frozen,
+          subtema: {
+            nombre: frozen.subtema,
+            tema: { area: frozen.area, nombre: frozen.tema },
+          },
+        }
+      : partida.preguntaActual;
+    const opciones = preguntaActual
+      ? [...preguntaActual.respuestas]
           .sort(
             (a, b) => ordenOpciones.indexOf(a.id) - ordenOpciones.indexOf(b.id),
           )
@@ -226,7 +253,7 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
         posicionDesdeMiLado:
           lado === 'A' ? partida.posicionCuerda : -partida.posicionCuerda,
         rondaActual: partida.rondaActual,
-        totalPreguntas: partida.preguntas.length,
+        totalPreguntas: snapshot?.qPartida ?? partida.preguntas.length,
         listoA: partida.listoA,
         listoB: partida.listoB,
         rondaIniciaEn: partida.rondaIniciaEn,
@@ -241,15 +268,14 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
           (respuesta) => respuesta.usuarioId === usuarioId,
         ),
         pregunta:
-          partida.estado === EstadoPartidaTiraAfloja.ACTIVA &&
-          partida.preguntaActual
+          partida.estado === EstadoPartidaTiraAfloja.ACTIVA && preguntaActual
             ? {
-                id: partida.preguntaActual.id,
-                enunciado: partida.preguntaActual.enunciado,
-                imagenUrl: partida.preguntaActual.imagenUrl,
-                area: partida.preguntaActual.subtema.tema.area,
-                tema: partida.preguntaActual.subtema.tema.nombre,
-                subtema: partida.preguntaActual.subtema.nombre,
+                id: preguntaActual.id,
+                enunciado: preguntaActual.enunciado,
+                imagenUrl: preguntaActual.imagenUrl,
+                area: preguntaActual.subtema.tema.area,
+                tema: preguntaActual.subtema.tema.nombre,
+                subtema: preguntaActual.subtema.nombre,
                 opciones,
                 tiempoLimiteSegundos: SEGUNDOS_POR_RONDA,
               }
@@ -366,6 +392,7 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
     }
 
     await this.procesarEstado(partidaId);
+    let nuevaPresentacion: { id: string; ronda: number } | undefined;
     await this.prisma.$transaction(async (tx) => {
       // Global key first, then match. No other writer waits for a key while
       // holding a match lock. Recheck after waiting, before admitting an action.
@@ -383,7 +410,7 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
       });
       if (!partida) throw new NotFoundException('Partida no encontrada.');
       this.obtenerLado(partida, usuarioId);
-      const ahora = new Date();
+      let ahora = await this.ahora(tx, partida.evidenciaVersion);
       if (
         partida.estado !== EstadoPartidaTiraAfloja.ACTIVA ||
         !partida.rondaIniciaEn ||
@@ -396,6 +423,9 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
       }
       if (ahora >= partida.rondaVenceEn) {
         throw new BadRequestException('Se agoto el tiempo de la ronda.');
+      }
+      if (partida.evidenciaVersion === 1 && ahora >= partida.expiraEn) {
+        throw new BadRequestException('Se agoto el plazo de la partida.');
       }
       if (
         entrada.ronda !== partida.rondaActual ||
@@ -421,13 +451,29 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
         );
       }
 
-      const opcion = await tx.respuesta.findFirst({
-        where: {
-          id: entrada.respuestaId,
-          preguntaId: entrada.preguntaId,
-        },
-        select: { esCorrecta: true },
-      });
+      if (await this.registrarPresentacion(tx, partida))
+        nuevaPresentacion = { id: partida.id, ronda: partida.rondaActual };
+      ahora = await this.ahora(tx, partida.evidenciaVersion);
+      // Recording can wait for a PostgreSQL row lock held by another instance.
+      // Recheck after that wait; SQL also checks its clock after acquiring the row.
+      if (
+        partida.evidenciaVersion === 1 &&
+        (ahora >= partida.rondaVenceEn || ahora >= partida.expiraEn)
+      ) {
+        throw new BadRequestException('Se agoto el tiempo de la ronda o partida.');
+      }
+      const frozenQuestion = tugSnapshot(partida)?.questions[entrada.ronda - 1];
+      const opcion = frozenQuestion
+        ? frozenQuestion.pregunta.respuestas.find(
+            (r) => r.id === entrada.respuestaId,
+          )
+        : await tx.respuesta.findFirst({
+            where: {
+              id: entrada.respuestaId,
+              preguntaId: entrada.preguntaId,
+            },
+            select: { esCorrecta: true },
+          });
       if (!opcion) {
         throw new BadRequestException(
           'La opcion no pertenece a esta pregunta.',
@@ -448,6 +494,7 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
       });
     });
 
+    await this.verificarPresentacionConfirmada(nuevaPresentacion);
     this.actualizaciones.notificar(partidaId);
     await this.procesarEstado(partidaId);
     return this.obtener(usuarioId, partidaId);
@@ -487,6 +534,7 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
       if (!partida) throw new NotFoundException('Partida no encontrada.');
       const lado = this.obtenerLado(partida, usuarioId);
       if (!ESTADOS_ABIERTOS.includes(partida.estado)) return;
+      // Closing never manufactures enablement; only confirmed rows count.
 
       const sinRival = !partida.jugadorBId;
       const ganadorId = sinRival
@@ -508,7 +556,7 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
             : EstadoPartidaTiraAfloja.FINALIZADA,
           resultado,
           ganadorId,
-          fechaFinalizacion: new Date(),
+          fechaFinalizacion: await this.ahora(tx, partida.evidenciaVersion),
           preguntaActualId: null,
           rondaIniciaEn: null,
           rondaVenceEn: null,
@@ -530,13 +578,16 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async procesarEstado(partidaId: string): Promise<void> {
+    let nuevaPresentacion: { id: string; ronda: number } | undefined;
     const cambio = await this.prisma.$transaction(async (tx) => {
       await this.bloquear(tx, `partida:${partidaId}`);
       const partida = await tx.partidaTiraAfloja.findUnique({
         where: { id: partidaId },
       });
       if (!partida || !ESTADOS_ABIERTOS.includes(partida.estado)) return false;
-      const ahora = new Date();
+      const ahora = await this.ahora(tx, partida.evidenciaVersion);
+      if (await this.registrarPresentacion(tx, partida))
+        nuevaPresentacion = { id: partida.id, ronda: partida.rondaActual };
 
       if (partida.expiraEn <= ahora) {
         const version = partida.version + 1;
@@ -575,6 +626,7 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
       await this.resolverRondaActual(tx, partida, respuestas, ahora);
       return true;
     });
+    await this.verificarPresentacionConfirmada(nuevaPresentacion);
     if (cambio) this.actualizaciones.notificar(partidaId);
   }
 
@@ -604,8 +656,20 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
         select: { id: true },
         take: 50,
       });
+      const presentables = await this.prisma.$queryRaw<
+        Array<{ id: string }>
+      >(Prisma.sql`
+        SELECT m.id FROM "PartidaTiraAfloja" m
+        WHERE m.estado='ACTIVA' AND m."evidenciaVersion"=1
+          AND m."rondaIniciaEn" <= (clock_timestamp() AT TIME ZONE 'UTC')
+          AND (clock_timestamp() AT TIME ZONE 'UTC') < least(m."rondaVenceEn",m."expiraEn")
+          AND (SELECT count(*) FROM "TiraAflojaRondaPresentada" r
+            WHERE r."partidaId"=m.id AND r.ronda=m."rondaActual") < 2
+        ORDER BY m."rondaIniciaEn", m.id LIMIT 50`);
       await Promise.allSettled(
-        partidas.map((partida) => this.procesarEstado(partida.id)),
+        [...new Set([...partidas, ...presentables].map((p) => p.id))].map(
+          (id) => this.procesarEstado(id),
+        ),
       );
     } finally {
       this.barridoEnCurso = false;
@@ -645,13 +709,20 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
         : undefined,
     );
     const posicion = moverCuerda(partida.posicionCuerda, resolucion.movimiento);
-    const pregunta = await tx.pregunta.findUnique({
-      where: { id: partida.preguntaActualId ?? '' },
-      select: {
-        explicacion: true,
-        respuestas: { where: { esCorrecta: true }, select: { id: true } },
-      },
-    });
+    const frozenQuestion =
+      tugSnapshot(partida)?.questions[partida.rondaActual - 1]?.pregunta;
+    const pregunta = frozenQuestion
+      ? {
+          explicacion: frozenQuestion.explicacion,
+          respuestas: frozenQuestion.respuestas.filter((r) => r.esCorrecta),
+        }
+      : await tx.pregunta.findUnique({
+          where: { id: partida.preguntaActualId ?? '' },
+          select: {
+            explicacion: true,
+            respuestas: { where: { esCorrecta: true }, select: { id: true } },
+          },
+        });
     const versionResolucion = partida.version + 1;
     await this.crearEvento(
       tx,
@@ -745,6 +816,31 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
     listoA: boolean,
     listoB: boolean,
   ) {
+    let snapshotData: Pick<
+      Prisma.PartidaTiraAflojaUpdateInput,
+      'evidenciaVersion' | 'qPartida' | 'snapshotInicial'
+    > = {};
+    if (partida.prepararEvidencia) {
+      // Protect the bank while reconstructing its original content; assignment
+      // and both participants are fixed under the existing match lock.
+      await tx.$queryRaw(
+        Prisma.sql`SELECT p.id FROM "Pregunta" p JOIN "TiraAflojaPregunta" a ON a."preguntaId"=p.id WHERE a."partidaId"=${partida.id}::uuid ORDER BY p.id FOR SHARE OF p`,
+      );
+      await tx.$queryRaw(
+        Prisma.sql`SELECT r.id FROM "Respuesta" r JOIN "TiraAflojaPregunta" a ON a."preguntaId"=r."preguntaId" WHERE a."partidaId"=${partida.id}::uuid ORDER BY r.id FOR SHARE OF r`,
+      );
+      const assigned = await tx.tiraAflojaPregunta.findMany({
+        where: { partidaId: partida.id },
+        orderBy: { orden: 'asc' },
+        include: { pregunta: { include: TUG_QUESTION_INCLUDE } },
+      });
+      const snapshot = buildTugSnapshot(partida, assigned);
+      snapshotData = {
+        evidenciaVersion: 1,
+        qPartida: snapshot.qPartida,
+        snapshotInicial: snapshot as unknown as Prisma.InputJsonValue,
+      };
+    }
     const primera = await tx.tiraAflojaPregunta.findUnique({
       where: { partidaId_orden: { partidaId: partida.id, orden: 1 } },
     });
@@ -753,12 +849,14 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
         'La partida no tiene preguntas suficientes.',
       );
     }
-    const iniciaEn = new Date(Date.now() + CUENTA_REGRESIVA_INICIAL_MS);
+    const ahora = await this.ahora(tx, partida.prepararEvidencia ? 1 : null);
+    const iniciaEn = new Date(ahora.getTime() + CUENTA_REGRESIVA_INICIAL_MS);
     const venceEn = new Date(iniciaEn.getTime() + SEGUNDOS_POR_RONDA * 1000);
     const version = partida.version + 1;
     await tx.partidaTiraAfloja.update({
       where: { id: partida.id },
       data: {
+        ...snapshotData,
         estado: EstadoPartidaTiraAfloja.ACTIVA,
         listoA,
         listoB,
@@ -788,7 +886,7 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
         ...(area ? { subtema: { tema: { area } } } : {}),
         respuestas: { some: { esCorrecta: true } },
       }),
-      include: { respuestas: { select: { id: true } } },
+      include: { respuestas: { select: { id: true, esCorrecta: true } } },
       take: 100,
     });
     const validas = candidatas.filter(
@@ -811,6 +909,41 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
     if (usuario.rol !== RolUsuario.ESTUDIANTE) {
       throw new ForbiddenException('Este juego es para cuentas de estudiante.');
     }
+  }
+
+  private async ahora(
+    tx: ClienteTransaccion,
+    evidenceVersion: number | null | undefined,
+  ): Promise<Date> {
+    if (evidenceVersion !== 1) return new Date();
+    const [row] = await tx.$queryRaw<Array<{ ahora: Date }>>(
+      Prisma.sql`SELECT (clock_timestamp() AT TIME ZONE 'UTC')::timestamp(3) AS ahora`,
+    );
+    return row.ahora;
+  }
+
+  private async registrarPresentacion(
+    tx: ClienteTransaccion,
+    partida: { id: string; evidenciaVersion?: number | null },
+  ): Promise<boolean> {
+    if (partida.evidenciaVersion !== 1) return false;
+    const [row] = await tx.$queryRaw<Array<{ registrada: boolean }>>(
+      Prisma.sql`SELECT tug_record_presented_round(${partida.id}::uuid) AS registrada`,
+    );
+    return row.registrada;
+  }
+
+  private async verificarPresentacionConfirmada(
+    nueva: { id: string; ronda: number } | undefined,
+  ): Promise<void> {
+    if (!nueva) return;
+    // Prisma 5 can resolve an interactive transaction despite a deferred
+    // constraint rejecting COMMIT. Never report that rolled-back transition.
+    const count = await this.prisma.tiraAflojaRondaPresentada.count({
+      where: { partidaId: nueva.id, ronda: nueva.ronda },
+    });
+    if (count !== 2)
+      throw new BadRequestException('La habilitacion no pudo confirmarse dentro del plazo.');
   }
 
   private buscarActiva(

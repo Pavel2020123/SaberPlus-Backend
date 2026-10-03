@@ -973,6 +973,11 @@ enum TipoEventoTiraAfloja {
 }
 
 model PartidaTiraAfloja {
+  prepararEvidencia   Boolean                     @default(false)
+  evidenciaVersion    Int?
+  snapshotInicial     Json?
+  qPartida            Int?
+  rondasPresentadas   TiraAflojaRondaPresentada[]
   id                  String                      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   estado              EstadoPartidaTiraAfloja     @default(BUSCANDO)
   resultado           ResultadoPartidaTiraAfloja?
@@ -1005,6 +1010,20 @@ model PartidaTiraAfloja {
   @@index([jugadorAId, estado])
   @@index([jugadorBId, estado])
   @@index([ganadorId])
+}
+
+model TiraAflojaRondaPresentada {
+  partidaId    String            @db.Uuid
+  ronda        Int
+  usuarioId    String            @db.Uuid
+  preguntaId   String
+  programadaEn DateTime          @default(now()) @db.Timestamp(6)
+  presentadaEn DateTime          @db.Timestamp(6)
+  venceEn      DateTime          @db.Timestamp(6)
+  registradaEn DateTime          @default(now()) @db.Timestamp(6)
+  partida      PartidaTiraAfloja @relation(fields: [partidaId], references: [id], onDelete: Restrict)
+
+  @@id([partidaId, ronda, usuarioId])
 }
 
 model TiraAflojaPregunta {
