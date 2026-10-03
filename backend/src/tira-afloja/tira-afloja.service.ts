@@ -19,6 +19,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { preguntaPublicadaWhere } from '../common/contenido-publicado';
 import { TiraAflojaRealtimePublisher } from './tira-afloja-realtime.publisher';
 import { requireTugPresence } from './tira-afloja-presence.service';
+import { TiraAflojaVisibilityWitness } from './tira-afloja-visibility.witness';
 import {
   buildTugSnapshot,
   TUG_QUESTION_INCLUDE,
@@ -72,11 +73,14 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
   private barridoEnCurso = false;
   private temporizador?: NodeJS.Timeout;
   private readonly log = new Logger(TiraAflojaService.name);
+  private readonly visibilityWitness: TiraAflojaVisibilityWitness;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly actualizaciones: TiraAflojaRealtimePublisher,
-  ) {}
+  ) {
+    this.visibilityWitness = new TiraAflojaVisibilityWitness(prisma);
+  }
 
   onModuleInit(): void {
     this.temporizador = setInterval(() => {
@@ -85,8 +89,9 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
     this.temporizador.unref();
   }
 
-  onModuleDestroy(): void {
+  async onModuleDestroy(): Promise<void> {
     if (this.temporizador) clearInterval(this.temporizador);
+    await this.visibilityWitness.close();
   }
 
   async emparejar(usuarioId: string, area?: AreaIcfes) {
@@ -156,6 +161,7 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
         data: {
           prepararEvidencia: true,
           presenciaVersion: 1,
+          certificacionRVersion: 1,
           jugadorAId: usuarioId,
           area,
           expiraEn: sumarMinutos(ahora, MINUTOS_BUSQUEDA),
@@ -503,6 +509,8 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
     });
 
     await this.verificarPresentacionConfirmada(nuevaPresentacion);
+    if (nuevaPresentacion)
+      await this.certificarSinRevertirDeporte(partidaId);
     this.actualizaciones.notificar(partidaId);
     await this.procesarEstado(partidaId);
     return this.obtener(usuarioId, partidaId);
@@ -596,11 +604,13 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
 
   private async procesarEstado(partidaId: string): Promise<void> {
     let nuevaPresentacion: { id: string; ronda: number } | undefined;
+    let certificar = false;
     const cambio = await this.prisma.$transaction(async (tx) => {
       await this.bloquear(tx, `partida:${partidaId}`);
       let partida = await tx.partidaTiraAfloja.findUnique({
         where: { id: partidaId },
       });
+      certificar = partida?.certificacionRVersion === 1;
       if (!partida || !ESTADOS_ABIERTOS.includes(partida.estado)) return false;
       let ahora = await this.ahora(tx, partida.evidenciaVersion);
       let presenciaCambio = false;
@@ -658,6 +668,7 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
       return true;
     });
     await this.verificarPresentacionConfirmada(nuevaPresentacion);
+    if (certificar) await this.certificarSinRevertirDeporte(partidaId);
     if (cambio) this.actualizaciones.notificar(partidaId);
   }
 
@@ -705,10 +716,21 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
            EXISTS(SELECT 1 FROM "TugConnection" c WHERE c."matchId"=m.id
             AND c.state='OPEN' AND c."leaseUntil"<=tug_presence_now()))
         ORDER BY m.id LIMIT 50`;
+      // Recovery only while a real PostgreSQL observation is still possible.
+      const certificables = await this.prisma.$queryRaw<{ id: string }[]>`
+        SELECT DISTINCT m.id FROM "PartidaTiraAfloja" m
+        JOIN "TiraAflojaRondaPresentada" r ON r."partidaId"=m.id
+        WHERE m."certificacionRVersion"=1
+          AND timezone('UTC',clock_timestamp())<least(r."venceEn",m."expiraEn")
+          AND NOT EXISTS(SELECT 1 FROM "TugRoundVisibility" c
+            WHERE c."partidaId"=m.id AND c.ronda=r.ronda)
+        ORDER BY m.id LIMIT 50`;
       const results = await Promise.allSettled(
         [
           ...new Set(
-            [...partidas, ...presentables, ...presencia].map((p) => p.id),
+            [...partidas, ...presentables, ...presencia, ...certificables].map(
+              (p) => p.id,
+            ),
           ),
         ].map((id) => this.procesarEstado(id)),
       );
@@ -986,6 +1008,22 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
         venceEn: venceEn.toISOString(),
       },
     );
+  }
+
+  private async certificarSinRevertirDeporte(partidaId: string): Promise<void> {
+    try {
+      await this.visibilityWitness.certify(partidaId);
+    } catch (error) {
+      // Only the independent post-COMMIT witness is isolated. Sports/schema
+      // errors in the original transaction still propagate to the caller.
+      this.log.error(JSON.stringify({
+        event: 'TUG_VISIBILITY_PENDING', partidaId,
+        code: error?.code ?? 'WITNESS_ERROR', sqlState: error?.meta?.code ?? null,
+        detail: typeof error?.meta?.message === 'string' ? error.meta.message : null,
+        reason: error?.message === 'TUG_WITNESS_DATABASE_MISMATCH'
+          ? error.message : 'Independent witness failed; certificate remains absent',
+      }));
+    }
   }
 
   private async iniciarPrimeraRonda(

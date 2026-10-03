@@ -7,9 +7,9 @@ a otro repositorio, no a archivos dentro de este árbol.
 
 ## PR-I1 competitivo V1
 
-Rama `feat/pr-i1-competitive-infrastructure`, HEAD `3d0e625`: nueve checkpoints
-confirmados. Décima ronda local de auditoría/preparación XP Tira: protocolo de
-liquidación del par y certificación de R pendientes; TUG_MATCH no registrado ni
+Rama `feat/pr-i1-competitive-infrastructure`, HEAD `7edef15`: diez checkpoints
+confirmados. Ronda 11 local: testigo independiente post-COMMIT para R Tira;
+protocolo de liquidación del par y replay pendientes; TUG_MATCH no registrado ni
 habilitado. La auditoría registra garantías, diagnósticos y resultados. PR-I1 no fusionado a main. Implementación local
 no equivale a migración remota aplicada, backend desplegado o juego activado.
 

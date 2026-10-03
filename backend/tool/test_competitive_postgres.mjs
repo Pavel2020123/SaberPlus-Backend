@@ -199,6 +199,10 @@ async function main() {
       'prisma/migrations/20261003160000_tug_presence/migration.sql';
     if (!paths.includes(tugPresenceMigration))
       sql.push(await readFile(join(backend, tugPresenceMigration), 'utf8'));
+    const tugVisibilityMigration =
+      'prisma/migrations/20261003220000_tug_round_visibility/migration.sql';
+    if (!paths.includes(tugVisibilityMigration))
+      sql.push(await readFile(join(backend, tugVisibilityMigration), 'utf8'));
     await writeFile(migrationPath, sql.join('\n'), 'utf8');
     await docker('cp', migrationPath, `${name}:/tmp/competitive-migration.sql`);
     await docker(
@@ -216,7 +220,7 @@ async function main() {
       '/tmp/competitive-migration.sql',
     );
     console.log(
-      `PostgreSQL 16 local: ${paths.length} committed migrations${paths.includes(migration) ? '' : ' + pending Trivia evidence migration'}${paths.includes(presenceMigration) ? '' : ' + pending Trivia presence migration'}${paths.includes(competitiveTriviaMigration) ? '' : ' + pending Trivia competitive V1 migration'}${paths.includes(tugMigration) ? '' : ' + pending Tug evidence migration'} applied.`,
+      `PostgreSQL 16 local: ${paths.length} committed migrations${paths.includes(migration) ? '' : ' + pending Trivia evidence migration'}${paths.includes(presenceMigration) ? '' : ' + pending Trivia presence migration'}${paths.includes(competitiveTriviaMigration) ? '' : ' + pending Trivia competitive V1 migration'}${paths.includes(tugMigration) ? '' : ' + pending Tug evidence migration'}${paths.includes(tugVisibilityMigration) ? '' : ' + pending Tug round visibility migration'} applied.`,
     );
     const clockDiagnostic = async (phase) => {
       const hostBefore = Date.now();
@@ -288,6 +292,7 @@ async function main() {
         'test/competitive-tug-evidence-postgres.test.cjs',
         'test/competitive-tug-presence-postgres.test.cjs',
         'test/competitive-tug-preflight-postgres.test.cjs',
+        'test/competitive-tug-visibility-postgres.test.cjs',
       ];
       const totals = {
         tests: 0,

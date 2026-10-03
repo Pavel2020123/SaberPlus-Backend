@@ -11,9 +11,9 @@
 
 ## Estado competitivo PR-I1 V1
 
-Nueve checkpoints están confirmados hasta `3d0e625`. La décima ronda prepara y
-audita XP Tira, sin registrarlo ni habilitarlo: el contrato de locks del par y la
-certificación de R requieren resolución. La auditoría enlazada conserva las
+Diez checkpoints están confirmados hasta `7edef15`. La ronda 11 añade un testigo
+de visibilidad R post-COMMIT, sin registrar ni habilitar XP Tira: el contrato de
+liquidación del par y el replay siguen pendientes. La auditoría enlazada conserva las
 decisiones deportivas, pruebas actuales e historial de validaciones.
 PR-I1 no está fusionado a main. Código implementado no significa desplegado ni
 activado: no se aplicaron migraciones remotas en esta revisión; la nueva evidencia

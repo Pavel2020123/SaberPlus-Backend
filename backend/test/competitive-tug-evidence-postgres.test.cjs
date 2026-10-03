@@ -107,6 +107,7 @@ before(async () => {
 });
 after(async () => {
   await app?.close();
+  await engine?.onModuleDestroy();
   await db?.$disconnect();
 });
 async function fixture(start = true) {
@@ -577,6 +578,8 @@ test('TUG V1: anon/authenticated cannot read evidence or invoke private recordin
       'tug_connection_guard', 'tug_presence_lock', 'tug_presence_refresh',
       'tug_presence_connect', 'tug_presence_observe',
       'tug_presence_require_open', 'tug_presence_answer_guard',
+      'tug_certify_presented_round', 'tug_presented_origin_guard',
+      'tug_visibility_guard', 'tug_visibility_origin_guard',
     ].sort());
     assert.ok(permissions.every((p) => p.allowed === false));
   }
@@ -584,7 +587,9 @@ test('TUG V1: anon/authenticated cannot read evidence or invoke private recordin
     for (const sql of [
       'SELECT * FROM "PartidaTiraAfloja"',
       'SELECT * FROM "TiraAflojaRondaPresentada"',
+      'SELECT * FROM "TugRoundVisibility"',
       `SELECT tug_record_presented_round('${randomUUID()}'::uuid)`,
+      `SELECT tug_certify_presented_round('${randomUUID()}'::uuid,1)`,
     ])
       await assert.rejects(
         db.$transaction(async (tx) => {

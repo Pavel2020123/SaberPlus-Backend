@@ -975,6 +975,8 @@ enum TipoEventoTiraAfloja {
 }
 
 model PartidaTiraAfloja {
+  certificacionRVersion Int?
+  certificacionesR TugRoundVisibility[]
   presenciaVersion    Int?
   tugPresences TugPresence[]
   tugPresenceEvents TugPresenceEvent[]
@@ -1069,6 +1071,8 @@ model TugAbandonment {
 }
 
 model TiraAflojaRondaPresentada {
+  origenXid    String?
+  origenPid    Int?
   partidaId    String            @db.Uuid
   ronda        Int
   usuarioId    String            @db.Uuid
@@ -1080,6 +1084,19 @@ model TiraAflojaRondaPresentada {
   partida      PartidaTiraAfloja @relation(fields: [partidaId], references: [id], onDelete: Restrict)
 
   @@id([partidaId, ronda, usuarioId])
+}
+
+model TugRoundVisibility {
+  partidaId String @db.Uuid
+  ronda Int
+  origenXid String
+  origenPid Int
+  testigoXid String
+  testigoPid Int
+  observadaEn DateTime @db.Timestamp(6)
+  limiteEn DateTime @db.Timestamp(6)
+  partida PartidaTiraAfloja @relation(fields: [partidaId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  @@id([partidaId,ronda])
 }
 
 model TiraAflojaPregunta {

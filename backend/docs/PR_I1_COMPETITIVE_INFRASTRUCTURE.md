@@ -1,6 +1,63 @@
 # PR-I1 V1: infraestructura competitiva común
 
-## Estado vigente — décima ronda, preflight XP Tira bloqueado
+## Estado vigente — ronda 11, certificación de visibilidad R sin XP Tira
+
+Rama `feat/pr-i1-competitive-infrastructure`, HEAD `7edef15`: diez checkpoints
+confirmados, árbol limpio al iniciar. Ronda 11 local y sin commit: añade un
+testigo PostgreSQL independiente post-COMMIT para R de partidas nuevas, sin
+modificar CompetitiveService ni registrar TUG_MATCH. Los R originales y el
+resultado deportivo se conservan; históricos/preparados anteriores no se
+inscriben retroactivamente. La [auditoría vigente](PR_I1_TIRA_AFLOJA_AUDITORIA.md)
+explica el contrato, recuperación, fail-closed y sus límites.
+
+Un certificado exige otra conexión/XID, origen top-level confirmado, pareja
+completa y observación PostgreSQL posterior a los locks antes del deadline.
+COMMIT tardío del origen o falta de testigo a tiempo dejan R no certificable.
+El COMMIT del propio certificado no se presenta como fecha del COMMIT de origen.
+Sin certificados para **todos** los R originales, el futuro verificador deberá
+bloquear el intento, sin recortar R y alterar C/R. Los certificados no acreditan
+terminal/C/presencia/historial: replay y liquidación atómica del par permanecen
+pendientes. No se autoriza activar/admitir/liquidar XP Tira, otros juegos o PR-I2.
+
+Nueva dependencia local: [certificación de visibilidad](../prisma/migrations/20261003220000_tug_round_visibility/migration.sql),
+posterior a las migraciones confirmadas de evidencia y presencia Tira. Aplicarla
+con autorización/revisión antes del backend nuevo; no se ejecutan migraciones
+remotas. Rol/RLS, presupuesto del pool adicional y durabilidad física WAL
+productivos siguen pendientes; tmpfs local no los demuestra. Los 34 fallos
+históricos y Rescate siguen abiertos. Todos los flags existentes siguen apagados
+por defecto; no hay flag/admisión XP Tira ni fusión a main.
+
+La revisión humana agrega certificación inmediata al COMMIT de responder,
+aislamiento observable de errores del testigo y verificación de identidad de
+base entre pools. Solo PT001 representa el deadline; otras violaciones de
+integridad no se silencian. Se conserva R deportivo, sin elegibilidad si falta
+certificado y sin error al cliente por fallo exclusivo del testigo tras COMMIT.
+Véanse recorridos, límites y resultados nuevos en la auditoría vigente enlazada.
+
+Revisión humana final: build exit 0 (18542 ms); competitivo 205/205, 12 suites
+(18,497 s); completo 1086/1086, 101 suites (50,355 s); PostgreSQL 180/180,
+11 archivos completos (306762 ms bloque / 318822 ms runner), cero fallos,
+cancelados, omitidos o TODO. Audit omit=dev cero vulnerabilidades y TLS activo;
+diff --check exit 0, 67 enlaces locales válidos. Se conservan un build fallido
+por EPERM al generar Prisma mientras otro proceso lo usaba y un PostgreSQL
+174/180 por deserialización void en el chequeo nuevo de identidad; la auditoría
+documenta el ::text correctivo y los seis fallos, sin relajar pruebas/plazos.
+Los catorce archivos locales se conservan; no hay commit ni migraciones remotas.
+
+Validación previa a esta revisión: build exit 0 (17082 ms); competitivo 200/200, 12 suites
+(8,117 s); completo 1081/1081, 101 suites (38,904 s). PostgreSQL 177/177,
+11 archivos, 292302 ms del bloque y 303458 ms del runner, cero fallos,
+cancelados, omitidos, TODO o archivos incompletos. Audit omit=dev cero
+vulnerabilidades, TLS activo. La auditoría conserva las cuatro ejecuciones:
+176/177 por inventario de permisos obsoleto, 177/177 con rechazo genérico
+insuficiente para probar caída, 176/177 al exigir terminación real, y 177/177
+tras demostrar SQLSTATE 42883 por PID bigint y corregirlo con ::integer.
+No se ocultan fallos ni se presenta repetir hasta verde como corrección.
+Git diff --check exit 0; 67 enlaces locales existen. Diez archivos modificados
+y cuatro nuevos, sin commit. Branch/HEAD permanecen en la base 7edef15.
+Los registros inferiores son historial y no validación de esta ronda.
+
+## Historial — décima ronda, confirmada en 7edef15
 
 Rama feat/pr-i1-competitive-infrastructure, HEAD 3d0e625: nueve checkpoints
 confirmados. La ronda 10 agrega pruebas/auditoría, sin habilitar ni registrar XP
@@ -60,7 +117,8 @@ Véase [la revisión y evidencia de Tira](PR_I1_TIRA_AFLOJA_AUDITORIA.md).
 | 7 | `39d3881`, confirmado | Auditoría Tira, corrección de bloqueo/idempotencia legacy y pruebas de frontera; sin XP TUG_MATCH. |
 | 8 | `a4d010b`, confirmado | Snapshot original y R durable Tira, guards SQL, privacidad/compatibilidad; sin admisión/verificador/XP TUG_MATCH. |
 | 9 | `3d0e625`, confirmado | Presencia/gracia durable Tira y runner estricto. Decisión deportiva de rival UNKNOWN resuelta; sin XP TUG_MATCH. |
-| 10 | Local, sin commit | Auditoría/pruebas de locks del par y certificación de R; verificador XP no registrado. |
+| 10 | `7edef15`, confirmado | Auditoría/pruebas de locks del par y brecha de visibilidad de R; verificador XP no registrado. |
+| 11 | Local, sin commit | Testigo de visibilidad R post-COMMIT y evidencia append-only; sin verificador/admisión/XP TUG_MATCH. |
 
 Cima/Guardián/Rescate y Trivia/Duelo están versionados.
 Tira, Memoria y Batallas siguen sin integración competitiva; Memoria requiere

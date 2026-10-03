@@ -1,6 +1,276 @@
 # PR-I1 V1 — auditoría y preparación de Tira y afloja
 
-## Estado vigente — décima ronda: preparación XP, sin verificador funcional
+## Estado vigente — ronda 11: testigo de visibilidad de R, sin XP
+
+2026-10-03, rama `feat/pr-i1-competitive-infrastructure`, HEAD `7edef15`.
+Diez checkpoints confirmados; árbol limpio al iniciar. La ronda 11 permanece
+local y sin commit. TUG_MATCH sigue sin admisión, verificador o liquidación;
+CompetitiveService y las fórmulas V1 no se modifican.
+
+### Contrato y evidencia de la certificación
+
+La [migración nueva](../prisma/migrations/20261003220000_tug_round_visibility/migration.sql)
+depende de evidencia y presencia Tira confirmadas. Añade `certificacionRVersion=1`
+solo al crear partidas nuevas; históricos y preparados anteriores permanecen
+NULL, sin UPDATE de inscripción ni backfill. El motor deportivo sigue contando
+sus filas R originales. La certificación es evidencia adicional, nunca una
+habilitación retroactiva, un ACK de cliente o una modificación del denominador.
+La inscripción de certificación no es admisión competitiva. Tampoco las
+partidas nuevas certificadas en esta ronda pueden convertirse o pagarse
+retroactivamente cuando se integre XP: todas siguen sin admisión competitiva.
+
+El trigger de inserción conserva el XID **top-level** `xid8` y PID PostgreSQL
+de origen en cada fila R nueva. Ambos participantes deben conservar la misma
+transacción, pregunta, programación y deadline. La identidad xid8 se almacena
+como texto decimal generado por PostgreSQL, evitando conversión/truncamiento
+a xid32 o Number de JavaScript. UPDATE/DELETE de R siguen rechazados.
+La semántica de top-level y estado de transacción corresponde a la
+[documentación PostgreSQL 16](https://www.postgresql.org/docs/16/functions-info.html);
+los casos y comparaciones temporales se verifican además en PostgreSQL real.
+
+[El testigo privado](../src/tira-afloja/tira-afloja-visibility.witness.ts) usa
+otro PrismaClient/pool sobre el mismo DATABASE_URL del PrismaService estándar.
+Antes de leer evidencia, verifica la base real del PrismaService inyectado:
+el origen toma un advisory lock transaccional aleatorio y el testigo debe
+observarlo ocupado en otra sesión. Ese namespace pertenece a la misma base
+PostgreSQL; una configuración divergente falla con TUG_WITNESS_DATABASE_MISMATCH,
+sin consultar ni insertar certificados. No se cambia configuración persistente
+ni se leen credenciales internas de Prisma. El chequeo se comparte en la
+inicialización del pool y se reintenta si falla; se reinicia al cerrarlo.
+No recibe el cliente transaccional del escritor para certificar. Tras el COMMIT del motor,
+observa candidatos y llama `tug_certify_presented_round`. La DB bloquea ambos
+Usuario ordenados → advisory/fila de partida, lee la pareja y exige:
+
+1. Inscripción nueva y evidencia original V1.
+2. Ambos R completos, consistentes e inmutables.
+3. PID de testigo diferente del origen y XID de testigo diferente del top-level
+   de origen, incluso cuando la inserción se hizo en un savepoint.
+4. `pg_xact_status(origenXid)='committed'`, nunca `in progress`, abortado o NULL.
+5. `clock_timestamp()` PostgreSQL **después** de locks/lecturas/comprobaciones
+   estrictamente anterior al menor deadline congelado de ronda/partida.
+
+El guard de `TugRoundVisibility` genera/reescribe los hechos, sin confiar en
+timestamps o identidades recibidos por INSERT. El certificado del par tiene PK
+partida/ronda, XID/PID de origen y observador, `observadaEn` y `limiteEn` con
+microsegundos. Es append-only, privado y con RLS; anon/authenticated tampoco
+pueden ejecutar las funciones. Los reintentos recuperan el certificado existente
+sin fabricar una segunda observación. Una conexión de origen no se autocertifica.
+
+La distinción es esencial: **observación efectiva de una fuente ya confirmada**
+no es el instante del COMMIT del certificado. Un testigo puede observar R válido
+antes del límite y confirmar su certificado después. Su evidencia proviene del
+guard ejecutado a tiempo contra una fuente confirmada, no de afirmar que una
+escritura tardía ocurrió antes. El certificado no contiene una supuesta hora
+exacta de COMMIT. Si el testigo aborta antes de confirmar, no queda certificación.
+
+| Caso | R deportivo | Evidencia para futura liquidación |
+|---|---|---|
+| Origen confirmado y observado por otro backend a tiempo | Se conserva el par | Certificado independiente persistido. |
+| SET CONSTRAINTS IMMEDIATE temprano y COMMIT de origen tardío | Puede existir el par por la brecha confirmada | Sin certificado; no elegible. |
+| Origen oportuno, pero testigo ausente/abortado hasta después del límite | Se conserva el par | Momento oportuno no demostrable; no elegible. |
+| Testigo en espera hasta el límite | Se conserva el par | El reloj posterior al lock impide certificar. |
+| Certificado confirmado y posterior reinicio | Se conserva el par | Reutilizar la evidencia existente, sin backfill. |
+
+No se deduce «COMMIT tardío» de la mera ausencia de certificado: la DB pudo
+confirmar a tiempo sin que sobreviviera un testigo. El caso B se demuestra en
+las transacciones controladas de las pruebas; para una partida sin testigo en
+producción, distinguir B de C retrospectivamente **no está garantizado**.
+La recomendación es exigir prueba positiva A y tratar ambos casos restantes
+como no elegibles, conservando R. No reconstruir fechas desde inserciones,
+ni usar un timestamp de COMMIT como sustituto de observación independiente.
+Una clasificación negativa durable más precisa requeriría investigación
+adicional y un protocolo verificable; no se simula en esta ronda.
+
+La recuperación del motor busca pares pendientes mientras la observación aún
+es posible, incluso si hubo cierre deportivo dentro de la ventana. Tras el
+deadline no inventa certificaciones. El testigo solo absorbe el SQLSTATE privado
+PT001 (deadline vencido durante la observación). Otras violaciones 23514,
+errores de esquema, conectividad y deadlocks llegan al límite post-COMMIT del
+servicio: registra TUG_VISIBILITY_PENDING con partida, código Prisma y SQLSTATE,
+sin devolver al cliente un fallo de una operación deportiva ya confirmada.
+El certificado permanece ausente; la recuperación reintenta solo dentro del
+plazo original. Errores de la transacción deportiva no se capturan ni se ocultan.
+Ausencia de certificado es fail-closed.
+
+### Revisión humana: cobertura y fallos posteriores al COMMIT
+
+Solo registrarPresentacion inserta R, mediante tug_record_presented_round;
+sus dos llamadores son responder y procesarEstado. Ambos verifican el par
+confirmado y llaman al testigo después del COMMIT. responder lo hace ahora
+directamente antes del publisher o de otra transacción deportiva, evitando
+que una espera posterior consuma la oportunidad de observación. procesarEstado
+lo hace también cuando el intento ya es terminal y quedan pares certificables.
+marcarListo/iniciarPrimeraRonda y resolverRondaActual programan la ronda, pero
+no insertan R durante la cuenta regresiva/pausa. Obtener, respuestas y el worker
+invocan procesarEstado; la recuperación busca además pares pendientes dentro
+del deadline, incluidos los que sobrevivieron a un reinicio.
+
+La partida completa PostgreSQL usa listo y respuestas públicas, sin invocar
+manualmente procesarEstado entre rondas. Otro caso deja transcurrir la cuenta
+regresiva según PostgreSQL entre la consulta previa y la transacción de respuesta:
+comprueba que el par creado por responder ya tenga certificado antes del siguiente
+procesamiento. Son flujos del servicio real conectado a PostgreSQL, no una prueba
+HTTP ni un verificador XP. La prueba de error SQL real 22012 comprueba respuesta
+confirmada, reintento sin segunda escritura, error observable, certificado ausente
+y recuperación oportuna. La caída de transporte se inyecta explícitamente, no se
+presenta como una caída real de red. La recuperación mantiene el par sin certificar
+durante el fallo y lo observa después si aún está dentro del plazo.
+
+**Gate del futuro verificador:** comprobar que todos los pares R originales
+del intento tienen certificación válida. No contar solamente los certificados
+como nuevo R ni ignorar una ronda sin certificado: eso alteraría C/R. Una sola
+habilitación no certificada bloquea la liquidación del intento, conservando
+originales y motivo diagnosticable. Hoy no hay verificador ni premios TUG.
+Esta certificación no demuestra C, terminal deportivo, elegibilidad/presencia
+para bono ni historial institucional: el replay y la liquidación atómica del
+par siguen pendientes. No queda autorizado registrar/activar XP Tira.
+
+### Límites de la garantía y despliegue
+
+Se prueba visibilidad lógica en PostgreSQL real mediante conexiones distintas.
+Pruebas de reconexión/rollback representan recuperación de aplicación; no
+demuestran supervivencia a pérdida física del servidor/disco. WAL, fsync,
+synchronous_commit y recuperación física productiva siguen pendientes. El
+contenedor local usa tmpfs. Permisos/rol/RLS productivos no están verificados;
+no se aplican migraciones remotas. Revisar presupuesto de conexiones: el pool
+del testigo es separado del pool del escritor. Requiere la migración nueva
+antes del backend nuevo, incluso sin admisión XP. No se ocultan errores de
+esquema faltante. Publisher local/multiinstancia, los 34 fallos históricos y
+la intermitencia de vencimiento de Rescate continúan abiertos.
+
+Las pruebas de [visibilidad PostgreSQL](../test/competitive-tug-visibility-postgres.test.cjs)
+añaden conexiones con PID distintos, límites reales sin acortar rondas,
+savepoint/IMMEDIATE/COMMIT tardío, testigo abortado/reinicio, certificado
+confirmado tarde tras observación efectiva temprana, esperas por locks,
+reintentos/dos instancias, privacidad/RLS, históricos, cierre normal/abandono
+y ausencia de ledger/balance XP. [Jest](../src/competitive/competitive.tug-visibility.spec.ts)
+solo verifica la frontera operativa del testigo, no simula prueba de visibilidad.
+El runner conserva los diez archivos anteriores y agrega el undécimo, sin
+cambiar el gate estricto ni los 120 s por archivo.
+
+### Validación de la revisión humana — historial de intentos
+
+Se conserva un build inicial exitoso (17790 ms). El segundo intento falló
+con EPERM al renombrar query_engine-windows.dll.node mientras el runner
+PostgreSQL seguía usando Prisma. No se eliminó la DLL ni se detuvieron procesos
+ajenos. Terminada esa ejecución, el build completo pasó (18542 ms).
+
+Primera validación PostgreSQL de la revisión: 174/180, exit 1; once archivos
+completos, seis fallos en visibilidad, cero cancelados/omitidos/TODO. Bloque:
+309737 ms; runner total: 321860 ms. Los otros diez archivos pasaron. El error
+demostrado del chequeo nuevo fue P2010 con meta.code=N/A: Prisma no puede
+deserializar una columna void de pg_advisory_xact_lock. Fallaron las pruebas
+de recuperación tras caída, testigo real del servicio, partida normal completa,
+certificación inmediata de responder, recuperación tras SQL 22012 y recuperación
+tras transporte inyectado, porque no pudieron obtener certificado. Se añadió
+::text al resultado del lock, sin modificar relojes, deadlines ni aserciones.
+Los fallos históricos de 34 pruebas y Rescate no se atribuyen a este defecto nuevo.
+
+Validación final después de corregir el tipo void:
+
+| Validación | Resultado exacto |
+|---|---|
+| Build | Exit 0; 18542 ms; ejecutado sin runner activo para evitar el conflicto DLL. |
+| Jest competitivo | 205/205, 12 suites, 18,497 s; primera ejecución también 205/205, 19,034 s. |
+| Jest completo | 1086/1086, 101 suites, 50,355 s; primera ejecución también 1086/1086, 45,703 s. |
+| PostgreSQL completo, segunda ejecución | 180/180, 11 archivos completos, exit 0; bloque 306762 ms, runner 318822 ms. |
+| PostgreSQL visibilidad | 13/13; 88856,834 ms; incluye SQLSTATE PT001 explícito y los tres recorridos nuevos. |
+| Audit omit=dev | Exit 0; cero vulnerabilidades; 1791 ms, TLS activo con CA del sistema. |
+| git diff --check | Exit 0. Los 67 enlaces Markdown locales siguen apuntando a archivos existentes. |
+
+PostgreSQL: cero fallos, cancelados, omitidos, TODO o archivos incompletos en la
+segunda ejecución. Ambas ejecuciones aplican 57 migraciones confirmadas más
+la nueva, exclusivamente en contenedores desechables propios. Cada log incluye
+una sonda inicial docker/pg_isready con code=2 antes de estar disponible; el
+retry de arranque existente alcanzó disponibilidad y no fue un fallo del daemon.
+El contenedor ajeno postgres-local conserva ID y StartedAt; no se intervino.
+
+Esta revisión cambia el motor Tira, testigo, pruebas Jest/PG de visibilidad,
+la migración nueva (solo SQLSTATE de deadline) y estos dos documentos de Tira
+e infraestructura. Se preservan los otros siete archivos ya modificados del
+checkpoint; el cambio de Trivia/Duelo sigue siendo exclusivamente HEAD y
+cantidad de checkpoints, sin alterar contratos. Ninguna migración confirmada
+se modifica. Rama y HEAD siguen feat/pr-i1-competitive-infrastructure / 7edef15.
+Sin commit, push, merge, despliegue o migraciones remotas. TUG_MATCH sigue sin
+admisión/verificador/liquidación. WAL, rol/RLS productivos, publisher entre
+instancias, incertidumbre de los 34 fallos y Rescate permanecen pendientes.
+
+### Validaciones previas a la revisión humana de la ronda 11 e intentos fallidos
+
+Build final exit 0 (17082 ms); Jest competitivo 200/200, 12 suites, 8,117 s;
+Jest completo 1081/1081, 101 suites, 38,904 s. La primera build y ambas suites
+también pasaron: competitivo 14,376 s y completo 39,171 s. Seis casos nuevos
+Jest; ninguna fórmula ni prueba aritmética se modifica.
+
+| PostgreSQL completo, 11 archivos | Resultado | Bloque / runner (ms) | Diagnóstico |
+|---|---|---|---|
+| Primera ejecución | 176/177, exit 1 | 297167 / 308961 | Inventario exacto de permisos esperaba 16 funciones; el esquema ahora tiene 20. Las diez pruebas nuevas pasaron. |
+| Segunda ejecución | 177/177, exit 0 | 291894 / 303107 | Inventario actualizado y acceso privado preservado; **no prueba por sí sola terminación de la conexión**, por rechazo genérico demasiado amplio en esa prueba nueva. |
+| Tercera ejecución | 176/177, exit 1 | 288402 / 300327 | La aserción fuerte detectó que no se había terminado el escritor: el error SQL anterior podía satisfacer assert.rejects. |
+| Final tras corregir el tipo PID | 177/177, exit 0 | 292302 / 303458 | Terminación real exigida y alcanzada; rollback, recuperación y las diez pruebas nuevas aprobadas. |
+
+La primera corrección amplía el inventario exacto y el rechazo efectivo de
+anon/authenticated para las cuatro funciones y tabla nuevas; no elimina
+aserciones. Se cierra además el pool del testigo en el teardown del fixture
+HTTP existente. La segunda corrección afecta únicamente la nueva prueba:
+Prisma 5.22 enlaza el PID Number como bigint; un contenedor diagnóstico propio
+reprodujo P2010/meta.code=42883 y el mensaje
+`function pg_terminate_backend(bigint) does not exist`. La misma llamada con
+`::integer` devolvió terminated=true. La prueba conserva una bandera/aserción
+que exige haber ejecutado la terminación real, antes de verificar rollback y
+recuperación. No se usa un error previo como sustituto de caída de conexión.
+Los registros de las ejecuciones previas permanecen; el verde de la segunda
+no se presenta como demostración de ese camino de recuperación.
+
+Audit omit=dev: 0 vulnerabilidades, TLS activo y CA del sistema temporal,
+sin cambios persistentes en NODE_OPTIONS. PostgreSQL final: 11 archivos completos,
+57 migraciones confirmadas más la nueva de visibilidad; PostgreSQL 16.15/UTC,
+72 tablas y 34 triggers. Cero fallos/cancelados/omitidos/TODO y cero archivos
+fallidos/incompletos/inválidos. Revisión de enlaces locales y diff/check se
+registra en el cierre documental inferior.
+
+Logs conservados en TEMP: `saberplus-eleventh-postgres-1.log`,
+`saberplus-eleventh-postgres-2.log`, `saberplus-eleventh-postgres-final.log`
+(tercera, fallida) y `saberplus-eleventh-postgres-final-2.log` (corrección PID);
+build/competitive/jest/audit con sufijos `-1` y `-final` de la misma familia.
+El runner mantiene resúmenes íntegros y rechaza archivos fallidos, parciales,
+cancelados, omitidos y TODO. Solo se elimina cada contenedor propio verificado
+por etiqueta; el diagnóstico PID no modifica postgres-local.
+
+| Archivo PostgreSQL, ejecución final (test/) | Pass / total | Proceso (ms) |
+|---|---:|---:|
+| competitive-postgres.test.cjs | 25/25 | 7341 |
+| competitive-solo-postgres.test.cjs | 38/38 | 10766 |
+| competitive-trivia-boundary-postgres.test.cjs | 1/1 | 2450 |
+| competitive-trivia-evidence-postgres.test.cjs | 15/15 | 22191 |
+| competitive-trivia-presence-postgres.test.cjs | 26/26 | 14894 |
+| competitive-trivia-xp-postgres.test.cjs | 17/17 | 31515 |
+| competitive-tug-boundary-postgres.test.cjs | 8/8 | 2328 |
+| competitive-tug-evidence-postgres.test.cjs | 15/15 | 74240 |
+| competitive-tug-presence-postgres.test.cjs | 15/15 | 31612 |
+| competitive-tug-preflight-postgres.test.cjs | 7/7 | 17111 |
+| competitive-tug-visibility-postgres.test.cjs | 10/10 | 77851 |
+
+Archivos: diez modificados (seis documentos de estado, schema, motor Tira,
+runner y prueba previa de permisos) y cuatro nuevos (migración, testigo,
+Jest y PostgreSQL de visibilidad). No se modifican migraciones confirmadas,
+CompetitiveService, registro de verificadores, fórmulas o los otros motores.
+Trivia/Duelo solo actualizan dos líneas de metadata documental del checkpoint.
+Snapshots, eventos, R originales, alias públicos y legacy se conservan.
+
+Docker Engine 29.7.2, contexto desktop-linux. postgres-local conserva ID
+20d971cc043fe04cf2fd14be83c906d2210f298381e58ac480a478ea305b7927 y StartedAt
+2026-10-02T21:24:22.476116454Z, activo/healthy. No se modifica/reutiliza ese
+contenedor; el diagnóstico extra y los cuatro runners usan recursos propios.
+Rama/HEAD se mantienen en feat/pr-i1-competitive-infrastructure/7edef15.
+Sin commit/push/merge/despliegue/Supabase/migraciones remotas/Flutter/PR-I2.
+Detenido para revisión humana. Liquidación del par aún bloqueada por contrato
+de locks y replay no implementados; certificación positiva no los sustituye.
+Cierre documental: 67 enlaces Markdown locales comprobados, cero rotos;
+git diff --check exit 0. Estado del árbol: 10 modificados y 4 nuevos,
+todos sin commit; las versiones confirmadas de las migraciones permanecen intactas.
+
+## Historial — décima ronda, confirmada en 7edef15
 
 2026-10-03, rama feat/pr-i1-competitive-infrastructure, HEAD 3d0e625.
 Árbol inicialmente limpio; nueve checkpoints confirmados, incluida presencia
