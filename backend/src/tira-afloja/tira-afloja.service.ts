@@ -350,24 +350,34 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
     partidaId: string,
     entrada: ResponderEntrada,
   ) {
+    // Only these identifiers are UUIDs; question/option IDs are exact TEXT keys.
+    usuarioId = usuarioId.toLowerCase();
+    partidaId = partidaId.toLowerCase();
+    entrada = {
+      ...entrada,
+      idempotencyKey: entrada.idempotencyKey.toLowerCase(),
+    };
     const repetida = await this.prisma.tiraAflojaRespuesta.findUnique({
       where: { claveIdempotencia: entrada.idempotencyKey },
     });
     if (repetida) {
-      if (
-        repetida.partidaId !== partidaId ||
-        repetida.usuarioId !== usuarioId
-      ) {
-        throw new ForbiddenException(
-          'La clave de la respuesta ya fue utilizada.',
-        );
-      }
+      this.validarReintento(repetida, usuarioId, partidaId, entrada);
       return this.obtener(usuarioId, partidaId);
     }
 
     await this.procesarEstado(partidaId);
     await this.prisma.$transaction(async (tx) => {
+      // Global key first, then match. No other writer waits for a key while
+      // holding a match lock. Recheck after waiting, before admitting an action.
+      await this.bloquear(tx, `respuesta:${entrada.idempotencyKey}`);
       await this.bloquear(tx, `partida:${partidaId}`);
+      const aceptada = await tx.tiraAflojaRespuesta.findUnique({
+        where: { claveIdempotencia: entrada.idempotencyKey },
+      });
+      if (aceptada) {
+        this.validarReintento(aceptada, usuarioId, partidaId, entrada);
+        return;
+      }
       const partida = await tx.partidaTiraAfloja.findUnique({
         where: { id: partidaId },
       });
@@ -393,6 +403,21 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
       ) {
         throw new BadRequestException(
           'La respuesta no pertenece a la ronda actual.',
+        );
+      }
+
+      const anterior = await tx.tiraAflojaRespuesta.findUnique({
+        where: {
+          partidaId_ronda_usuarioId: {
+            partidaId,
+            ronda: entrada.ronda,
+            usuarioId,
+          },
+        },
+      });
+      if (anterior) {
+        throw new BadRequestException(
+          'Ya respondiste esta ronda con otra clave.',
         );
       }
 
@@ -426,6 +451,31 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
     this.actualizaciones.notificar(partidaId);
     await this.procesarEstado(partidaId);
     return this.obtener(usuarioId, partidaId);
+  }
+
+  private validarReintento(
+    respuesta: {
+      partidaId: string;
+      usuarioId: string;
+      ronda: number;
+      preguntaId: string;
+      respuestaSeleccionadaId: string;
+    },
+    usuarioId: string,
+    partidaId: string,
+    entrada: ResponderEntrada,
+  ): void {
+    if (
+      respuesta.partidaId !== partidaId ||
+      respuesta.usuarioId !== usuarioId ||
+      respuesta.ronda !== entrada.ronda ||
+      respuesta.preguntaId !== entrada.preguntaId ||
+      respuesta.respuestaSeleccionadaId !== entrada.respuestaId
+    ) {
+      throw new ForbiddenException(
+        'La clave de la respuesta ya fue utilizada con otra identidad o contenido.',
+      );
+    }
   }
 
   async abandonar(usuarioId: string, partidaId: string) {
@@ -787,8 +837,14 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async bloquear(tx: ClienteTransaccion, clave: string) {
+    // All writers use the same lock for equivalent PostgreSQL UUID spellings.
+    clave = clave.replace(
+      /^(partida|respuesta):([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$/i,
+      (_, tipo: string, id: string) =>
+        `${tipo.toLowerCase()}:${id.toLowerCase()}`,
+    );
     await tx.$queryRaw(
-      Prisma.sql`SELECT pg_advisory_xact_lock(hashtext(${clave}))`,
+      Prisma.sql`SELECT pg_advisory_xact_lock(hashtext(${clave}))::text`,
     );
   }
 

@@ -266,6 +266,7 @@ async function main() {
           'test/competitive-trivia-evidence-postgres.test.cjs',
           'test/competitive-trivia-presence-postgres.test.cjs',
           'test/competitive-trivia-xp-postgres.test.cjs',
+          'test/competitive-tug-boundary-postgres.test.cjs',
         ],
         180_000,
       );

@@ -119,6 +119,35 @@ function escenario() {
 }
 
 describe('Tira: privacidad sin cambiar reglas ni identificadores internos de persistencia', () => {
+  it.each([
+    { ronda: 2 },
+    { preguntaId: 'otra-pregunta' },
+    { respuestaId: 'otra-opcion' },
+  ])('rechaza payload distinto para una clave aceptada: %j', async (cambio) => {
+    const { service, partida, db } = escenario();
+    const entrada = {
+      ronda: 1,
+      preguntaId: 'pregunta-publica',
+      respuestaId: 'opcion-publica',
+      idempotencyKey: 'operacion-publica',
+    };
+    db.tiraAflojaRespuesta.findUnique.mockResolvedValue({
+      partidaId: partida.id,
+      usuarioId: partida.jugadorAId,
+      ronda: entrada.ronda,
+      preguntaId: entrada.preguntaId,
+      respuestaSeleccionadaId: entrada.respuestaId,
+    } as never);
+    await expect(
+      service.responder(partida.jugadorAId, partida.id, {
+        ...entrada,
+        ...cambio,
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(db.tiraAflojaRespuesta.create).not.toHaveBeenCalled();
+    expect(db.respuesta.findFirst).not.toHaveBeenCalled();
+  });
+
   it.each(['A', 'B'] as const)(
     'presenta asientos al lado %s sin identidad privada ni datos extra históricos',
     async (lado) => {

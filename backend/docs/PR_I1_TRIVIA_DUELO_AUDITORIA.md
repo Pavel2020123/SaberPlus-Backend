@@ -1,11 +1,11 @@
 # PR-I1 V1 — auditoría previa de Trivia Rush y Duelo fantasma
 
-## Estado vigente de la revisión del sexto checkpoint
+## Estado vigente — sexto checkpoint confirmado
 
-Rama `feat/pr-i1-competitive-infrastructure`, HEAD `88f7045`. Los
+Rama `feat/pr-i1-competitive-infrastructure`, HEAD `ebe40e3`. Los
 [seis checkpoints, flags y dependencias](PR_I1_COMPETITIVE_INFRASTRUCTURE.md#checkpoints)
-distinguen cinco commits confirmados de la sexta ronda local sin commit. PR-I1
-no está fusionado a main. Trivia/Duelo tienen verificador y recuperación local;
+distinguen seis commits confirmados de la preparación local de Tira sin commit. PR-I1
+no está fusionado a main. Trivia/Duelo tienen verificador y recuperación versionados;
 no están desplegados/activados para usuarios. Tira, Memoria y Batallas siguen
 pendientes de integración; no se inicia PR-I2. Migraciones remotas no aplicadas
 por estas rondas; rol PostgreSQL/RLS productivo todavía sin verificación.
@@ -21,6 +21,9 @@ de gracia y liquidación idempotente permanecen aprobados e implementados.
 Los tres flags están apagados por defecto; no bloquean recuperación de admitidos.
 Se conservan las incidencias históricas de los 34 fallos y vencimiento de Rescate.
 [Índice backend](README.md) · [Estado y arquitectura](PR_I1_COMPETITIVE_INFRASTRUCTURE.md).
+La [auditoría de Tira](PR_I1_TIRA_AFLOJA_AUDITORIA.md) documenta la ronda actual;
+no modifica las integraciones confirmadas de Trivia/Duelo. Registros inferiores
+de la sexta ronda sin commit describen el historial previo a `ebe40e3`.
 
 ## Historial técnico por etapa
 

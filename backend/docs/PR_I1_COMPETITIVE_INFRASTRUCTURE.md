@@ -1,10 +1,10 @@
 # PR-I1 V1: infraestructura competitiva común
 
-## Estado vigente — revisión del sexto checkpoint
+## Estado vigente — preparación de Tira sobre el sexto checkpoint
 
-Rama `feat/pr-i1-competitive-infrastructure`, HEAD `88f7045`: cinco checkpoints
-confirmados en Git; sexta ronda y revisión actual **sin commit**, pendientes de
-revisión humana. PR-I1 sigue abierto y **no fusionado a main**. Implementación
+Rama `feat/pr-i1-competitive-infrastructure`, HEAD `ebe40e3`: seis checkpoints
+confirmados en Git; preparación de Tira y revisión actual **sin commit**, pendientes
+de revisión humana. PR-I1 sigue abierto y **no fusionado a main**. Implementación
 local no acredita despliegue/activación productiva; estas rondas no han aplicado
 migraciones remotas. No se modifican Flutter, Usuario.xpTotal ni fórmulas V1.
 
@@ -17,12 +17,19 @@ migraciones remotas. No se modifican Flutter, Usuario.xpTotal ni fórmulas V1.
 | 3 | `af78ee7`, confirmado | Auditoría y protección de frontera Trivia/Duelo, sin XP. |
 | 4 | `16163b7`, confirmado | Snapshot, modalidad, fantasma fijo y evidencia/privacidad protegida, sin XP. |
 | 5 | `88f7045`, confirmado | Presencia durable, gracia/reconexión y protección de acciones V1, sin XP. |
-| 6 | Local, sin commit | Admisión, verificador común TRIVIA_ATTEMPT y liquidación/recuperación Trivia/Duelo; contrato estricto de fantasma. |
+| 6 | `ebe40e3`, confirmado | Admisión, verificador común TRIVIA_ATTEMPT y liquidación/recuperación Trivia/Duelo; contrato estricto de fantasma. |
+| Preparación Tira | Local, sin commit | Auditoría, corrección de bloqueo/idempotencia legacy y pruebas de frontera; sin admisión/verificador/XP TUG_MATCH. |
 
-Cima/Guardián/Rescate están versionados; Trivia/Duelo integrados localmente.
+Cima/Guardián/Rescate y Trivia/Duelo están versionados.
 Tira, Memoria y Batallas siguen sin integración competitiva; Memoria requiere
 autoridad backend. No se avanza PR-I2. Las fórmulas puras de ocho juegos no
 equivalen a ocho motores/verificadores integrados.
+
+[Auditoría vigente de Tira](PR_I1_TIRA_AFLOJA_AUDITORIA.md): Qpartida confirmado,
+precedencia durante gracia aprobada en esta ronda y brechas de snapshot/presencia
+durable/cierre. Se corrige únicamente infraestructura legacy comprobable; no hay
+flag competitivo Tira ni migración nueva. Las reglas de gracia de 20 s inferiores
+son de Trivia/Duelo, no se extrapolan a Tira (30 s).
 
 ### Reglas vigentes y flags
 
@@ -67,7 +74,7 @@ Orden y dependencias del esquema requerido:
 2. [Runtime individual](../prisma/migrations/20260930180000_competitive_solo_runtime/migration.sql), checkpoint 2, depende de la base.
 3. [Evidencia Trivia/Duelo](../prisma/migrations/20261001190000_trivia_authoritative_evidence/migration.sql), checkpoint 4.
 4. [Presencia](../prisma/migrations/20261002190000_trivia_presence/migration.sql), checkpoint 5, depende de evidencia.
-5. [Competitivo Trivia/Duelo](../prisma/migrations/20261002230000_trivia_competitive_v1/migration.sql), sexta ronda sin commit, depende de base/evidencia/presencia.
+5. [Competitivo Trivia/Duelo](../prisma/migrations/20261002230000_trivia_competitive_v1/migration.sql), checkpoint 6, depende de base/evidencia/presencia.
 
 Incluso con flags apagados, el backend nuevo exige esquema compatible antes de
 usar campos Prisma/recuperadores. Respaldo/revisión → verificar rol real de

@@ -11,8 +11,8 @@
 
 ## Estado competitivo PR-I1 V1
 
-Cinco checkpoints están confirmados hasta `88f7045`; la sexta ronda de
-Trivia/Duelo permanece local **sin commit**, pendiente de revisión humana.
+Seis checkpoints están confirmados hasta `ebe40e3`; la preparación de
+Tira permanece local **sin commit**, pendiente de revisión humana.
 PR-I1 no está fusionado a main. Código implementado no significa desplegado ni
 activado: no se aplicaron migraciones remotas en esta revisión y la sexta ronda
 solo se probó en PostgreSQL desechable local.
@@ -31,6 +31,10 @@ e incidencia de Rescate. Tira, Memoria y Batallas siguen sin integración
 competitiva; no comienza PR-I2. Aplicar/verificar el esquema requerido antes del
 backend incluso con flags apagados; no usar los comandos de despliegue como
 autorización para ejecutar migraciones remotas.
+
+[Auditoría de Tira y afloja](docs/PR_I1_TIRA_AFLOJA_AUDITORIA.md): precedencia
+aprobada, correcciones de bloqueo/idempotencia legacy y brechas de evidencia.
+No se registra un verificador ni se habilita XP de Tira en esta preparación.
 
 MA-3B: [Agenda y sincronización del repaso diferido](DEFERRED_REVIEW.md).
 Implementada/probada localmente: API privada, recibos idempotentes y migración

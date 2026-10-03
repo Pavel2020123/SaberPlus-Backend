@@ -7,15 +7,17 @@ a otro repositorio, no a archivos dentro de este árbol.
 
 ## PR-I1 competitivo V1
 
-Estado de la revisión del sexto checkpoint, rama
-`feat/pr-i1-competitive-infrastructure`, HEAD `88f7045`: cinco commits confirmados
-y sexta ronda local sin commit. PR-I1 no fusionado a main. Implementación local
+Estado de preparación de Tira sobre el sexto checkpoint, rama
+`feat/pr-i1-competitive-infrastructure`, HEAD `ebe40e3`: seis commits confirmados
+y preparación de Tira local sin commit. PR-I1 no fusionado a main. Implementación local
 no equivale a migración remota aplicada, backend desplegado o juego activado.
 
 - [Infraestructura competitiva](PR_I1_COMPETITIVE_INFRASTRUCTURE.md): resumen
   vigente, checkpoints, flags, arquitectura/ledger, migraciones y gate de despliegue.
 - [Auditoría de Trivia Rush y Duelo](PR_I1_TRIVIA_DUELO_AUDITORIA.md): evidencia,
   decisiones aprobadas, implementación local, historial de pruebas e incidencias.
+- [Auditoría de Tira y afloja](PR_I1_TIRA_AFLOJA_AUDITORIA.md): autoridad actual,
+  brechas, precedencia aprobada y correcciones/pruebas acotadas sin XP.
 
 Los tres flags servidor (`COMPETITIVE_SOLO_ENABLED`, `COMPETITIVE_TRIVIA_ENABLED`,
 `COMPETITIVE_GHOST_ENABLED`) están apagados por defecto. Solo nuevas admisiones
