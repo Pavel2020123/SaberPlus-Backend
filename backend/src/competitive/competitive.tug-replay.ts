@@ -5,6 +5,7 @@ import { competitiveHash } from './competitive.service';
 import { requireEvidence } from './competitive.rules';
 import { canonicalSourceId } from './competitive.source';
 import { readTugAdmission } from '../tira-afloja/tira-afloja.admission';
+import { replayTugPresence } from './competitive.tug-presence-replay';
 
 // Private evidence reader only. Deliberately absent from Nest/registry/workers.
 // The caller owns the sorted original Usuario locks before loadLockedPair.
@@ -37,6 +38,27 @@ export function replayTugRound(
   };
 }
 
+export interface TugReplayEvidence {
+  classification:
+    | 'NORMAL'
+    | 'GRACE_ABANDONMENT'
+    | 'SIMULTANEOUS_CANCELLED'
+    | 'EXPLICIT_PRE_ACTIVE'
+    | 'EXPLICIT_ACTIVE'
+    | 'GLOBAL_EXPIRED';
+  phase: 'PRE_ACTIVE' | 'ACTIVE';
+  participants: [string, string];
+  terminalUs: string;
+  winner: string | null;
+  correct: number[];
+  actions: number[];
+  presentedRounds: number;
+  qPartida: number | null;
+  abandonment: { userId: string; reason: string; effectiveUs: string }[];
+  evidenceHash: string;
+  terminals?: [VerifiedTerminal, VerifiedTerminal];
+}
+
 export class TugSportsReplay implements CompetitivePairEvidence {
   async originalParticipants(
     tx: Prisma.TransactionClient,
@@ -58,18 +80,33 @@ export class TugSportsReplay implements CompetitivePairEvidence {
     tx: Prisma.TransactionClient,
     sourceId: string,
   ): Promise<[VerifiedTerminal, VerifiedTerminal]> {
+    // Preserve the shared contract's explicit barrier independently of how much
+    // private evidence can now be reconstructed. No new payout classifications.
+    const id = canonicalSourceId('TUG_MATCH', sourceId);
+    await tx.$queryRaw`SELECT tug_presence_lock(${id}::uuid)::text`;
+    check(
+      (await tx.tugAbandonment.count({ where: { matchId: id } })) === 0,
+      'ABANDONMENT_CONTRACT_UNSUPPORTED',
+    );
+    const evidence = await this.replayLockedPair(tx, sourceId);
+    check(
+      evidence.classification === 'NORMAL',
+      'ABANDONMENT_CONTRACT_UNSUPPORTED',
+    );
+    check(evidence.terminals, 'TERMINAL_PRECISION_UNSUPPORTED');
+    return evidence.terminals!;
+  }
+
+  /** Private classification only; new variants cannot enter the pair kernel. */
+  async replayLockedPair(
+    tx: Prisma.TransactionClient,
+    sourceId: string,
+  ): Promise<TugReplayEvidence> {
     const id = canonicalSourceId('TUG_MATCH', sourceId);
     // Same user -> advisory -> parent order as every durable presence writer.
     await tx.$queryRaw`SELECT tug_presence_lock(${id}::uuid)::text`;
     const m = await tx.partidaTiraAfloja.findUniqueOrThrow({ where: { id } });
     const participants = await this.originalParticipants(tx, id);
-    check(
-      m.evidenciaVersion === 1 &&
-        m.presenciaVersion === 1 &&
-        m.certificacionRVersion === 1 &&
-        m.versionReglas === 1,
-      'VERSIONS',
-    );
     const [time] = await tx.$queryRaw<Row[]>`SELECT
       (extract(epoch FROM "fechaFinalizacion")*1000000)::bigint::text AS terminal,
       (extract(epoch FROM "expiraEn")*1000000)::bigint::text AS deadline,
@@ -81,25 +118,235 @@ export class TugSportsReplay implements CompetitivePairEvidence {
       await tx.$queryRaw<{ row: Row }[]>`SELECT to_jsonb(e) AS row
       FROM "TiraAflojaEvento" e WHERE "partidaId"=${id}::uuid ORDER BY version`
     ).map((e) => e.row);
-    const abandonments = await tx.tugAbandonment.findMany({
-      where: { matchId: id },
-    });
+    check(time.terminal, 'NEUTRAL_OR_OPEN_UNSUPPORTED');
     check(
-      abandonments.length === 0 && !events.some((e) => e.tipo === 'ABANDONO'),
-      'ABANDONMENT_CONTRACT_UNSUPPORTED',
+      events.length > 0 &&
+        events.every((e, i) => e.version === i) &&
+        events[events.length - 1].version === m.version,
+      'EVENT_SEQUENCE',
     );
     check(
-      m.estado === 'FINALIZADA' &&
-        m.fechaFinalizacion &&
-        ['JUGADOR_A', 'JUGADOR_B', 'EMPATE'].includes(m.resultado!),
-      'NEUTRAL_OR_OPEN_UNSUPPORTED',
+      events.filter((e) =>
+        ['FINALIZADA', 'CANCELADA', 'ABANDONO'].includes(e.tipo),
+      ).length === 1,
+      'MULTIPLE_TERMINALS',
     );
-    // Full grace/reconnection interval replay requires a separate proof. Do not
-    // certify a normal result while bypassing a possibly earlier grace terminal.
-    const graceEvents = await tx.tugPresenceEvent.count({
-      where: { matchId: id, kind: { in: ['GRACE', 'ABANDONED'] } },
-    });
-    check(graceEvents === 0, 'GRACE_PRECEDENCE_UNPROVEN');
+    const abandonments = (
+      await tx.$queryRaw<
+        { row: Row }[]
+      >`SELECT to_jsonb(a) || jsonb_build_object(
+      'effectiveUs',(extract(epoch FROM "effectiveAt")*1000000)::bigint::text) AS row
+      FROM "TugAbandonment" a WHERE "matchId"=${id}::uuid ORDER BY "userId"`
+    ).map((e) => e.row);
+    const connections = (
+      await tx.$queryRaw<
+        { row: Row }[]
+      >`SELECT to_jsonb(c) || jsonb_build_object(
+      'connectedUs',(extract(epoch FROM "connectedAt")*1000000)::bigint::text,
+      'lastUs',(extract(epoch FROM "lastSeenAt")*1000000)::bigint::text,
+      'leaseUs',(extract(epoch FROM "leaseUntil")*1000000)::bigint::text,
+      'closedUs',(extract(epoch FROM "closedAt")*1000000)::bigint::text,
+      'authUs',(extract(epoch FROM "authUntil")*1000000)::bigint::text) AS row
+      FROM "TugConnection" c WHERE "matchId"=${id}::uuid ORDER BY id`
+    ).map((e) => e.row);
+    const presenceEvents = (
+      await tx.$queryRaw<
+        { row: Row }[]
+      >`SELECT to_jsonb(e) || jsonb_build_object(
+      'id',id::text,'atUs',(extract(epoch FROM "observedAt")*1000000)::bigint::text) AS row
+      FROM "TugPresenceEvent" e WHERE "matchId"=${id}::uuid ORDER BY id`
+    ).map((e) => e.row);
+    const presence = replayTugPresence(
+      participants,
+      connections,
+      presenceEvents,
+      time.terminal,
+      events.some((e) => e.tipo === 'RONDA_INICIADA')
+        ? (
+            BigInt(
+              Date.parse(
+                events.find((e) => e.tipo === 'RONDA_INICIADA')!.datos.iniciaEn,
+              ),
+            ) * 1000n
+          ).toString()
+        : undefined,
+    );
+    const active = events.some((e) => e.tipo === 'RONDA_INICIADA');
+    const final = events[events.length - 1];
+    const terminal = us(time.terminal),
+      deadline = us(time.deadline);
+    const pendingGraces = presence.graceAt(terminal);
+    const earliestGrace = pendingGraces.reduce<bigint | null>(
+      (at, g) => (at === null || g.end < at ? g.end : at),
+      null,
+    );
+    const base = {
+      participants,
+      terminalUs: time.terminal,
+      winner: m.ganadorId,
+      phase: active ? ('ACTIVE' as const) : ('PRE_ACTIVE' as const),
+      correct: [0, 0],
+      actions: [0, 0],
+      presentedRounds: 0,
+      qPartida: m.qPartida,
+      abandonment: abandonments.map((a) => ({
+        userId: a.userId,
+        reason: a.reason,
+        effectiveUs: a.effectiveUs,
+      })),
+    };
+    check(
+      m.preguntaActualId === null &&
+        m.rondaIniciaEn === null &&
+        m.rondaVenceEn === null,
+      'TERMINAL_OPEN_ROUND',
+    );
+    // A later observer refresh may be legitimate; a second/unpaired abandonment
+    // never is. Validate terminal events even outside the canonical time cut.
+    const ended = presenceEvents.filter((e) => e.kind === 'ABANDONED');
+    check(
+      ended.length === abandonments.length &&
+        abandonments.every(
+          (a) =>
+            participants.includes(a.userId) &&
+            a.effectiveUs === time.terminal &&
+            ended.filter(
+              (e) => e.userId === a.userId && e.atUs === a.effectiveUs,
+            ).length === 1,
+        ),
+      'ABANDONMENT_EVENT',
+    );
+    let classification: TugReplayEvidence['classification'] = 'NORMAL';
+    if (final.tipo === 'ABANDONO') {
+      check(
+        abandonments.length >= 1 &&
+          abandonments.length <= 2 &&
+          abandonments.every((a) => a.reason === final.datos.motivo) &&
+          final.datos.abandonoUsuarioId ===
+            (abandonments.length === 1 ? abandonments[0].userId : null),
+        'ABANDONMENT_CAUSE',
+      );
+      if (final.datos.motivo === 'GRACE') {
+        check(
+          active && earliestGrace === terminal && terminal < deadline,
+          'GRACE_PRECEDENCE_UNPROVEN',
+        );
+        const absent = pendingGraces
+          .filter((g) => g.end === terminal)
+          .map((g) => g.userId)
+          .sort();
+        check(
+          competitiveHash(absent) ===
+            competitiveHash(abandonments.map((a) => a.userId).sort()),
+          'GRACE_PARTICIPANTS',
+        );
+        classification =
+          absent.length === 2 ? 'SIMULTANEOUS_CANCELLED' : 'GRACE_ABANDONMENT';
+        check(
+          m.ganadorId ===
+            (absent.length === 2
+              ? null
+              : participants.find((u) => !absent.includes(u))),
+          'ABANDONMENT_WINNER',
+        );
+      } else {
+        check(
+          final.datos.motivo === 'EXPLICIT' &&
+            abandonments.length === 1 &&
+            terminal < deadline &&
+            (earliestGrace === null || terminal < earliestGrace),
+          'EXPLICIT_PRECEDENCE_UNPROVEN',
+        );
+        classification = active ? 'EXPLICIT_ACTIVE' : 'EXPLICIT_PRE_ACTIVE';
+        const rival = participants.find((u) => u !== abandonments[0].userId)!;
+        const winner =
+          presence.openAt(rival, terminal) &&
+          !pendingGraces.some((g) => g.userId === rival)
+            ? rival
+            : null;
+        check(m.ganadorId === winner, 'EXPLICIT_WINNER');
+      }
+      check(
+        final.datos.ganadorId === m.ganadorId &&
+          m.estado === (m.ganadorId ? 'FINALIZADA' : 'CANCELADA') &&
+          m.resultado ===
+            (m.ganadorId === participants[0]
+              ? 'JUGADOR_A'
+              : m.ganadorId === participants[1]
+                ? 'JUGADOR_B'
+                : 'CANCELADA'),
+        'TERMINAL_CONFLICT',
+      );
+    } else if (final.tipo === 'CANCELADA') {
+      check(
+        active &&
+          final.datos.motivo === 'EXPIRADA' &&
+          m.estado === 'EXPIRADA' &&
+          m.resultado === 'CANCELADA' &&
+          m.ganadorId === null &&
+          terminal === deadline &&
+          (earliestGrace === null || deadline <= earliestGrace) &&
+          abandonments.length === 0,
+        'GLOBAL_PRECEDENCE_UNPROVEN',
+      );
+      classification = 'GLOBAL_EXPIRED';
+    } else {
+      check(
+        final.tipo === 'FINALIZADA' &&
+          abandonments.length === 0 &&
+          m.estado === 'FINALIZADA',
+        'NEUTRAL_OR_OPEN_UNSUPPORTED',
+      );
+    }
+    const presenceHash = {
+      connections: connections
+        .filter((c) => us(c.connectedUs) <= terminal)
+        .map((c) => ({
+          id: c.id,
+          userId: c.userId,
+          instanceId: c.instanceId,
+          connectedUs: c.connectedUs,
+          authUs: c.authUs,
+        })),
+      events: presence.events,
+    };
+    if (!active) {
+      check(
+        classification === 'EXPLICIT_PRE_ACTIVE' &&
+          m.evidenciaVersion === null &&
+          m.snapshotInicial === null &&
+          presence.graces.length === 0 &&
+          m.posicionCuerda === 0 &&
+          (await tx.tiraAflojaRespuesta.count({ where: { partidaId: id } })) ===
+            0 &&
+          (await tx.tiraAflojaRondaPresentada.count({
+            where: { partidaId: id },
+          })) === 0 &&
+          (await tx.tugRoundVisibility.count({ where: { partidaId: id } })) ===
+            0,
+        'PRE_ACTIVE_EVIDENCE',
+      );
+      return {
+        ...base,
+        classification,
+        evidenceHash: competitiveHash({
+          version: 1,
+          admission: m.competitivePolicy,
+          time,
+          events,
+          abandonments,
+          presence: presenceHash,
+          participants,
+        }),
+      };
+    }
+    check(
+      m.evidenciaVersion === 1 &&
+        m.presenciaVersion === 1 &&
+        m.certificacionRVersion === 1 &&
+        m.versionReglas === 1,
+      'VERSIONS',
+    );
     const s = m.snapshotInicial as unknown as Row;
     check(
       s?.version === 1 &&
@@ -223,11 +470,11 @@ export class TugSportsReplay implements CompetitivePairEvidence {
       'EVENT_SEQUENCE',
     );
     check(
-      starts.length === resolved.length &&
+      starts.length ===
+        resolved.length + (classification === 'NORMAL' ? 0 : 1) &&
         starts.length >= 1 &&
         starts.length <= s.qPartida &&
-        finals.length === 1 &&
-        events[events.length - 1].id === finals[0].id,
+        finals.length === (classification === 'NORMAL' ? 1 : 0),
       'ROUND_SEQUENCE',
     );
     let position = 0;
@@ -239,11 +486,12 @@ export class TugSportsReplay implements CompetitivePairEvidence {
     let finalEligibleAt = 0n;
     for (let i = 0; i < starts.length; i++) {
       const begin = starts[i].datos as Row,
-        result = resolved[i].datos as Row;
+        result = resolved[i]?.datos as Row | undefined;
       check(
         begin.ronda === i + 1 &&
-          result.ronda === i + 1 &&
-          starts[i].version < resolved[i].version &&
+          (!result ||
+            (result.ronda === i + 1 &&
+              starts[i].version < resolved[i].version)) &&
           (i === 0 || resolved[i - 1].version < starts[i].version),
         'ROUND_ORDER',
       );
@@ -257,6 +505,16 @@ export class TugSportsReplay implements CompetitivePairEvidence {
         'ROUND_WINDOW',
       );
       if (i === 0) started = start;
+      // No exact activation timestamp exists across the two event streams.
+      // A disconnect during countdown cannot be ordered against activation
+      // independently: retain fail-closed until a future immutable phase marker.
+      check(
+        presence.graces.every(
+          (g) =>
+            g.start >= BigInt(Date.parse(starts[0].datos.iniciaEn)) * 1000n,
+        ),
+        'GRACE_PHASE_UNPROVEN',
+      );
       const rows = presented.filter((p) => p.ronda === i + 1);
       const certs = certificates.filter((p) => p.ronda === i + 1);
       check(rows.length === 0 || rows.length === 2, 'PAIR_INCOMPLETE');
@@ -326,7 +584,35 @@ export class TugSportsReplay implements CompetitivePairEvidence {
           'ANSWER_INVALID',
         );
         keys.add(a.claveIdempotencia);
+        check(
+          us(a.atUs) <= terminal && presence.openAt(a.usuarioId, us(a.atUs)),
+          'ANSWER_PRESENCE',
+        );
         if (option.esCorrecta) correct[participants.indexOf(a.usuarioId)]++;
+      }
+      const decisionAt =
+        roundAnswers.length === 2
+          ? roundAnswers.reduce((t, a) => (t > us(a.atUs) ? t : us(a.atUs)), 0n)
+          : end;
+      check(
+        !result || classification === 'NORMAL' || decisionAt <= terminal,
+        'RESOLVED_AFTER_EXCEPTIONAL_TERMINAL',
+      );
+      check(
+        !result ||
+          (decisionAt < deadline &&
+            presence.graceAt(decisionAt).every((g) => decisionAt < g.end)),
+        'GRACE_PRECEDENCE_UNPROVEN',
+      );
+      if (!result) {
+        check(
+          i === starts.length - 1 &&
+            (classification === 'EXPLICIT_ACTIVE'
+              ? decisionAt > terminal
+              : decisionAt >= terminal),
+          'NORMAL_PRECEDENCE_UNPROVEN',
+        );
+        continue;
       }
       const a = roundAnswers.find((a) => a.usuarioId === participants[0]);
       const b = roundAnswers.find((a) => a.usuarioId === participants[1]);
@@ -359,6 +645,37 @@ export class TugSportsReplay implements CompetitivePairEvidence {
         correct.every((c) => c <= r),
       'UNACCOUNTED_EVIDENCE',
     );
+    if (classification !== 'NORMAL') {
+      check(
+        Math.abs(position) < 4 &&
+          resolved.length < s.qPartida &&
+          m.posicionCuerda === position &&
+          m.rondaActual === starts.length,
+        'NO_NORMAL_PRECEDENCE',
+      );
+      return {
+        ...base,
+        classification,
+        correct,
+        actions: participants.map(
+          (u) => answers.filter((a) => a.usuarioId === u).length,
+        ),
+        presentedRounds: r,
+        evidenceHash: competitiveHash({
+          version: 1,
+          admission: m.competitivePolicy,
+          time,
+          snapshot: s,
+          presented,
+          certificates,
+          answers,
+          events,
+          abandonments,
+          presence: presenceHash,
+          participants,
+        }),
+      };
+    }
     check(
       Math.abs(position) === 4 || starts.length === s.qPartida,
       'NO_NORMAL_TERMINAL',
@@ -384,7 +701,10 @@ export class TugSportsReplay implements CompetitivePairEvidence {
         us(time.terminal) < us(time.deadline),
       'TERMINAL_CONFLICT',
     );
-    check(us(time.terminal) % 1000n === 0n, 'TERMINAL_PRECISION_UNSUPPORTED');
+    check(
+      pendingGraces.every((g) => terminal < g.end),
+      'GRACE_PRECEDENCE_UNPROVEN',
+    );
     const hash = competitiveHash({
       version: 1,
       admission: {
@@ -398,8 +718,9 @@ export class TugSportsReplay implements CompetitivePairEvidence {
       certificates,
       answers,
       events,
+      presence: presenceHash,
     });
-    return participants.map((user, index) => ({
+    const terminals = participants.map((user, index) => ({
       source: { sourceType: 'TUG_MATCH', sourceId: id, participantId: user },
       gameId: 'TUG_OF_WAR',
       startedAt: new Date(Number(started / 1000n)),
@@ -422,5 +743,16 @@ export class TugSportsReplay implements CompetitivePairEvidence {
         },
       },
     })) as [VerifiedTerminal, VerifiedTerminal];
+    return {
+      ...base,
+      classification,
+      correct,
+      actions: participants.map(
+        (u) => answers.filter((a) => a.usuarioId === u).length,
+      ),
+      presentedRounds: r,
+      evidenceHash: hash,
+      terminals: terminal % 1000n === 0n ? terminals : undefined,
+    };
   }
 }

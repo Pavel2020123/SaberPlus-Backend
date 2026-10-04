@@ -1,6 +1,50 @@
 # PR-I1 V1: infraestructura competitiva común
 
-## Estado vigente — checkpoint 14: replay Tira aislado y parcial
+## Estado vigente — checkpoint 15: replay de presencia aislado, sin XP Tira
+
+Rama `feat/pr-i1-competitive-infrastructure`, HEAD `60b1228`, catorce checkpoints
+confirmados por el propietario; checkpoint 15 local sin commit.
+[Algoritmo, clasificación, pruebas y bloqueos](PR_I1_TIRA_AFLOJA_AUDITORIA.md).
+Se extiende TugSportsReplay con conexiones/eventos PG, precisión µs, precedencia
+normal/global/gracia, abandono confirmado, EXPLICIT pre/durante ACTIVA y
+CANCELADA simultánea. Salida excepcional privada, sin VerifiedTerminal ficticio
+ni conexión kernel/ledger; solo NORMAL conserva el contrato anterior.
+
+Revisión humana posterior: el replay exige reconexión en [inicio de gracia,
+vencimiento), impidiendo timestamps retroactivos aunque su ID sea posterior.
+Una ronda resuelta debe tener decisionAt <= terminal excepcional, además de
+las verificaciones existentes de global/gracia. Se añaden cuatro casos Jest y
+dos regresiones PG con cero/una respuesta y alteraciones privilegiadas en
+rollback. Validación de estos refuerzos: build exit 0; Jest competitivo 227/227
+(16 suites); Jest completo 1108/1108 (105 suites); PostgreSQL 240/240 en 15
+archivos, sin fallos, cancelaciones, omisiones, TODO o archivos incompletos;
+auditoría omit=dev sin vulnerabilidades; git diff --check exit 0. Resultados
+anteriores abajo conservados como historial. Véase la auditoría para duraciones
+y límites pendientes; estas pruebas no resuelven las incidencias históricas.
+
+GRACE durante countdown sigue bloqueada: falta marca exacta de activación entre
+streams. Evidencia incompleta, certificados R ausentes y contradicciones bloquean
+el par. No se cambia CompetitivePairProtocol, CompetitiveService, fórmulas,
+servicios deportivos ni migraciones. Sin migración nueva. TUG_MATCH sigue
+SOURCE_NOT_INTEGRATED, sin pagos XP ni activación para usuarios.
+COMPETITIVE_TUG_ENABLED=false, independiente de SOLO/TRIVIA/GHOST, también OFF
+por defecto: admisión no equivale a liquidación.
+
+Validación final: build exit 0; Jest competitivo 223/223 (16 suites), completo
+1104/1104 (105 suites); PG 238/238 en 15 archivos, incluyendo 19 nuevos, cero
+fallos/omisiones/cancelaciones/TODO/incompletos; audit cero vulnerabilidades y
+diff correctos. La auditoría conserva la primera PG 234/235 y su causa
+demostrada en el reloj del fixture, la segunda 236/236 y la final 238/238.
+No cierra incertidumbre histórica de 34 fallos ni Rescate. Pendientes WAL,
+rol/RLS productivo, capacidad multiinstancia y gate: respaldo/revisión → rol/RLS
+→ migraciones autorizadas → esquema → backend flags OFF → pruebas operativas
+→ activación explícita. Nada se despliega ni migra remotamente aquí.
+Otros juegos e integración Tira pendientes; PR-I2 no iniciado, PR-I1 no fusionado.
+
+## Historial confirmado — checkpoint 14 (60b1228)
+
+
+## Historial — checkpoint 14: replay Tira aislado y parcial
 
 Rama `feat/pr-i1-competitive-infrastructure`, HEAD `d18a676`: trece checkpoints
 confirmados; ronda 14 local sin commit. [Auditoría vigente del replay](PR_I1_TIRA_AFLOJA_AUDITORIA.md).
@@ -85,7 +129,8 @@ Se aplica y prueba únicamente en PostgreSQL propio desechable.
 | 11 | 1c12245, confirmado | Certificación R independiente post-COMMIT. |
 | 12 | fdfa9aa, confirmado | Núcleo aislado del par, con barreras de evidencia. |
 | 13 | d18a676, confirmado | Admisión persistida, flag apagado; sin verificador/XP Tira. |
-| 14 | Local, sin commit | Replay normal aislado; terminales no representables bloqueados; sin XP. |
+| 14 | 60b1228, confirmado | Replay normal aislado y barrido serial corregido; sin XP. |
+| 15 | Local, sin commit | Replay de presencia y terminales privado, con bloqueos de evidencia; sin XP. |
 
 ## Historial — checkpoint 12 confirmado en fdfa9aa
 

@@ -300,6 +300,7 @@ async function main() {
         'test/competitive-pair-protocol-postgres.test.cjs',
         'test/competitive-tug-admission-postgres.test.cjs',
         'test/competitive-tug-replay-postgres.test.cjs',
+        'test/competitive-tug-terminal-replay-postgres.test.cjs',
       ];
       const totals = {
         tests: 0,

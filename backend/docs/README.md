@@ -7,7 +7,7 @@ a otro repositorio, no a archivos dentro de este árbol.
 
 ## PR-I1 competitivo V1
 
-Rama `feat/pr-i1-competitive-infrastructure`, HEAD `d18a676`: trece checkpoints confirmados. Ronda 14 local: replay normal Tira aislado y parcial; abandono/neutral/gracia sin prueba completa bloqueados. Núcleo del par aislado; TUG_MATCH no registrado ni habilitado. La auditoría registra garantías, diagnósticos y resultados. PR-I1 no fusionado a main. Implementación local
+Rama `feat/pr-i1-competitive-infrastructure`, HEAD `60b1228`: catorce checkpoints confirmados. Ronda 15 local: replay privado de presencia, abandono y neutrales Tira; evidencia incompleta y GRACE durante countdown bloqueadas. Núcleo del par aislado; TUG_MATCH no registrado ni habilitado. La auditoría registra garantías, diagnósticos y resultados. PR-I1 no fusionado a main. Implementación local
 no equivale a migración remota aplicada, backend desplegado o juego activado.
 
 - [Infraestructura competitiva](PR_I1_COMPETITIVE_INFRASTRUCTURE.md): resumen

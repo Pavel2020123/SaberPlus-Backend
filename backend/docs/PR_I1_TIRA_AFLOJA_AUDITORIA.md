@@ -1,5 +1,212 @@
 # PR-I1 V1 — auditoría y preparación de Tira y afloja
 
+## Estado vigente — checkpoint 15 local: replay de presencia y terminales aislado
+
+Rama `feat/pr-i1-competitive-infrastructure`, HEAD `60b1228`, sincronizada con
+origin y limpia al inicio. Catorce checkpoints confirmados por el propietario;
+esta ronda local sin commit. Apartados inferiores: historial, no estado vigente.
+
+### Revisión humana del checkpoint 15 — límites temporales reforzados
+
+Se preserva la implementación local anterior sobre HEAD 60b1228. La revisión
+identificó dos controles incompletos, corregidos exclusivamente en el replay:
+
+- CONNECTED comprobaba at < grace.end, pero el orden creciente de ID no prueba
+  timestamps crecientes entre conexiones distintas. Ahora exige también
+  at >= grace.start; RETROACTIVE_RECONNECT rechaza cancelación retroactiva.
+  Intervalo válido: [inicio, vencimiento), con microsegundos BigInt.
+  Igualdad al vencimiento conserva LATE_RECONNECT. UNKNOWN, leases y múltiples
+  sockets mantienen sus controles, sin cambios de política ni motor deportivo.
+- Una ronda con RONDA_RESUELTA contrastaba decisionAt con global/gracia, pero
+  faltaba contrastarlo con el terminal excepcional. Ahora decisionAt <= terminal
+  es obligatorio para toda ronda resuelta excepcional; si no,
+  RESOLVED_AFTER_EXCEPTIONAL_TERMINAL. Con cero o una respuesta, decisionAt es
+  el vencimiento original de ronda. El control de la ronda pendiente, snapshots,
+  respuestas, R certificado y las demás precedencias siguen intactos.
+
+No se cambia el resultado deportivo ni se acepta una historia contradictoria:
+resolverPresencia resuelve rondas elegibles antes de procesar cierre excepcional,
+y abandonar ejecuta procesarEstado antes de su cierre explícito. Las regresiones
+PG crean con los servicios reales un cierre EXPLICIT válido después de resolver
+la primera ronda. Dentro de rollback privilegiado únicamente adelantan terminal,
+effectiveAt y ABANDONED a un microsegundo antes del vencimiento ya resuelto;
+deben fallar con el nuevo error específico. Después de rollback, el hash y la
+clasificación originales deben mantenerse. Se cubren cero y una respuesta,
+manteniendo intactos snapshot, respuesta y certificado R en ese segundo caso.
+Los cuatro casos Jest de reconexión son pruebas de algoritmo; las pruebas reales
+previas de reconexión, UNKNOWN y múltiples conexiones se conservan sin relajarlas.
+
+Validación de esta revisión: build exit 0 (16,422 s); Jest competitivo 227/227
+en 16 suites (18,659 s); Jest completo 1108/1108 en 105 suites (57,797 s);
+PostgreSQL desechable 240/240 en 15 archivos (444,461 s), incluido el archivo
+terminal con 21/21. Cero fallos, cancelaciones, omisiones, TODO o archivos
+incompletos. Auditoría omit=dev: cero vulnerabilidades; git diff --check: exit 0.
+Los resultados inferiores se conservan como historial de la implementación
+inicial. Las seis validaciones de esta revisión terminaron con exit 0, sin
+ejecuciones fallidas ni regresiones observadas; esto no explica las incidencias
+históricas de los 34 fallos ni de Rescate. Sin cambios en migraciones, contratos
+compartidos, kernel, flags, otros juegos ni XP.
+
+### Algoritmo y evidencia auditada
+
+Se extiende [TugSportsReplay](../src/competitive/competitive.tug-replay.ts),
+sin reemplazar el replay deportivo ni crear otro motor de rondas.
+`replayLockedPair()` clasifica privadamente; `loadLockedPair()` conserva las
+barreras compartidas para abandonos/neutrales. CompetitivePairProtocol,
+CompetitiveService, VerifiedTerminal y los servicios deportivos no se modifican.
+No hay registro Nest/registry, conexión al kernel ni escritura de XP.
+
+Locks conservados: Usuario original ordenado → advisory de partida → padre;
+no se adquieren claves de respuesta en sentido inverso. Todo se lee dentro de
+la transacción del llamador. Se comprueban TugMatchIdentity, admisión inmutable,
+participantes, secuencia contigua TiraAflojaEvento y un único terminal al final.
+Se conserva snapshot/Qpartida, asignaciones y opciones originales, C, respuestas
+únicas, movimiento/posición/meta/agotamiento y cada pareja R certificada por
+el testigo independiente dentro del deadline. Sin certificado para una pareja,
+se bloquea todo el replay. Nunca se reconstruye desde el banco mutable.
+
+[Replay de presencia](../src/competitive/competitive.tug-presence-replay.ts):
+TugPresenceEvent.id bigint IDENTITY ordena por partida bajo locks. Se usa BigInt,
+sin exigir consecutividad de IDs globales. Tiempos timestamp(6) extraídos como
+microsegundos enteros textuales: ninguna comparación decisiva pierde precisión
+mediante Date. Se reconstruyen CONNECTED, RENEWED, DISCONNECTED, UNKNOWN,
+RETIRED y GRACE contra conexión, usuario, instancia, connectedAt y authUntil.
+Se contrastan transiciones y resumen final state/lastSeen/lease/closedAt.
+Las respuestas requieren OPEN histórico y lease/auth vigentes al ser aceptadas.
+JWT válido sin exp conserva authUntil=NULL y lease 45 s desde lastSeen,
+sin caducidad inventada, conforme al contrato de autenticación existente.
+
+GRACE requiere DISCONNECTED inmediatamente anterior de la última conexión,
+sin otra OPEN ni UNKNOWN de ese usuario. Vence exactamente 30.000.000 µs después.
+UNKNOWN no crea gracia. Reconexión autenticada anterior al vencimiento cancela
+la gracia; igualdad o posterior no la cancela. Se reconstruyen múltiples sockets,
+retiro de UNKNOWN y cambio de instancia. ABANDONED se cruza uno a uno con
+TugAbandonment (usuario/motivo/effectiveAt preciso), evento deportivo y padre.
+No se infiere ausencia del ganador ni de falta de socket.
+
+Se valida la historia completa, incluidos refresh después del cierre efectivo.
+El hash canónico de presencia usa el corte observedAt <= terminal efectivo y
+orígenes de conexiones existentes en ese instante, no sus campos mutables actuales:
+UNKNOWN posterior por refresh no cambia el hash. El hash incluye admisión,
+snapshot, tiempos exactos, respuestas, parejas/certificados, eventos y participantes.
+C cuenta correctas; actions cuenta todas las respuestas aceptadas, incluso errores.
+No se calcula XP en ninguna clasificación.
+
+### Terminales reconstruidos y precedencia
+
+| Clasificación privada | Garantía |
+|---|---|
+| NORMAL | Meta/agotamiento probado anterior a gracia/global; admite gracia posterior o cancelada oportunamente. |
+| GRACE_ABANDONMENT | Primera gracia confirmada: identifica abandonador y rival vencedor deportivo aunque UNKNOWN o sin acciones. |
+| SIMULTANEOUS_CANCELLED | Dos gracias exactamente iguales: CANCELADA, sin ganador y registros individuales; no EMPATE ni dos -15. |
+| EXPLICIT_PRE_ACTIVE | Sin transición RONDA_INICIADA, snapshot, respuestas, R ni certificados: conserva cierre, ninguna transformación penalizable o positiva. |
+| EXPLICIT_ACTIVE | RONDA_INICIADA previa en la secuencia deportiva y snapshot activado; conserva victoria del rival OPEN según contrato EXPLICIT o CANCELADA sin ganador. |
+| GLOBAL_EXPIRED | EXPIRADA/CANCELADA original: global antes/igual a gracia, sin ganador ni abandono; no empate inventado. |
+
+Cada resolución de ronda debe ser anterior al global y a gracia aplicable.
+Una ronda pendiente no puede ocultar una resolución normal anterior al terminal;
+se comprueban posición y número de rondas. Meta/agotamiento anterior tiene prioridad;
+global antes o igual a gracia prevalece sobre abandono; después, primera gracia
+confirmada. Dos vencimientos separados por 1 µs no son iguales. Reconexión no
+amplía relojes ni reabre terminal. No se usa Date para decidir esa precedencia.
+
+EXPLICIT se clasifica por secuencia deportiva y snapshot, no por definitive=true
+ni por el resultado final. Pre-ACTIVA conserva cero para ambos, sin penalización
+ni premio, sin cambiar su cierre deportivo. Durante ACTIVA no se autoriza
+automáticamente -15. La futura victoria por abandono conserva
+min(80, roundHalfUp(60*C/Qpartida)+20) con al menos una acción; cero sin acciones,
+sin bono normal. No se calcula/paga aquí ni se penaliza la cancelación doble.
+
+### Variantes bloqueadas y contrato futuro
+
+No existe una marca exacta e independiente ACTIVA compartida con presencia.
+RONDA_INICIADA + snapshot demuestran fase EXPLICIT dentro de la misma secuencia,
+pero no ordenan independientemente una GRACE durante la cuenta regresiva contra
+la transición exacta. Esa variante, aun reconectada, falla GRACE_PHASE_UNPROVEN;
+se soportan gracias desde el inicio programado de la primera ronda. No se inventa
+historia. Corrección mínima futura propuesta: marca inmutable ACTIVA con reloj PG
+y orden/evento durable en la misma transacción, solo para nuevos intentos.
+No se crea una migración que aparente certificar históricos.
+
+VerifiedTerminal usa Date, no representa neutral ni prueba explícita de fase.
+Las salidas excepcionales son privadas y preservan terminalUs; no generan un
+VerifiedTerminal ficticio. NORMAL solo lo produce si el instante terminal cabe
+exactamente en milisegundos; si no, TERMINAL_PRECISION_UNSUPPORTED.
+Ampliación futura mínima: neutral sin premio/empate, fase autoritativa y tiempo
+preciso, con aprobación previa a conectarlo al ledger. Kernel del par intacto.
+
+Bloqueados: abiertos, legacy/no admitidos, evidencia incompleta/contradictoria,
+countdown GRACE, parejas sin certificado y discrepancias deportivas. Pre-ACTIVA
+con B todavía ausente mantiene PARTICIPANTS_INCOMPLETE: no se inventa el par.
+Otros neutrales sin causa no se aceptan solo por su estado. El límite previo de
+rapidez Date alrededor de 200 ms continúa: replay exacto rechaza SPORTS_CONFLICT,
+sin cambiar el motor. TUG_MATCH permanece SOURCE_NOT_INTEGRATED y flag OFF;
+sin retroactividad, integración de liquidación ni activación para usuarios.
+
+### Pruebas y resultados
+
+Los catorce archivos PG previos se conservan y se añade
+[test/competitive-tug-terminal-replay-postgres.test.cjs](../test/competitive-tug-terminal-replay-postgres.test.cjs).
+Usa servicios reales, dos clientes y testigo independiente. Reloj propio fijado
+al instante PG observado o deadline persistido exacto, restaurado en finally;
+sin sleeps arbitrarios ni tiempos del cliente como evidencia positiva.
+Deadlines cortos fijados antes del snapshot con guards activos en DB propio.
+Corrupciones privilegiadas solo dentro de rollback: no afirman protección frente
+al owner. Pruebas Jest de historia son unitarias, no validación de liquidación.
+
+Primera ejecución completa: **234/235, 15 archivos, 1 fallo**, cero cancelados,
+omitidos, TODO o incompletos; 432991 ms bloque. Catorce previos: 219/219.
+Causa demostrada en el fixture nuevo de reconexión: reloj SELECT min(graceUntil)
+en vivo, columna borrada por CONNECTED, recordedAt=NULL, SQLSTATE 23502.
+Corrección exclusiva del fixture: evaluar el instante PG una vez y fijarlo como
+timestamp exacto. No se cambian plazos, aserciones ni código deportivo.
+Log íntegro %TEMP%/saberplus-cp15-postgres-1.log.
+
+Segunda ejecución limpia: **236/236, 15 archivos**, 438384 ms bloque; casos
+nuevos 17/17 (39516,4127 ms Node / 39645 ms archivo). Se añadieron después
+regresiones de ABANDONED posterior sin registro individual y EXPLICIT pre-ACTIVA
+con vencedor deportivo (sin inferir participación ni recompensa), y se exigió
+exactamente una ronda pendiente para cierres excepcionales. Tercera ejecución
+completa limpia: **238/238, 15 archivos**, 446886 ms bloque; nuevos **19/19**
+(39993,9032 ms Node / 40119 ms archivo). Los catorce anteriores siguen 219/219.
+Cero fail/cancelled/skipped/todo, failedFiles/incompleteFiles/invalidFiles vacíos.
+No se sustituyó el diagnóstico del primer fallo por un reintento exitoso.
+Logs íntegros: %TEMP%/saberplus-cp15-postgres-final.log y
+%TEMP%/saberplus-cp15-postgres-verified.log. Se valida todo ABANDONED, incluso
+fuera del corte del hash, contra sus registros; un refresh posterior no es
+una excusa para ocultar un abandono extra. Los tres DB son propios e independientes:
+PostgreSQL 16.15, 59 migraciones confirmadas, zona Etc/UTC. Cada recurso temporal
+se retiró tras comprobar propiedad. Docker 29.7.2 / desktop-linux; postgres-local
+ajeno conserva ID 20d971cc043fe04cf2fd14be83c906d2210f298381e58ac480a478ea305b7927,
+running/healthy y StartedAt 2026-10-02T21:24:22.476116454Z, sin modificación.
+
+| Validación final | Resultado |
+|---|---|
+| npm run build | exit 0, 15278 ms; Prisma generado y Nest compilado después de cerrar PG |
+| Jest competitivo | 223/223, 16 suites, 18,119 s |
+| Jest completo | 1104/1104, 105 suites, 43,088 s |
+| PostgreSQL completo | 238/238, 15 archivos; 446886 ms bloque |
+| npm audit --omit=dev | exit 0, cero vulnerabilidades, TLS activo |
+| git diff --check | exit 0 |
+| Enlaces locales en documentos actualizados | 83 comprobados, ninguno inexistente |
+
+Las ejecuciones Jest intermedias también pasaron: competitivo 222/222
+(9,377 y 9,502 s), después 223/223 (15,327 s); completo 1103/1103 (58,775 s),
+después 1104/1104 (31,258 s). Repeticiones posteriores comprueban las barreras
+adicionales y su nueva prueba, no ocultan fallos. No hubo fallos build/Jest/audit.
+Fuentes privadas fuera de Nest/registro y cada fixture deportivo nuevo sin ledger,
+balance ni cambios Usuario.xpTotal; las pruebas del kernel previas permanecen
+pruebas de infraestructura, no liquidación deportiva real.
+
+Persisten WAL/durabilidad física productiva, rol/RLS
+productivo, capacidad multiinstancia, incertidumbre histórica de 34 fallos
+HISTORICAL_MEMBERSHIP_UNKNOWN y Rescate intermitente: el fallo del fixture
+no explica esas incidencias. Sin migración nueva/remota, Supabase, Flutter,
+otros juegos ni PR-I2; PR-I1 no fusionado a main.
+
+## Historial confirmado — checkpoint 14 (60b1228)
+
+
 ## Revisión humana del checkpoint 14 — contención P2028 corregida
 
 Se preserva íntegro el replay aislado y sus trece pruebas. La rama/HEAD siguen
