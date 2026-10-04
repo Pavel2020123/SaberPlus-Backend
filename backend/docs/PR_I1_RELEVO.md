@@ -1,5 +1,19 @@
 # PR-I1 V1 — relevo técnico de SaberPlus-Backend
 
+## Alcance vigente para revisión de integración
+
+PR-I1 reúne 22 checkpoints publicados, con base `0bb4855`, y se encuentra en
+Draft PR #5. Incluye infraestructura e integración competitiva local de Cima,
+Guardián, Rescate, Trivia Rush, Duelo fantasma y Tira y afloja. Memoria y Batallas
+todavía **no están integradas competitivamente**.
+
+La integración de código no significa activación productiva. Los flags
+`COMPETITIVE_SOLO_ENABLED`, `COMPETITIVE_TRIVIA_ENABLED`,
+`COMPETITIVE_GHOST_ENABLED` y `COMPETITIVE_TUG_ENABLED` están desactivados por
+defecto. La integración a `main` y el despliegue son decisiones separadas;
+los requisitos B1/B2 de producción siguen pendientes. Véase el
+[alcance de infraestructura](PR_I1_COMPETITIVE_INFRASTRUCTURE.md#alcance-vigente-para-revisión-de-integración).
+
 ## Continuación CP22 — señales Linux y límites operativos
 
 Base `f2b4a6b`, origin local coincidente, main `fb27225`; 21 checkpoints publicados

@@ -1,5 +1,20 @@
 # PR-I1 V1: infraestructura competitiva común
 
+## Alcance vigente para revisión de integración
+
+Los 22 checkpoints publicados de PR-I1, con base `0bb4855` y Draft PR #5,
+incluyen infraestructura e integración competitiva local de Cima, Guardián,
+Rescate, Trivia Rush, Duelo fantasma y Tira y afloja. Memoria y Batallas todavía
+**no están integradas competitivamente**.
+
+Integración de código no equivale a activación productiva. Los flags
+`COMPETITIVE_SOLO_ENABLED`, `COMPETITIVE_TRIVIA_ENABLED`,
+`COMPETITIVE_GHOST_ENABLED` y `COMPETITIVE_TUG_ENABLED` permanecen desactivados
+por defecto. Integrar a `main` y desplegar son decisiones separadas; despliegue
+y activación siguen sujetos a los requisitos B1/B2 descritos en este documento.
+El [relevo técnico](PR_I1_RELEVO.md#alcance-vigente-para-revisión-de-integración)
+resume el estado vigente; los apartados siguientes conservan su historial.
+
 > **Base funcional histórica: 97ebfc4, 18 checkpoints publicados entonces.** La integración
 > y corrección P1 de CP18 ya están confirmadas; validación local final PostgreSQL
 > 304/304, sin autorización para producción. [Entrada de relevo](PR_I1_RELEVO.md).
