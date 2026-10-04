@@ -286,6 +286,94 @@ async function main() {
       );
       console.log(sample.stdout.trim());
     };
+    const backupRestore = async (phase,requirePopulated) => {
+    // Backup/restore only inside this nonce-owned container, never an external DB.
+    const restoreDatabase = `sp_restore_${nonce}_${phase}`;
+    const fingerprintSql = `
+      CREATE FUNCTION pg_temp.competitive_fingerprint() RETURNS jsonb LANGUAGE plpgsql AS $$
+      DECLARE t record; rows_count bigint; digest text; result jsonb := '{}'::jsonb;
+      BEGIN
+        FOR t IN SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY tablename LOOP
+          EXECUTE format('SELECT count(*),md5(coalesce(string_agg(to_jsonb(x)::text,''|'' ORDER BY to_jsonb(x)::text),'''')) FROM public.%I x',t.tablename)
+            INTO rows_count,digest;
+          result := result || jsonb_build_object(t.tablename,jsonb_build_object('rows',rows_count,'digest',digest));
+        END LOOP;
+        RETURN result;
+      END $$;
+      -- Canonicalize CHECK through PostgreSQL's parser, not regex/string edits.
+      -- Historical ALTER TYPE can leave array casts that pg_dump reparses into
+      -- element casts. Reparse both databases against their actual column types.
+      CREATE FUNCTION pg_temp.competitive_constraints() RETURNS jsonb LANGUAGE plpgsql AS $$
+      DECLARE c record; definition text; result jsonb := '{}'::jsonb;
+      BEGIN
+        FOR c IN SELECT k.oid,k.conname,k.contype,k.convalidated,k.condeferrable,k.condeferred,t.relname
+          FROM pg_constraint k JOIN pg_class t ON t.oid=k.conrelid
+          JOIN pg_namespace n ON n.oid=t.relnamespace WHERE n.nspname='public'
+          ORDER BY t.relname,k.conname LOOP
+          definition := pg_get_constraintdef(c.oid);
+          IF c.contype='c' THEN
+            EXECUTE format('CREATE TEMP TABLE sp_check_canonical (LIKE public.%I)',c.relname);
+            EXECUTE 'ALTER TABLE pg_temp.sp_check_canonical ADD CONSTRAINT sp_check_probe ' || definition;
+            SELECT pg_get_constraintdef(k.oid) INTO definition FROM pg_constraint k
+              WHERE k.conrelid='pg_temp.sp_check_canonical'::regclass AND k.conname='sp_check_probe';
+            DROP TABLE pg_temp.sp_check_canonical;
+          END IF;
+          result := result || jsonb_build_object(c.relname||':'||c.conname,jsonb_build_object(
+            'definition',definition,'validated',c.convalidated,'deferrable',c.condeferrable,'deferred',c.condeferred));
+        END LOOP;
+        RETURN result;
+      END $$;
+      SELECT jsonb_build_object('data',pg_temp.competitive_fingerprint(),
+        'sequences',(SELECT jsonb_agg(jsonb_build_array(sequencename,last_value) ORDER BY sequencename) FROM pg_sequences WHERE schemaname='public'),
+        'tableAcls',(SELECT jsonb_object_agg(c.relname,(SELECT jsonb_agg(
+          jsonb_build_array(e.grantor,e.grantee,e.privilege_type,e.is_grantable)
+          ORDER BY e.grantor,e.grantee,e.privilege_type,e.is_grantable)
+          FROM aclexplode(coalesce(c.relacl,acldefault(
+            CASE WHEN c.relkind='S' THEN 's'::"char" ELSE 'r'::"char" END,c.relowner))) e))
+          FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind IN ('r','S')),
+        'rls',(SELECT jsonb_agg(jsonb_build_array(c.relname,c.relrowsecurity,c.relforcerowsecurity) ORDER BY c.relname)
+          FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind='r'),
+        'constraints',pg_temp.competitive_constraints(),
+        'indexes',(SELECT md5(string_agg(indexdef,'|' ORDER BY indexname)) FROM pg_indexes WHERE schemaname='public'),
+        'functions',(SELECT md5(string_agg(pg_get_functiondef(p.oid),'|' ORDER BY p.proname,pg_get_function_identity_arguments(p.oid)))
+          FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND p.prokind='f'))::text;
+    `;
+    const fingerprint = async (database) => {
+      const sample = await docker('exec', name, 'psql', '-X', '-U', user,
+        '-d', database, '-v', 'ON_ERROR_STOP=1', '-qAtc', fingerprintSql);
+      return JSON.parse(sample.stdout.trim());
+    };
+    const beforeRestore = await fingerprint('postgres');
+    for (const table of ['EventoXpCompetitivo','BalanceCompetitivo','HistorialInstitucionCompetitiva','TugCompetitiveSettlement']) {
+      if (requirePopulated && !(beforeRestore.data[table]?.rows > 0)) throw new Error('Backup probe requires populated competitive data.');
+    }
+    await docker('exec', name, 'pg_dump', '-U', user, '-d', 'postgres',
+      '--format=custom', '--file=/tmp/competitive-owned.dump');
+    await docker('exec', name, 'createdb', '-U', user, restoreDatabase);
+    await docker('exec', name, 'pg_restore', '-U', user, '-d', restoreDatabase,
+      '--exit-on-error', '--single-transaction', '/tmp/competitive-owned.dump');
+    const afterRestore = await fingerprint(restoreDatabase);
+    if (JSON.stringify(beforeRestore) !== JSON.stringify(afterRestore)) {
+      const components = Object.keys(beforeRestore).filter(key =>
+        JSON.stringify(beforeRestore[key]) !== JSON.stringify(afterRestore[key]));
+      const tables = Object.keys(beforeRestore.data).filter(key =>
+        JSON.stringify(beforeRestore.data[key]) !== JSON.stringify(afterRestore.data[key]));
+      const constraints = Object.keys(beforeRestore.constraints).filter(key =>
+        JSON.stringify(beforeRestore.constraints[key]) !== JSON.stringify(afterRestore.constraints[key]));
+      console.error(JSON.stringify({phase:'owned-backup-restore-mismatch',probe:phase,components,
+        tables:tables.map(table=>({table,beforeRows:beforeRestore.data[table]?.rows,
+          afterRows:afterRestore.data[table]?.rows})),
+        constraints:constraints.map(key=>({key,before:beforeRestore.constraints[key],after:afterRestore.constraints[key]}))}));
+      throw new Error('Owned backup/restore changed data or competitive schema integrity.');
+    }
+    console.log(JSON.stringify({phase:'owned-backup-restore', probe:phase,result:'PASS',
+      tables:Object.keys(beforeRestore.data).length, dataDigestsEqual:true,
+      rlsEqual:true,constraintsEqual:true,indexesEqual:true,functionsEqual:true,
+      sequencesEqual:true,tableAclsEqual:true,
+      productionDurabilityCertified:false}));
+
+    };
+    await backupRestore('schema',false);
     await clockDiagnostic('before-tests');
     await schemaDiagnostic('before-tests');
     let result;
@@ -313,6 +401,7 @@ async function main() {
         'test/competitive-tug-contract-postgres.test.cjs',
         'test/competitive-tug-settlement-postgres.test.cjs',
         'test/competitive-tug-recovery-postgres.test.cjs',
+        'test/competitive-operational-postgres.test.cjs',
       ];
       const totals = {
         tests: 0,
@@ -439,6 +528,8 @@ async function main() {
     }
     await clockDiagnostic('after-tests');
     await schemaDiagnostic('after-tests');
+    await backupRestore('populated',true);
+
     console.log(
       result.stdout
         .replaceAll(url, '[temporary DB]')

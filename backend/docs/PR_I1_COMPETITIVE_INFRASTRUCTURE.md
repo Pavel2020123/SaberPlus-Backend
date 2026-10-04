@@ -6,6 +6,122 @@
 > Las etiquetas «CP18 local/SIN COMMIT» y HEAD af2374e inferiores conservan el
 > contexto anterior a su publicación; no describen el estado Git vigente.
 
+
+## Checkpoint 19 local — B1/B2, sin autorización productiva
+
+Base Git comprobada: e7cae17, rama feat/pr-i1-competitive-infrastructure;
+main fb27225. Dieciocho checkpoints funcionales y commit documental publicados
+según propietario. Árbol limpio al iniciar. [Relevo](PR_I1_RELEVO.md) conservado.
+CP19 agrega verificaciones locales, sin cambiar fórmulas, flags, Prisma o
+migraciones confirmadas. No equivale a cerrar B1/B2 ni autoriza activación productiva.
+
+### Evidencia reproducible y matriz operativa
+
+Pruebas nuevas: [competitive-operational-postgres.test.cjs](../test/competitive-operational-postgres.test.cjs),
+ejecutadas al final del [runner desechable](../tool/test_competitive_postgres.mjs).
+El runner mantiene archivos secuenciales y límite original de 120 s por archivo.
+Antes de las suites restaura el esquema recién migrado; después restaura la base
+poblada. Ambos ensayos usan pg_dump custom y pg_restore --single-transaction
+--exit-on-error en bases separadas del MISMO contenedor propio. Compara conteos y
+huellas ordenadas de todas las tablas públicas, flags RLS, constraints, índices,
+funciones, valores de secuencias y privilegios efectivos de tablas/secuencias;
+el segundo exige ledger/balances/historial/recibos poblados. Solo registra
+igualdad/conteos, nunca contenido privado ni credenciales. Un desacuerdo falla
+la ejecución. El recurso completo es desechable; no toca backups reales.
+
+| Requisito | Riesgo | Evidencia/prueba | Resultado y estado | Restricción | Pendiente productivo/autorización |
+|---|---|---|---|---|---|
+| B1 rol insuficiente | Acceso indebido o backend sin acceso | Identidades SQL anon/authenticated; NOSUPERUSER/NOBYPASSRLS, grants sin policy | PASS en ejecuciones 1, 2 y 5; VALIDADO LOCALMENTE | Ensayo en recurso propio | Identificar rol REAL de DATABASE_URL |
+| B1 rol privado autorizado | Depender necesariamente de superusuario | Políticas privadas TO rol local, liquidación Cima real/idempotente antes de rollback | PASS en ejecuciones 1, 2 y 5; VALIDADO LOCALMENTE | Grants amplios del probe, no receta de mínimo privilegio productivo ni prueba de login | Acordar y auditar grants/policies de backend |
+| B1 RLS/evidencia | Ledger, balances, historial, snapshots o recibos accesibles directamente | Tablas RLS inventariadas y acceso denegado a dos roles; funcs competitivas sin SECURITY DEFINER oculto | PASS en ejecuciones 1, 2 y 5; VALIDADO LOCALMENTE | No prueba configuración Supabase | Owner/BYPASSRLS, grants, membership y policies efectivas de producción |
+| B1 migraciones | Dependencias o constraints faltantes | Secuencia versionada en base nueva; suites de integridad existentes y digest de esquema restaurado | PASS, 61 migraciones y esquema restaurado; VALIDADO LOCALMENTE | Sin alterar ni aplicar migraciones remotas | Respaldo, revisión, autorización y esquema real |
+| B1 WAL local | Confundir COMMIT con durabilidad física | SHOW equivalente de fsync, synchronous_commit, full_page_writes y wal_level | PASS en ejecuciones 1, 2 y 5; VALIDADO LOCALMENTE | Solo parámetros de esta instancia | Almacenamiento, replicación y configuración efectiva productiva |
+| B1 durabilidad física | Pérdida después de fallo de infraestructura | Atomicidad/reintentos anteriores conservados; no prueba corte eléctrico/disco/proveedor | NO VERIFICABLE LOCALMENTE para producción | Settings on no certifican hardware ni réplica | SLA, WAL/replicación, recuperación y evidencia del proveedor |
+| B1 respaldo/restauración | Backup inutilizable o datos/esquema alterados | pg_dump/pg_restore propios + huellas iguales, sin exposición de filas | PASS, esquema y datos poblados; VALIDADO LOCALMENTE | Restaura mismo cluster/version, no otra versión/proveedor | RPO/RTO, cifrado/custodia, retención, roles y ensayo real autorizado |
+| B2 pool | Agotamiento y conexiones abandonadas | Pool 1, error P2024 acotado, recuperación y desaparición de backend tras disconnect | PASS en ejecuciones 1, 2 y 5; VALIDADO LOCALMENTE | Prueba de contención, no carga real | Presupuesto total por instancia/pools/testigos/replicas, endpoint de pooling |
+| B2 selección/reintentos | Un pendiente sin evidencia bloquea los demás o reintenta agresivamente | 30 orígenes deportivos reales, más de un lote, cinco fallos inyectados sin pago y backoff 5 min | PASS en ejecuciones 1, 2 y 5; VALIDADO LOCALMENTE | Inyección de error para probar scheduler, no evidencia deportiva ficticia autorizada | Volumen, distribución de errores, latencias y observabilidad operativa |
+| B2 atomicidad/multiinstancia | Doble pago o rollback parcial | Suites CP18: dos clientes/instancias, hash, rollback, COMMIT sin acuse; se repiten íntegramente | PASS en suites CP19; VALIDADO LOCALMENTE | No certifica clusters ni capacidad productiva | Pools/topología de despliegue y ensayo de carga autorizado |
+| B2 publicación distribuida | Usuarios conectados a otra instancia no reciben aviso local | TiraAflojaRealtimePublisher usa RxJS Subject; sin bus compartido en ese proveedor | BLOQUEADO para garantía distribuida | SQL durable no distribuye automáticamente notificaciones | Decidir infraestructura/topología con propietario; no simular bus |
+| B2 ciclo de vida | Cerrar pool con trabajo activo | PrismaService conecta/desconecta; hooks de shutdown en main; workers coalescen y esperan running; testigo close libera su cliente | PENDIENTE de evidencia bajo carga | Pruebas anteriores y pool local, no señales/fallos reales bajo carga | Orquestación, límites de cierre, capacidad y pruebas operativas |
+
+### Privilegios y configuración: alcance de la evidencia
+
+El backend no requiere DDL de migraciones para liquidar. Necesita USAGE de schema;
+SELECT/UPDATE para locks y cierres en Usuario/orígenes; SELECT/INSERT de ledger;
+SELECT/INSERT/UPDATE de balance y cola/recibos; SELECT de historial; EXECUTE de
+funciones invocadas directamente. Cambios de institución requieren INSERT de
+historial por trigger y USAGE de su secuencia. Inventario completo del backend
+incluye otros módulos: esta lista no es una política final de mínimo privilegio.
+
+RLS sin policy privada no permite operar a un rol ordinario aunque tenga grants.
+Owner puede omitir RLS salvo FORCE, y superusuario/BYPASSRLS pueden omitirla;
+no confundir el rol privilegiado del runner con el backend productivo. El probe
+privado no tiene superusuario, BYPASSRLS, CREATEDB, CREATEROLE ni LOGIN: SET LOCAL
+ROLE prueba identidad/privilegios SQL, no autenticación/password/login externo.
+Sus policies y cambios de liquidación quedan dentro de una transacción revertida;
+no se instalan policies de producción ni se conceden privilegios a clientes.
+
+PrismaService usa DATABASE_URL; directUrl usa DIRECT_URL para CLI. No se leyeron
+valores ni .env. No hay límite de pool fijo en PrismaService: depende del URL y
+del runtime. TiraAflojaVisibilityWitness crea un PrismaClient adicional y verifica
+que sea la misma base mediante challenge de locks; cierra su pool. Su identidad
+real/endpoint productivo sigue pendiente. Dimensionar SUMA de pools por instancia,
+no solo PrismaService; la prueba pool=1 no selecciona un tamaño productivo.
+
+render.yaml observado: plan free, build npm ci --include=dev && npm run build,
+start npm run start:prod, readiness /health/ready. No se observó allí un paso
+preDeploy de migraciones ni numInstances explícito. Eso no prueba configuración
+del proveedor ni autoriza cambiarla. [HealthController](../src/health/health.controller.ts)
+usa SELECT 1: readiness demuestra conectividad, no tablas/policies competitivas.
+El probe privado comprueba readiness UP aun cuando RLS oculta ledger sin policy;
+esto es una limitación P1 del gate de despliegue, no autorización de acceso.
+Mantener verificación explícita de esquema/privilegios y no reinterpretar health
+como certificación de migraciones. No se cambia ese contrato global en CP19.
+Esquema competitivo debe preceder backend,
+incluso con flags apagados; no usar un despliegue para ocultar esquema faltante.
+
+### Validaciones y siguientes pasos
+
+Registro completo de ejecuciones PostgreSQL CP19 (logs locales `%TEMP%/sp-cp19-postgres-N.log`):
+
+| Ejecución | Suites | Resultado global | Diagnóstico |
+|---|---|---|---|
+| 1 | 310/310, 20 archivos, 734277 ms; nuevas 6/6 | exit 1 | Comparador del respaldo detectó diferencia después de todas las suites |
+| 2 | 310/310, 20 archivos, 726011 ms; nuevas 6/6 | exit 1 | Diagnóstico aisló exclusivamente constraints; datos, flags RLS, índices y funciones coincidían |
+| 3 | Ninguna ejecutada | exit 1 | Nuevo gate inicial reprodujo siete CHECK de esquema con representación diferente al restaurar |
+| 4 | Ninguna ejecutada | exit 1 | CHECK reparsedos ya iguales; nueva comprobación de ACL textuales detectó representación diferente |
+| 5 | 310/310, 20 archivos, 712656 ms; nuevas 6/6 | exit 0 | Restauración inicial PASS (73 tablas) y poblada PASS (74 tablas), sin tests fallidos/cancelados/omitidos/TODO ni archivos incompletos |
+
+Causa demostrada del desacuerdo CHECK: los casts históricos de array varchar[]
+a text[] aparecen como casts por elemento después de pg_dump/pg_restore. Afectó
+los CHECK de estado/contexto de Cima, Guardián y Rescate, y el CHECK histórico de
+Escudo. No se modificó ninguna constraint ni migración. El comparador ahora
+reparsea ambos CHECK mediante el parser PostgreSQL en tablas temporales aisladas,
+conservando tipos/casts y flags validated/deferrable/deferred. Para ACL compara
+acldefault/aclexplode ordenados por grantor, grantee, privilegio y grant option,
+no la representación textual u orden de entradas. El gate inicial de ejecución
+5 confirma igualdad completa con estas comprobaciones; no certifica
+el respaldo poblado por sí solo: el segundo ensayo, tras las 310 pruebas,
+lo verifica también (74 tablas). Estas correcciones afectan el ensayo nuevo, no las reglas
+ni el runtime. No se omite ningún archivo para lograr PASS.
+
+Validaciones iniciales: build exit 0, Jest competitivo 276/276 (18 suites,
+18,468 s), completo 1157/1157 (107 suites, 77,142 s), audit cero vulnerabilidades.
+Repetición final tras PostgreSQL: build exit 0; competitivo 276/276 (18 suites,
+12,149 s); completo 1157/1157 (107 suites, 42,470 s); audit omit=dev cero
+vulnerabilidades; git diff --check exit 0. Enlaces locales y ancla CP19 comprobados.
+TLS activo; NODE_OPTIONS --use-system-ca temporal para audit, restaurado después.
+Logs locales `%TEMP%/sp-cp19-build-final.log`,
+`sp-cp19-jest-competitive-final.log`, `sp-cp19-jest-all-final.log`,
+`sp-cp19-audit-final.log` y los cinco logs PostgreSQL anteriores. Docker 29.7.2,
+contexto desktop-linux: al cierre solo queda postgres-local, con identidad y
+StartedAt originales. No declarar B1/B2 completos.
+Permanecen las incidencias históricas de 34 fallos y Rescate intermitente.
+Siguiente checkpoint propuesto: presupuesto de conexiones y cierre bajo carga
+con criterios locales acordados; después, decisión explícita de topología/bus
+antes de afirmar publicación multiinstancia. Los gates de producción requieren
+otra autorización; no iniciar Memoria/Batallas/PR-I2 ni activar flags.
+
 ## Estado vigente — checkpoint 18 local: integración de par Tira
 
 Rama `feat/pr-i1-competitive-infrastructure`, HEAD `af2374e`, diecisiete

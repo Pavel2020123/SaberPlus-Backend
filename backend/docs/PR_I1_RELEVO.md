@@ -1,5 +1,13 @@
 # PR-I1 V1 — relevo técnico de SaberPlus-Backend
 
+## Continuación operativa local CP19
+
+Base documental confirmada e7cae17, que conserva el checkpoint funcional 97ebfc4.
+CP19 incorpora pruebas B1/B2 en PostgreSQL desechable, sin activación
+ni cambios a contratos. Consultar la [matriz operativa actual](PR_I1_COMPETITIVE_INFRASTRUCTURE.md#checkpoint-19-local--b1b2-sin-autorización-productiva)
+para resultados, límites y próximos pasos. Los datos inferiores conservan el
+punto de relevo funcional; no implican evidencia productiva.
+
 ## Estado confirmado y alcance
 
 Referencia de relevo: **97ebfc4**, rama **feat/pr-i1-competitive-infrastructure**.
