@@ -1,5 +1,11 @@
 # PR-I1 V1: infraestructura competitiva común
 
+> **Estado confirmado: 97ebfc4, 18 checkpoints publicados.** La integración
+> y corrección P1 de CP18 ya están confirmadas; validación local final PostgreSQL
+> 304/304, sin autorización para producción. [Entrada de relevo](PR_I1_RELEVO.md).
+> Las etiquetas «CP18 local/SIN COMMIT» y HEAD af2374e inferiores conservan el
+> contexto anterior a su publicación; no describen el estado Git vigente.
+
 ## Estado vigente — checkpoint 18 local: integración de par Tira
 
 Rama `feat/pr-i1-competitive-infrastructure`, HEAD `af2374e`, diecisiete

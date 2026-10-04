@@ -11,6 +11,11 @@
 
 ## Estado competitivo PR-I1 V1
 
+> **Relevo: 18 checkpoints funcionales publicados; último checkpoint funcional 97ebfc4.** Tira A1–A8
+> está integrado internamente y validado localmente, sin autorización productiva.
+> Leer [PR_I1_RELEVO.md](docs/PR_I1_RELEVO.md) antes de continuar. Los resúmenes
+> inferiores de quince checkpoints/ronda 16 son históricos y quedan superados.
+
 Quince checkpoints confirmados hasta `83d53da`. La ronda 16 local prepara
 ACTIVA exacta y coherencia temporal µs de nuevas búsquedas Tira admitidas, sin
 promover históricos. A3–A8, contrato compartido y liquidación TUG_MATCH siguen
