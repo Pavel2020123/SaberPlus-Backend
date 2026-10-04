@@ -7,6 +7,123 @@
 > contexto anterior a su publicación; no describen el estado Git vigente.
 
 
+## Checkpoint 21 local — resistencia y presupuesto consolidado
+
+Base `6f7b3de`, origin local coincidente, rama competitiva; main `fb27225`.
+Veinte checkpoints publicados según propietario; árbol limpio al iniciar.
+CP21 incorpora ensayos locales, sin migraciones/dependencias ni cambios
+al runtime, flags, fórmulas, locks, admisión o protocolos de liquidación.
+
+### Procesos propios y recuperación
+
+[Ensayo PostgreSQL](../test/competitive-resilience-postgres.test.cjs) y
+[hijo controlado](../test/helpers/competitive-owned-worker.cjs), incorporados
+al inicio del [runner](../tool/test_competitive_postgres.mjs), preservan las
+323 pruebas anteriores y límites de 120 s por archivo. El helper exige IPC,
+marker OWNED/loopback y un intento Cima V1 terminal del participante indicado.
+No es entry point del backend ni admite fuentes remotas. Usa verificador real,
+CompetitiveService y CompetitiveReconciler; instrumenta puntos precisos de la
+transacción/acuse sin fabricar resultados ni modificar evidencia deportiva.
+
+| Escenario | Aserción concreta | Alcance |
+|---|---|---|
+| Terminación antes del COMMIT | Ledger presente solo dentro de tx del hijo; padre no ve evento; después de morir no hay evento ni balance; reinicio liquida una vez | Liquidación individual Cima real; no nuevo ensayo de proceso para el par Tira |
+| COMMIT antes del acuse worker | Padre ve un evento y settledAt null; terminación; worker reiniciado reconoce mismo pago y completa acuse; otro reinicio no duplica | Fuente durable PENDING, flags de admisión OFF en hijos |
+| Muerte en espera de lock | Espera confirmada en pg_stat_activity; sin pago; tras liberar blocker propio, cero backend/locks; dos procesos recuperan un solo evento/balance versión 1 | No prometer liberación inmediata mientras el blocker siga activo |
+| Cierre cooperativo | Hook real onModuleDestroy del reconciliador y disconnect; exit 0; PID PostgreSQL desaparece | Cooperativo, no sustituto de SIGTERM ni del cierre de Nest bajo señal |
+| Presupuesto main + testigo | Dos slots main y uno testigo ocupados simultáneamente; P2024 de ambos consumidores; recuperación y cierre de todos los PID | Instrumenta pool del testigo real; no fabrica R ni certifica una partida |
+| Corte TCP local y caché | 200 durante cache positivo, luego 503 seguro, live 200, cache negativo sin reconectar, posterior 200; cero XP por health y sockets/backend cerrados | Proxy OWNED a la misma base; no blackhole prolongado/proveedor |
+
+En Windows, child.kill('SIGKILL') ejecuta terminación abrupta nativa
+TerminateProcess. Se registra PID del proceso, PID PostgreSQL, punto y salida;
+NO equivale a demostrar SIGKILL/SIGTERM POSIX. El cierre cooperativo tampoco
+simula una señal. La cobertura Linux/SIGTERM real permanece PENDIENTE: no se
+introduce otra imagen/runtime ni se señala procesos o contenedores ajenos.
+La atomicidad del par Tira y sus prioridades siguen cubiertas por las suites
+previas completas; estos hijos ensayan liquidación individual, no otra prueba
+específica de caída del proceso de par. Usuario.xpTotal permanece 101 en fixtures.
+
+### Inventario y presupuesto parametrizado
+
+| Consumidor runtime | Pool | Presupuesto |
+|---|---|---|
+| PrismaService de PrismaModule | Principal por módulo Nest compartido por sus consumidores | Pmain por instancia; no fijado en código |
+| Solo/Trivia/Tira reconciliadores, motores y presencia | Inyectan PrismaService; no crean cliente propio | Usan Pmain, no sumar un pool por cada worker |
+| Readiness CP20 | PrismaService real, single-flight/cache | Usa Pmain; reservar capacidad dentro de ese pool |
+| TiraAflojaVisibilityWitness | Único new PrismaClient adicional encontrado en src no-test; lazy, independiente, challenge misma DB, close | Pwitness por testigo instanciado (normalmente un proveedor Tira por backend) |
+| CLI migraciones/operación administrativa | Fuera del proceso Nest | M simultáneos más reserva A; no sumar permanentemente scripts que no están ejecutando |
+
+Para N instancias, Wi testigos por instancia y otros pools/directos Xi:
+
+`Bapp = sum_i(Pmain_i + Wi*Pwitness_i + Xi)`
+
+Si son homogéneas: `Bapp = N*(Pmain + W*Pwitness + X)`.
+
+`Busado = Bapp + M + A` debe satisfacer
+`Busado <= max_connections - superuser_reserved_connections - reserved_connections`
+para identidades ordinarias, además del límite efectivo del proxy/proveedor.
+M puede ser cero fuera de mantenimiento; A es reserva acordada, no dato inventado.
+No contar readiness ni reconciliadores dos veces. Los pools son máximos posibles,
+no cantidad abierta permanentemente; el testigo se abre de forma lazy. Presupuesto
+productivo requiere valores efectivos de URL/runtime, réplicas, topología y proveedor.
+No se leyeron .env ni credenciales; no se fija tamaño definitivo.
+
+Ensayo acotado: main PrismaService pool=2, testigo real pool=1, pool_timeout=1 s,
+un observer pool=1. Se mantienen tres transacciones de gates explícitos (máximo
+10 s), se confirma pg_stat_activity=4 clientes simultáneos, se fuerza contención
+P2024 sin elevar límites y se liberan gates antes de cerrar. El máximo configurado
+runtime es 3 slots y el pico observado incluyendo observer es 4. PostgreSQL local
+reporta max_connections=100, superuser_reserved_connections=3, reserved_connections=0;
+97 slots ordinarios son un cálculo local, no capacidad certificada del proveedor.
+El owner sintético del runner es privilegiado: este ensayo NO satura el límite
+PostgreSQL de identidades ordinarias; alcanza únicamente los límites de pools
+controlados. Recuperación local observada en primera ejecución: 2054 ms,
+incluyendo dos timeouts de 1 s; no es SLA. Todos los pools y PID propios cierran.
+
+### Fallos, correcciones y validación
+
+Primera ejecución, bloque nuevo: 4/6. No se inventa fuga de runtime:
+(1) esperaba desaparición del backend mientras su consulta aún esperaba el
+blocker propio; (2) destruía sockets pero comprobaba tamaño antes de sus eventos
+close. Se preservan aserciones y se corrige sincronización: liberar blocker,
+exigir ausencia de backend y locks; await eventos close de ambos lados y servidor.
+No se aumenta ninguna espera para esconder el problema. Evidencia reproducida en
+segunda ejecución: backendRetainedWhileBlocked=1, locksAfterRelease=0.
+
+Segunda ejecución, bloque nuevo 6/6, 18632 ms. Proxy: cache positivo restante
+4977 ms; primer 503 a 5008 ms desde corte y recuperación a 6071 ms; negativo
+1 s sin conexiones nuevas dentro del cache. Mide detection y recovery por separado.
+No afirmar detección inmediata ni equivalencia con health del proveedor.
+Build final exit 0 (19858 ms; también build inicial correcto); Jest competitivo 280/280 (19 suites, 17.121 s), completo
+1164/1164 (108 suites, 44.203 s), ambos exit 0. npm audit --omit=dev:
+cero vulnerabilidades, exit 0; TLS permanece verificado.
+PostgreSQL completo inicial: 327/329, 22 archivos, 731933 ms, exit 1;
+únicamente falló el bloque nuevo (dos sincronizaciones anteriores), sin
+archivos incompletos ni pruebas canceladas/omitidas/TODO. Las 323 pruebas
+previas pasaron. Segunda ejecución completa: 329/329, 22 archivos, 737749 ms, exit 0;
+cero fallos, cancelados, omitidos, TODO, archivos incompletos o inválidos.
+Respaldo/restauración OWNED de esquema y datos poblados: ambos PASS,
+con comparación de datos, RLS, constraints, índices, funciones, secuencias y ACL.
+Recuperación de pools en esta ejecución: 2050 ms. git diff --check exit 0;
+enlaces Markdown nuevos/modificados verificados contra archivos y ancla existentes.
+Contenedores OWNED retirados; postgres-local ajeno continúa running con el mismo
+ID e instante de inicio. Ningún staging, commit, push, merge ni despliegue.
+Conserva incidencias históricas de 34 fallos y Rescate; las ejecuciones locales
+no demuestran una causa de esas incidencias ni permiten declararlas cerradas.
+
+### Gates restantes
+
+VALIDADO LOCALMENTE no cierra B1/B2 productivos: rol/RLS/grants reales, WAL/disco,
+replicación, RPO/RTO/backups, blackholes de red y timeout efectivo del proveedor,
+política de reinicios/readiness, máximos de pools y réplica, señales Linux/Nest,
+y publicación distribuida (Subject local) siguen pendientes. Un proceso muerto
+puede dejar un backend esperando un lock hasta que PostgreSQL detecte el corte o
+termine la espera: acordar límites de espera del servidor en un próximo ensayo,
+sin afirmar que un timeout cliente garantiza cancelación inmediata del servidor.
+Siguiente CP22 propuesto: cierre Nest bajo señal real en plataforma destino y
+límites de espera PostgreSQL/blackhole, con recursos propios y criterios medibles;
+la elección de topología/bus y cualquier validación productiva requieren autorización.
+
 ## Checkpoint 20 local — readiness y presupuesto de conexiones
 
 Base comprobada `7c1b793`, origin local coincidente, rama competitiva; main

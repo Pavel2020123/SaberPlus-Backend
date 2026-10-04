@@ -357,6 +357,7 @@ async function main() {
       // order, but bound each process rather than truncate the whole growing
       // suite. The existing command budget is 120 s; no test/window is extended.
       const files = [
+        'test/competitive-resilience-postgres.test.cjs',
         'test/competitive-readiness-postgres.test.cjs',
         'test/competitive-postgres.test.cjs',
         'test/competitive-solo-postgres.test.cjs',

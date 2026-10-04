@@ -1,5 +1,24 @@
 # PR-I1 V1 — relevo técnico de SaberPlus-Backend
 
+## Continuación CP21 local
+
+Base `6f7b3de`, main `fb27225`, veinte checkpoints publicados según propietario.
+CP21 añade hijos OWNED, corte TCP local y presupuesto conjunto de
+Prisma principal + testigo real. [Evidencia y límites CP21](PR_I1_COMPETITIVE_INFRASTRUCTURE.md#checkpoint-21-local--resistencia-y-presupuesto-consolidado).
+Sin cambios deportivos, flags, migraciones ni dependencias. Windows prueba
+TerminateProcess abrupto y cierre cooperativo: señales POSIX y Nest bajo señal
+siguen pendientes. Los datos CP20 inferiores conservan el contexto histórico.
+Build exit 0; Jest competitivo 280/280 y completo 1164/1164; audit cero
+vulnerabilidades. PostgreSQL inicial 327/329: dos defectos de sincronización de
+los ensayos nuevos, corregidos sin cambios al runtime ni relajación de aserciones.
+Segunda ejecución PostgreSQL completa 329/329 (22 archivos, 737749 ms,
+exit 0), sin pruebas incompletas, canceladas, omitidas ni TODO; bloque nuevo 6/6.
+Ambos respaldos/restauraciones OWNED PASS; diff --check exit 0 y enlaces válidos.
+El contenedor PostgreSQL ajeno permanece intacto; recursos del runner retirados. B1/B2 productivos
+siguen abiertos. Próximo CP22: señales reales en plataforma destino, cierre Nest
+y espera PostgreSQL/red bajo fallos acotados; publicación distribuida requiere
+una decisión arquitectónica independiente.
+
 ## Continuación CP20 local
 
 Base confirmada `7c1b793`, main `fb27225`, diecinueve checkpoints publicados según
