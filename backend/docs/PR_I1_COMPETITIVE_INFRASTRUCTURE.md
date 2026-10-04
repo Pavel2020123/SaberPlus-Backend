@@ -7,6 +7,130 @@
 > contexto anterior a su publicación; no describen el estado Git vigente.
 
 
+## Checkpoint 22 — NestJS Linux, señales y límites operativos
+
+Base comprobada `f2b4a6b`, origin local coincidente, main `fb27225`;
+21 checkpoints publicados según propietario y árbol inicialmente limpio.
+CP22 incorpora ensayos locales reproducibles; no cambia runtime, dependencias,
+migraciones, flags de despliegue, fórmulas ni contratos de liquidación.
+
+### Backend real y señales POSIX
+
+[Pruebas Linux](../test/competitive-linux-postgres.test.cjs),
+[supervisor/observador](../test/helpers/competitive-linux-nest.cjs) y
+[preparación Linux](../tool/competitive_linux_runtime.mjs) arrancan el `dist/main`
+real con AppModule completo, no una aplicación mínima ni proveedores sustituidos.
+El bootstrap existente llama enableShutdownHooks; se observan y delegan los hooks
+reales de PrismaService, CompetitiveReconciler, TriviaCompetitiveReconciler,
+TugCompetitiveReconciler, TriviaPresenceService, TiraAflojaService y ambos gateways.
+La instrumentación de tx agrega observación y un gate pre-COMMIT, sin modificar
+resultados deportivos, evidencia, verificador o XP. Los fixtures Cima se producen
+mediante el servicio deportivo real; los hijos recuperan con flags apagados.
+
+Entorno: Node 24.14.1 Debian bookworm Linux, Prisma nativo generado desde el
+schema vigente y package-lock existente, PostgreSQL 16.15 OWNED. El contexto de
+imagen copia solo package/lock, schema, dist y helper, nunca .env, uploads o
+node_modules Windows. La red interna Docker contiene exclusivamente procesos
+propios y el PostgreSQL etiquetado del runner; no hay puertos HTTP publicados ni
+acceso a servicios remotos. uploads usa tmpfs propio: no monta archivos del usuario.
+
+| Caso | Evidencia/asserts | Estado y límite |
+|---|---|---|
+| SIGTERM normal | /health/ready real 200; hooks completos de ocho proveedores; principal y testigo con PID distintos; clientes vuelven al baseline | VALIDADO EN LINUX DESECHABLE; no prueba señal a PID 1 |
+| SIGTERM en contención | Lock PostgreSQL observable; señal; comienzo de hook; liberar blocker propio; cierre de hooks/pools; otro arranque recupera una vez | VALIDADO EN LINUX DESECHABLE; no garantiza cancelación mientras un blocker permanente siga reteniendo lock |
+| SIGKILL pre-COMMIT | Evento solo dentro de tx original; afuera cero ledger/balance; señal sin hooks; cero sesiones adicionales; otro arranque liquida 100 una sola vez | VALIDADO EN LINUX DESECHABLE, liquidación individual Cima |
+| Segundo reinicio | Ledger=1, XP=100, versión=1 y Usuario.xpTotal=101 tras dos recuperaciones | VALIDADO EN LINUX DESECHABLE; caos de procesos del par Tira no añadido |
+| COMMIT sin acuse | Recuperación idempotente CP21 Windows | VALIDADO LOCALMENTE; no nuevo caso POSIX de este punto |
+
+Los comandos exactos de señales se registran en `posix-signal`, por ejemplo:
+`docker exec sp-linux-420497ffdcaafab3-17d92c19-5976-45c9-89cc-572f1bc6ee53 kill -TERM 14`
+y `docker exec sp-linux-420497ffdcaafab3-850d2b5b-622f-4309-b6fd-e731b647c1fb kill -KILL 14`.
+Node PID 14/15 es hijo del supervisor PID 1. El hijo sale con signal SIGTERM o
+SIGKILL y code null; supervisor/contenedor sale 0, sin confundir ambos resultados.
+SIGKILL NO ejecuta hooks. Primer bloque corregido: 3/3, 48306.8255 ms; intervalos
+señal-observación de salida 1902..2508 ms, incluyendo CLI/poll/inspección Docker;
+no son SLA ni tiempos puros de shutdown del proveedor. Verificar forwarding de
+señales del entrypoint/productor real permanece pendiente.
+
+### Límites reales de ensayo y recuperación
+
+[Ensayos PostgreSQL/red](../test/competitive-timeouts-postgres.test.cjs) preservan
+los valores por defecto del backend. SET LOCAL configura solo la transacción de
+prueba; tras rollback se comprueba que statement_timeout/lock_timeout vuelven a 0.
+
+| Límite configurado solo para prueba | Observación corregida | Assert de recuperación |
+|---|---|---|
+| statement_timeout=150 ms | SQLSTATE 57014; 318 ms observados incluyendo overhead | Nueva consulta funciona; setting restaurado |
+| lock_timeout=150 ms | SQLSTATE 55P03; 179 ms; bloqueo real retenido por otra conexión | Waiter deja de esperar; liberar blocker permite nuevo FOR UPDATE |
+| connect_timeout=1 s | TCP realmente aceptado y handshake sin respuesta: fallo en 1011 ms | Mismo PrismaClient conecta tras restaurar forwarding; no crea XP; sockets cierran |
+| pool_timeout=1 s, pools 2+1 | CP21 conserva contención P2024 y recuperación de ambos pools | VALIDADO LOCALMENTE, sin convertirlo en capacidad productiva |
+| Corte TCP/readiness | CP21 sigue dentro del runner completo: TTL éxito 5 s, fallo 1 s, live independiente | Recuperación segura; no detectar inmediatamente mientras cache positivo sea válido |
+
+El blackhole cubre establecimiento/handshake, no silencio indefinido de una
+consulta ya autenticada. Valores reales de URL/proveedor, límites servidor,
+reserva de conexiones y política de timeouts siguen pendientes; no recomendar
+150 ms/1 s como configuración productiva. La imagen se prepara con plazo propio
+600 s para instalación/generación nativa, fuera de los límites de 120 s por archivo;
+no se amplían transacciones ni deadlines del runner de tests. Preparación requiere
+registro de paquetes/imágenes disponible. Un fallo bloquea validación, no omite Linux.
+
+### Fallos intermedios y validación
+
+Primera ejecución Linux: 0/3. Reproducción aislada: importar logo-upload.config
+con filesystem read-only sin uploads falla ENOENT al mkdir /app/uploads/logos.
+Se agrega tmpfs propio, sin corregir runtime por un defecto del contenedor de prueba.
+Segunda ejecución: 0/3 por marca ready ausente. El servidor real sí arrancó;
+Nest 11.1.26 createExceptionProxy usa el mismo trap para get/set y la asignación
+app.listen del observador no se aplica. Se sustituye por evento listening del
+servidor real. Se conservan asserts/plazos y se agrega diagnóstico bootstrap-error
+más detección inmediata de salida del hijo. Tercera ejecución: Linux 3/3 y timeouts
+3/3. No se demostró un defecto de runtime que requiera cambio productivo.
+Un diagnóstico adicional propio arrancó temporalmente el backend sobre la primera
+base mientras continuaban pruebas posteriores; se retiró y esa ejecución se conserva
+solo como diagnóstico. La tercera ejecución usa base independiente, sin ese proceso.
+Validaciones completas: Jest competitivo 280/280, 19 suites, 17.422 s, exit 0;
+Jest completo 1164/1164, 108 suites, 80.632 s, exit 0; audit --omit=dev cero
+vulnerabilidades, exit 0, usando CA sistema sin desactivar TLS.
+
+| Ejecución PostgreSQL completa | Resultado | Tiempo de archivos / total runner | Causa |
+|---|---|---|---|
+| Primera, 24 archivos | 332/335, fail 3, exit 1 | 869357 / 984942 ms | Contenedor sin uploads escribible; además diagnóstico temporal sobre esta base, no certifica aislamiento de toda esta ejecución |
+| Segunda, 24 archivos | 332/335, fail 3, exit 1 | 961564 / 1001650 ms | Observador app.listen no aplicado; fallaron exclusivamente tres casos Linux |
+| Tercera, 24 archivos | 335/335, exit 0 | 927323 / 982317 ms | Linux 3/3 y timeouts 3/3; 329 casos anteriores conservados |
+
+Ninguna ejecución tuvo tests cancelados, omitidos o TODO ni archivos incompletos;
+las dos primeras se rechazan por sus tests fallidos. Tercera: ningún archivo
+inválido; respaldos/restauraciones OWNED de schema y datos poblados PASS con
+comparación de digests, RLS, constraints, índices, funciones, secuencias y ACL.
+Sintaxis de cinco archivos JS y cinco enlaces Markdown nuevos: correctos;
+git diff --check exit 0. Build inicial exit 0 (15912 ms); build final exit 0 (45922 ms).
+El contenedor postgres-local ajeno conserva ID e instante de inicio; ningún
+staging, commit, push, merge, despliegue ni acceso a base remota.
+
+La limpieza verifica etiquetas antes de retirar contenedores, redes internas,
+imagen derivada y directorio propio; también cubre terminación del proceso de test
+por el runner. No hay prune general ni eliminación de imágenes/recursos ajenos.
+El cache compartido de build/descarga Docker no se limpia destructivamente.
+
+### Matriz final de bloqueantes B1/B2
+
+| Requisito | Clasificación | Gate restante |
+|---|---|---|
+| Rollback, idempotencia, recuperación, presupuesto CP19–21 | VALIDADO LOCALMENTE | No certifica capacidad/operación del proveedor |
+| Hooks Nest, señales directas a Node y recuperación CP22 | VALIDADO EN LINUX DESECHABLE | Comando/entrypoint/gracia/forwarding y reinicio reales |
+| Rol PostgreSQL, grants y RLS productivos | PENDIENTE DE ENTORNO REAL | Verificar identidad DATABASE_URL; backend permitido, anon/authenticated bloqueados |
+| WAL, disco, replicación, RPO/RTO | PENDIENTE DE ENTORNO REAL | Durabilidad física y garantías del proveedor |
+| Backup y restauración operativa real | PENDIENTE DE ENTORNO REAL | Local OWNED PASS no valida respaldo productivo |
+| Número de réplicas, pools, reserva y capacidad | BLOQUEADO POR DECISIÓN DEL PROPIETARIO | Elegir topología y presupuesto; medir límite efectivo |
+| Health checks, TTL y política de reinicios reales | PENDIENTE DE ENTORNO REAL | Probar política y plazos del proveedor |
+| Timeouts de consultas ya conectadas bajo blackhole prolongado | NO VERIFICADO | Ensayo adicional autorizado si se necesita certificar esa condición |
+| Publicación deportiva distribuida | BLOQUEADO POR DECISIÓN DEL PROPIETARIO | Subject local; decidir arquitectura antes de afirmar multiinstancia deportiva |
+| 34 fallos históricos y Rescate intermitente | NO VERIFICADO | Sin causa demostrada; no declarar resueltos por suites verdes |
+
+La regresión completa pasó; procede proponer revisión técnica final de PR-I1. No se autoriza despliegue/activación ni se considera cerrada B1/B2.
+No se justifica otro checkpoint de código por los dos defectos del harness;
+las verificaciones productivas/topología requieren evidencia y decisión del propietario.
+
 ## Checkpoint 21 local — resistencia y presupuesto consolidado
 
 Base `6f7b3de`, origin local coincidente, rama competitiva; main `fb27225`.

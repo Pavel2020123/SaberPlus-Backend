@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import summaryGate from './competitive_postgres_summary.cjs';
+import { prepareLinuxRuntime, removeLinuxRuntime, cleanupLinuxResources } from './competitive_linux_runtime.mjs';
 
 const execute = promisify(execFile);
 const backend = fileURLToPath(new URL('../', import.meta.url));
@@ -91,6 +92,8 @@ async function main() {
     }
   };
   let created = false;
+  let linuxImage;
+  let ownedDocker;
   try {
     const context = (await run('docker', ['context', 'show'])).stdout.trim();
     const endpoint = (
@@ -110,6 +113,7 @@ async function main() {
         'Docker must use a local pipe/socket, never a remote daemon.',
       );
     const docker = (...args) => run('docker', ['--context', context, ...args]);
+    ownedDocker = (args, timeout) => run('docker', ['--context', context, ...args], timeout);
     await docker(
       'run',
       '--detach',
@@ -348,6 +352,10 @@ async function main() {
       productionDurabilityCertified:false}));
 
     };
+    console.log(JSON.stringify({ phase: 'linux-runtime-build-start', node: '24.14.1', timeoutMs: 600000 }));
+    linuxImage = await prepareLinuxRuntime(backend, directory, nonce, ownedDocker);
+    env.COMPETITIVE_LINUX_IMAGE = linuxImage;
+    console.log(JSON.stringify({ phase: 'linux-runtime-build-end', isolated: true }));
     await backupRestore('schema',false);
     await clockDiagnostic('before-tests');
     await schemaDiagnostic('before-tests');
@@ -357,6 +365,8 @@ async function main() {
       // order, but bound each process rather than truncate the whole growing
       // suite. The existing command budget is 120 s; no test/window is extended.
       const files = [
+        'test/competitive-linux-postgres.test.cjs',
+        'test/competitive-timeouts-postgres.test.cjs',
         'test/competitive-resilience-postgres.test.cjs',
         'test/competitive-readiness-postgres.test.cjs',
         'test/competitive-postgres.test.cjs',
@@ -519,6 +529,13 @@ async function main() {
           .replaceAll(password, '[redacted]'),
       );
   } finally {
+    let linuxCleanupError;
+    try {
+      if (ownedDocker) await cleanupLinuxResources(nonce, ownedDocker);
+    } catch (error) { linuxCleanupError = error; }
+    try {
+      if (linuxImage) await removeLinuxRuntime(linuxImage, nonce, ownedDocker);
+    } catch (error) { linuxCleanupError ??= error; }
     if (created) {
       const labels = JSON.parse(
         (
@@ -544,6 +561,7 @@ async function main() {
     console.log(
       'Owned temporary PostgreSQL removed. Existing databases untouched.',
     );
+    if (linuxCleanupError) throw linuxCleanupError;
   }
 }
 if (

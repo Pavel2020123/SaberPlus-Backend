@@ -1,5 +1,35 @@
 # PR-I1 V1 — relevo técnico de SaberPlus-Backend
 
+## Continuación CP22 — señales Linux y límites operativos
+
+Base `f2b4a6b`, origin local coincidente, main `fb27225`; 21 checkpoints publicados
+según propietario y árbol inicialmente limpio. CP22 prepara la revisión técnica
+final con ensayos del bootstrap/AppModule completo en Linux desechable, sin cambios
+a runtime, migraciones, dependencias, fórmulas, flags ni contratos.
+Consultar [evidencia, fallos y matriz B1/B2 CP22](PR_I1_COMPETITIVE_INFRASTRUCTURE.md#checkpoint-22--nestjs-linux-señales-y-límites-operativos).
+
+SIGTERM directo al Node hijo ejecuta ocho hooks observados y cierra los pools
+principal/testigo; SIGKILL no ejecuta hooks, revierte tx inconclusa y permite
+recuperación idempotente por el reconciliador real al arrancar. Linux 3/3, timeouts
+3/3 en el bloque corregido. No afirmar equivalencia con SIGTERM a PID 1 ni con el
+entrypoint/proveedor real. Plazos 150 ms SQL y 1 s conexión pertenecen solo a ensayos.
+Los fallos iniciales fueron filesystem del contenedor sin uploads y observador
+app.listen interceptado por proxy Nest; se corrigió el harness, no el runtime.
+Regresión final: PostgreSQL 335/335, 24 archivos, 927323 ms (total runner
+982317 ms), exit 0; sin cancelados, omitidos, TODO ni archivos incompletos/inválidos.
+Conserva las dos ejecuciones anteriores 332/335, exit 1, con causas y tiempos en el
+enlace anterior. Jest competitivo 280/280 y completo 1164/1164; audit cero
+vulnerabilidades. Ambos respaldos/restauraciones OWNED PASS; sintaxis y enlaces
+correctos; diff --check exit 0. Build inicial correcto; build final exit 0 (45922 ms).
+
+Recomendación: revisión técnica final de PR-I1; la regresión completa pasó. B1/B2 siguen
+abiertos: rol/RLS, WAL/replicación/disco, respaldo real, capacidad, health/red del
+proveedor y forwarding/gracia de señales. Topología/presupuesto y publicación
+multiinstancia requieren decisión del propietario; blackhole de consulta autenticada
+prolongado no probado. Incidencias históricas 34 fallos y Rescate siguen abiertas.
+Los textos CP21 y anteriores inferiores conservan su contexto histórico; la
+limitación Windows/POSIX de CP21 se amplía solo por los casos Linux enumerados aquí.
+
 ## Continuación CP21 local
 
 Base `6f7b3de`, main `fb27225`, veinte checkpoints publicados según propietario.
