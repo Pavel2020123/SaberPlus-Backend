@@ -1,6 +1,26 @@
 export const POSICION_META_TIRA_AFLOJA = 4;
 export const EMPATE_RAPIDEZ_MS = 200;
 
+/** Authoritative timestamp(6) path. Historical Date rules remain unchanged. */
+export function resolverRondaExacta(
+  a?: { esCorrecta: boolean; atUs: string },
+  b?: { esCorrecta: boolean; atUs: string },
+): ResultadoRonda {
+  if (a?.esCorrecta && !b?.esCorrecta)
+    return { movimiento: 2, motivo: 'SOLO_A_CORRECTA' };
+  if (b?.esCorrecta && !a?.esCorrecta)
+    return { movimiento: -2, motivo: 'SOLO_B_CORRECTA' };
+  if (!a?.esCorrecta || !b?.esCorrecta)
+    return { movimiento: 0, motivo: 'NINGUNA_CORRECTA' };
+  const delta = BigInt(a.atUs) - BigInt(b.atUs);
+  if (delta >= -200000n && delta <= 200000n)
+    return { movimiento: 0, motivo: 'EMPATE_RAPIDEZ' };
+  return {
+    movimiento: delta < 0n ? 1 : -1,
+    motivo: delta < 0n ? 'A_MAS_RAPIDO' : 'B_MAS_RAPIDO',
+  };
+}
+
 export interface RespuestaRonda {
   esCorrecta: boolean;
   recibidaEnMs: number;

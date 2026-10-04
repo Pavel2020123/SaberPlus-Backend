@@ -14,6 +14,7 @@ import { requireChangedInitialPassword } from '../auth/initial-password-access';
 export interface UsuarioSocketTiraAfloja {
   id: string;
   nombre: string;
+  expiresAt?: Date;
 }
 
 @Injectable()
@@ -31,7 +32,7 @@ export class TiraAflojaWsAuthService {
       );
     }
 
-    let payload: JwtPayload;
+    let payload: JwtPayload & { exp?: number };
     try {
       payload = await this.jwtService.verifyAsync<JwtPayload>(token);
     } catch {
@@ -61,7 +62,13 @@ export class TiraAflojaWsAuthService {
     if (requiereVerificacionCorreo(usuario)) {
       throw new ForbiddenException('Debes verificar tu correo para jugar.');
     }
-    return { id: usuario.id, nombre: usuario.nombre };
+    return {
+      id: usuario.id,
+      nombre: usuario.nombre,
+      ...(typeof payload.exp === 'number'
+        ? { expiresAt: new Date(payload.exp * 1000) }
+        : {}),
+    };
   }
 
   private extraerToken(cliente: Socket): string | undefined {

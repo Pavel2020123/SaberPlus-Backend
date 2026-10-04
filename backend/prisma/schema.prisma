@@ -142,6 +142,8 @@ model Institucion {
 }
 
 model Usuario {
+  eventosXpCompetitivo EventoXpCompetitivo[]
+  balancesCompetitivos BalanceCompetitivo[]
   repasosDiferidos RepasoDiferido[]
   eventosRepaso EventoRepasoDiferido[]
   solicitudAltaInstitucion SolicitudAltaInstitucion?
@@ -209,6 +211,8 @@ model Usuario {
   partidasTiraAflojaA       PartidaTiraAfloja[]           @relation("JugadorATiraAfloja")
   partidasTiraAflojaB       PartidaTiraAfloja[]           @relation("JugadorBTiraAfloja")
   partidasTiraAflojaGanadas PartidaTiraAfloja[]           @relation("GanadorTiraAfloja")
+  tugPresences TugPresence[]
+  tugPresenceEvents TugPresenceEvent[]
   respuestasTiraAfloja      TiraAflojaRespuesta[]
   intentosTriviaRush        IntentoTriviaRush[]
   intentosGuardian          IntentoGuardian[]
@@ -224,6 +228,102 @@ model Usuario {
   invitacionesAceptadas     InvitacionInstitucion[]       @relation("ReceptorInvitacionInstitucion")
   auditoriasCreadas         AuditoriaInstitucion[]        @relation("ActorAuditoriaInstitucion")
   auditoriasRecibidas       AuditoriaInstitucion[]        @relation("AfectadoAuditoriaInstitucion")
+}
+
+enum JuegoCompetitivo {
+  TRIVIA_RUSH
+  GHOST_DUEL
+  SUMMIT
+  TUG_OF_WAR
+  GUARDIAN
+  MEMORY_MATCH
+  BATTLES
+  STAR_RESCUE
+}
+
+enum TipoEventoXpCompetitivo {
+  RESULTADO
+  ABANDONO
+  VICTORIA_POR_ABANDONO
+  CORRECCION
+}
+
+enum FuenteXpCompetitivo {
+  TRIVIA_ATTEMPT
+  SUMMIT_ATTEMPT
+  TUG_MATCH
+  GUARDIAN_ATTEMPT
+  MEMORY_ATTEMPT
+  BATTLE
+  STAR_RESCUE_ATTEMPT
+}
+
+enum EstadoEventoXpCompetitivo {
+  APLICADO
+}
+
+model BalanceCompetitivo {
+  usuarioId String @db.Uuid
+  gameId JuegoCompetitivo
+  temporada Int
+  xp Int @default(0)
+  alcanzadoEn DateTime? @db.Timestamptz(3)
+  updatedAt DateTime @default(now()) @db.Timestamptz(3)
+  version Int @default(0)
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Restrict)
+
+  @@id([usuarioId, gameId, temporada])
+  @@index([gameId, temporada])
+}
+
+model EventoXpCompetitivo {
+  id String @id @default(uuid()) @db.Uuid
+  usuarioId String @db.Uuid
+  gameId JuegoCompetitivo
+  temporada Int
+  xpRulesVersion Int
+  tipo TipoEventoXpCompetitivo
+  deltaNominal Int
+  deltaAplicado Int
+  saldoAntes Int
+  saldoDespues Int
+  secuencia Int
+  sourceType FuenteXpCompetitivo
+  sourceId String @db.VarChar(120)
+  // SETTLEMENT for all terminal outcomes; correction operation UUID otherwise.
+  liquidacion String @db.VarChar(50)
+  idempotencyKey String @unique @db.VarChar(64)
+  evidenciaHash String @db.VarChar(64)
+  // Historical reference, deliberately not a cascading FK to current membership.
+  institucionId String? @db.Uuid
+  fechaEfectiva DateTime @db.Timestamptz(6)
+  fechaRegistro DateTime @default(now()) @db.Timestamptz(3)
+  estado EstadoEventoXpCompetitivo @default(APLICADO)
+  eventoCorregidoId String? @db.Uuid
+  actorId String? @db.Uuid
+  motivo String? @db.VarChar(500)
+  metadata Json @default("{}")
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Restrict)
+  eventoCorregido EventoXpCompetitivo? @relation("CorreccionXp", fields: [eventoCorregidoId], references: [id], onDelete: Restrict)
+  correcciones EventoXpCompetitivo[] @relation("CorreccionXp")
+
+  @@unique([sourceType, sourceId, usuarioId, liquidacion])
+  @@unique([usuarioId, gameId, temporada, secuencia])
+  @@index([gameId, temporada])
+  @@index([institucionId, temporada])
+  @@index([fechaEfectiva])
+  @@index([eventoCorregidoId])
+}
+
+// Append-only snapshots of institutional membership, including explicit null.
+// The first record marks known coverage, never invented historical membership.
+model HistorialInstitucionCompetitiva {
+  id BigInt @id @default(autoincrement())
+  usuarioId String @db.Uuid
+  institucionId String? @db.Uuid
+  desde DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([usuarioId, desde, id])
 }
 
 enum RolUsuario {
@@ -874,7 +974,47 @@ enum TipoEventoTiraAfloja {
   CANCELADA
 }
 
+// Retains identity even if a legacy parent is deleted; prevents recreation as admitted.
+model TugMatchIdentity {
+  id String @id @db.Uuid
+  settlement TugCompetitiveSettlement?
+}
+
+// Private pair receipt/queue. Partial pending index and immutable guards are SQL.
+model TugCompetitiveSettlement {
+  sourceId String @id @db.Uuid
+  state String @default("PENDING")
+  attempts Int @default(0)
+  retryAt DateTime @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  lastError String?
+  terminalUs BigInt?
+  evidenceHash String? @db.VarChar(64)
+  decision Json?
+  resolvedAt DateTime? @db.Timestamptz(6)
+  identity TugMatchIdentity @relation(fields: [sourceId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+}
+
 model PartidaTiraAfloja {
+  temporalVersion Int?
+  activaEn DateTime? @db.Timestamp(6)
+  activaVersion Int?
+  activaPresenceId BigInt?
+  competitiveAdmissionVersion Int?
+  competitiveRulesVersion Int?
+  competitivePolicy Json?
+  competitiveAdmissionAt DateTime? @db.Timestamp(6)
+  competitiveOriginalAId String? @db.Uuid
+  competitiveOriginalBId String? @db.Uuid
+  certificacionRVersion Int?
+  certificacionesR TugRoundVisibility[]
+  presenciaVersion    Int?
+  tugPresences TugPresence[]
+  tugPresenceEvents TugPresenceEvent[]
+  prepararEvidencia   Boolean                     @default(false)
+  evidenciaVersion    Int?
+  snapshotInicial     Json?
+  qPartida            Int?
+  rondasPresentadas   TiraAflojaRondaPresentada[]
   id                  String                      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   estado              EstadoPartidaTiraAfloja     @default(BUSCANDO)
   resultado           ResultadoPartidaTiraAfloja?
@@ -907,6 +1047,86 @@ model PartidaTiraAfloja {
   @@index([jugadorAId, estado])
   @@index([jugadorBId, estado])
   @@index([ganadorId])
+}
+
+model TugPresence {
+  matchId String @db.Uuid
+  userId String @db.Uuid
+  disconnectedAt DateTime? @db.Timestamp(6)
+  graceUntil DateTime? @db.Timestamp(6)
+  match PartidaTiraAfloja @relation(fields: [matchId], references: [id], onDelete: Restrict)
+  user Usuario @relation(fields: [userId], references: [id], onDelete: Restrict)
+  connections TugConnection[]
+  abandonment TugAbandonment?
+  @@id([matchId,userId])
+}
+
+model TugConnection {
+  id String @id @db.Uuid
+  matchId String @db.Uuid
+  userId String @db.Uuid
+  instanceId String @db.Uuid
+  connectedAt DateTime @db.Timestamp(6)
+  lastSeenAt DateTime @db.Timestamp(6)
+  leaseUntil DateTime @db.Timestamp(6)
+  authUntil DateTime? @db.Timestamp(6)
+  state String
+  closedAt DateTime? @db.Timestamp(6)
+  presence TugPresence @relation(fields: [matchId,userId], references: [matchId,userId], onDelete: Restrict)
+  events TugPresenceEvent[]
+  @@index([matchId,state,leaseUntil], map: "tug_connection_match")
+}
+
+model TugPresenceEvent {
+  id BigInt @id @default(autoincrement())
+  matchId String @db.Uuid
+  userId String @db.Uuid
+  connectionId String? @db.Uuid
+  kind String
+  observedAt DateTime @db.Timestamp(6)
+  recordedAt DateTime @default(dbgenerated("tug_presence_now()")) @db.Timestamp(6)
+  match PartidaTiraAfloja @relation(fields: [matchId], references: [id], onDelete: Restrict)
+  user Usuario @relation(fields: [userId], references: [id], onDelete: Restrict)
+  connection TugConnection? @relation(fields: [connectionId], references: [id], onDelete: Restrict)
+  @@index([matchId,id], map: "tug_presence_events_match")
+}
+
+model TugAbandonment {
+  matchId String @db.Uuid
+  userId String @db.Uuid
+  effectiveAt DateTime @db.Timestamp(6)
+  reason String
+  presence TugPresence @relation(fields: [matchId,userId], references: [matchId,userId], onDelete: Restrict)
+  @@id([matchId,userId])
+}
+
+model TiraAflojaRondaPresentada {
+  origenXid    String?
+  origenPid    Int?
+  partidaId    String            @db.Uuid
+  ronda        Int
+  usuarioId    String            @db.Uuid
+  preguntaId   String
+  programadaEn DateTime          @default(now()) @db.Timestamp(6)
+  presentadaEn DateTime          @db.Timestamp(6)
+  venceEn      DateTime          @db.Timestamp(6)
+  registradaEn DateTime          @default(now()) @db.Timestamp(6)
+  partida      PartidaTiraAfloja @relation(fields: [partidaId], references: [id], onDelete: Restrict)
+
+  @@id([partidaId, ronda, usuarioId])
+}
+
+model TugRoundVisibility {
+  partidaId String @db.Uuid
+  ronda Int
+  origenXid String
+  origenPid Int
+  testigoXid String
+  testigoPid Int
+  observadaEn DateTime @db.Timestamp(6)
+  limiteEn DateTime @db.Timestamp(6)
+  partida PartidaTiraAfloja @relation(fields: [partidaId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  @@id([partidaId,ronda])
 }
 
 model TiraAflojaPregunta {
@@ -979,9 +1199,22 @@ enum EstadoConcesionRecompensa {
   EXPIRADA
 }
 
+enum ModalidadTriviaRush {
+  TRIVIA_RUSH
+  GHOST_DUEL
+}
+
 model IntentoTriviaRush {
   id                       String                  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   usuarioId                String                  @db.Uuid
+  evidenciaVersion         Int?
+  presenciaVersion         Int?
+  competitiveRulesVersion Int?
+  competitiveAdmittedAt DateTime? @db.Timestamp(3)
+  competitiveSettledAt DateTime? @db.Timestamp(3)
+  competitiveRetryAt DateTime @default(dbgenerated("timezone('UTC', clock_timestamp())")) @db.Timestamp(3)
+  modalidad                ModalidadTriviaRush?
+  snapshotInicial          Json?
   estado                   EstadoIntentoTriviaRush @default(ACTIVO)
   areas                    AreaIcfes[]
   duracionBaseSegundos     Int
@@ -1007,10 +1240,46 @@ model IntentoTriviaRush {
   preguntas                TriviaRushPregunta[]
   respuestas               TriviaRushRespuesta[]
   potenciadores            TriviaRushPotenciador[]
+  presencia                TriviaPresence?
+  eventosPresencia         TriviaPresenceEvent[]
 
   @@index([usuarioId, estado, iniciadoEn])
   @@index([estado, venceEn])
   @@index([preguntaActualId])
+}
+
+model TriviaPresence {
+  attemptId String @id @db.Uuid
+  disconnectedAt DateTime? @db.Timestamp(3)
+  graceUntil DateTime? @db.Timestamp(3)
+  attempt IntentoTriviaRush @relation(fields: [attemptId], references: [id], onDelete: Restrict)
+  connections TriviaConnection[]
+}
+
+model TriviaConnection {
+  id String @id @db.Uuid
+  attemptId String @db.Uuid
+  instanceId String @db.Uuid
+  connectedAt DateTime @db.Timestamp(3)
+  lastSeenAt DateTime @db.Timestamp(3)
+  leaseUntil DateTime @db.Timestamp(3)
+  state String
+  closedAt DateTime? @db.Timestamp(3)
+  presence TriviaPresence @relation(fields: [attemptId], references: [attemptId], onDelete: Restrict)
+  events TriviaPresenceEvent[]
+  @@index([attemptId, state], map: "trivia_connection_attempt")
+}
+
+model TriviaPresenceEvent {
+  id BigInt @id @default(autoincrement())
+  attemptId String @db.Uuid
+  connectionId String? @db.Uuid
+  kind String
+  observedAt DateTime @db.Timestamp(3)
+  recordedAt DateTime @default(dbgenerated("timezone('UTC', clock_timestamp())")) @db.Timestamp(3)
+  attempt IntentoTriviaRush @relation(fields: [attemptId], references: [id], onDelete: Restrict)
+  connection TriviaConnection? @relation(fields: [connectionId], references: [id], onDelete: Restrict)
+  @@index([attemptId, id], map: "trivia_presence_event_attempt")
 }
 
 model TriviaRushPregunta {
@@ -1027,6 +1296,7 @@ model TriviaRushPregunta {
 }
 
 model TriviaRushRespuesta {
+  competitiveActionSeq BigInt? @unique
   id                      String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   intentoId               String            @db.Uuid
   preguntaId              String
@@ -1064,6 +1334,8 @@ model ConcesionRecompensaJuego {
 }
 
 model TriviaRushPotenciador {
+  competitiveActionSeq BigInt? @unique
+  competitiveGrant Json?
   id                 String                    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   intentoId          String                    @db.Uuid
   preguntaId         String?
@@ -1250,6 +1522,9 @@ model CuadernoError {
 }
 
 model IntentoGuardian {
+  competitiveRulesVersion Int?
+  competitiveSettledAt DateTime? @db.Timestamptz(3)
+  competitiveRetryAt DateTime @default(now()) @db.Timestamptz(3)
   id           String   @id @default(uuid()) @db.Uuid
   usuarioId    String   @db.Uuid
   usuario      Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
@@ -1266,9 +1541,13 @@ model IntentoGuardian {
   finalizadoEn DateTime?
 
   @@index([usuarioId, creadoEn])
+  @@index([competitiveRulesVersion, competitiveSettledAt, competitiveRetryAt], map: "IntentoGuardian_competitive_pending_idx")
 }
 
 model IntentoCima {
+  competitiveRulesVersion Int?
+  competitiveSettledAt DateTime? @db.Timestamptz(3)
+  competitiveRetryAt DateTime @default(now()) @db.Timestamptz(3)
   id           String      @id @default(uuid()) @db.Uuid
   usuarioId    String      @db.Uuid
   usuario      Usuario     @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
@@ -1286,9 +1565,13 @@ model IntentoCima {
   finalizadoEn DateTime?
 
   @@index([usuarioId, creadoEn])
+  @@index([competitiveRulesVersion, competitiveSettledAt, competitiveRetryAt], map: "IntentoCima_competitive_pending_idx")
 }
 
 model IntentoRescateEstrellas {
+  competitiveRulesVersion Int?
+  competitiveSettledAt DateTime? @db.Timestamptz(3)
+  competitiveRetryAt DateTime @default(now()) @db.Timestamptz(3)
   id           String      @id @default(uuid()) @db.Uuid
   usuarioId    String      @db.Uuid
   usuario      Usuario     @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
@@ -1306,6 +1589,7 @@ model IntentoRescateEstrellas {
   finalizadoEn DateTime?
 
   @@index([usuarioId, creadoEn])
+  @@index([competitiveRulesVersion, competitiveSettledAt, competitiveRetryAt], map: "IntentoRescateEstrellas_competitive_pending_idx")
 }
 
 // Historial legado: juego retirado el 27-09-2026. Sin motor ni nuevas escrituras.

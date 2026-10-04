@@ -12,12 +12,20 @@ import {
   EstadoConcesionRecompensa,
   EstadoIntentoTriviaRush,
   OrigenRespuesta,
+  ModalidadTriviaRush,
   Prisma,
   RolUsuario,
   TipoPotenciadorTriviaRush,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { assertTriviaCompetitiveCreationAllowed } from '../competitive/competitive.activation';
 import { preguntaPublicadaWhere } from '../common/contenido-publicado';
+import {
+  freezeQuestion,
+  readTriviaSnapshot,
+  snapshotQuestionInclude,
+  TriviaSnapshot,
+} from './trivia-rush.snapshot';
 import {
   esDuracionTriviaRushValida,
   intentoTriviaRushVencido,
@@ -33,6 +41,8 @@ const PREGUNTAS_POR_DIFICULTAD = 10;
 const MINIMO_PREGUNTAS = 4;
 
 interface CrearTriviaRushEntrada {
+  competitive?: boolean;
+  modalidad?: ModalidadTriviaRush;
   areas: AreaIcfes[];
   duracionSegundos: number;
 }
@@ -99,6 +109,11 @@ export interface DiagnosticoTriviaRush {
   errores: number;
 }
 
+import {
+  requireTriviaPresence,
+  resolveTriviaPresence,
+} from './trivia-presence.service';
+
 function mezclar<T>(elementos: T[]): T[] {
   const copia = [...elementos];
   for (let indice = copia.length - 1; indice > 0; indice -= 1) {
@@ -113,6 +128,20 @@ export class TriviaRushService {
   constructor(private readonly prisma: PrismaService) {}
 
   async crear(usuarioId: string, entrada: CrearTriviaRushEntrada) {
+    if (
+      entrada.competitive !== undefined &&
+      typeof entrada.competitive !== 'boolean'
+    )
+      throw new BadRequestException('competitive debe ser booleano.');
+    if (entrada.competitive === true && !entrada.modalidad)
+      throw new BadRequestException(
+        'La admision competitiva requiere modalidad explicita.',
+      );
+    if (
+      entrada.modalidad !== undefined &&
+      !Object.values(ModalidadTriviaRush).includes(entrada.modalidad)
+    )
+      throw new BadRequestException('Modalidad invalida.');
     await this.validarEstudiante(usuarioId);
     if (!esDuracionTriviaRushValida(entrada.duracionSegundos)) {
       throw new BadRequestException('La duracion de Trivia Rush no es valida.');
@@ -121,25 +150,48 @@ export class TriviaRushService {
     if (areas.length === 0) {
       throw new BadRequestException('Selecciona al menos un area.');
     }
-    const ahora = new Date();
-
     const intentoId = await this.prisma.$transaction(async (tx) => {
       await this.bloquear(tx, `trivia-rush:usuario:${usuarioId}`);
-      const activa = await tx.intentoTriviaRush.findFirst({
+      await this.bloquearUsuario(tx, usuarioId);
+      const ahora = new Date();
+      let activa = await tx.intentoTriviaRush.findFirst({
         where: { usuarioId, estado: EstadoIntentoTriviaRush.ACTIVO },
         orderBy: { iniciadoEn: 'desc' },
       });
-      if (activa && intentoTriviaRushVencido(activa.venceEn, ahora)) {
+      if (activa?.presenciaVersion === 1) {
+        await resolveTriviaPresence(tx, activa.id);
+        activa = await tx.intentoTriviaRush.findFirst({
+          where: { id: activa.id, estado: 'ACTIVO' },
+        });
+      }
+      if (
+        activa &&
+        activa.competitiveRulesVersion !== 1 &&
+        intentoTriviaRushVencido(activa.venceEn, ahora)
+      ) {
         await tx.intentoTriviaRush.update({
           where: { id: activa.id },
           data: {
             estado: EstadoIntentoTriviaRush.EXPIRADO,
-            finalizadoEn: ahora,
+            finalizadoEn:
+              activa.evidenciaVersion === 1 ? activa.venceEn : ahora,
             preguntaActualId: null,
             preguntaIniciaEn: null,
           },
         });
       } else if (activa) {
+        if (
+          entrada.competitive === true &&
+          activa.competitiveRulesVersion !== 1
+        )
+          throw new ConflictException(
+            'No se puede convertir un intento existente en competitivo.',
+          );
+        if (
+          entrada.modalidad !== undefined &&
+          entrada.modalidad !== activa.modalidad
+        )
+          throw new ConflictException('La modalidad del intento es inmutable.');
         if (
           activa.duracionBaseSegundos === entrada.duracionSegundos &&
           this.mismasAreas(activa.areas, areas)
@@ -151,24 +203,67 @@ export class TriviaRushService {
         );
       }
 
+      if (entrada.competitive === true)
+        assertTriviaCompetitiveCreationAllowed(entrada.modalidad);
       const preguntas = await this.seleccionarPreguntas(areas, tx);
+      const asignadas = preguntas.map((p, orden) =>
+        freezeQuestion(p, orden, mezclar(p.respuestas.map((r) => r.id))),
+      );
+      let snapshot: TriviaSnapshot | undefined;
+      if (entrada.modalidad) {
+        if (preguntas.length < 10 || preguntas.length > 30)
+          throw new BadRequestException(
+            'La evidencia V1 requiere entre 10 y 30 preguntas validas.',
+          );
+        snapshot = {
+          version: 1,
+          q: preguntas.length,
+          config: {
+            areas,
+            duracionSegundos: entrada.duracionSegundos,
+            versionReglas: VERSION_REGLAS_TRIVIA_RUSH,
+            modalidad: entrada.modalidad,
+          },
+          questions: asignadas,
+          ghost: null,
+        };
+        if (entrada.modalidad === 'GHOST_DUEL')
+          snapshot.ghost = await this.fijarFantasma(tx, usuarioId, snapshot);
+      }
+      const inicio =
+        entrada.competitive === true
+          ? (
+              await tx.$queryRaw<
+                { ahora: Date }[]
+              >`SELECT trivia_presence_now() AS ahora`
+            )[0].ahora
+          : new Date();
       const creada = await tx.intentoTriviaRush.create({
         data: {
           usuarioId,
+          ...(entrada.competitive === true
+            ? { competitiveRulesVersion: 1, competitiveAdmittedAt: inicio }
+            : {}),
+          ...(snapshot
+            ? {
+                evidenciaVersion: 1,
+                presenciaVersion: 1,
+                modalidad: entrada.modalidad,
+                snapshotInicial: snapshot as unknown as Prisma.InputJsonValue,
+              }
+            : {}),
           areas,
           duracionBaseSegundos: entrada.duracionSegundos,
           versionReglas: VERSION_REGLAS_TRIVIA_RUSH,
-          iniciadoEn: ahora,
-          venceEn: new Date(ahora.getTime() + entrada.duracionSegundos * 1000),
+          iniciadoEn: inicio,
+          venceEn: new Date(inicio.getTime() + entrada.duracionSegundos * 1000),
           preguntaActualId: preguntas[0].id,
-          preguntaIniciaEn: ahora,
+          preguntaIniciaEn: inicio,
           preguntas: {
-            create: preguntas.map((pregunta, orden) => ({
-              preguntaId: pregunta.id,
+            create: asignadas.map(({ preguntaId, orden, opcionesOrden }) => ({
+              preguntaId,
               orden,
-              opcionesOrden: mezclar(
-                pregunta.respuestas.map((respuesta) => respuesta.id),
-              ),
+              opcionesOrden,
             })),
           },
         },
@@ -302,6 +397,11 @@ export class TriviaRushService {
     intentoId: string,
     entrada: ResponderTriviaRushEntrada,
   ) {
+    intentoId = intentoId.toLowerCase();
+    entrada = {
+      ...entrada,
+      idempotencyKey: entrada.idempotencyKey.toLowerCase(),
+    };
     const repetida = await this.prisma.triviaRushRespuesta.findUnique({
       where: { claveIdempotencia: entrada.idempotencyKey },
       include: { intento: { select: { usuarioId: true } } },
@@ -313,7 +413,24 @@ export class TriviaRushService {
 
     await this.procesarVencimiento(intentoId);
     const operacion = await this.prisma.$transaction(async (tx) => {
-      await this.bloquear(tx, `trivia-rush:intento:${intentoId}`);
+      await this.bloquear(
+        tx,
+        `trivia-rush:respuesta:${entrada.idempotencyKey}`,
+      );
+      await this.bloquearIntento(tx, intentoId, usuarioId);
+      const repetidaTx = await tx.triviaRushRespuesta.findUnique({
+        where: { claveIdempotencia: entrada.idempotencyKey },
+        include: { intento: { select: { usuarioId: true } } },
+      });
+      if (repetidaTx) {
+        this.validarRespuestaRepetida(
+          repetidaTx,
+          usuarioId,
+          intentoId,
+          entrada,
+        );
+        return { respuestaId: repetidaTx.id, vencido: false };
+      }
       const intento = await tx.intentoTriviaRush.findUnique({
         where: { id: intentoId },
       });
@@ -321,7 +438,10 @@ export class TriviaRushService {
       this.validarPropietario(intento, usuarioId);
       this.validarActivo(intento);
 
-      const ahora = new Date();
+      const ahora =
+        intento.presenciaVersion === 1
+          ? await requireTriviaPresence(tx, intentoId)
+          : new Date();
       if (intentoTriviaRushVencido(intento.venceEn, ahora)) {
         await this.marcarExpirado(tx, intento.id, ahora);
         return { respuestaId: null, vencido: true };
@@ -332,13 +452,17 @@ export class TriviaRushService {
         );
       }
 
-      const pregunta = await tx.pregunta.findUnique({
-        where: { id: entrada.preguntaId },
-        include: {
-          respuestas: true,
-          subtema: { select: { tema: { select: { area: true } } } },
-        },
-      });
+      const frozen = readTriviaSnapshot(intento);
+      const pregunta = frozen
+        ? frozen.questions.find((q) => q.preguntaId === entrada.preguntaId)
+            ?.pregunta
+        : await tx.pregunta.findUnique({
+            where: { id: entrada.preguntaId },
+            include: {
+              respuestas: true,
+              subtema: { select: { tema: { select: { area: true } } } },
+            },
+          });
       if (!pregunta) throw new NotFoundException('Pregunta no encontrada.');
       const seleccionada = pregunta.respuestas.find(
         (respuesta) => respuesta.id === entrada.respuestaId,
@@ -428,6 +552,12 @@ export class TriviaRushService {
     intentoId: string,
     entrada: ActivarPotenciadorEntrada,
   ) {
+    intentoId = intentoId.toLowerCase();
+    entrada = {
+      ...entrada,
+      idempotencyKey: entrada.idempotencyKey.toLowerCase(),
+      concesionId: entrada.concesionId.toLowerCase(),
+    };
     const repetido = await this.prisma.triviaRushPotenciador.findUnique({
       where: { claveIdempotencia: entrada.idempotencyKey },
       include: { intento: { select: { usuarioId: true } } },
@@ -439,7 +569,24 @@ export class TriviaRushService {
 
     await this.procesarVencimiento(intentoId);
     const operacion = await this.prisma.$transaction(async (tx) => {
-      await this.bloquear(tx, `trivia-rush:intento:${intentoId}`);
+      await this.bloquear(
+        tx,
+        `trivia-rush:potenciador:${entrada.idempotencyKey}`,
+      );
+      await this.bloquearIntento(tx, intentoId, usuarioId);
+      const repetidoTx = await tx.triviaRushPotenciador.findUnique({
+        where: { claveIdempotencia: entrada.idempotencyKey },
+        include: { intento: { select: { usuarioId: true } } },
+      });
+      if (repetidoTx) {
+        this.validarPotenciadorRepetido(
+          repetidoTx,
+          usuarioId,
+          intentoId,
+          entrada,
+        );
+        return { potenciadorId: repetidoTx.id, vencido: false };
+      }
       await this.bloquear(tx, `recompensa:${entrada.concesionId}`);
       const intento = await tx.intentoTriviaRush.findUnique({
         where: { id: intentoId },
@@ -447,7 +594,10 @@ export class TriviaRushService {
       if (!intento) throw new NotFoundException('Intento no encontrado.');
       this.validarPropietario(intento, usuarioId);
       this.validarActivo(intento);
-      const ahora = new Date();
+      const ahora =
+        intento.presenciaVersion === 1
+          ? await requireTriviaPresence(tx, intentoId)
+          : new Date();
       if (intentoTriviaRushVencido(intento.venceEn, ahora)) {
         await this.marcarExpirado(tx, intento.id, ahora);
         return { potenciadorId: null, vencido: true };
@@ -475,6 +625,10 @@ export class TriviaRushService {
         );
       }
 
+      if (intento.modalidad === 'GHOST_DUEL')
+        throw new BadRequestException(
+          'Duelo fantasma no admite potenciadores.',
+        );
       await this.validarActivacion(tx, intento, entrada);
       const opcionesEliminadas =
         entrada.potenciador === TipoPotenciadorTriviaRush.CINCUENTA_CINCUENTA
@@ -540,24 +694,43 @@ export class TriviaRushService {
   }
 
   async abandonar(usuarioId: string, intentoId: string) {
-    const intento = await this.prisma.intentoTriviaRush.findUnique({
-      where: { id: intentoId },
-    });
-    if (!intento) throw new NotFoundException('Intento no encontrado.');
-    this.validarPropietario(intento, usuarioId);
-    if (intento.estado === EstadoIntentoTriviaRush.ACTIVO) {
-      await this.prisma.intentoTriviaRush.update({
+    await this.prisma.$transaction(async (tx) => {
+      await this.bloquearIntento(tx, intentoId, usuarioId);
+      const intento = await tx.intentoTriviaRush.findUniqueOrThrow({
+        where: { id: intentoId },
+      });
+      if (intento.estado !== EstadoIntentoTriviaRush.ACTIVO) return;
+      const ahora =
+        intento.competitiveRulesVersion === 1
+          ? (
+              await tx.$queryRaw<
+                { ahora: Date }[]
+              >`SELECT trivia_presence_now() AS ahora`
+            )[0].ahora
+          : new Date();
+      if (
+        intento.evidenciaVersion === 1 &&
+        intentoTriviaRushVencido(intento.venceEn, ahora)
+      ) {
+        await this.marcarExpirado(tx, intentoId, ahora);
+        return;
+      }
+      await tx.intentoTriviaRush.update({
         where: { id: intentoId },
         data: {
           estado: EstadoIntentoTriviaRush.ABANDONADO,
-          finalizadoEn: new Date(),
+          finalizadoEn: ahora,
           preguntaActualId: null,
           preguntaIniciaEn: null,
           escudoComboActivo: false,
           segundaOportunidadActiva: false,
         },
       });
-    }
+      if (intento.competitiveRulesVersion === 1)
+        await tx.triviaPresenceEvent.create({
+          data: { attemptId: intentoId, kind: 'ABANDONED', observedAt: ahora },
+        });
+    });
     return this.obtener(usuarioId, intentoId);
   }
 
@@ -728,6 +901,18 @@ export class TriviaRushService {
     intentoId: string,
     preguntaId: string,
   ): Promise<string[]> {
+    const original = await tx.intentoTriviaRush.findUniqueOrThrow({
+      where: { id: intentoId },
+    });
+    const frozen = readTriviaSnapshot(original)?.questions.find(
+      (q) => q.preguntaId === preguntaId,
+    );
+    if (frozen)
+      return frozen.opcionesOrden
+        .filter((id) =>
+          frozen.pregunta.respuestas.some((r) => r.id === id && !r.esCorrecta),
+        )
+        .slice(0, 2);
     const [asignada, respuestas] = await Promise.all([
       tx.triviaRushPregunta.findUnique({
         where: { intentoId_preguntaId: { intentoId, preguntaId } },
@@ -749,12 +934,13 @@ export class TriviaRushService {
 
   private async procesarVencimiento(intentoId: string): Promise<void> {
     await this.prisma.$transaction(async (tx) => {
-      await this.bloquear(tx, `trivia-rush:intento:${intentoId}`);
+      await this.bloquearIntento(tx, intentoId);
       const intento = await tx.intentoTriviaRush.findUnique({
         where: { id: intentoId },
       });
       if (
         intento?.estado === EstadoIntentoTriviaRush.ACTIVO &&
+        intento.competitiveRulesVersion !== 1 &&
         intentoTriviaRushVencido(intento.venceEn, new Date())
       ) {
         await this.marcarExpirado(tx, intento.id, new Date());
@@ -762,16 +948,20 @@ export class TriviaRushService {
     });
   }
 
-  private marcarExpirado(
+  private async marcarExpirado(
     tx: ClienteTransaccion,
     intentoId: string,
     ahora: Date,
   ) {
+    const original = await tx.intentoTriviaRush.findUniqueOrThrow({
+      where: { id: intentoId },
+    });
     return tx.intentoTriviaRush.update({
       where: { id: intentoId },
       data: {
         estado: EstadoIntentoTriviaRush.EXPIRADO,
-        finalizadoEn: ahora,
+        finalizadoEn:
+          original.evidenciaVersion === 1 ? original.venceEn : ahora,
         preguntaActualId: null,
         preguntaIniciaEn: null,
         escudoComboActivo: false,
@@ -803,6 +993,12 @@ export class TriviaRushService {
       },
     });
     if (!intento) throw new NotFoundException('Intento no encontrado.');
+    const snapshot = readTriviaSnapshot(intento);
+    if (snapshot)
+      intento.preguntas = snapshot.questions.map((q) => ({
+        ...q,
+        intentoId,
+      })) as unknown as typeof intento.preguntas;
     return intento;
   }
 
@@ -826,6 +1022,13 @@ export class TriviaRushService {
       servidorAhora,
       intento: {
         id: intento.id,
+        ...(intento.evidenciaVersion === 1
+          ? {
+              modalidad: intento.modalidad,
+              competitive: false,
+              fantasmaInicial: readTriviaSnapshot(intento)!.ghost,
+            }
+          : {}),
         estado: intento.estado,
         versionReglas: intento.versionReglas,
         areas: intento.areas,
@@ -950,9 +1153,15 @@ export class TriviaRushService {
       }),
     ]);
     if (!respuesta) throw new NotFoundException('Respuesta no encontrada.');
-    const correcta = respuesta.pregunta.respuestas.find(
-      (item) => item.esCorrecta,
-    );
+    const original = await this.prisma.intentoTriviaRush.findUniqueOrThrow({
+      where: { id: intentoId },
+    });
+    const snapshot = readTriviaSnapshot(original);
+    const pregunta = snapshot
+      ? snapshot.questions.find((q) => q.preguntaId === respuesta.preguntaId)!
+          .pregunta
+      : respuesta.pregunta;
+    const correcta = pregunta.respuestas.find((item) => item.esCorrecta);
     return {
       ...estado,
       evaluacion: {
@@ -965,7 +1174,7 @@ export class TriviaRushService {
         tiempoRespuestaMs: respuesta.tiempoRespuestaMs,
         respuestaCorrectaId: respuesta.esFinal ? (correcta?.id ?? null) : null,
         explicacion: respuesta.esFinal
-          ? (respuesta.pregunta.explicacion ?? correcta?.explicacion ?? null)
+          ? (pregunta.explicacion ?? correcta?.explicacion ?? null)
           : null,
       },
     };
@@ -1043,7 +1252,7 @@ export class TriviaRushService {
         subtema: { tema: { area: { in: areas } } },
         respuestas: { some: { esCorrecta: true } },
       }),
-      include: { respuestas: { select: { id: true, esCorrecta: true } } },
+      include: snapshotQuestionInclude,
       take: 300,
     });
     const validas = candidatas.filter(
@@ -1141,9 +1350,111 @@ export class TriviaRushService {
       : [];
   }
 
+  private async bloquearUsuario(tx: ClienteTransaccion, usuarioId: string) {
+    await tx.$queryRaw`SELECT id FROM "Usuario" WHERE id = ${usuarioId}::uuid FOR UPDATE`;
+    const usuario = await tx.usuario.findUnique({
+      where: { id: usuarioId },
+      select: { rol: true },
+    });
+    if (usuario?.rol !== RolUsuario.ESTUDIANTE)
+      throw new ForbiddenException('Trivia Rush es para estudiantes.');
+  }
+
+  private async bloquearIntento(
+    tx: ClienteTransaccion,
+    intentoId: string,
+    usuarioId?: string,
+  ) {
+    const owner = await tx.intentoTriviaRush.findUnique({
+      where: { id: intentoId },
+      select: { usuarioId: true, presenciaVersion: true },
+    });
+    if (!owner) throw new NotFoundException('Intento no encontrado.');
+    if (usuarioId && owner.usuarioId !== usuarioId)
+      throw new ForbiddenException('El intento no pertenece a tu cuenta.');
+    await this.bloquearUsuario(tx, owner.usuarioId);
+    await tx.$queryRaw`SELECT id FROM "IntentoTriviaRush" WHERE id = ${intentoId}::uuid FOR UPDATE`;
+    if (owner.presenciaVersion === 1)
+      await resolveTriviaPresence(tx, intentoId);
+  }
+
+  private async fijarFantasma(
+    tx: ClienteTransaccion,
+    usuarioId: string,
+    current: TriviaSnapshot,
+  ): Promise<TriviaSnapshot['ghost']> {
+    // Historical/mutable records cannot establish an authoritative reference.
+    const prior = await tx.intentoTriviaRush.findFirst({
+      where: {
+        usuarioId,
+        evidenciaVersion: 1,
+        asistido: false,
+        estado: {
+          in: [
+            EstadoIntentoTriviaRush.FINALIZADO,
+            EstadoIntentoTriviaRush.EXPIRADO,
+          ],
+        },
+        areas: { equals: current.config.areas },
+        duracionBaseSegundos: current.config.duracionSegundos,
+        versionReglas: current.config.versionReglas,
+        snapshotInicial: { path: ['q'], equals: current.q },
+      },
+      orderBy: [
+        { puntaje: 'desc' },
+        { respuestasCorrectas: 'desc' },
+        { mejorCombo: 'desc' },
+        { finalizadoEn: 'desc' },
+        { id: 'asc' },
+      ],
+      include: {
+        respuestas: {
+          where: { esFinal: true },
+          orderBy: [
+            { respondidaEn: 'asc' },
+            { numeroIntento: 'asc' },
+            { id: 'asc' },
+          ],
+        },
+      },
+    });
+    if (!prior) return null;
+    const original = readTriviaSnapshot(prior)!;
+    const order = new Map(
+      original.questions.map((q) => [q.preguntaId, q.orden]),
+    );
+    prior.respuestas.sort(
+      (a, b) =>
+        order.get(a.preguntaId)! - order.get(b.preguntaId)! ||
+        a.numeroIntento - b.numeroIntento,
+    );
+    let score = 0;
+    return {
+      intentoId: prior.id,
+      puntaje: prior.puntaje,
+      respuestasCorrectas: prior.respuestasCorrectas,
+      mejorCombo: prior.mejorCombo,
+      finalizadoEn: prior.finalizadoEn!.toISOString(),
+      q: original.q,
+      config: original.config,
+      checkpoints: prior.respuestas.map((r) => ({
+        segundosTranscurridos: Math.min(
+          prior.duracionBaseSegundos,
+          Math.max(
+            0,
+            Math.floor(
+              (r.respondidaEn.getTime() - prior.iniciadoEn.getTime()) / 1000,
+            ),
+          ),
+        ),
+        puntaje: (score += r.puntosOtorgados),
+      })),
+    };
+  }
+
   private bloquear(tx: ClienteTransaccion, clave: string) {
     return tx.$queryRaw(
-      Prisma.sql`SELECT pg_advisory_xact_lock(hashtext(${clave}))`,
+      Prisma.sql`SELECT 1::int AS locked FROM pg_advisory_xact_lock(hashtext(${clave}))`,
     );
   }
 }

@@ -15,9 +15,15 @@ import {
 import { randomInt } from 'node:crypto';
 import { preguntaPublicadaWhere } from '../common/contenido-publicado';
 import { PrismaService } from '../prisma/prisma.service';
+import { assertSoloCompetitiveCreationAllowed } from '../competitive/competitive.activation';
 import { GUARDIAN_RULES, guardianScore } from './guardian.rules';
 
-type Config = { area: AreaIcfes; dificultad: Dificultad; subtemaId?: string };
+type Config = {
+  competitive?: boolean;
+  area: AreaIcfes;
+  dificultad: Dificultad;
+  subtemaId?: string;
+};
 type Submission = {
   preguntaId: string;
   respuestaId: string;
@@ -50,6 +56,15 @@ export class GuardianService {
         await tx.$queryRaw(
           Prisma.sql`SELECT 1::int AS locked FROM pg_advisory_xact_lock(hashtext(${`guardian:${userId}`}))`,
         );
+        await tx.$queryRaw(
+          Prisma.sql`SELECT id FROM "Usuario" WHERE id = ${userId}::uuid FOR UPDATE`,
+        );
+        const currentUser = await tx.usuario.findUnique({
+          where: { id: userId },
+          select: { rol: true },
+        });
+        if (currentUser?.rol !== RolUsuario.ESTUDIANTE)
+          throw new ForbiddenException('Student required.');
         return action(tx);
       },
       { timeout: 15000 },
@@ -57,6 +72,11 @@ export class GuardianService {
   }
 
   async start(userId: string, config: Config) {
+    if (
+      config.competitive !== undefined &&
+      typeof config.competitive !== 'boolean'
+    )
+      throw new BadRequestException('competitive must be boolean');
     return this.locked(userId, async (tx) => {
       const existing = await tx.intentoGuardian.findFirst({
         where: { usuarioId: userId, estado: 'ACTIVO' },
@@ -64,6 +84,13 @@ export class GuardianService {
       if (existing) {
         const current = await this.expire(tx, existing);
         if (current.estado === 'ACTIVO') {
+          if (
+            config.competitive !== undefined &&
+            (current.competitiveRulesVersion === 1) !== config.competitive
+          )
+            throw new ConflictException(
+              'Competitive mode cannot change during an attempt.',
+            );
           if (
             current.area !== config.area ||
             current.dificultad !== config.dificultad ||
@@ -76,6 +103,7 @@ export class GuardianService {
           return this.publicState(current);
         }
       }
+      assertSoloCompetitiveCreationAllowed(config.competitive);
       const candidates = await tx.pregunta.findMany({
         where: preguntaPublicadaWhere({
           dificultad: config.dificultad,
@@ -93,6 +121,10 @@ export class GuardianService {
       const valid = candidates.filter(
         (q) =>
           q.respuestas.length >= 2 &&
+          (!config.competitive ||
+            (q.respuestas.length <= 6 &&
+              q.enunciado.trim().length > 0 &&
+              q.respuestas.every((a) => a.texto.trim().length > 0))) &&
           q.respuestas.filter((a) => a.esCorrecta).length === 1,
       );
       if (valid.length < GUARDIAN_RULES.questions)
@@ -138,6 +170,7 @@ export class GuardianService {
       const attempt = await tx.intentoGuardian.create({
         data: {
           usuarioId: userId,
+          competitiveRulesVersion: config.competitive === true ? 1 : null,
           area: config.area,
           dificultad: config.dificultad,
           subtemaId: config.subtemaId,
@@ -201,7 +234,12 @@ export class GuardianService {
         );
       const next = [
         ...answers,
-        { ...input, esCorrecta: current.correctAnswerId === input.respuestaId },
+        {
+          preguntaId: input.preguntaId,
+          respuestaId: input.respuestaId,
+          idempotencyKey: input.idempotencyKey,
+          esCorrecta: current.correctAnswerId === input.respuestaId,
+        },
       ];
       const score = guardianScore(next);
       const updated = await tx.intentoGuardian.update({
@@ -248,7 +286,13 @@ export class GuardianService {
     ) {
       return tx.intentoGuardian.update({
         where: { id: attempt.id },
-        data: { estado: 'EXPIRADO', finalizadoEn: new Date() },
+        data: {
+          estado: 'EXPIRADO',
+          finalizadoEn:
+            attempt.competitiveRulesVersion === 1
+              ? attempt.venceEn
+              : new Date(),
+        },
       });
     }
     return attempt;
@@ -259,6 +303,7 @@ export class GuardianService {
     const answers = attempt.respuestas as unknown as Answer[];
     return {
       id: attempt.id,
+      competitive: attempt.competitiveRulesVersion === 1,
       area: attempt.area,
       dificultad: attempt.dificultad,
       subtemaId: attempt.subtemaId,

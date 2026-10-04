@@ -6,6 +6,7 @@ import { TiraAflojaWsAuthService } from './tira-afloja-ws-auth.service';
 import { TiraAflojaWsExceptionFilter } from './tira-afloja-ws-exception.filter';
 import { TiraAflojaGateway } from './tira-afloja.gateway';
 import { TiraAflojaService } from './tira-afloja.service';
+import { TiraAflojaPresenceService } from './tira-afloja-presence.service';
 
 describe('TiraAflojaGateway', () => {
   let app: INestApplication;
@@ -24,6 +25,13 @@ describe('TiraAflojaGateway', () => {
         TiraAflojaGateway,
         TiraAflojaRealtimePublisher,
         TiraAflojaWsExceptionFilter,
+        {
+          provide: TiraAflojaPresenceService,
+          useValue: {
+            enrolled: jest.fn().mockResolvedValue(false),
+            connect: jest.fn().mockResolvedValue('LEGACY'),
+          },
+        },
         { provide: TiraAflojaService, useValue: juego },
         { provide: TiraAflojaWsAuthService, useValue: autenticacion },
       ],

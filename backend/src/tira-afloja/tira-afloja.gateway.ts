@@ -1,5 +1,6 @@
 import {
   HttpException,
+  Logger,
   OnModuleDestroy,
   UseFilters,
   UsePipes,
@@ -19,6 +20,8 @@ import { AreaIcfes } from '@prisma/client';
 import { IsEnum, IsInt, IsOptional, IsUUID, Min } from 'class-validator';
 import { Server, Socket } from 'socket.io';
 import { Subscription } from 'rxjs';
+import { randomUUID } from 'crypto';
+import { TiraAflojaPresenceService } from './tira-afloja-presence.service';
 import { TiraAflojaRealtimePublisher } from './tira-afloja-realtime.publisher';
 import { TiraAflojaService } from './tira-afloja.service';
 import { TiraAflojaWsAuthService } from './tira-afloja-ws-auth.service';
@@ -39,6 +42,9 @@ interface DatosSocketTiraAfloja {
   partidaId?: string;
   lado?: 'A' | 'B';
   acciones?: number[];
+  presenceId?: string;
+  disconnectReason?: string;
+  renewing?: Promise<void>;
 }
 
 interface EventosServidorACliente {
@@ -132,11 +138,15 @@ export class TiraAflojaGateway
   private servidor!: Server;
 
   private suscripcion?: Subscription;
+  private readonly clientes = new Set<SocketTiraAfloja>();
+  private stopping = false;
+  private readonly log = new Logger(TiraAflojaGateway.name);
 
   constructor(
     private readonly juego: TiraAflojaService,
     private readonly autenticacion: TiraAflojaWsAuthService,
     private readonly actualizaciones: TiraAflojaRealtimePublisher,
+    private readonly presencia: TiraAflojaPresenceService,
   ) {}
 
   afterInit(): void {
@@ -148,12 +158,39 @@ export class TiraAflojaGateway
     });
   }
 
-  onModuleDestroy(): void {
+  async onModuleDestroy(): Promise<void> {
+    this.stopping = true;
     this.suscripcion?.unsubscribe();
+    await Promise.all(
+      [...this.clientes].map(async (c) => {
+        await c.data.renewing;
+        if (c.data.partidaId && c.data.presenceId)
+          await this.presencia
+            .observe(c.data.partidaId, c.data.presenceId, 'UNCERTAIN')
+            .catch(() =>
+              this.log.error(
+                'TUG_OBSERVER_STOP_UNRECORDED: lease will become UNKNOWN.',
+              ),
+            );
+      }),
+    );
   }
 
   async handleConnection(cliente: SocketTiraAfloja): Promise<void> {
     try {
+      this.clientes.add(cliente);
+      cliente.data.presenceId = undefined;
+      cliente.prependListener('disconnect', (reason: string) => {
+        cliente.data.disconnectReason = reason;
+      });
+      cliente.conn.on('packet', (packet) => {
+        if (packet.type === 'pong')
+          void this.renovar(cliente).catch(() =>
+            this.log.error(
+              'TUG_AUTHENTICATED_OBSERVATION_FAILED: no grace invented.',
+            ),
+          );
+      });
       const usuario = await this.autenticacion.autenticar(cliente);
       cliente.data.usuarioId = usuario.id;
       cliente.data.nombre = usuario.nombre;
@@ -187,8 +224,34 @@ export class TiraAflojaGateway
   }
 
   async handleDisconnect(cliente: SocketTiraAfloja): Promise<void> {
+    this.clientes.delete(cliente);
     const { usuarioId, partidaId, lado } = cliente.data;
     if (!usuarioId || !partidaId || !lado || !this.servidor) return;
+    if (cliente.data.presenceId) {
+      await cliente.data.renewing;
+      try {
+        const confirmed =
+          !this.stopping &&
+          ['client namespace disconnect', 'transport close'].includes(
+            cliente.data.disconnectReason ?? '',
+          );
+        await this.presencia.observe(
+          partidaId,
+          cliente.data.presenceId,
+          confirmed ? 'DISCONNECT' : 'UNCERTAIN',
+        );
+        this.servidor.to(salaPartida(partidaId)).emit('tira:presencia', {
+          usuarioId: lado,
+          conectado: await this.presencia.isOpen(partidaId, usuarioId),
+          servidorAhora: new Date().toISOString(),
+        });
+      } catch {
+        this.log.error(
+          'TUG_DISCONNECT_UNRECORDED: no backdating; lease becomes UNKNOWN.',
+        );
+      }
+      return;
+    }
     const conexiones = await this.servidor
       .in(salaUsuario(usuarioId))
       .fetchSockets();
@@ -251,6 +314,7 @@ export class TiraAflojaGateway
     @MessageBody() entrada: ResponderWsDto,
   ) {
     this.limitar(cliente);
+    await this.renovar(cliente, true);
     const estado = await this.juego.responder(
       this.usuarioId(cliente),
       entrada.partidaId,
@@ -275,8 +339,9 @@ export class TiraAflojaGateway
   }
 
   @SubscribeMessage('tira:latido')
-  latido(@ConnectedSocket() cliente: SocketTiraAfloja) {
+  async latido(@ConnectedSocket() cliente: SocketTiraAfloja) {
     this.limitar(cliente);
+    await this.renovar(cliente);
     return { servidorAhora: new Date().toISOString() };
   }
 
@@ -293,16 +358,80 @@ export class TiraAflojaGateway
     lado: 'A' | 'B',
   ): Promise<void> {
     if (cliente.data.partidaId && cliente.data.partidaId !== partidaId) {
+      if (cliente.data.presenceId)
+        await this.presencia.observe(
+          cliente.data.partidaId,
+          cliente.data.presenceId,
+          'UNCERTAIN',
+        );
+      cliente.data.presenceId = undefined;
       await cliente.leave(salaPartida(cliente.data.partidaId));
     }
     cliente.data.partidaId = partidaId;
     cliente.data.lado = lado;
+    if (
+      !cliente.data.presenceId &&
+      (await this.presencia.enrolled(partidaId))
+    ) {
+      const user = await this.autenticacion.autenticar(cliente);
+      if (user.id !== this.usuarioId(cliente))
+        throw new HttpException('Identidad de conexión cambió.', 401);
+      const id = randomUUID();
+      const state = await this.presencia.connect(
+        user.id,
+        partidaId,
+        id,
+        user.expiresAt,
+      );
+      if (state !== 'LEGACY') {
+        if (state !== 'OPEN')
+          throw new HttpException('Partida terminal o cierre pendiente.', 409);
+        cliente.data.presenceId = id;
+      }
+    } else if (cliente.data.presenceId) await this.renovar(cliente);
     await cliente.join(salaPartida(partidaId));
     cliente.to(salaPartida(partidaId)).emit('tira:presencia', {
       usuarioId: lado,
       conectado: true,
       servidorAhora: new Date().toISOString(),
     });
+  }
+
+  private renovar(
+    cliente: SocketTiraAfloja,
+    allowRetry = false,
+  ): Promise<void> {
+    if (!cliente.data.presenceId || !cliente.data.partidaId || this.stopping)
+      return Promise.resolve();
+    if (cliente.data.renewing) return cliente.data.renewing;
+    cliente.data.renewing = (async () => {
+      try {
+        const user = await this.autenticacion.autenticar(cliente);
+        if (user.id !== this.usuarioId(cliente))
+          throw new HttpException('Identidad cambió.', 401);
+        const state = await this.presencia.observe(
+          cliente.data.partidaId!,
+          cliente.data.presenceId!,
+          'RENEW',
+        );
+        // The game recovers exact retries first; an UNKNOWN connection still
+        // cannot admit a new answer through its PostgreSQL guard.
+        if (state !== 'OPEN' && !allowRetry)
+          throw new HttpException('Reconexión autenticada requerida.', 409);
+      } catch (error) {
+        await this.presencia
+          .observe(
+            cliente.data.partidaId!,
+            cliente.data.presenceId!,
+            'UNCERTAIN',
+          )
+          .catch(() => undefined);
+        throw error;
+      }
+    })().finally(() => {
+      cliente.data.renewing = undefined;
+    });
+    return cliente.data.renewing;
   }
 
   private limitar(cliente: SocketTiraAfloja): void {

@@ -368,7 +368,14 @@ function createHarness() {
       if (!locked) throw new Error('Read/write before awaited lock');
     };
     const tx = {
+      usuario,
       $queryRaw: async (sql: Prisma.Sql) => {
+        // The production transaction now also locks/rechecks the user row.
+        // Reentrant SQL within this simulated transaction must not await itself.
+        if (sql.sql.includes('FOR UPDATE')) {
+          assertLock();
+          return [{ id: userId }];
+        }
         locks.push(sql);
         const previous = lockTail;
         lockTail = new Promise<void>((resolve) => {

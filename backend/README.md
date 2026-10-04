@@ -6,7 +6,44 @@
 > en el HEAD auditado; MA-2A/B/C y MA-3A/B/C están implementadas localmente.
 > Ensayos integrados y despliegue siguen sin acreditarse en esta auditoría.
 > Consultar la Ruta vigente del equipo en Flutter (`docs/ETAPAS_PENDIENTES.md`)
-> y su auditoría de relevo. No comenzar PR-I1 antes de resolver las decisiones.
+> y su auditoría de relevo para Flutter. Las decisiones PR-I1 V1 ya están aprobadas;
+> consultar el [índice backend vigente](docs/README.md) para los checkpoints y gates.
+
+## Estado competitivo PR-I1 V1
+
+> **Relevo: 18 checkpoints funcionales publicados; último checkpoint funcional 97ebfc4.** Tira A1–A8
+> está integrado internamente y validado localmente, sin autorización productiva.
+> Leer [PR_I1_RELEVO.md](docs/PR_I1_RELEVO.md) antes de continuar. Los resúmenes
+> inferiores de quince checkpoints/ronda 16 son históricos y quedan superados.
+
+Quince checkpoints confirmados hasta `83d53da`. La ronda 16 local prepara
+ACTIVA exacta y coherencia temporal µs de nuevas búsquedas Tira admitidas, sin
+promover históricos. A3–A8, contrato compartido y liquidación TUG_MATCH siguen
+pendientes; núcleo del par aislado y COMPETITIVE_TUG_ENABLED=false por defecto.
+La auditoría conserva pruebas, matriz de cierre e historial.
+PR-I1 no está fusionado a main. Código implementado no significa desplegado ni
+activado: no se aplicaron migraciones remotas en esta revisión; la nueva evidencia
+Tira se prueba únicamente en PostgreSQL desechable local.
+
+`COMPETITIVE_SOLO_ENABLED` controla Cima/Guardián/Rescate;
+`COMPETITIVE_TRIVIA_ENABLED` controla Trivia Rush y `COMPETITIVE_GHOST_ENABLED`
+Duelo. `COMPETITIVE_TUG_ENABLED` solo decide admisión futura de Tira, sin habilitar
+verificador ni pagos. Todos apagados por defecto: solo el literal servidor `true` permite nuevas
+admisiones. El flag solo no autoriza Trivia/Duelo. Apagarlos no bloquea cierre o
+liquidación de intentos previamente admitidos; no hay conversión retroactiva.
+
+[Infraestructura, checkpoints y orden de migraciones](docs/PR_I1_COMPETITIVE_INFRASTRUCTURE.md)
+y [auditoría de Trivia/Duelo y validaciones](docs/PR_I1_TRIVIA_DUELO_AUDITORIA.md)
+son las referencias de esta rama. Siguen pendientes rol PostgreSQL/RLS de
+producción, activación/despliegue autorizados, causa histórica de los 34 fallos
+e incidencia de Rescate. Tira, Memoria y Batallas siguen sin integración
+competitiva; no comienza PR-I2. Aplicar/verificar el esquema requerido antes del
+backend incluso con flags apagados; no usar los comandos de despliegue como
+autorización para ejecutar migraciones remotas.
+
+[Auditoría de Tira y afloja](docs/PR_I1_TIRA_AFLOJA_AUDITORIA.md): precedencia
+aprobada, snapshot original/R durables y brechas restantes de presencia/cierre.
+No se registra un verificador ni se habilita XP de Tira en esta preparación.
 
 MA-3B: [Agenda y sincronización del repaso diferido](DEFERRED_REVIEW.md).
 Implementada/probada localmente: API privada, recibos idempotentes y migración

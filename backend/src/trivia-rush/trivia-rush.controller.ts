@@ -2,12 +2,15 @@ import {
   ArrayMaxSize,
   ArrayMinSize,
   IsArray,
+  IsBoolean,
   IsEnum,
   IsIn,
+  IsOptional,
   IsString,
   IsUUID,
   MaxLength,
 } from 'class-validator';
+import { Transform } from 'class-transformer';
 import {
   BadRequestException,
   Body,
@@ -21,13 +24,26 @@ import {
   Request,
   UseGuards,
 } from '@nestjs/common';
-import { AreaIcfes, TipoPotenciadorTriviaRush } from '@prisma/client';
+import {
+  AreaIcfes,
+  ModalidadTriviaRush,
+  TipoPotenciadorTriviaRush,
+} from '@prisma/client';
 import { AuthenticatedRequest } from '../auth/auth.types';
 import { EmailVerificadoGuard } from '../auth/email-verificado.guard';
 import { JwtGuard } from '../auth/jwt.guard';
 import { TriviaRushService } from './trivia-rush.service';
 
 class CrearTriviaRushDto {
+  @IsOptional()
+  @Transform(({ obj }) => obj.competitive)
+  @IsBoolean()
+  competitive?: boolean;
+
+  @IsOptional()
+  @IsEnum(ModalidadTriviaRush)
+  modalidad?: ModalidadTriviaRush;
+
   @IsArray()
   @ArrayMinSize(1)
   @ArrayMaxSize(5)

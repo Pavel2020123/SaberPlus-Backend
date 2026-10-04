@@ -15,9 +15,11 @@ import {
 import { randomInt } from 'node:crypto';
 import { preguntaPublicadaWhere } from '../common/contenido-publicado';
 import { PrismaService } from '../prisma/prisma.service';
+import { assertSoloCompetitiveCreationAllowed } from '../competitive/competitive.activation';
 import { SUMMIT_RULES, summitScore } from './summit.rules';
 
 type Config = {
+  competitive?: boolean;
   area: AreaIcfes;
   dificultad?: Dificultad;
   temaId?: string;
@@ -51,6 +53,9 @@ export class SummitService {
         await tx.$queryRaw(
           Prisma.sql`SELECT 1::int AS locked FROM pg_advisory_xact_lock(hashtext(${`summit:${userId}`}))`,
         );
+        await tx.$queryRaw(
+          Prisma.sql`SELECT id FROM "Usuario" WHERE id = ${userId}::uuid FOR UPDATE`,
+        );
         const user = await tx.usuario.findUnique({
           where: { id: userId },
           select: { rol: true },
@@ -64,6 +69,11 @@ export class SummitService {
   }
 
   async start(userId: string, config: Config) {
+    if (
+      config.competitive !== undefined &&
+      typeof config.competitive !== 'boolean'
+    )
+      throw new BadRequestException('competitive must be boolean');
     return this.locked(userId, async (tx) => {
       const existing = await tx.intentoCima.findFirst({
         where: { usuarioId: userId, estado: 'ACTIVO' },
@@ -71,6 +81,13 @@ export class SummitService {
       if (existing) {
         const current = await this.expire(tx, existing);
         if (current.estado === 'ACTIVO') {
+          if (
+            config.competitive !== undefined &&
+            (current.competitiveRulesVersion === 1) !== config.competitive
+          )
+            throw new ConflictException(
+              'Competitive mode cannot change during an attempt.',
+            );
           if (
             current.area !== config.area ||
             current.dificultad !== (config.dificultad ?? null) ||
@@ -84,6 +101,7 @@ export class SummitService {
           return this.publicState(current);
         }
       }
+      assertSoloCompetitiveCreationAllowed(config.competitive);
       const picked = await this.pickQuestions(tx, config);
       if (picked.length < SUMMIT_RULES.questions) {
         throw new BadRequestException(
@@ -100,6 +118,7 @@ export class SummitService {
         await tx.intentoCima.create({
           data: {
             usuarioId: userId,
+            competitiveRulesVersion: config.competitive === true ? 1 : null,
             area: config.area,
             temaId: config.temaId ?? null,
             subtemaId: config.subtemaId ?? null,
@@ -298,7 +317,13 @@ export class SummitService {
     ) {
       return tx.intentoCima.update({
         where: { id: attempt.id },
-        data: { estado: 'EXPIRADO', finalizadoEn: new Date() },
+        data: {
+          estado: 'EXPIRADO',
+          finalizadoEn:
+            attempt.competitiveRulesVersion === 1
+              ? attempt.venceEn
+              : new Date(),
+        },
       });
     }
     return attempt;
@@ -312,6 +337,7 @@ export class SummitService {
     const last = answers[answers.length - 1];
     return {
       id: attempt.id,
+      competitive: attempt.competitiveRulesVersion === 1,
       area: attempt.area,
       temaId: attempt.temaId,
       subtemaId: attempt.subtemaId,
