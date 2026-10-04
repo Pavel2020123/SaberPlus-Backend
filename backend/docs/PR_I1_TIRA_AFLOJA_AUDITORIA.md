@@ -1,6 +1,221 @@
 # PR-I1 V1 — auditoría y preparación de Tira y afloja
 
-## Estado vigente — checkpoint 16 local: autoridad temporal, sin liquidación
+## Estado vigente — checkpoint 17 local: A3–A5, contrato sin XP
+
+Rama `feat/pr-i1-competitive-infrastructure`, HEAD `795d6a3`; dieciséis
+checkpoints publicados según el propietario. CP17 SIN COMMIT. No migración nueva,
+no registro TUG_MATCH, conexión ledger, liquidación individual ni activación.
+Los apartados siguientes conservan el historial de cada ronda tal como se validó.
+
+### Contrato anterior y nuevo
+
+Anterior: VerifiedTerminal usa Date y RESULTADO/ABANDONO/VICTORIA_POR_ABANDONO;
+el kernel rechaza abandono ambiguo, doble abandono y neutrales, y el replay
+rechaza adaptar temporalVersion=1 incluso alineado a milisegundos.
+Nuevo: VerifiedTugPairTerminal y PreciseCompetitivePairEvidence, separados del
+contrato anterior, con loadPreciseLockedPair bajo Usuario originales ordenados
+→ lock de presencia/partida. No se cambia CompetitiveService/PairProtocol,
+registro, verificadores Solo/Trivia/Duelo ni servicios deportivos.
+
+Epoch µs decimal string conserva admisión, marca ACTIVA y terminal; ACTIVA incluye
+versión deportiva y watermark de presencia. El lector cruza también
+snapshot.config.activaVersion, además del timestamp, watermark y temporalVersion.
+Exige temporalVersion=1 y admisión inmutable; no promueve históricos admitidos
+con contrato anterior ni partidas no admitidas. La comprobación de terminal
+usa PostgreSQL después de locks, sin Date.now(). Hash incluye replay completo
+y contrato/resoluciones exactos; reloj de observación no altera la identidad.
+Fracciones se admiten en ESTE contrato preparatorio; el adaptador Date anterior
+sigue bloqueado. Esto todavía no resuelve la persistencia futura de ledger a µs.
+
+| Clasificación | Representación compartida | Límite |
+|---|---|---|
+| NORMAL | NORMAL con victoria/empate/derrota, C, acciones, R certificado | R=0 no infiere participación ni bonos; fórmula V1 intacta |
+| EXPLICIT_PRE_ACTIVE | Dos NEUTRAL/PRE_ACTIVE, preserva ganador deportivo | Cero ambos, sin penalización; no se transforma en derrota/empate |
+| EXPLICIT_ACTIVE | Propio PENALIZABLE_ABANDONMENT con fase ACTIVA exacta; rival beneficiario o NEUTRAL/NO_WINNER | OPEN histórico autenticado vigente al terminal y sin gracia/abandono propio; política aprobada, sin pagar XP |
+| GRACE_ABANDONMENT | Propio PENALIZABLE_ABANDONMENT, inicio +30.000.000 µs; rival beneficiario | Fase y prioridad verificadas por replay; sin aplicar −15 |
+| SIMULTANEOUS_CANCELLED | CANCELADA, ganador nulo, dos NEUTRAL/SIMULTANEOUS con positiveXp=0 y nominalPenalty=0 | Política APROBADA CP17: solo dos gracias confirmadas exactamente iguales y sin terminal normal/global prioritario; sin integración ledger |
+| GLOBAL_EXPIRED | Dos NEUTRAL/GLOBAL_EXPIRED | Plazo global anterior/igual a gracia, nunca empate ficticio |
+| Otros cierres, participantes incompletos, evidencia insuficiente | Error específico del replay/contrato | No se inventan resultados ni referencias |
+
+### Actualización de producto aprobada — simultánea exacta
+
+El propietario aprueba exclusivamente SIMULTANEOUS_CANCELLED cuando dos gracias
+por desconexiones confirmadas vencen exactamente en el mismo microsegundo
+PostgreSQL, sin cierre normal o global prioritario. Estado CANCELADA, ganador
+ninguno, XP A/B=0 y penalización A/B=0. El contrato incluye los dos registros
+individuales confirmados y dos neutrales con política cero explícita; no convierte
+CANCELADA en EMPATE ni crea dos ABANDONO penalizables. Se elimina policyBlock
+SIMULTANEOUS_PENALTY_UNAPPROVED: esa decisión pendiente queda superada.
+
+No aplica a UNKNOWN, EXPLICIT, global, otras cancelaciones ni a gracias con
+1 µs de diferencia. Los guards deportivos, precedencia, replay y contratos de
+otros juegos se conservan. No hay conexión a ledger, verificador registrado ni
+flags modificados. El kernel preparatorio anterior sigue rechazando dos ABANDONO;
+su adaptación al nuevo contrato permanece fuera de CP17 (A6).
+
+### Beneficiario: participación, presencia y bloqueos
+
+El ganador deportivo no prueba elegibilidad. Acciones aceptadas y C permanecen
+separados; una respuesta incorrecta aceptada cuenta como acción. La prueba de
+presencia guarda identificador, tipo y timestamp de CONNECTED/RENEWED o respuesta
+aceptada, reconstruidos de historia inmutable y OPEN válido en ese instante.
+GRACE exige prueba estrictamente después de desconexión rival, a más tardar al
+terminal, y sin gracia propia pendiente. Reconexion válida cancela esa gracia
+con el replay existente; UNKNOWN no inicia gracia, no borra acciones ni equivale
+a presencia suficiente. Presencia terminal OPEN se expone como evidencia, no como
+sustituto de la prueba posterior. Abandono propio anterior queda rechazado por
+el replay y su primera gracia/precedencia, no inferido del estado de socket.
+
+Elegibilidad: SUFFICIENT, NO_ACTIONS, OWN_GRACE y PRESENCE_UNPROVEN.
+NO_ACTIONS implica futuro XP positivo cero, aunque exista ganador deportivo.
+OWN_GRACE/PRESENCE_UNPROVEN bloquean la recompensa; no inventan abandono.
+SUFFICIENT con acciones podrá usar min(80, roundHalfUp(60*C/Qpartida)+20),
+fórmula aprobada sin cambios; no se calcula ni aplica al ledger aquí.
+
+**Decisión aprobada para cerrar A5 en esta continuación:** EXPLICIT_ACTIVE exige
+OPEN autenticado con lease vigente reconstruido al instante exacto del abandono,
+sin gracia propia ni abandono propio anterior. Se retira el bloqueo de producto
+EXPLICIT_PRESENCE_POLICY_UNDEFINED, superado por esta aprobación expresa.
+No se deduce suficiencia de ganador deportivo ni de estado actual del socket.
+
+openConnectionAtTerminal identifica conexión, evento autenticado y los instantes
+exactos authenticatedUs, leaseUntilUs y authUntilUs (null permitido por JWT sin
+exp, conservando el límite del lease de 45 s). El intervalo es [autenticación,
+min(autenticación+45 s, authUntil)); al límite exacto no hay OPEN válido. El
+constructor cruza el indicador OPEN con esa prueba, comprueba sus límites y
+rechaza intervalos futuros, vencidos o adulterados. UNKNOWN posterior al cierre
+no borra un OPEN históricamente válido; UNKNOWN al cierre no crea esa prueba.
+Reconexión vigente cancela gracia propia conforme al replay y no amplía relojes.
+
+A4 se demuestra desde originales/admisión, ACTIVA exacta/version/watermark del
+snapshot, secuencia deportiva, abandono individual/evento confirmado y replay
+de presencia. PRE_ACTIVE no se promueve por definitive, ganador ni timestamp
+terminal. GRACE exige inicio durante ACTIVA, vencimiento +30 s y prioridad
+normal/global; EXPLICIT_ACTIVE exige fase probada y ausencia de terminal
+prioritario. Un abandono propio anterior incompatible se rechaza por el replay,
+que verifica el conjunto completo de registros individuales y primera gracia.
+La cancelación simultánea aprobada conserva cero ambos, sin dos penalizaciones.
+A3/A4/A5 se implementan en contratos/verificadores aislados, no integración A6.
+
+### Matriz mínima de cierre
+
+| Requisito | Estado CP17 | Pendiente |
+|---|---|---|
+| A1/A2 temporalidad | Confirmado CP16, conservado | Legacy no promovido; ledger futuro debe preservar precisión |
+| A3 representación | Implementada en contrato compartido separado | A6 adaptador y kernel aún desconectados |
+| A4 fase propia | Implementada y comprobable, ninguna escritura XP | Simultánea exacta APROBADA: cero XP y cero penalización ambos; integración A6 pendiente |
+| A5 beneficiario | GRACE y EXPLICIT verificables con políticas aprobadas, acciones/C/gracia/reconexión/UNKNOWN separados | Solo evidencia insuficiente/contradictoria bloqueada; integración A6 pendiente |
+| A6 integración atómica | No implementada | Consumo nuevo contrato, neutral sin premio, precisión y temporada/historial |
+| A7 recuperación | No implementada | Liquidación durable/reintentos/ack y caída, sin doble pago |
+| A8 selección de pendientes | No implementada | Neutrales/pares incompletos y recuperación sin selección ficticia |
+| B1 operación | Pendiente | Rol PostgreSQL/RLS, WAL, respaldos/migraciones autorizadas y esquema |
+| B2 capacidad | Pendiente | Multiinstancia, pools y entrega de eventos distribuida |
+
+### Cierre A4/A5 — pruebas y estado de esta continuación
+
+Se conservan las suites previas y se añaden 12 pruebas Jest (9 de contrato,
+3 de intervalos históricos) y 6 PostgreSQL con servicios reales. Casos nuevos:
+EXPLICIT con cero acciones, reconexión tras gracia propia, gracia propia sin
+reconexión, lease/token vencido; GRACE con reconexión válida del beneficiario.
+Cambio OPEN→UNKNOWN posterior al cierre conserva contrato/hash; respuesta
+incorrecta aceptada acredita participación, no C. Contradicciones de flags,
+intervalos, fase, snapshot y participantes conservan rechazo explícito.
+No se modifica motor deportivo, servicio competitivo, protocolo atómico ni
+migraciones confirmadas. Se conserva orden Usuario original ordenado → presencia
+→ partida. openAt conserva exactamente su semántica anterior y usa ahora el
+mismo intervalo reconstruido que openConnectionAt; no debilita otros juegos.
+Verificadores Solo/Trivia/Duelo y registry siguen intactos. Sin flags activados,
+ledger/balances conectados, XP/penalización aplicado ni nuevas migraciones.
+
+Primera validación de esta continuación: build exit 0; Jest competitivo
+267/267 (17 suites, 15,347 s), completo 1148/1148 (106 suites, 56,914 s),
+audit omit=dev cero vulnerabilidades/TLS. PostgreSQL **272/273**, 17 archivos,
+563603 ms, exit 1; contrato 21/22, resto anterior 251/251; cero cancelados,
+omitidos/TODO/incompletos. Único fallo: EXPLICIT ACTIVE beneficiary RECONNECTED
+esperaba UNKNOWN tras UNCERTAIN posterior al cierre, obtuvo OPEN.
+
+Causa comprobada en SQL confirmado: tug_presence_observe llama refresh y después
+retorna c.state sin cambiarlo si la partida es terminal. Antes del lease,
+UNCERTAIN post-terminal no cambia OPEN. tug_presence_refresh sí expira OPEN→UNKNOWN
+cuando leaseUntil<=t, incluso después del terminal. El fixture ahora usa el
+leaseUntil persistido como límite PG y conserva tanto la aserción UNKNOWN como
+la igualdad de contrato/hash. Se refuerza también el caso GRACE para comprobar
+UNKNOWN real, no solo una llamada sin efectos. Sin esperas arbitrarias ni cambio
+de motor/migración. Log de fallo conservado en %TEMP%/sp-cp17-a45-postgres-1.log.
+Validación final de código/Jest después de corregir el fixture: build exit 0,
+competitivo 267/267 (17 suites, 10,642 s), completo 1148/1148 (106 suites,
+59,192 s); audit omit=dev cero vulnerabilidades/TLS y diff check exit 0.
+Segunda ejecución PostgreSQL completa: **273/273**, 17 archivos, 559646 ms,
+exit 0; contrato 22/22 (69782,479 ms Node), suites anteriores 251/251.
+Fail/cancelled/skipped/TODO=0; failedFiles/incompleteFiles/invalidFiles vacíos.
+Se comprueba UNKNOWN real al vencer el lease y estabilidad de contrato/hash.
+Log íntegro: %TEMP%/sp-cp17-a45-postgres-final.log. PostgreSQL local desechable
+16.15, 60 migraciones confirmadas; recurso propio retirado, sin bases remotas.
+Las validaciones iniciales y de la política simultánea siguientes son historial,
+conservado sin reinterpretar sus resultados ni sus bloqueos de producto de entonces.
+
+### Pruebas CP17
+
+Nueva suite Jest competitive.tug-terminal.spec.ts verifica resoluciones, fases,
+conteos, presencia, diferencia µs, hash/reloj y rechazos. Nueva suite PostgreSQL
+competitive-tug-contract-postgres.test.cjs usa servicios deportivos reales,
+presencia durable, testigo R, dos clientes e instancias, snapshots y reintentos.
+Incluye pre/durante ACTIVA, rival OPEN/UNKNOWN, acciones incorrectas o cero,
+primera gracia/dos iguales/1 µs, global prioritario, terminal fraccionario,
+contradicción de snapshot con rollback y no promoción legacy/histórica.
+Siempre comprueba cero eventos TUG_MATCH, cero balances nuevos y xpTotal intacto.
+El runner conserva los dieciséis archivos anteriores y añade esta suite;
+las pruebas previas del kernel con fixtures confiables no son integración deportiva.
+Validación inicial PostgreSQL completa CP17, antes de la actualización de producto: **267/267 en 17 archivos, 497494 ms**
+del bloque de pruebas, exit 0; dieciséis archivos anteriores 251/251 y nueva
+suite 16/16 (40497,339 ms Node, 40609 ms bloque). Fail/cancelled/skipped/TODO=0;
+failedFiles/incompleteFiles/invalidFiles vacíos. Sin fallos intermedios de
+validación en esta ronda. PostgreSQL 16.15, 60 migraciones confirmadas, Etc/UTC;
+no migración CP17. Recurso propio retirado, contenedor ajeno postgres-local
+intacto (mismo ID y StartedAt). Log íntegro: %TEMP%/sp-cp17-postgres-1.log.
+
+Build final exit 0; Jest competitivo 252/252, 17 suites (7,048 s), incluyendo
+24 pruebas nuevas del contrato. Auditoría omit=dev: cero vulnerabilidades,
+TLS activo usando certificados del sistema. Los 60 enlaces locales de los tres
+documentos revisados existen. Se conservan validaciones anteriores correctas:
+competitivo 252/252 (9,658 s y 10,325 s), completo 1133/1133 (29,352 s).
+Jest completo final 1133/1133, 106 suites (25,667 s); git diff --check exit 0.
+El diagnóstico inicial docker exit 2 fue el polling pg_isready antes de estar
+listo el contenedor propio; el runner lo captura y continúa solo al estar ready.
+No hubo prueba fallida, timeout o terminación externa en esta ejecución.
+
+Actualización de producto simultánea exacta: build exit 0; Jest competitivo
+255/255 en 17 suites (9,806 s), completo 1136/1136 en 106 suites (28,693 s);
+auditoría omit=dev cero vulnerabilidades y TLS activo. Se añaden tres pruebas
+negativas Jest de UNKNOWN/EXPLICIT/evidencia ausente; se refuerzan los casos
+PostgreSQL existentes de igualdad µs, dos registros confirmados, política cero
+explícita y ausencia de esta política cuando las gracias difieren 1 µs.
+Validación final tras reforzar la simultánea con dos respuestas aceptadas (una
+correcta, otra incorrecta): Jest competitivo 255/255 (17 suites, 9,514 s),
+completo 1136/1136 (106 suites, 28,812 s). PostgreSQL **267/267 en 17 archivos,
+495423 ms**, exit 0; suite contrato 16/16 (44178,7908 ms Node, 44301 ms bloque).
+Fail/cancelled/skipped/TODO=0 y failedFiles/incompleteFiles/invalidFiles vacíos.
+No hubo fallos de pruebas ni validación incompleta en esta actualización.
+
+Log íntegro: %TEMP%/sp-cp17-zero-postgres.log; también se conservan los logs build,
+Jest y audit con prefijo sp-cp17-zero. El diagnóstico inicial docker exit 2 es
+el polling pg_isready durante bootstrap, capturado antes del estado ready;
+no es un fallo de pruebas ni un daemon inaccesible. PostgreSQL 16.15, 60
+migraciones confirmadas, Etc/UTC; sin migración nueva. Recurso propio retirado;
+contenedor ajeno intacto. git diff --check exit 0 y 60 enlaces locales válidos.
+La validación inicial CP17 se conserva arriba como historial, no se sobrescribe.
+Política simultánea aprobada; siguen abiertos EXPLICIT/presencia suficiente,
+A6–A8, rol/RLS/WAL/capacidad y las incidencias históricas de 34 fallos y Rescate.
+
+Garantías implementadas y probadas localmente; no integración/operación activada.
+Las pruebas negativas alteran únicamente snapshot de su propia partida dentro de
+una transacción revertida; el reloj de cada escenario se restaura en finally.
+Las transiciones de acciones, UNKNOWN y desconexión se separan por límites
+exactos PG cuando corresponde, sin esperas arbitrarias ni cambios al replay.
+Las pruebas históricas, incluido Rescate, pasan esta ejecución pero no prueban
+la causa de sus incidencias previas: siguen expresamente abiertas.
+
+## Historial — checkpoint 16 confirmado en 795d6a3: autoridad temporal, sin liquidación
 
 Rama `feat/pr-i1-competitive-infrastructure`, HEAD `83d53da`. Quince checkpoints
 confirmados/publicados por el propietario. CP16 local SIN COMMIT; solo A1/A2.

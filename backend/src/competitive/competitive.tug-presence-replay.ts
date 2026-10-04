@@ -164,17 +164,33 @@ export function replayTugPresence(
     );
   // Reconstruct OPEN at the accepted action's precise instant, rather than
   // using the connection's mutable final state or today's lease.
-  const openAt = (user: string, at: bigint) =>
-    connections.some((c) => {
-      if (c.userId !== user || us(c.connectedUs) > at) return false;
+  const openConnectionAt = (user: string, at: bigint) => {
+    for (const c of [...connections].sort((a, b) =>
+      a.id < b.id ? -1 : a.id > b.id ? 1 : 0,
+    )) {
+      if (c.userId !== user || us(c.connectedUs) > at) continue;
       const history = relevant.filter(
         (e) =>
           e.connectionId === c.id && us(e.atUs) <= at && e.kind !== 'GRACE',
       );
       const last = history[history.length - 1];
-      if (!last || !['CONNECTED', 'RENEWED'].includes(last.kind)) return false;
+      if (!last || !['CONNECTED', 'RENEWED'].includes(last.kind)) continue;
       const end = us(last.atUs) + 45000000n;
-      return at < end && (c.authUs === null || at < us(c.authUs));
-    });
-  return { events: relevant, graces, graceAt, openAt };
+      if (at < end && (c.authUs === null || at < us(c.authUs)))
+        return {
+          connectionId: c.id as string,
+          eventId: last.id as string,
+          authenticatedUs: last.atUs as string,
+          leaseUntilUs: (c.authUs === null || end < us(c.authUs)
+            ? end
+            : us(c.authUs)
+          ).toString(),
+          authUntilUs: c.authUs as string | null,
+        };
+    }
+    return null;
+  };
+  const openAt = (user: string, at: bigint) =>
+    openConnectionAt(user, at) !== null;
+  return { events: relevant, graces, graceAt, openAt, openConnectionAt };
 }

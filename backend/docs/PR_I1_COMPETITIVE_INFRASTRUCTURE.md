@@ -1,6 +1,78 @@
 # PR-I1 V1: infraestructura competitiva común
 
-## Estado vigente — checkpoint 16 local: autoridad temporal Tira
+## Estado vigente — checkpoint 17 local: contrato preciso del par Tira
+
+Rama `feat/pr-i1-competitive-infrastructure`, HEAD `795d6a3`; dieciséis
+checkpoints confirmados/publicados según el propietario, árbol limpio al iniciar.
+CP17 SIN COMMIT prepara A3–A5 sin conectar TUG_MATCH al ledger, registro,
+workers, gateways o controllers. No existe liquidación individual de Tira.
+
+`VerifiedTerminal` y su contrato Date permanecen intactos para Solo/Trivia/Duelo.
+`VerifiedTugPairTerminal` es un contrato interno distinto, con identidad común
+TUG_MATCH, dos participantes originales, admisión/ACTIVA/terminal en epoch µs
+(decimal string), fase versionada y resoluciones discriminadas. El nuevo método
+`loadPreciseLockedPair` no es `loadTerminal` ni `loadLockedPair`: no puede entrar
+accidentalmente al kernel anterior. El kernel y sus barreras permanecen intactos.
+
+El lector exige admisión persistida y temporalVersion=1; cruza marca ACTIVA,
+versión deportiva y watermark con snapshot y replay. Conserva timestamp(6),
+usa reloj PostgreSQL (tug_presence_now), no Date.now() para validar terminales,
+y rechaza evidencia contradictoria. No hay migración nueva ni backfill.
+Cancelación y expiración son NEUTRAL, nunca RESULTADO/EMPATE ficticio.
+EXPLICIT pre-ACTIVA representa cero para ambos sin penalización. Abandono propio
+GRACE/EXPLICIT durante ACTIVA probado se clasifica penalizable, sin aplicar −15.
+
+La presencia positiva por GRACE exige evidencia autenticada estrictamente
+posterior a desconexión rival y no estar en gracia propia: CONNECTED/RENEWED
+persistido o respuesta realmente aceptada, correcta o incorrecta. UNKNOWN actual
+no borra una prueba histórica válida ni demuestra suficiencia por sí solo.
+Cero acciones conserva NO_ACTIONS, futura recompensa cero; no calcula XP.
+Cierre A5: el propietario aprueba para EXPLICIT_ACTIVE OPEN histórico autenticado
+válido al instante exacto de cierre, sin gracia propia ni abandono propio anterior.
+El replay aporta connectionId, evento CONNECTED/RENEWED, authenticatedUs,
+leaseUntilUs y authUntilUs; verifica el intervalo con BigInt, sin leer el estado
+actual del socket como prueba. Se retira EXPLICIT_PRESENCE_POLICY_UNDEFINED.
+OPEN booleano sin intervalo, lease/token vencido o evidencia futura se rechazan.
+Sin acciones, NO_ACTIONS conserva cero XP positivo. GRACE mantiene su requisito
+propio de evidencia posterior a desconexión; las dos políticas no se confunden.
+Actualización de producto CP17 APROBADA: SIMULTANEOUS_CANCELLED
+conserva CANCELADA, ganador nulo y dos NEUTRAL/SIMULTANEOUS con positiveXp=0
+y nominalPenalty=0 para cada participante. Solo aplica a dos desconexiones
+confirmadas cuyas gracias vencen en el mismo µs PostgreSQL, sin terminal normal
+o global prioritario. Se retira el bloqueo de política anterior; no hay dos −15,
+empate ficticio ni extensión a otras cancelaciones. UNKNOWN no prueba abandono.
+El contrato permanece settlement=NOT_INTEGRATED; no se escribe ledger ni se
+modifican flags. El kernel anterior conserva su barrera hasta integración A6.
+
+Contrato implementado ≠ integrado ≠ desplegado ≠ listo para activar. Todos los
+flags siguen OFF por defecto (SOLO, TRIVIA, GHOST, TUG). A6–A8 integración
+atómica, recuperación competitiva y selección de neutrales siguen pendientes;
+B1/B2 rol/RLS productivo, WAL/durabilidad física, capacidad y multiinstancia,
+migraciones remotas autorizadas y gates operativos permanecen abiertos.
+Se conservan la incertidumbre histórica de 34 fallos y Rescate intermitente,
+PR-I1 no fusionado a main y ninguna migración remota aplicada aquí.
+Validación inicial CP17, antes de la actualización de producto: build exit 0; Jest competitivo 252/252 (17 suites, 7,048 s);
+completo 1133/1133 (106 suites, 25,667 s); PostgreSQL 267/267 (17 archivos,
+497494 ms), sin fail/cancelled/skipped/TODO/incompletos; 16 casos PG y 24 Jest
+nuevos. Auditoría omit=dev cero vulnerabilidades con TLS activo y diff check exit 0.
+Actualización simultánea APROBADA validada: build exit 0; Jest competitivo
+255/255 (17 suites, 9,514 s); completo 1136/1136 (106 suites, 28,812 s);
+PostgreSQL 267/267 (17 archivos, 495423 ms), sin fail/cancelled/skipped/TODO
+ni archivos incompletos. Simultánea con respuestas aceptadas conserva cero
+recompensa y cero penalización; 1 µs de diferencia no aplica esa política.
+Auditoría omit=dev cero vulnerabilidades/TLS activo y diff check exit 0.
+Cierre A4/A5 validado: build exit 0; Jest competitivo 267/267 (17 suites,
+10,642 s), completo 1148/1148 (106 suites, 59,192 s); PostgreSQL final 273/273
+(17 archivos, 559646 ms), contrato 22/22 y suites anteriores 251/251, sin
+fallos/cancelados/omitidos/TODO ni resúmenes incompletos. Audit omit=dev cero
+vulnerabilidades/TLS y diff check exit 0. Primera ejecución PG 272/273,
+563603 ms, exit 1: fixture esperaba UNKNOWN tras UNCERTAIN post-terminal,
+pero SQL retorna OPEN hasta el lease. Fixture corregido con leaseUntil persistido;
+verifica UNKNOWN real sin relajar aserciones ni cambiar motor/migraciones.
+No migración nueva; los 60 enlaces locales revisados existen. Detalles y logs en
+[contrato, matriz y validaciones CP17](PR_I1_TIRA_AFLOJA_AUDITORIA.md).
+
+## Historial — checkpoint 16 confirmado en 795d6a3: autoridad temporal Tira
 
 HEAD `83d53da`, rama `feat/pr-i1-competitive-infrastructure`; quince checkpoints
 confirmados/publicados. CP16 SIN COMMIT cierra A1/A2 para nuevas búsquedas admitidas:
@@ -155,7 +227,8 @@ Se aplica y prueba únicamente en PostgreSQL propio desechable.
 | 13 | d18a676, confirmado | Admisión persistida, flag apagado; sin verificador/XP Tira. |
 | 14 | 60b1228, confirmado | Replay normal aislado y barrido serial corregido; sin XP. |
 | 15 | 83d53da, confirmado | Replay de presencia y terminales privado, con bloqueos de evidencia; sin XP. |
-| 16 | Local, sin commit | ACTIVA exacta y temporalidad µs para nuevas búsquedas admitidas; contrato de liquidación bloqueado, sin XP. |
+| 16 | 795d6a3, confirmado | ACTIVA exacta y temporalidad µs para nuevas búsquedas admitidas; contrato de liquidación bloqueado, sin XP. |
+| 17 | Local, sin commit | Contrato preciso del par, neutrales, fase penalizable y presencia del beneficiario; sin liquidación. |
 
 ## Historial — checkpoint 12 confirmado en fdfa9aa
 
@@ -434,7 +507,7 @@ Orden y dependencias del esquema requerido:
 7. [Presencia Tira](../prisma/migrations/20261003160000_tug_presence/migration.sql), checkpoint 9 confirmado; depende de evidencia.
 8. [Testigo R](../prisma/migrations/20261003220000_tug_round_visibility/migration.sql), checkpoint 11 confirmado; depende de evidencia/presencia.
 9. [Admisión Tira](../prisma/migrations/20261004010000_tug_competitive_admission/migration.sql), checkpoint 13 confirmado; conserva procedencia negativa e identidad.
-10. [Autoridad temporal Tira](../prisma/migrations/20261004160000_tug_temporal_authority/migration.sql), checkpoint 16 LOCAL sin commit; requiere las anteriores. Sin backfill ni autorización de migración remota.
+10. [Autoridad temporal Tira](../prisma/migrations/20261004160000_tug_temporal_authority/migration.sql), checkpoint 16 confirmado en 795d6a3; requiere las anteriores. Sin backfill ni autorización de migración remota.
 
 Incluso con flags apagados, el backend nuevo exige esquema compatible antes de
 usar campos Prisma/recuperadores. Respaldo/revisión → verificar rol real de

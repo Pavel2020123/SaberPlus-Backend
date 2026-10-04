@@ -27,6 +27,105 @@ export interface VerifiedTerminal {
     | { kind: 'ABANDONO'; definitive: boolean }
     | { kind: 'VICTORIA_POR_ABANDONO'; facts: AbandonmentWin };
 }
+/** Exact pair-only contract. NOT accepted by the Date-based settlement API.
+ * Epoch microseconds are decimal strings, never client timestamps or JS Date.
+ * A3–A5 evidence only: approved simultaneous zero policy, no ledger write or
+ * active verifier implied. */
+export interface VerifiedTugPairTerminal {
+  contract: 'TUG_PAIR_V1';
+  xpRulesVersion: 1;
+  sourceType: 'TUG_MATCH';
+  sourceId: string;
+  participants: [string, string];
+  admissionUs: string;
+  terminalUs: string;
+  activation: {
+    atUs: string;
+    sportsVersion: number;
+    presenceId: string;
+  } | null;
+  classification:
+    | 'NORMAL'
+    | 'GRACE_ABANDONMENT'
+    | 'EXPLICIT_PRE_ACTIVE'
+    | 'EXPLICIT_ACTIVE'
+    | 'SIMULTANEOUS_CANCELLED'
+    | 'GLOBAL_EXPIRED';
+  sportingWinner: string | null;
+  /** Confirmed individual evidence, including both equal graces; this list is
+   * NOT a list of ledger penalties. */
+  abandonments: {
+    participantId: string;
+    reason: 'GRACE' | 'EXPLICIT';
+    effectiveUs: string;
+    graceStartUs: string | null;
+  }[];
+  evidenceHash: string;
+  settlement: 'NOT_INTEGRATED';
+  resolutions: [VerifiedTugResolution, VerifiedTugResolution];
+}
+export type VerifiedTugResolution =
+  | {
+      kind: 'NORMAL';
+      correct: number;
+      actions: number;
+      presentedRounds: number;
+      outcome: 'VICTORIA' | 'EMPATE' | 'DERROTA';
+    }
+  | {
+      kind: 'NEUTRAL';
+      reason: 'PRE_ACTIVE' | 'GLOBAL_EXPIRED' | 'NO_WINNER';
+    }
+  | {
+      kind: 'NEUTRAL';
+      reason: 'SIMULTANEOUS';
+      positiveXp: 0;
+      nominalPenalty: 0;
+    }
+  | {
+      kind: 'PENALIZABLE_ABANDONMENT';
+      reason: 'GRACE' | 'EXPLICIT';
+      effectiveUs: string;
+      graceStartUs: string | null;
+    }
+  | {
+      kind: 'ABANDONMENT_BENEFICIARY';
+      correct: number;
+      actions: number;
+      qPartida: number;
+      eligibility:
+        | 'SUFFICIENT'
+        | 'NO_ACTIONS'
+        | 'OWN_GRACE'
+        | 'PRESENCE_UNPROVEN';
+      presence: TugBeneficiaryPresence;
+    };
+export interface TugBeneficiaryPresence {
+  rivalDisconnectedUs: string | null;
+  ownGraceStartUs: string | null;
+  openAtTerminal: boolean;
+  /** Persisted authenticated interval covering the exact terminal, not today's
+   * socket aggregate. Null means no such interval has been demonstrated. */
+  openConnectionAtTerminal: {
+    connectionId: string;
+    eventId: string;
+    authenticatedUs: string;
+    leaseUntilUs: string;
+    authUntilUs: string | null;
+  } | null;
+  authenticatedEvidence: {
+    kind: 'CONNECTED' | 'RENEWED' | 'ACCEPTED_ANSWER';
+    id: string;
+    atUs: string;
+  } | null;
+}
+/** Separate preparatory interface deliberately has no loadTerminal/settle hook. */
+export interface PreciseCompetitivePairEvidence {
+  loadPreciseLockedPair(
+    tx: Prisma.TransactionClient,
+    id: string,
+  ): Promise<VerifiedTugPairTerminal>;
+}
 export interface CompetitiveVerifier {
   readonly sourceType: FuenteXpCompetitivo;
   /** Verify ownership, immutable snapshot, online origin, terminal state, actions,

@@ -1,6 +1,12 @@
 import { Prisma } from '@prisma/client';
 import { CompetitivePairEvidence } from './competitive.pair-protocol';
-import { VerifiedTerminal } from './competitive.contracts';
+import {
+  PreciseCompetitivePairEvidence,
+  TugBeneficiaryPresence,
+  VerifiedTerminal,
+  VerifiedTugPairTerminal,
+} from './competitive.contracts';
+import { verifiedTugPair } from './competitive.tug-terminal';
 import { competitiveHash } from './competitive.service';
 import { requireEvidence } from './competitive.rules';
 import { canonicalSourceId } from './competitive.source';
@@ -62,7 +68,114 @@ export interface TugReplayEvidence {
   terminals?: [VerifiedTerminal, VerifiedTerminal];
 }
 
-export class TugSportsReplay implements CompetitivePairEvidence {
+export class TugSportsReplay
+  implements CompetitivePairEvidence, PreciseCompetitivePairEvidence
+{
+  /** A3–A5 shared evidence only. No Date adapter and no settlement hook.
+   * Caller holds the two original Usuario locks; source lock follows them. */
+  async loadPreciseLockedPair(
+    tx: Prisma.TransactionClient,
+    sourceId: string,
+  ): Promise<VerifiedTugPairTerminal> {
+    const id = canonicalSourceId('TUG_MATCH', sourceId);
+    const evidence = await this.replayLockedPair(tx, id);
+    const m = await tx.partidaTiraAfloja.findUniqueOrThrow({ where: { id } });
+    const [time] = await tx.$queryRaw<Row[]>`SELECT
+      (extract(epoch FROM "competitiveAdmissionAt")*1000000)::bigint::text AS admission,
+      (extract(epoch FROM "activaEn")*1000000)::bigint::text AS activation,
+      (extract(epoch FROM tug_presence_now())*1000000)::bigint::text AS observed
+      FROM "PartidaTiraAfloja" WHERE id=${id}::uuid`;
+    check(m.temporalVersion === 1, 'TEMPORAL_VERSION_REQUIRED');
+    const activation = time.activation
+      ? {
+          atUs: time.activation,
+          sportsVersion: m.activaVersion!,
+          presenceId: m.activaPresenceId!.toString(),
+        }
+      : null;
+    const connections = (
+      await tx.$queryRaw<
+        { row: Row }[]
+      >`SELECT to_jsonb(c) || jsonb_build_object(
+      'connectedUs',(extract(epoch FROM "connectedAt")*1000000)::bigint::text,
+      'lastUs',(extract(epoch FROM "lastSeenAt")*1000000)::bigint::text,
+      'leaseUs',(extract(epoch FROM "leaseUntil")*1000000)::bigint::text,
+      'closedUs',(extract(epoch FROM "closedAt")*1000000)::bigint::text,
+      'authUs',(extract(epoch FROM "authUntil")*1000000)::bigint::text) AS row
+      FROM "TugConnection" c WHERE "matchId"=${id}::uuid ORDER BY id`
+    ).map((r) => r.row);
+    const events = (
+      await tx.$queryRaw<
+        { row: Row }[]
+      >`SELECT to_jsonb(e) || jsonb_build_object(
+      'id',id::text,'atUs',(extract(epoch FROM "observedAt")*1000000)::bigint::text) AS row
+      FROM "TugPresenceEvent" e WHERE "matchId"=${id}::uuid ORDER BY id`
+    ).map((r) => r.row);
+    const history = replayTugPresence(
+      evidence.participants,
+      connections,
+      events,
+      evidence.terminalUs,
+      undefined,
+      activation ?? undefined,
+    );
+    const terminal = us(evidence.terminalUs);
+    const graces = history.graceAt(terminal);
+    const graceStarts = Object.fromEntries(
+      graces.map((g) => [g.userId, g.start.toString()]),
+    );
+    const answers = await tx.$queryRaw<Row[]>`SELECT id::text,
+      "usuarioId", (extract(epoch FROM "recibidaEn")*1000000)::bigint::text AS "atUs"
+      FROM "TiraAflojaRespuesta" WHERE "partidaId"=${id}::uuid ORDER BY id`;
+    const beneficiaryPresence: Record<string, TugBeneficiaryPresence> = {};
+    for (const user of evidence.participants) {
+      const rival = evidence.participants.find((u) => u !== user)!;
+      const proof = [
+        ...history.events
+          .filter(
+            (e) =>
+              e.userId === user &&
+              ['CONNECTED', 'RENEWED'].includes(e.kind) &&
+              history.openAt(user, us(e.atUs)),
+          )
+          .map((e) => ({ kind: e.kind, id: e.id, atUs: e.atUs })),
+        ...answers
+          .filter(
+            (a) =>
+              a.usuarioId === user &&
+              us(a.atUs) <= terminal &&
+              history.openAt(user, us(a.atUs)),
+          )
+          .map((a) => ({ kind: 'ACCEPTED_ANSWER', id: a.id, atUs: a.atUs })),
+      ].sort((a, b) =>
+        us(a.atUs) < us(b.atUs)
+          ? -1
+          : us(a.atUs) > us(b.atUs)
+            ? 1
+            : `${a.kind}:${a.id}` < `${b.kind}:${b.id}`
+              ? -1
+              : `${a.kind}:${a.id}` > `${b.kind}:${b.id}`
+                ? 1
+                : 0,
+      );
+      beneficiaryPresence[user] = {
+        rivalDisconnectedUs: graceStarts[rival] ?? null,
+        ownGraceStartUs: graceStarts[user] ?? null,
+        openAtTerminal: history.openAt(user, terminal),
+        openConnectionAtTerminal: history.openConnectionAt(user, terminal),
+        authenticatedEvidence: proof.length ? proof[proof.length - 1] : null,
+      };
+    }
+    return verifiedTugPair(evidence, {
+      sourceId: id,
+      temporalVersion: m.temporalVersion,
+      admissionUs: time.admission,
+      observedUs: time.observed,
+      activation,
+      graceStarts,
+      beneficiaryPresence,
+    });
+  }
   async originalParticipants(
     tx: Prisma.TransactionClient,
     sourceId: string,
@@ -176,6 +289,7 @@ export class TugSportsReplay implements CompetitivePairEvidence {
             us(time.activation) &&
           m.snapshotInicial['config']['activaPresenceId'] ===
             activation.presenceId &&
+          m.snapshotInicial['config']['activaVersion'] === m.activaVersion &&
           m.snapshotInicial['config']['temporalVersion'] === 1),
       'ACTIVATION_CONFLICT',
     );

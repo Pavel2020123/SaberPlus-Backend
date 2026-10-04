@@ -306,6 +306,7 @@ async function main() {
         'test/competitive-tug-replay-postgres.test.cjs',
         'test/competitive-tug-terminal-replay-postgres.test.cjs',
         'test/competitive-tug-temporal-postgres.test.cjs',
+        'test/competitive-tug-contract-postgres.test.cjs',
       ];
       const totals = {
         tests: 0,

@@ -155,4 +155,51 @@ describe('private TUG presence reconstruction (not settlement)', () => {
       load([event(2, 'CONNECTED', 0n), event(1, 'DISCONNECTED', 1n)]),
     ).toThrow(/ORDER_OR_OWNER/);
   });
+  it('returns a precise historical OPEN interval despite a later mutable UNKNOWN state', () => {
+    const events = [event(1, 'CONNECTED', 0n), event(2, 'UNKNOWN', 45000000n)];
+    const c = {
+      ...connections[0],
+      state: 'UNKNOWN',
+      closedUs: String(origin + 45000000n),
+    };
+    const history = replayTugPresence(
+      ['A', 'B'],
+      [c],
+      events,
+      String(origin + 1n),
+    );
+    expect(history.openConnectionAt('A', origin + 1n)).toEqual({
+      connectionId: 'socket',
+      eventId: events[0].id,
+      authenticatedUs: String(origin),
+      leaseUntilUs: String(origin + 45000000n),
+      authUntilUs: null,
+    });
+    expect(history.openConnectionAt('B', origin + 1n)).toBeNull();
+  });
+  it.each([null, String(origin + 30000000n)])(
+    'OPEN proof enforces precise lease/token limit %s',
+    (authUs) => {
+      const limit = authUs === null ? origin + 45000000n : BigInt(authUs);
+      const c = {
+        ...connections[0],
+        state: 'OPEN',
+        closedUs: null,
+        authUs,
+        leaseUs: String(limit),
+      };
+      const history = replayTugPresence(
+        ['A', 'B'],
+        [c],
+        [event(1, 'CONNECTED', 0n)],
+        String(limit),
+      );
+      expect(history.openConnectionAt('A', limit - 1n)).toMatchObject({
+        leaseUntilUs: String(limit),
+        authUntilUs: authUs,
+      });
+      expect(history.openConnectionAt('A', limit)).toBeNull();
+      expect(history.openConnectionAt('A', limit + 1n)).toBeNull();
+    },
+  );
 });
