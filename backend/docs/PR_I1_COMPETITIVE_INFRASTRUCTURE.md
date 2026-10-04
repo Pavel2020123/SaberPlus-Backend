@@ -1,13 +1,139 @@
 # PR-I1 V1: infraestructura competitiva común
 
-> **Estado confirmado: 97ebfc4, 18 checkpoints publicados.** La integración
+> **Base funcional histórica: 97ebfc4, 18 checkpoints publicados entonces.** La integración
 > y corrección P1 de CP18 ya están confirmadas; validación local final PostgreSQL
 > 304/304, sin autorización para producción. [Entrada de relevo](PR_I1_RELEVO.md).
 > Las etiquetas «CP18 local/SIN COMMIT» y HEAD af2374e inferiores conservan el
 > contexto anterior a su publicación; no describen el estado Git vigente.
 
 
+## Checkpoint 20 local — readiness y presupuesto de conexiones
+
+Base comprobada `7c1b793`, origin local coincidente, rama competitiva; main
+`fb27225`. Diecinueve checkpoints publicados según propietario; árbol limpio
+al inicio. CP20 documenta pruebas locales, sin autorización productiva.
+
+[HealthController](../src/health/health.controller.ts) conserva `/health/live`
+independiente de PostgreSQL y el contrato público de `/health/ready`: 200
+OK/UP o 503 ERROR/DOWN, sin SQL, roles ni detalles privados. El nuevo
+[probe competitivo](../src/health/competitive.readiness.ts) usa el PrismaClient
+inyectado al backend y `current_user` real de esa conexión. No crea otro pool,
+no cambia de rol y no escribe datos. El rol necesita SELECT sobre
+`_prisma_migrations`; ese permiso interno también se verifica al consultar, sin
+concederlo desde health. Recuperación Solo/Trivia/Tira sigue cargada
+con admisión OFF: readiness exige sus precondiciones incluso con flags apagados.
+
+Dos consultas SELECT dentro de una transacción READ ONLY comprueban historial
+Prisma: once migraciones competitivas críticas finalizadas, ningún fallo/inicio
+sin rollback pendiente; columnas escalares/enums requeridas por el cliente
+generado; tipos esenciales/UUID nativos y etiquetas de enums, precisión terminal de microsegundos, RLS requerido,
+índice único de liquidación, trigger de recibo habilitado, funciones críticas,
+grants de tablas/funciones y USAGE de secuencias de historial/presencia. El probe
+no ejecuta funciones deportivas ni lee snapshots/respuestas de jugadores.
+
+Límites: maxWait 1000 ms, statement_timeout 1500 ms por sentencia y transacción
+2500 ms. Single-flight por instancia; cache positivo cinco segundos, negativo
+uno, desde terminación del probe. Puede conservar un estado anterior hasta ese
+TTL; no es certificación continua ni readiness distribuido. Errores/timeout
+producen 503 seguro y se vuelven a comprobar al vencer el cache. Liveness no
+falla por la indisponibilidad competitiva.
+
+Para rol sujeto a RLS, el análisis de catálogo acepta una policy permisiva ALL
+aplicable, incondicional, y ninguna policy restrictiva aplicable condicional.
+Aplicabilidad usa pg_has_role USAGE, no MEMBER: pertenecer a un rol NOINHERIT
+no equivale a disponer de sus permisos sin SET ROLE. El probe privado incluye
+una policy exclusiva de un parent no heredado y exige rechazo; luego cambia
+solo la policy local al rol directo y comprueba liquidación real antes del rollback.
+Owner sin FORCE, superusuario o BYPASSRLS siguen su semántica PostgreSQL real.
+Una policy dependiente de filas/sesión no se certifica mediante catálogo y queda
+fail-closed hasta un contrato operativo adicional: no fabricar permisos para
+pasar health. Esta comprobación conservadora NO demuestra que todo INSERT pase
+triggers, FKs o límites institucionales. Esa garantía pertenece a ensayos
+operativos de rollback/negocio separados. Tampoco audita exhaustivamente toda
+constraint, checksum/definición histórica o configuración productiva.
+
+[Pruebas HTTP y capacidad](../test/competitive-readiness-postgres.test.cjs)
+usan PostgreSQL propio del runner. Fixtures negativos de metadata se revierten;
+el rename HTTP se restaura en finally. Dos reconciliadores reales, un origen
+Cima autoritativo y dos pools limitados a una conexión prueban contención,
+recuperación, drain con trabajo en vuelo y reinicio sin doble XP; los flags solo
+se simulan dentro del proceso de fixtures y se restauran. No es un límite
+productivo ni un cambio a Cima. El pool principal puede reservar conexiones
+adicionales mientras observa el lock; no extrapolar el presupuesto local.
+
+El [runner](../tool/test_competitive_postgres.mjs) ahora aplica migraciones con
+Prisma migrate deploy a su base OWNED, copiando SQL confirmado desde HEAD a un
+directorio temporal aislado. CLI ejecuta allí con DATABASE_URL/DIRECT_URL propios,
+sin leer `.env` del repositorio. Conserva archivo secuencial, cobertura anterior,
+límite 120 s, resumen estricto y ambos respaldos. No se fabrica `_prisma_migrations`.
+
+Registro de validaciones CP20. Primera ejecución: readiness rechazó correctamente la base
+sin `_prisma_migrations`: el runner anterior solo concatenaba SQL. Se corrige el
+ensayo para representar un despliegue Prisma real. Build inicial exit 1 por
+EPERM al reemplazar DLL de Prisma mientras PostgreSQL usaba su cliente. Se
+repite secuencialmente al cerrar las conexiones, sin cambiar permisos ni TLS. Jest health inicial 10/10 (2 suites).
+Segunda ejecución, con deploy Prisma: bloque nuevo 10/10; timeout de lock SQL
+1585 ms y recuperación; ensayo de dos workers: 5 respuestas deportivas, cuatro
+conexiones observadas, dos rechazos por pool, un evento ledger, cero backends de
+workers tras cerrar, 2252 ms hasta completar y verificar recuperación. No se
+extrapolan esos tiempos a producción. Segunda y tercera suites completas terminaron correctamente; resultados abajo.
+
+| Garantía CP20 | Resultado | Límite / estado |
+|---|---|---|
+| Readiness real y errores privados | HTTP positivo y negativo; metadata incompatible rechazada, recuperación comprobada | VALIDADO LOCALMENTE; rol productivo NO VERIFICADO |
+| Contención de dos pools y drain | Dos workers reales, un evento, conexiones liberadas | VALIDADO LOCALMENTE; no certifica señales de proceso ni carga sostenida |
+| Migraciones con historia real | 61 versiones aplicadas mediante deploy en recurso propio | VALIDADO LOCALMENTE; migraciones productivas requieren otra autorización |
+| Topología y capacidad productivas | Presupuesto debe sumar todos los clientes por réplica, incluido testigo independiente | PENDIENTE; no asumir límites de proveedor ni distribución de avisos |
+
+Ejecución 1 completa: 309/320, 21 archivos, 654624 ms, exit 1; diez fallos del
+bloque nuevo y uno del probe privado CP19, todos interceptados por ausencia de
+historial Prisma. Sin cancelados/omitidos/TODO/incompletos. Ejecución 2 completa:
+320/320, 21 archivos, 665868 ms, exit 0; bloque nuevo inicial 10/10 y probe
+privado CP19 6/6. Ambos respaldos PASS (74 tablas iniciales y 75 al terminar). Ejecución 3 final: 323/323, 21 archivos, 660517 ms, exit 0;
+ambos respaldos PASS (74/75 tablas), sin fallidos/cancelados/omitidos/TODO ni
+archivos incompletos. Bloque nuevo 13/13, incluyendo UUID, enum y transacción larga controlada con
+`pg_sleep(0.15)` frente a timeout Prisma 50 ms: P2028, recuperación en 163 ms.
+Drain final: cuatro conexiones, dos rechazos por pool, un evento, recuperación
+2236 ms, cero conexiones de workers tras cerrar. Suite final completa aprobada; el probe privado CP19 también pasó 6/6,
+incluyendo MEMBER=true/USAGE=false de un parent no heredado, rechazo de
+readiness y aceptación solo tras policy dirigida al rol efectivo. No se
+conservan los roles/policies temporales.
+Audit omit=dev cero vulnerabilidades, TLS intacto (CA del sistema temporal).
+
+El despliegue debe distinguir `/health/live` para vida del proceso de readiness
+para admisión de tráfico. `render.yaml` conserva healthCheckPath ready: revisar
+la acción real del proveedor ante un fallo persistente antes de desplegar este
+contrato; no afirmar que los dos endpoints configuran por sí solos su política
+de reinicios. No se cambia ni se prueba configuración del proveedor en CP20.
+No se simuló un corte TCP/proveedor ni una señal de terminación de proceso;
+los límites de SQL/pool y los hooks reales de workers sí se probaron. La prueba
+inaccesible del controller usa error de conexión unitario; no certifica latencia
+de un blackhole de red productivo. B1/B2 no están completados.
+
+Cierre final: build exit 0; Jest competitivo 280/280 (19 suites, 9,239 s),
+Jest completo 1164/1164 (108 suites, 29,955 s); npm audit --omit=dev cero
+vulnerabilidades; git diff --check exit 0 y enlaces/anclas modificados válidos.
+Logs locales `%TEMP%/sp-cp20-postgres-1.log`, `sp-cp20-postgres-2.log`,
+`sp-cp20-postgres-3.log`, `sp-cp20-build.log` (EPERM inicial),
+`sp-cp20-build-final.log`, `sp-cp20-jest-competitive.log`,
+`sp-cp20-jest-all.log` y `sp-cp20-audit.log`. Recursos propios retirados;
+postgres-local ajeno conserva identidad y StartedAt originales.
+No hay migraciones nuevas, dependencias nuevas, cambios deportivos, fórmulas,
+flags de despliegue, ledger/pair protocol ni acceso remoto en CP20.
+
+B1/B2 continúan abiertos para producción: identidad/grants/policies reales,
+WAL/almacenamiento/replicación, RPO/RTO y respaldo autorizado; capacidad máxima,
+suma de pools principal + testigo por réplica, cierre bajo señales/orquestación
+y publicación distribuida (Subject local). Mantener incidencias históricas de
+34 fallos y Rescate. Siguiente checkpoint sugerido: ensayo acotado de shutdown
+bajo señal real y presupuesto de pools/testigo; requiere decidir topología antes
+de prometer avisos entre instancias. Sin autorización productiva ni flags activos.
+
 ## Checkpoint 19 local — B1/B2, sin autorización productiva
+
+> Historial publicado en `7c1b793`. Las referencias a SELECT 1 y al probe
+> readiness UP inferiores describen CP19; CP20 sustituye ese contrato y
+> refuerza la prueba del rol privado. No son la comprobación activa de CP20.
 
 Base Git comprobada: e7cae17, rama feat/pr-i1-competitive-infrastructure;
 main fb27225. Dieciocho checkpoints funcionales y commit documental publicados

@@ -1,7 +1,7 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { randomBytes } from 'node:crypto';
-import { mkdtemp, readFile, writeFile, realpath, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, writeFile, realpath, rm, mkdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -63,10 +63,10 @@ async function main() {
   ])
     delete env[key];
   let url = '';
-  const run = async (command, args, timeout = 120_000) => {
+  const run = async (command, args, timeout = 120_000, workingDirectory = backend) => {
     try {
       return await execute(command, args, {
-        cwd: backend,
+        cwd: workingDirectory,
         env,
         timeout,
         windowsHide: true,
@@ -171,69 +171,44 @@ async function main() {
       )
       .sort();
     if (!paths.length) throw new Error('No committed migration SQL found.');
-    const sql = [
-      'CREATE ROLE anon NOLOGIN NOSUPERUSER NOBYPASSRLS; CREATE ROLE authenticated NOLOGIN NOSUPERUSER NOBYPASSRLS; GRANT USAGE ON SCHEMA public TO anon, authenticated;',
-    ];
-    for (const path of paths)
-      sql.push((await run('git', ['show', `HEAD:backend/${path}`])).stdout);
     const migration =
       'prisma/migrations/20261001190000_trivia_authoritative_evidence/migration.sql';
-    if (!paths.includes(migration))
-      sql.push(await readFile(join(backend, migration), 'utf8'));
     const presenceMigration =
       'prisma/migrations/20261002190000_trivia_presence/migration.sql';
-    if (!paths.includes(presenceMigration))
-      sql.push(await readFile(join(backend, presenceMigration), 'utf8'));
     const competitiveTriviaMigration =
       'prisma/migrations/20261002230000_trivia_competitive_v1/migration.sql';
-    if (!paths.includes(competitiveTriviaMigration))
-      sql.push(
-        await readFile(join(backend, competitiveTriviaMigration), 'utf8'),
-      );
-    const migrationPath = join(directory, 'migration.sql');
     const tugMigration =
       'prisma/migrations/20261003010000_tug_authoritative_evidence/migration.sql';
-    if (!paths.includes(tugMigration))
-      sql.push(await readFile(join(backend, tugMigration), 'utf8'));
     const tugPresenceMigration =
       'prisma/migrations/20261003160000_tug_presence/migration.sql';
-    if (!paths.includes(tugPresenceMigration))
-      sql.push(await readFile(join(backend, tugPresenceMigration), 'utf8'));
     const tugVisibilityMigration =
       'prisma/migrations/20261003220000_tug_round_visibility/migration.sql';
-    if (!paths.includes(tugVisibilityMigration))
-      sql.push(await readFile(join(backend, tugVisibilityMigration), 'utf8'));
     const tugAdmissionMigration =
       'prisma/migrations/20261004010000_tug_competitive_admission/migration.sql';
-    if (!paths.includes(tugAdmissionMigration))
-      sql.push(await readFile(join(backend, tugAdmissionMigration), 'utf8'));
     const tugTemporalMigration =
       'prisma/migrations/20261004160000_tug_temporal_authority/migration.sql';
-    if (!paths.includes(tugTemporalMigration))
-      sql.push(await readFile(join(backend, tugTemporalMigration), 'utf8'));
     const tugSettlementMigration =
       'prisma/migrations/20261005120000_tug_pair_settlement/migration.sql';
-    if (!paths.includes(tugSettlementMigration))
-      sql.push(await readFile(join(backend, tugSettlementMigration), 'utf8'));
-    await writeFile(migrationPath, sql.join('\n'), 'utf8');
-    await docker('cp', migrationPath, `${name}:/tmp/competitive-migration.sql`);
-    await docker(
-      'exec',
-      name,
-      'psql',
-      '-X',
-      '-U',
-      user,
-      '-d',
-      'postgres',
-      '-v',
-      'ON_ERROR_STOP=1',
-      '-f',
-      '/tmp/competitive-migration.sql',
-    );
-    console.log(
-      `PostgreSQL 16 local: ${paths.length} committed migrations${paths.includes(migration) ? '' : ' + pending Trivia evidence migration'}${paths.includes(presenceMigration) ? '' : ' + pending Trivia presence migration'}${paths.includes(competitiveTriviaMigration) ? '' : ' + pending Trivia competitive V1 migration'}${paths.includes(tugMigration) ? '' : ' + pending Tug evidence migration'}${paths.includes(tugVisibilityMigration) ? '' : ' + pending Tug round visibility migration'}${paths.includes(tugAdmissionMigration) ? '' : ' + pending Tug admission migration'}${paths.includes(tugTemporalMigration) ? '' : ' + pending Tug temporal migration'} applied.`,
-    );
+    // Real Prisma history, not fabricated successful migration rows. CLI executes
+    // from the owned temp directory: no repository .env is loaded. Committed SQL
+    // is copied from HEAD; pending SQL is copied only when absent from HEAD.
+    const roleSql = 'CREATE ROLE anon NOLOGIN NOSUPERUSER NOBYPASSRLS; CREATE ROLE authenticated NOLOGIN NOSUPERUSER NOBYPASSRLS; GRANT USAGE ON SCHEMA public TO anon, authenticated;';
+    await docker('exec',name,'psql','-X','-U',user,'-d','postgres','-v','ON_ERROR_STOP=1','-c',roleSql);
+    const candidates = [migration,presenceMigration,competitiveTriviaMigration,tugMigration,
+      tugPresenceMigration,tugVisibilityMigration,tugAdmissionMigration,tugTemporalMigration,tugSettlementMigration];
+    const actualPaths = [...paths,...candidates.filter(p=>!paths.includes(p))].sort();
+    for (const path of actualPaths) {
+      const destination=join(directory,path.replace(/^prisma\//,''));
+      await mkdir(dirname(destination),{recursive:true});
+      const content=paths.includes(path) ? (await run('git',['show',`HEAD:backend/${path}`])).stdout : await readFile(join(backend,path),'utf8');
+      await writeFile(destination,content,'utf8');
+    }
+    await writeFile(join(directory,'migrations','migration_lock.toml'),'provider = "postgresql"\n','utf8');
+    const schemaPath=join(directory,'schema.prisma');
+    await writeFile(schemaPath,await readFile(join(backend,'prisma','schema.prisma'),'utf8'),'utf8');
+    await run(process.execPath,[join(backend,'node_modules','prisma','build','index.js'),
+      'migrate','deploy','--schema',schemaPath],120000,directory);
+    console.log(`PostgreSQL 16 local: ${actualPaths.length} versioned migrations applied by Prisma deploy; owned migration history verified by readiness.`);
     const clockDiagnostic = async (phase) => {
       const hostBefore = Date.now();
       const sample = await docker(
@@ -382,6 +357,7 @@ async function main() {
       // order, but bound each process rather than truncate the whole growing
       // suite. The existing command budget is 120 s; no test/window is extended.
       const files = [
+        'test/competitive-readiness-postgres.test.cjs',
         'test/competitive-postgres.test.cjs',
         'test/competitive-solo-postgres.test.cjs',
         'test/competitive-trivia-boundary-postgres.test.cjs',

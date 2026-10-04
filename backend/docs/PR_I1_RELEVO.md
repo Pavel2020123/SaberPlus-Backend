@@ -1,5 +1,17 @@
 # PR-I1 V1 — relevo técnico de SaberPlus-Backend
 
+## Continuación CP20 local
+
+Base confirmada `7c1b793`, main `fb27225`, diecinueve checkpoints publicados según
+propietario. CP20 incorpora readiness competitivo de solo lectura y ensayo
+acotado de dos pools/reconciliadores; no habilita flags ni autoriza producción.
+Consultar [contrato, límites y validaciones CP20](PR_I1_COMPETITIVE_INFRASTRUCTURE.md#checkpoint-20-local--readiness-y-presupuesto-de-conexiones).
+Readiness ya no certifica únicamente SELECT 1; liveness conserva independencia.
+Cierre local: build exit 0; Jest competitivo 280/280, completo 1164/1164;
+PostgreSQL final 323/323 (21 archivos), ambos respaldos PASS; audit cero
+vulnerabilidades. Incidencias iniciales y límites del ensayo en el enlace anterior.
+El historial CP19 inferior describe su contexto previo y sus validaciones locales.
+
 ## Continuación operativa local CP19
 
 Base documental confirmada e7cae17, que conserva el checkpoint funcional 97ebfc4.

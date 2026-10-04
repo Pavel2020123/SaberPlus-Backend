@@ -9,7 +9,7 @@ const { CompetitiveService } = require('../src/competitive/competitive.service')
 const { CompetitiveVerifierRegistry } = require('../src/competitive/competitive.contracts');
 const { createSoloVerifiers } = require('../src/competitive/competitive.solo');
 const { SummitService } = require('../src/summit/summit.service');
-const { HealthController } = require('../src/health/health.controller');
+const { inspectCompetitiveReadiness } = require('../src/health/competitive.readiness');
 const { CompetitiveTugPairProtocol } = require('../src/competitive/competitive.tug-pair-protocol');
 const { TugCompetitiveReconciler } = require('../src/competitive/competitive.tug-reconciler');
 const { CompetitiveError } = require('../src/competitive/competitive.rules');
@@ -105,12 +105,25 @@ test('B1: private NOSUPERUSER/NOBYPASSRLS role needs policy as well as grants, t
       assert.ok(!identity.rolsuper && !identity.rolbypassrls && !identity.rolcreatedb && !identity.rolcreaterole);
       const [hidden] = await tx.$queryRaw`SELECT count(*)::int AS n FROM "EventoXpCompetitivo"`;
       assert.equal(hidden.n,0, 'grants alone must not bypass RLS');
-      assert.equal((await new HealthController(tx).ready()).database,'UP',
-        'connectivity readiness does not certify competitive permissions');
+      await assert.rejects(inspectCompetitiveReadiness(tx), /COMPETITIVE_READINESS_UNAVAILABLE/,
+        'readiness must reject grants without a usable private RLS policy');
+      await tx.$executeRawUnsafe('RESET ROLE');
+      await tx.$executeRawUnsafe('CREATE ROLE sp_backend_policy_parent NOLOGIN NOSUPERUSER NOBYPASSRLS');
+      await tx.$executeRawUnsafe('GRANT sp_backend_policy_parent TO sp_backend_probe WITH INHERIT FALSE');
+      for (const table of protectedTables) await tx.$executeRawUnsafe(
+        `CREATE POLICY sp_backend_probe_policy ON ${q(table.name)} TO sp_backend_policy_parent USING (true) WITH CHECK (true)`);
+      await tx.$executeRawUnsafe('SET LOCAL ROLE sp_backend_probe');
+      const [membership] = await tx.$queryRaw`SELECT pg_has_role(current_user,'sp_backend_policy_parent','MEMBER') AS member,
+        pg_has_role(current_user,'sp_backend_policy_parent','USAGE') AS usable`;
+      assert.equal(membership.member,true);assert.equal(membership.usable,false);
+      assert.equal((await tx.$queryRaw`SELECT count(*)::int AS n FROM "EventoXpCompetitivo"`)[0].n,0);
+      await assert.rejects(inspectCompetitiveReadiness(tx), /COMPETITIVE_READINESS_UNAVAILABLE/,
+        'a non-inherited role membership must not authorize a readiness RLS policy');
       await tx.$executeRawUnsafe('RESET ROLE');
       for (const table of protectedTables) await tx.$executeRawUnsafe(
-        `CREATE POLICY sp_backend_probe_policy ON ${q(table.name)} TO sp_backend_probe USING (true) WITH CHECK (true)`);
+        `ALTER POLICY sp_backend_probe_policy ON ${q(table.name)} TO sp_backend_probe`);
       await tx.$executeRawUnsafe('SET LOCAL ROLE sp_backend_probe');
+      await inspectCompetitiveReadiness(tx);
       const restricted = { $transaction: callback => callback(tx) };
       const service = new CompetitiveService(restricted,new CompetitiveVerifierRegistry(createSoloVerifiers()));
       const event = await service.settle(ref);
@@ -122,7 +135,7 @@ test('B1: private NOSUPERUSER/NOBYPASSRLS role needs policy as well as grants, t
       await tx.$executeRawUnsafe('RESET ROLE');
     });
     assert.equal(await db.eventoXpCompetitivo.count({where:{sourceId:ref.sourceId}}),0,'all privileged probe changes rolled back');
-    const [roles] = await db.$queryRaw`SELECT count(*)::int AS n FROM pg_roles WHERE rolname='sp_backend_probe'`;
+    const [roles] = await db.$queryRaw`SELECT count(*)::int AS n FROM pg_roles WHERE rolname IN ('sp_backend_probe','sp_backend_policy_parent')`;
     assert.equal(roles.n,0);
   } finally { if (oldFlag===undefined) delete process.env.COMPETITIVE_SOLO_ENABLED; else process.env.COMPETITIVE_SOLO_ENABLED=oldFlag; }
 });
