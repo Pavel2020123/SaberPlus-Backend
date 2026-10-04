@@ -2,6 +2,8 @@ import 'reflect-metadata';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { CompetitiveModule } from './competitive.module';
+import { CompetitiveTugPairProtocol } from './competitive.tug-pair-protocol';
+import { TugCompetitiveReconciler } from './competitive.tug-reconciler';
 import { PrismaService } from '../prisma/prisma.service';
 import { CompetitiveService } from './competitive.service';
 import { CompetitiveReconciler } from './competitive.reconciler';
@@ -187,8 +189,11 @@ describe.each([SummitController, GuardianController, StarRescueController])(
 );
 
 describe('production registry and reconciler lifecycle', () => {
-  it('boots the real Nest module with solo and shared Trivia recovery providers', async () => {
-    const prisma = { $queryRaw: jest.fn().mockResolvedValue([]) };
+  it('boots the real Nest module with solo, shared Trivia and pair-only TUG recovery providers', async () => {
+    const prisma = {
+      $queryRaw: jest.fn().mockResolvedValue([]),
+      $executeRaw: jest.fn().mockResolvedValue(0),
+    };
     const module = await Test.createTestingModule({
       imports: [CompetitiveModule],
     })
@@ -198,9 +203,24 @@ describe('production registry and reconciler lifecycle', () => {
     try {
       const worker = module.get(CompetitiveReconciler);
       const scan = jest.spyOn(worker, 'reconcile');
+      const tug = module.get(TugCompetitiveReconciler);
+      const tugScan = jest.spyOn(tug, 'reconcile');
       await module.init();
-      await scan.mock.results[0].value;
-      expect(prisma.$queryRaw).toHaveBeenCalledTimes(4);
+      await Promise.all([
+        scan.mock.results[0].value,
+        tugScan.mock.results[0].value,
+      ]);
+      expect(prisma.$executeRaw).toHaveBeenCalledTimes(1);
+      expect(prisma.$queryRaw).toHaveBeenCalledTimes(5);
+      expect(
+        prisma.$queryRaw.mock.calls.filter(([query]) =>
+          String(query).includes('TugCompetitiveSettlement'),
+        ),
+      ).toHaveLength(1);
+      expect(module.get(CompetitiveTugPairProtocol)).toBeDefined();
+      expect(() =>
+        module.get(CompetitiveVerifierRegistry).get('TUG_MATCH'),
+      ).toThrow('SOURCE_NOT_INTEGRATED');
       expect(
         prisma.$queryRaw.mock.calls.filter(([query]) =>
           String(query).includes('TriviaPresence'),
@@ -212,7 +232,7 @@ describe('production registry and reconciler lifecycle', () => {
         expect(
           module.get(CompetitiveVerifierRegistry).get(game.sourceType),
         ).toBeDefined();
-      expect(prisma.$queryRaw).toHaveBeenCalledTimes(7);
+      expect(prisma.$queryRaw).toHaveBeenCalledTimes(8);
     } finally {
       await module.close();
     }

@@ -378,7 +378,11 @@ test('TUG admission: legacy deletion cannot recreate the same UUID as admitted; 
     other.$executeRaw`UPDATE "TugMatchIdentity" SET id=${randomUUID()}::uuid WHERE id=${legacy.id}::uuid`,
     'append-only',
   );
-  await blocked(other.$executeRaw`TRUNCATE "TugMatchIdentity"`, 'append-only');
+  // The new receipt FK blocks a bare truncate before BEFORE TRUNCATE triggers.
+  await assert.rejects(other.$executeRaw`TRUNCATE "TugMatchIdentity"`,
+    error => error.code === 'P2010' && error.meta?.code === '0A000');
+  // Including the referenced table still cannot bypass append-only protection.
+  await blocked(other.$executeRaw`TRUNCATE "TugMatchIdentity", "TugCompetitiveSettlement"`, 'append-only');
   for (const role of ['anon', 'authenticated'])
     await assert.rejects(
       other.$transaction(async (tx) => {

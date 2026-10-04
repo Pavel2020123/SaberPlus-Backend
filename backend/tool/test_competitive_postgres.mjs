@@ -211,6 +211,10 @@ async function main() {
       'prisma/migrations/20261004160000_tug_temporal_authority/migration.sql';
     if (!paths.includes(tugTemporalMigration))
       sql.push(await readFile(join(backend, tugTemporalMigration), 'utf8'));
+    const tugSettlementMigration =
+      'prisma/migrations/20261005120000_tug_pair_settlement/migration.sql';
+    if (!paths.includes(tugSettlementMigration))
+      sql.push(await readFile(join(backend, tugSettlementMigration), 'utf8'));
     await writeFile(migrationPath, sql.join('\n'), 'utf8');
     await docker('cp', migrationPath, `${name}:/tmp/competitive-migration.sql`);
     await docker(
@@ -307,6 +311,8 @@ async function main() {
         'test/competitive-tug-terminal-replay-postgres.test.cjs',
         'test/competitive-tug-temporal-postgres.test.cjs',
         'test/competitive-tug-contract-postgres.test.cjs',
+        'test/competitive-tug-settlement-postgres.test.cjs',
+        'test/competitive-tug-recovery-postgres.test.cjs',
       ];
       const totals = {
         tests: 0,

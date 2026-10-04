@@ -296,7 +296,7 @@ model EventoXpCompetitivo {
   evidenciaHash String @db.VarChar(64)
   // Historical reference, deliberately not a cascading FK to current membership.
   institucionId String? @db.Uuid
-  fechaEfectiva DateTime @db.Timestamptz(3)
+  fechaEfectiva DateTime @db.Timestamptz(6)
   fechaRegistro DateTime @default(now()) @db.Timestamptz(3)
   estado EstadoEventoXpCompetitivo @default(APLICADO)
   eventoCorregidoId String? @db.Uuid
@@ -977,6 +977,21 @@ enum TipoEventoTiraAfloja {
 // Retains identity even if a legacy parent is deleted; prevents recreation as admitted.
 model TugMatchIdentity {
   id String @id @db.Uuid
+  settlement TugCompetitiveSettlement?
+}
+
+// Private pair receipt/queue. Partial pending index and immutable guards are SQL.
+model TugCompetitiveSettlement {
+  sourceId String @id @db.Uuid
+  state String @default("PENDING")
+  attempts Int @default(0)
+  retryAt DateTime @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  lastError String?
+  terminalUs BigInt?
+  evidenceHash String? @db.VarChar(64)
+  decision Json?
+  resolvedAt DateTime? @db.Timestamptz(6)
+  identity TugMatchIdentity @relation(fields: [sourceId], references: [id], onDelete: Restrict, onUpdate: NoAction)
 }
 
 model PartidaTiraAfloja {

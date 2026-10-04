@@ -572,6 +572,7 @@ test('TUG V1: anon/authenticated cannot read evidence or invoke private recordin
       await db.$queryRaw`SELECT p.proname, has_function_privilege(${role}, p.oid, 'EXECUTE') AS allowed FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND p.proname LIKE 'tug_%'`;
     assert.deepEqual(permissions.map((p) => p.proname).sort(), [
       'tug_admission_guard',
+      'tug_settlement_guard',
       'tug_snapshot_original_valid', 'tug_match_evidence_guard',
       'tug_presented_guard', 'tug_presented_pair_guard',
       'tug_record_presented_round', 'tug_child_evidence_guard',
@@ -591,6 +592,8 @@ test('TUG V1: anon/authenticated cannot read evidence or invoke private recordin
       'SELECT * FROM "PartidaTiraAfloja"',
       'SELECT * FROM "TiraAflojaRondaPresentada"',
       'SELECT * FROM "TugRoundVisibility"',
+      'SELECT * FROM "TugCompetitiveSettlement"',
+      'SELECT competitive_timestamp_us(1)',
       `SELECT tug_record_presented_round('${randomUUID()}'::uuid)`,
       `SELECT tug_certify_presented_round('${randomUUID()}'::uuid,1)`,
     ])

@@ -1,6 +1,43 @@
 # PR-I1 V1: infraestructura competitiva común
 
-## Estado vigente — checkpoint 17 local: contrato preciso del par Tira
+## Estado vigente — checkpoint 18 local: integración de par Tira
+
+Rama `feat/pr-i1-competitive-infrastructure`, HEAD `af2374e`, diecisiete
+checkpoints publicados; CP18 SIN COMMIT. Implementa A6–A8 mediante proveedor
+CompetitiveTugPairProtocol y TugCompetitiveReconciler, sin registro individual
+TUG_MATCH. Usa replay preciso real, recibo/decisiones neutrales durables y una
+transacción para todos los eventos/balances del par. No convierte terminalUs a
+Date ni modifica xpTotal. Flags conservan default OFF; la recuperación solo
+consume admisión persistida V1 con temporalVersion=1, independientemente del flag.
+Corrección P1 local: certificado R ausente conserva PENDING con diagnóstico y
+reintento cada cinco minutos aun después del deadline; solo su presencia e
+integridad verificadas permiten pagar. Observación oportuna puede confirmar
+después; no se fabrica R ni se cambia el testigo. Certificado huérfano visible
+se bloquea como INVALID. P1 validado: build exit 0, Jest competitivo 276/276 (18 suites), completo
+1157/1157 (107 suites), PostgreSQL 304/304 (19 archivos, 776049 ms), audit cero
+vulnerabilidades y diff check exit 0. Primera ejecución P1 302/304: los fixtures
+usaban el deadline del padre, limpiado al cerrar; corregidos para esperar R
+inmutable y verificar vencimiento en PostgreSQL. Resultados anteriores CP18
+conservados abajo; diagnóstico y reproducción real en la auditoría de Tira.
+
+Nueva migración local `20261005120000_tug_pair_settlement` después de autoridad
+temporal CP16: fechaEfectiva(6), conversor entero, tabla de pendientes/recibos,
+constraints/RLS privados. Corrección administrativa conserva instante original
+exacto; contratos Date de otros verificadores permanecen intactos. Requiere
+esquema nuevo antes del backend aunque los flags estén apagados. No se ejecuta
+migración remota, despliegue ni activación. CP18 validado localmente: build exit 0, Jest competitivo 276/276 (18 suites),
+Jest completo 1157/1157 (107 suites), PostgreSQL 302/302 (19 archivos),
+audit omit=dev cero vulnerabilidades y diff check exit 0. Tres ejecuciones
+PostgreSQL fallidas previas y sus correcciones se conservan en la auditoría
+de Tira; no hubo pruebas omitidas ni canceladas. Historial CP17 e inferiores
+representa únicamente sus contratos anteriores.
+
+[Camino, matriz, recuperación, límites y pruebas CP18](PR_I1_TIRA_AFLOJA_AUDITORIA.md).
+Rol/RLS productivo, WAL/durabilidad física, capacidad/multiinstancia y pruebas
+operativas siguen pendientes. Incidencias históricas 34 fallos/Rescate abiertas.
+No main/Flutter ni inicio Memoria/Batallas/PR-I2; sin commit/push/merge.
+
+## Historial — checkpoint 17 confirmado en af2374e: contrato preciso del par Tira
 
 Rama `feat/pr-i1-competitive-infrastructure`, HEAD `795d6a3`; dieciséis
 checkpoints confirmados/publicados según el propietario, árbol limpio al iniciar.
@@ -228,7 +265,8 @@ Se aplica y prueba únicamente en PostgreSQL propio desechable.
 | 14 | 60b1228, confirmado | Replay normal aislado y barrido serial corregido; sin XP. |
 | 15 | 83d53da, confirmado | Replay de presencia y terminales privado, con bloqueos de evidencia; sin XP. |
 | 16 | 795d6a3, confirmado | ACTIVA exacta y temporalidad µs para nuevas búsquedas admitidas; contrato de liquidación bloqueado, sin XP. |
-| 17 | Local, sin commit | Contrato preciso del par, neutrales, fase penalizable y presencia del beneficiario; sin liquidación. |
+| 17 | af2374e, confirmado | Contrato preciso del par, neutrales, fase penalizable y presencia del beneficiario; sin liquidación. |
+| 18 | Local, sin commit | Integración interna de par, ledger preciso, recibo durable y recuperación; validado localmente, flags OFF. |
 
 ## Historial — checkpoint 12 confirmado en fdfa9aa
 

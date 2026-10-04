@@ -1,6 +1,239 @@
 # PR-I1 V1 — auditoría y preparación de Tira y afloja
 
-## Estado vigente — checkpoint 17 local: A3–A5, contrato sin XP
+## Estado vigente — checkpoint 18 local: A6–A8
+
+Rama `feat/pr-i1-competitive-infrastructure`, HEAD `af2374e`; diecisiete
+checkpoints publicados según el propietario. Árbol limpio al iniciar. CP18 SIN
+COMMIT integra el contrato preciso mediante un camino exclusivamente de par.
+Los apartados CP17 e inferiores son historial, no el estado actual.
+
+### Recorrido y contrato
+
+Cierre deportivo durable → selección de admisión V1/temporalVersion=1 →
+CompetitiveTugPairProtocol → usuarios originales ordenados → lock de presencia/
+partida → TugSportsReplay.loadPreciseLockedPair → decisiones del par → ledger/
+balances → recibo durable, todo lo último en una transacción ReadCommitted.
+No se acepta evidencia enviada por clientes ni se usa el adaptador Date anterior.
+No existe verificador TUG_MATCH en el registro individual ni endpoint de pago.
+El nuevo protocolo de par se registra únicamente como proveedor interno junto
+al reconciliador; CompetitiveService.settle sigue rechazando TUG_MATCH.
+
+Se reutilizan los locks, post(), piso cero, secuencia, alcanzadoEn e idempotencia
+de la infraestructura; Solo/Trivia/Duelo conservan VerifiedTerminal y fórmulas.
+La clave individual compartida anterior no cambia. Hash compartido incluye el
+contrato y replay preciso completo. Si existe recibo, el reintento reconstruye
+evidencia, cruza hash y todos los eventos esperados. Eventos sin recibo, pares
+parciales o hash incompatible se rechazan antes de cualquier escritura adicional.
+Dos usuarios bloqueados ordenados impiden interferencia entre partidas que los
+compartan. Orden: advisory de idempotencia del par → Usuario ordenados → lock
+presencia/partida → recibo → locks de balances. El advisory inicial no lo usa el
+motor deportivo; no invierte el orden Usuario→partida entre componentes.
+
+### A6 — reglas y precisión
+
+NORMAL R>0: roundHalfUp(60*C/R)+40/20/0; R=0: cero ambos, sin bonos.
+Abandono propio EXPLICIT_ACTIVE/GRACE probado: nominal -15, aplicado hasta piso
+cero. EXPLICIT_PRE_ACTIVE, GLOBAL_EXPIRED y SIMULTANEOUS_CANCELLED:
+resoluciones neutrales, sin evento RESULTADO ficticio ni balances nuevos.
+Beneficiario: cero si actions=0 o eligibility!=SUFFICIENT; en otro caso
+min(80,roundHalfUp(60*C/Qpartida)+20), sin bono normal. UNKNOWN no acredita
+abandono ni suficiencia. Replay conserva ACTIVA, precedencia, acciones incorrectas,
+OPEN histórico de EXPLICIT, prueba posterior de GRACE, snapshot y certificados R.
+
+El terminal no se convierte a Date. Historial se consulta en PostgreSQL usando
+el terminal exacto y la última transición (desde,id), incluido null; la temporada
+es el año America/Bogota de ese mismo instante. No se inventa cobertura histórica.
+La nueva migración amplía fechaEfectiva a timestamptz(6), sin cambiar valores ya
+persistidos. competitive_timestamp_us usa cociente/resto entero e intervalos,
+sin float. El camino preciso inserta ledger mediante SQL parametrizado; metadata
+conserva effectiveUs. Las correcciones administrativas leen el instante original
+como epoch µs y lo conservan, aunque Prisma entregue Date en el objeto de lectura.
+Los consumidores que necesiten precisión original deben usar SQL/effectiveUs;
+la representación Date de Prisma no acredita ni determina temporada/membresía.
+
+### A7/A8 — recuperación y neutrales
+
+TugCompetitiveSettlement conserva PENDING, SETTLED, RESOLVED o INVALID, intentos,
+retryAt, lastError y recibo inmutable con terminalUs, hash y decisiones/eventIds.
+Cierres admitidos y temporalVersion=1 constituyen la cola durable. Un escaneo
+inserta pendientes ausentes, incluidos cierres previos a arrancar el proceso.
+SETTLED indica eventos coherentes confirmados; RESOLVED indica decisiones sin
+XP ni eventos ficticios; INVALID requiere revisión de evidencia. Error PostgreSQL
+transitorio conserva PENDING, diagnóstico y próximo reintento; no pierde origen.
+El recibo se confirma en el mismo COMMIT que los eventos/balances: caída antes o
+durante revierte todo; caída después del COMMIT no exige acuse separado ni repaga.
+Dos instancias usan la misma identidad y locks. Cada escaneo procesa hasta 25
+pendientes ordenados; una instancia coalesce sus escaneos locales cada 5 segundos.
+El backoff de error transitorio es 1 minuto; no amplía ningún reloj deportivo.
+
+Corrección P1 de CP18: una certificación ausente mantiene PENDING aunque el
+reloj ya haya pasado el deadline. El guard admite observación independiente
+oportuna con COMMIT posterior; la ausencia visible no demuestra imposibilidad.
+No se crea ni rellena R ni se amplía la ventana de observación. Se conserva
+lastError/attempts y se programa retryAt a cinco minutos; el escaneo de cinco
+segundos solo procesa pendientes cuyo retryAt venció (máximo 25 por lote).
+Un certificado confirmado reactiva la liquidación en el siguiente reintento,
+sin intervención ni backfill. Un certificado huérfano visible sí es evidencia
+contradictoria y pasa a INVALID; el replay sigue validando integridad y plazo.
+Ausencia definitiva no se infiere solo del reloj: sin prueba adicional permanece
+pendiente/revisable, nunca genera XP. SETTLED/RESOLVED quedan fuera de selección.
+El guard conserva locks Usuario→partida hasta COMMIT. Para reproducir la carrera
+sin eludirlos, la prueba pausa la entrega de un rechazo real del replay después
+del rollback y antes de clasificar: el testigo observa y mantiene COMMIT abierto;
+tras el deadline, el worker clasifica la ausencia visible como PENDING. Después
+del COMMIT legítimo relee evidencia y liquida una sola vez. Las barreras del test
+solo sincronizan esos eventos; no aportan evidencia ficticia ni cambian guards.
+No se modifica el testigo ni esquema.
+Sin segundo participante: se valida admisión/original A, identidad, fase sin
+ACTIVA, ausencia de snapshot/rondas/respuestas, terminal cancelado/expirado y
+secuencia deportiva de cierre. EXPLICIT sin B requiere evento ABANDONO/EXPLICIT,
+ganador null, versión terminal y registros individuales ABANDONED/EXPLICIT al
+mismo µs; el motor conserva estado CANCELADA. Global sin B requiere CANCELADA/
+EXPIRADA y terminal no anterior al plazo. Evidencia temporal contradictoria se
+bloquea; no se redondea una fecha para hacerla elegible. Las preguntas preasignadas
+durante BUSCANDO no acreditan fase ACTIVA, presentación ni participación.
+Se exige ausencia de respuestas, presentaciones y certificados R. Otros cierres
+sin B que no cumplan estas pruebas se diagnostican INVALID, nunca se adaptan a
+un par ficticio. Se registra una resolución cero únicamente para
+A; no se fabrica B ni se envía ese origen al replay de par completo.
+
+### Migración y activación
+
+Nueva propuesta local: `20261005120000_tug_pair_settlement`, posterior a
+`20261004160000_tug_temporal_authority` y a las dependencias ya confirmadas.
+Incluye fechaEfectiva(6), conversor exacto, tabla/constraints, recibos inmutables,
+RLS y revocación a PUBLIC/anon/authenticated. Requiere aplicarse antes de este
+backend, incluso con flags OFF: recuperación y correcciones usan el nuevo esquema.
+Sin migraciones remotas. COMPETITIVE_TUG_ENABLED sigue false por defecto y solo
+admite nuevas búsquedas; apagarlo no detiene obligaciones ya admitidas. Ningún
+flag se activa aquí. No se promueve legado o evidencia temporal no versionada.
+
+### Corrección P1 — recuperación del certificado R
+
+Se elimina la inferencia reloj posterior al deadline → INVALID. Se conservan
+los resultados de la primera validación CP18 abajo como historial; la validación
+adicional P1 completada: **304/304**, 19 archivos, **776049 ms**, exit 0
+(%TEMP%/sp-cp18-p1-postgres-2.log). Recuperación 15/15; cero fallos,
+cancelados, omitidos, TODO, archivos incompletos o resúmenes inválidos.
+Primera ejecución P1: 302/304, 19 archivos, 706852 ms, exit 1;
+recuperación 13/15 y todas las 302 pruebas previas aprobadas. Sin omisiones,
+cancelaciones, TODO ni resúmenes incompletos. Log sp-cp18-p1-postgres-1.log.
+Los dos fixtures nuevos usaron rondaVenceEn del padre después del terminal,
+pero cerrarAusencia limpia ese campo (NULL): pg_sleep no esperó al límite.
+Prueba observable: el predicado anterior aún devolvió open=true y el guard
+admitió certificar; no se había vencido realmente R. Se corrigen exclusivamente
+las esperas del fixture para usar least(R.venceEn,partida.expiraEn) inmutable
+y se añade una aserción PostgreSQL de vencimiento real antes de continuar.
+No se aumenta el plazo, no se reduce ninguna aserción y no se modifica el motor.
+Dos pruebas
+PostgreSQL nuevas usan servicios deportivos reales, origen confirmado y testigo
+independiente: observación oportuna sin COMMIT, deadline PostgreSQL, worker sin
+pago, COMMIT posterior y recuperación/idempotencia; ausencia de observación
+permanece diagnosticada sin certificados ni XP, y certificar tarde devuelve
+false. Se retienen todos los casos anteriores. Las pruebas Jest separan ausencia
+pendiente de certificado huérfano y verifican backoff de 300/60 segundos.
+
+La carrera se reprodujo con el guard real: el predicado anterior retorna
+open=false mientras el certificado sigue invisible pero la observación es válida.
+El worker corregido conserva PENDING/lastError y cero eventos/balances antes
+del COMMIT. Tras confirmar tarde, el par queda SETTLED con nominales -15/+20,
+aplicados 0/+20 por saldo inicial cero; recibo/reintento coinciden y hay solamente
+dos eventos. El caso sin observación conserva PENDING con retryAt espaciado;
+certificar después del límite retorna false, sin R ni XP. La sincronización
+solo pausa la entrega de un rechazo real del replay, después de su rollback,
+para exponer el intervalo anterior a la clasificación independiente del worker.
+
+Validación final P1: build exit 0; Jest competitivo 276/276 (18 suites,
+27,687 s); Jest completo 1157/1157 (107 suites, 92,09 s); PostgreSQL 304/304
+(19 archivos, 776,049 s); audit omit=dev cero vulnerabilidades/TLS activo;
+diff check exit 0. Logs %TEMP%/sp-cp18-p1-build-final.log,
+sp-cp18-p1-jest-competitive-final.log, sp-cp18-p1-jest-all-final.log,
+sp-cp18-p1-postgres-2.log y sp-cp18-p1-audit.log. El primer resultado P1 fallido
+se conserva arriba; todos los casos anteriores permanecen. No hay migración
+adicional ni cambios al testigo, guards confirmados o flags. La ausencia no
+puede declararse definitiva solo por el reloj; si nunca aparece prueba válida,
+permanece pendiente diagnosticada y sin pago. B1/B2 y las incidencias históricas
+siguen abiertos; esta corrección no certifica producción.
+
+
+### Matriz de cierre y validaciones CP18
+
+| Requisito | Estado local | Límite |
+|---|---|---|
+| A1–A5 | Conservados | Replay autoritativo sigue fail-closed |
+| A6 | Implementado, integrado y validado localmente | Integración de par interna, no despliegue |
+| A7 | Implementado, integrado y validado localmente | Retry/recibo durable, no prueba de pérdida física del WAL |
+| A8 | Implementado, integrado y validado localmente | Neutrales/sin B explícitos, contradicción en INVALID |
+| B1 | Pendiente | Rol/RLS producción, WAL, respaldo, esquema y migración autorizada |
+| B2 | Pendiente | Capacidad/pools y publicación deportiva multiinstancia distribuida |
+
+La validación local no equivale a despliegue ni a estar listo para activación.
+Permanecen abiertas incertidumbre histórica de 34 fallos e incidencia de Rescate;
+PR-I1 no fusionado a main. No se inicia Memoria, Batallas ni PR-I2.
+Resultados finales y fallos reproducidos de esta ronda:
+
+Primera ejecución CP18: **284/289**, 18 archivos, 626321 ms, exit 1;
+cinco fallos, sin cancelados/omitidos/TODO ni archivos incompletos. Log:
+%TEMP%/sp-cp18-postgres-1.log. La lista de funciones privadas omitía el nuevo
+tug_settlement_guard; se incorpora y se prueban tabla/conversor sin privilegios.
+TRUNCATE de TugMatchIdentity ahora devuelve 0A000 por la FK de recibos antes
+del trigger: se comprueba tanto esa protección como TRUNCATE de ambas tablas
+rechazado por append-only. Tres fixtures nuevos congelaban respuesta y posterior
+UNKNOWN/DISCONNECT al mismo µs; el replay no puede demostrar OPEN en ese instante
+y rechaza ANSWER_PRESENCE. Los fixtures ahora ordenan esos eventos distintos
+mediante el reloj PostgreSQL controlado (1 µs/2 µs), conservando aserciones,
+gracia original y verificador. No se habilita evidencia temporal ambigua para
+liquidar; no se cambia replay ni migraciones confirmadas.
+La suite de recuperación se separa de la suite de resultados, manteniendo todos
+los casos y ejecución secuencial/120 s por archivo. Esta primera ejecución no
+incluyó el archivo de recuperación añadido durante la preparación; el resultado
+no acredita A7/A8 final. La validación limpia posterior incluye ambos archivos.
+
+Segunda ejecución completa: **301/302**, 19 archivos, 675501 ms, exit 1;
+resto previo 273/273, resultados nuevos 16/16, recuperación 12/13, sin
+cancelados/omitidos/TODO/incompletos. Log %TEMP%/sp-cp18-postgres-final.log.
+Único fallo: no second participant resolves durably without invented pair.
+El adaptador exigía tipo CANCELADA, pero cerrarAusencia persiste ABANDONO/EXPLICIT
+con estado deportivo CANCELADA. Corrección acotada del adaptador: verificar
+identidad A, motivo, ganador null, fase sin ACTIVA y registros individuales de
+abandono/presencia al terminal exacto; nunca penalizar ni fabricar B. No se
+modifica el motor ni el replay. Se conserva también global verificable sin B.
+Log de la tercera ejecución: %TEMP%/sp-cp18-postgres-3.log.
+
+Tercera ejecución: **301/302**, 19 archivos, 743805 ms, exit 1; otra vez
+273/273 anteriores, 16/16 resultados y 12/13 recuperación. Sin cancelaciones,
+omisiones/TODO o resúmenes incompletos. La misma prueba sin B llegó ahora a
+TUG_INCOMPLETE_EVIDENCE_INVALID: el motor preasigna TiraAflojaPregunta durante
+BUSCANDO, antes de ACTIVA y sin R. Se corrige esa suposición del adaptador, no
+el motor: se exige cero respuestas/presentaciones/certificados, conservando la
+marca ACTIVA nula y toda la prueba de cierre explícito. La prueba añade la
+aserción de preasignación real y los tres ceros, sin reducir controles existentes.
+Cuarta ejecución completa: **302/302**, 19 archivos, **810134 ms**, exit 0;
+273 pruebas anteriores y 29 nuevas (16 liquidación y 13 recuperación).
+Sin fallos, cancelados, omitidos, TODO, archivos incompletos ni resúmenes
+inválidos. Log %TEMP%/sp-cp18-postgres-4.log. Se aplicaron las 60 migraciones
+confirmadas y únicamente la nueva propuesta en PostgreSQL 16.15 desechable.
+El runner eliminó exclusivamente sus recursos temporales; el contenedor ajeno
+postgres-local se preservó. Las ejecuciones exitosas no sustituyen el diagnóstico:
+los tres resultados fallidos y las correcciones demostradas se conservan arriba.
+
+| Validación final CP18 | Resultado |
+|---|---|
+| npm run build | exit 0 |
+| Jest competitivo | 276/276, 18 suites, 43,174 s, exit 0 |
+| Jest completo | 1157/1157, 107 suites, 121,453 s, exit 0 |
+| PostgreSQL completo | 302/302, 19 archivos, 810,134 s, exit 0 |
+| npm audit --omit=dev | 0 vulnerabilidades, exit 0, TLS activo |
+| git diff --check | exit 0 |
+
+Logs finales locales: %TEMP%/sp-cp18-build-final.log,
+%TEMP%/sp-cp18-jest-final.log, %TEMP%/sp-cp18-jest-all-final.log y
+%TEMP%/sp-cp18-audit.log. A6/A7/A8 implementados, integrados por el camino
+interno de par y validados localmente; B1/B2 impiden declarar activación lista.
+La recuperación concurrente se probó con dos clientes/instancias y cierre real;
+no demuestra tolerancia a pérdida física del WAL ni capacidad productiva.
+
+## Historial — checkpoint 17 confirmado en af2374e: A3–A5, contrato sin XP
 
 Rama `feat/pr-i1-competitive-infrastructure`, HEAD `795d6a3`; dieciséis
 checkpoints publicados según el propietario. CP17 SIN COMMIT. No migración nueva,

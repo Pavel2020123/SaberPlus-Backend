@@ -81,7 +81,9 @@ type Posting = {
   source: CompetitiveSource;
   gameId: VerifiedTerminal['gameId'];
   season: number;
-  effectiveAt: Date;
+  effectiveAt?: Date;
+  /** Internal exact PostgreSQL epoch microseconds; never a client field. */
+  effectiveUs?: string;
   institutionId: string | null;
   key: string;
   hash: string;
@@ -226,6 +228,9 @@ export class CompetitiveService {
           where: { id: request.originalEventId },
         });
         requireEvidence(original, 'ORIGINAL_EVENT_NOT_FOUND');
+        const [originalTime] = await tx.$queryRaw<{ us: string }[]>`
+          SELECT (extract(epoch FROM "fechaEfectiva")*1000000)::bigint::text AS us
+          FROM "EventoXpCompetitivo" WHERE id=${original.id}::uuid`;
         await this.lockStudent(tx, original.usuarioId);
         requireEvidence(
           original.gameId !== 'MEMORY_MATCH',
@@ -240,6 +245,7 @@ export class CompetitiveService {
           gameId: original.gameId,
           season: original.temporada,
           effectiveAt: original.fechaEfectiva,
+          effectiveUs: originalTime.us,
           institutionId: original.institucionId,
           key,
           hash,
@@ -288,7 +294,10 @@ export class CompetitiveService {
     );
     requireEvidence(/^[a-f0-9]{64}$/.test(terminal.evidenceHash));
   }
-  protected async lock(tx: Prisma.TransactionClient, key: string): Promise<void> {
+  protected async lock(
+    tx: Prisma.TransactionClient,
+    key: string,
+  ): Promise<void> {
     await tx.$queryRaw`SELECT 1::int FROM pg_advisory_xact_lock(hashtextextended(${key}, 0))`;
   }
   protected async lockStudent(
@@ -328,33 +337,54 @@ export class CompetitiveService {
     const [clock] = await tx.$queryRaw<
       { now: Date }[]
     >`SELECT clock_timestamp()::timestamptz(3) AS now`;
-    const event = await tx.eventoXpCompetitivo.create({
-      data: {
-        id: randomUUID(),
-        usuarioId: p.source.participantId,
-        gameId: p.gameId,
-        temporada: p.season,
-        xpRulesVersion: XP_RULES_VERSION,
-        tipo: p.kind,
-        deltaNominal: delta.nominal,
-        deltaAplicado: delta.applied,
-        saldoAntes: delta.before,
-        saldoDespues: delta.after,
-        secuencia: locked.version + 1,
-        sourceType: p.source.sourceType,
-        sourceId: p.source.sourceId,
-        liquidacion: p.settlement,
-        idempotencyKey: p.key,
-        evidenciaHash: p.hash,
-        institucionId: p.institutionId,
-        fechaEfectiva: p.effectiveAt,
-        fechaRegistro: clock.now,
-        eventoCorregidoId: p.originalId,
-        actorId: p.actorId,
-        motivo: p.reason,
-        metadata: { evidenceContract: 1 },
-      },
-    });
+    requireEvidence(
+      p.effectiveUs === undefined || /^\d+$/.test(p.effectiveUs),
+      'INVALID_SERVER_TIME_US',
+    );
+    if (p.effectiveUs === undefined) validDate(p.effectiveAt!);
+    const event =
+      p.effectiveUs === undefined
+        ? await tx.eventoXpCompetitivo.create({
+            data: {
+              id: randomUUID(),
+              usuarioId: p.source.participantId,
+              gameId: p.gameId,
+              temporada: p.season,
+              xpRulesVersion: XP_RULES_VERSION,
+              tipo: p.kind,
+              deltaNominal: delta.nominal,
+              deltaAplicado: delta.applied,
+              saldoAntes: delta.before,
+              saldoDespues: delta.after,
+              secuencia: locked.version + 1,
+              sourceType: p.source.sourceType,
+              sourceId: p.source.sourceId,
+              liquidacion: p.settlement,
+              idempotencyKey: p.key,
+              evidenciaHash: p.hash,
+              institucionId: p.institutionId,
+              fechaEfectiva: p.effectiveAt,
+              fechaRegistro: clock.now,
+              eventoCorregidoId: p.originalId,
+              actorId: p.actorId,
+              motivo: p.reason,
+              metadata: { evidenceContract: 1 },
+            },
+          })
+        : (
+            await tx.$queryRaw<EventoXpCompetitivo[]>`
+      INSERT INTO "EventoXpCompetitivo" (id,"usuarioId","gameId",temporada,"xpRulesVersion",tipo,
+       "deltaNominal","deltaAplicado","saldoAntes","saldoDespues",secuencia,"sourceType","sourceId",
+       liquidacion,"idempotencyKey","evidenciaHash","institucionId","fechaEfectiva","fechaRegistro",
+       "eventoCorregidoId","actorId",motivo,metadata)
+      VALUES (${randomUUID()}::uuid,${p.source.participantId}::uuid,${p.gameId}::"JuegoCompetitivo",${p.season},
+       ${XP_RULES_VERSION},${p.kind}::"TipoEventoXpCompetitivo",${delta.nominal},${delta.applied},
+       ${delta.before},${delta.after},${locked.version + 1},${p.source.sourceType}::"FuenteXpCompetitivo",
+       ${p.source.sourceId},${p.settlement},${p.key},${p.hash},${p.institutionId}::uuid,
+       competitive_timestamp_us(${p.effectiveUs}::bigint),${clock.now},${p.originalId ?? null}::uuid,
+       ${p.actorId ?? null}::uuid,${p.reason ?? null},
+       ${JSON.stringify({ evidenceContract: 1, effectiveUs: p.effectiveUs })}::jsonb) RETURNING *`
+          )[0];
     await tx.balanceCompetitivo.update({
       where,
       data: {
