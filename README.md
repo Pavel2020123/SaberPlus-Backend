@@ -8,7 +8,7 @@
 > validaciones; no hay que reponer la revisión editorial histórica obligatoria.
 > Consultar la Ruta vigente del equipo en Flutter (`docs/ETAPAS_PENDIENTES.md`)
 > y `docs/AUDITORIA_RELEVO_2026-09-28.md` de ese repositorio para Flutter. PR-I1
-> ya tiene catorce checkpoints confirmados hasta 60b1228; la ronda 15 amplía replay privado de presencia y terminales Tira, con bloqueos de evidencia, flag apagado y sin verificador ni XP;
+> ya tiene quince checkpoints confirmados hasta 83d53da; la ronda 16 local prepara ACTIVA exacta y autoridad temporal Tira, con contrato de liquidación bloqueado, flag apagado y sin XP;
 > su estado backend vigente está en el [índice de documentación](backend/docs/README.md).
 
 API oficial de SaberPlus. Centraliza autenticacion, permisos, contenido
@@ -46,8 +46,8 @@ reglas de negocio. La aplicacion Flutter no accede directamente a PostgreSQL.
 
 PR-I1 competitivo V1 sigue abierto y sin fusionar a main. La infraestructura y
 Cima/Guardián/Rescate y Trivia/Duelo están versionados hasta `ebe40e3`.
-La evidencia de Tira sobre `39d3881` sigue local y sin XP. Esto no acredita despliegue, migraciones
-remotas ni activación para usuarios. Los tres flags de admisión están apagados
+La evidencia de Tira está confirmada hasta `83d53da`; la ronda 16 temporal sigue local y sin XP. Esto no acredita despliegue, migraciones
+remotas ni activación para usuarios. Los flags de admisión están apagados
 por defecto; apagar nuevas admisiones permite recuperar/liquidar las existentes.
 Consultar [checkpoints, flags y dependencias](backend/docs/PR_I1_COMPETITIVE_INFRASTRUCTURE.md)
 y [auditoría, pruebas e incidencias](backend/docs/PR_I1_TRIVIA_DUELO_AUDITORIA.md).

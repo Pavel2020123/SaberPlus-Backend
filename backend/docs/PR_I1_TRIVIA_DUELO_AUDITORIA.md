@@ -2,9 +2,9 @@
 
 ## Estado vigente — sexto checkpoint confirmado
 
-Rama `feat/pr-i1-competitive-infrastructure`, HEAD `60b1228`. Los
+Rama `feat/pr-i1-competitive-infrastructure`, HEAD `83d53da`. Los
 [checkpoints, flags y dependencias](PR_I1_COMPETITIVE_INFRASTRUCTURE.md#checkpoints)
-distinguen catorce commits confirmados de la ronda 15 local de replay privado de presencia y terminales Tira, sin commit ni XP. PR-I1
+distinguen quince checkpoints confirmados de la ronda 16 local de autoridad temporal Tira, sin commit ni XP. Contratos de Trivia/Duelo intactos. PR-I1
 no está fusionado a main. Trivia/Duelo tienen verificador y recuperación versionados;
 no están desplegados/activados para usuarios. Tira, Memoria y Batallas siguen
 pendientes de integración; no se inicia PR-I2. Migraciones remotas no aplicadas

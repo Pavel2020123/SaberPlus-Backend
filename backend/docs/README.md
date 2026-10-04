@@ -7,8 +7,12 @@ a otro repositorio, no a archivos dentro de este árbol.
 
 ## PR-I1 competitivo V1
 
-Rama `feat/pr-i1-competitive-infrastructure`, HEAD `60b1228`: catorce checkpoints confirmados. Ronda 15 local: replay privado de presencia, abandono y neutrales Tira; evidencia incompleta y GRACE durante countdown bloqueadas. Núcleo del par aislado; TUG_MATCH no registrado ni habilitado. La auditoría registra garantías, diagnósticos y resultados. PR-I1 no fusionado a main. Implementación local
-no equivale a migración remota aplicada, backend desplegado o juego activado.
+Rama `feat/pr-i1-competitive-infrastructure`, HEAD `83d53da`: quince checkpoints
+confirmados/publicados. Ronda 16 local: ACTIVA exacta, countdown y temporalidad
+µs para nuevas búsquedas Tira admitidas. Contrato compartido/ledger y A3–A8
+siguen bloqueados; rol/RLS, WAL y capacidad productivos pendientes. TUG_MATCH
+no registrado ni habilitado. PR-I1 no fusionado. Código local no acredita
+migraciones remotas, despliegue ni activación.
 
 - [Infraestructura competitiva](PR_I1_COMPETITIVE_INFRASTRUCTURE.md): resumen
   vigente, checkpoints, flags, arquitectura/ledger, migraciones y gate de despliegue.

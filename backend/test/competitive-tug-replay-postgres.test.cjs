@@ -34,6 +34,14 @@ before(async () => {
     datasources: { db: { url: process.env.COMPETITIVE_TEST_URL } },
   };
   db = new PrismaClient(args);
+  // Compatibility fixtures represent the published CP14 creator: it did not
+  // send temporalVersion. The DB permits that immutable older contract; CP16
+  // temporal fixtures separately exercise the new creator without middleware.
+  db.$use(async (params, next) => {
+    if (params.model === 'PartidaTiraAfloja' && params.action === 'create')
+      delete params.args.data.temporalVersion;
+    return next(params);
+  });
   other = new PrismaClient(args);
   engine = new TiraAflojaService(db, new TiraAflojaRealtimePublisher());
   restarted = new TiraAflojaService(other, new TiraAflojaRealtimePublisher());

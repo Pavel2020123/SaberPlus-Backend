@@ -20,7 +20,10 @@ import { preguntaPublicadaWhere } from '../common/contenido-publicado';
 import { TiraAflojaRealtimePublisher } from './tira-afloja-realtime.publisher';
 import { requireTugPresence } from './tira-afloja-presence.service';
 import { TiraAflojaVisibilityWitness } from './tira-afloja-visibility.witness';
-import { tugAdmissionDecision, tugAdmissionQueue } from './tira-afloja.admission';
+import {
+  tugAdmissionDecision,
+  tugAdmissionQueue,
+} from './tira-afloja.admission';
 import {
   buildTugSnapshot,
   TUG_QUESTION_INCLUDE,
@@ -30,6 +33,7 @@ import {
   ganadorPorPosicion,
   moverCuerda,
   resolverRonda,
+  resolverRondaExacta,
   resultadoPorPreguntasAgotadas,
 } from './tira-afloja.rules';
 
@@ -166,6 +170,7 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
       const creada = await tx.partidaTiraAfloja.create({
         data: {
           ...admission,
+          temporalVersion: admission.competitiveRulesVersion === 1 ? 1 : null,
           prepararEvidencia: true,
           presenciaVersion: 1,
           certificacionRVersion: 1,
@@ -435,13 +440,19 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
       ) {
         throw new BadRequestException('La partida no tiene una ronda activa.');
       }
-      if (ahora < partida.rondaIniciaEn) {
+      if (partida.temporalVersion === 1)
+        await this.validarVentanaExacta(tx, partidaId);
+      if (partida.temporalVersion !== 1 && ahora < partida.rondaIniciaEn) {
         throw new BadRequestException('La ronda aun no ha comenzado.');
       }
-      if (ahora >= partida.rondaVenceEn) {
+      if (partida.temporalVersion !== 1 && ahora >= partida.rondaVenceEn) {
         throw new BadRequestException('Se agoto el tiempo de la ronda.');
       }
-      if (partida.evidenciaVersion === 1 && ahora >= partida.expiraEn) {
+      if (
+        partida.temporalVersion !== 1 &&
+        partida.evidenciaVersion === 1 &&
+        ahora >= partida.expiraEn
+      ) {
         throw new BadRequestException('Se agoto el plazo de la partida.');
       }
       if (
@@ -473,9 +484,12 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
       ahora = await this.ahora(tx, partida.evidenciaVersion);
       if (partida.presenciaVersion === 1)
         ahora = await requireTugPresence(tx, partidaId, usuarioId);
+      if (partida.temporalVersion === 1)
+        await this.validarVentanaExacta(tx, partidaId);
       // Recording can wait for a PostgreSQL row lock held by another instance.
       // Recheck after that wait; SQL also checks its clock after acquiring the row.
       if (
+        partida.temporalVersion !== 1 &&
         partida.evidenciaVersion === 1 &&
         (ahora >= partida.rondaVenceEn || ahora >= partida.expiraEn)
       ) {
@@ -516,8 +530,7 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
     });
 
     await this.verificarPresentacionConfirmada(nuevaPresentacion);
-    if (nuevaPresentacion)
-      await this.certificarSinRevertirDeporte(partidaId);
+    if (nuevaPresentacion) await this.certificarSinRevertirDeporte(partidaId);
     this.actualizaciones.notificar(partidaId);
     await this.procesarEstado(partidaId);
     return this.obtener(usuarioId, partidaId);
@@ -636,7 +649,15 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
       if (await this.registrarPresentacion(tx, partida))
         nuevaPresentacion = { id: partida.id, ronda: partida.rondaActual };
 
-      if (partida.expiraEn <= ahora) {
+      const globalExpired =
+        partida.temporalVersion === 1
+          ? (
+              await tx.$queryRaw<
+                Array<{ due: boolean }>
+              >`SELECT "expiraEn"<=tug_presence_now() AS due FROM "PartidaTiraAfloja" WHERE id=${partidaId}::uuid`
+            )[0].due
+          : partida.expiraEn <= ahora;
+      if (globalExpired) {
         const version = partida.version + 1;
         await tx.partidaTiraAfloja.update({
           where: { id: partidaId },
@@ -669,6 +690,12 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
       const respuestas = await tx.tiraAflojaRespuesta.findMany({
         where: { partidaId, ronda: partida.rondaActual },
       });
+      if (partida.temporalVersion === 1 && respuestas.length < 2) {
+        const [clock] = await tx.$queryRaw<
+          Array<{ due: boolean }>
+        >`SELECT "rondaVenceEn"<=tug_presence_now() AS due FROM "PartidaTiraAfloja" WHERE id=${partidaId}::uuid`;
+        if (!clock.due) return presenciaCambio;
+      }
       if (respuestas.length < 2 && ahora < partida.rondaVenceEn)
         return presenciaCambio;
       await this.resolverRondaActual(tx, partida, respuestas, ahora);
@@ -736,19 +763,28 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
       // one-connection pool must release each sports transaction AND finish its
       // independent post-COMMIT witness before scheduling the next match.
       // Observe committed evidence first, while its original deadline permits.
-      const ids = [...new Set(
-        [...certificables, ...presentables, ...partidas, ...presencia].map(p => p.id),
-      )];
+      const ids = [
+        ...new Set(
+          [...certificables, ...presentables, ...partidas, ...presencia].map(
+            (p) => p.id,
+          ),
+        ),
+      ];
       for (const id of ids) {
         try {
           await this.procesarEstado(id);
         } catch (error) {
-          this.log.error(JSON.stringify({
-            event: 'TUG_RECOVERY_PENDING', partidaId: id,
-            code: error?.code ?? 'RECOVERY_ERROR', sqlState: error?.meta?.code ?? null,
-            transactionError: error?.code === 'P2028' ? error?.meta?.error : undefined,
-            reason: 'Durable work retained; verify schema/database',
-          }));
+          this.log.error(
+            JSON.stringify({
+              event: 'TUG_RECOVERY_PENDING',
+              partidaId: id,
+              code: error?.code ?? 'RECOVERY_ERROR',
+              sqlState: error?.meta?.code ?? null,
+              transactionError:
+                error?.code === 'P2028' ? error?.meta?.error : undefined,
+              reason: 'Durable work retained; verify schema/database',
+            }),
+          );
         }
       }
     } finally {
@@ -779,12 +815,13 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
       }[]
     >`
       WITH g AS (SELECT min("graceUntil") AS at FROM "TugPresence" WHERE "matchId"=${partida.id}::uuid),
-      r AS (SELECT CASE WHEN count(*)=2 THEN max("recibidaEn") ELSE ${partida.rondaVenceEn}::timestamp END AS at
+      m AS (SELECT * FROM "PartidaTiraAfloja" WHERE id=${partida.id}::uuid),
+      r AS (SELECT CASE WHEN count(*)=2 THEN max("recibidaEn") ELSE (SELECT "rondaVenceEn" FROM m) END AS at
         FROM "TiraAflojaRespuesta" WHERE "partidaId"=${partida.id}::uuid AND ronda=${partida.rondaActual})
       SELECT r.at AS "roundAt",
-        coalesce(r.at<=tug_presence_now() AND r.at<least(g.at,${partida.expiraEn}::timestamp),false) AS "roundFirst",
-        coalesce(${partida.expiraEn}::timestamp<=tug_presence_now() AND
-          (g.at IS NULL OR ${partida.expiraEn}::timestamp<=g.at),false) AS "globalFirst",
+        coalesce(r.at<=tug_presence_now() AND r.at<least(g.at,(SELECT "expiraEn" FROM m)),false) AS "roundFirst",
+        coalesce((SELECT "expiraEn" FROM m)<=tug_presence_now() AND
+          (g.at IS NULL OR (SELECT "expiraEn" FROM m)<=g.at),false) AS "globalFirst",
         coalesce(g.at<=tug_presence_now(),false) AS "graceDue",
         ARRAY(SELECT "userId"::text FROM "TugPresence" WHERE "matchId"=${partida.id}::uuid AND "graceUntil"=g.at ORDER BY "userId") AS absent
       FROM g CROSS JOIN r`;
@@ -909,20 +946,33 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
     const respuestaB = respuestas.find(
       (respuesta) => respuesta.usuarioId === partida.jugadorBId,
     );
-    const resolucion = resolverRonda(
-      respuestaA
-        ? {
-            esCorrecta: respuestaA.esCorrecta,
-            recibidaEnMs: respuestaA.recibidaEn.getTime(),
-          }
-        : undefined,
-      respuestaB
-        ? {
-            esCorrecta: respuestaB.esCorrecta,
-            recibidaEnMs: respuestaB.recibidaEn.getTime(),
-          }
-        : undefined,
-    );
+    const exact =
+      partida.temporalVersion === 1
+        ? await tx.$queryRaw<
+            Array<{ usuarioId: string; esCorrecta: boolean; atUs: string }>
+          >`
+          SELECT "usuarioId", "esCorrecta", (extract(epoch FROM "recibidaEn")*1000000)::bigint::text AS "atUs"
+          FROM "TiraAflojaRespuesta" WHERE "partidaId"=${partida.id}::uuid AND ronda=${partida.rondaActual}`
+        : null;
+    const resolucion = exact
+      ? resolverRondaExacta(
+          exact.find((a) => a.usuarioId === partida.jugadorAId),
+          exact.find((a) => a.usuarioId === partida.jugadorBId),
+        )
+      : resolverRonda(
+          respuestaA
+            ? {
+                esCorrecta: respuestaA.esCorrecta,
+                recibidaEnMs: respuestaA.recibidaEn.getTime(),
+              }
+            : undefined,
+          respuestaB
+            ? {
+                esCorrecta: respuestaB.esCorrecta,
+                recibidaEnMs: respuestaB.recibidaEn.getTime(),
+              }
+            : undefined,
+        );
     const posicion = moverCuerda(partida.posicionCuerda, resolucion.movimiento);
     const frozenQuestion =
       tugSnapshot(partida)?.questions[partida.rondaActual - 1]?.pregunta;
@@ -1029,13 +1079,22 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
     } catch (error) {
       // Only the independent post-COMMIT witness is isolated. Sports/schema
       // errors in the original transaction still propagate to the caller.
-      this.log.error(JSON.stringify({
-        event: 'TUG_VISIBILITY_PENDING', partidaId,
-        code: error?.code ?? 'WITNESS_ERROR', sqlState: error?.meta?.code ?? null,
-        detail: typeof error?.meta?.message === 'string' ? error.meta.message : null,
-        reason: error?.message === 'TUG_WITNESS_DATABASE_MISMATCH'
-          ? error.message : 'Independent witness failed; certificate remains absent',
-      }));
+      this.log.error(
+        JSON.stringify({
+          event: 'TUG_VISIBILITY_PENDING',
+          partidaId,
+          code: error?.code ?? 'WITNESS_ERROR',
+          sqlState: error?.meta?.code ?? null,
+          detail:
+            typeof error?.meta?.message === 'string'
+              ? error.meta.message
+              : null,
+          reason:
+            error?.message === 'TUG_WITNESS_DATABASE_MISMATCH'
+              ? error.message
+              : 'Independent witness failed; certificate remains absent',
+        }),
+      );
     }
   }
 
@@ -1066,6 +1125,12 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
         include: { pregunta: { include: TUG_QUESTION_INCLUDE } },
       });
       const snapshot = buildTugSnapshot(partida, assigned);
+      if (partida.temporalVersion === 1) {
+        const [time] = await tx.$queryRaw<
+          Array<{ expiry: string }>
+        >`SELECT to_char("expiraEn",'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS expiry FROM "PartidaTiraAfloja" WHERE id=${partida.id}::uuid`;
+        snapshot.config.expiraEn = time.expiry;
+      }
       snapshotData = {
         evidenciaVersion: 1,
         qPartida: snapshot.qPartida,
@@ -1151,6 +1216,17 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
       Prisma.sql`SELECT (clock_timestamp() AT TIME ZONE 'UTC')::timestamp(3) AS ahora`,
     );
     return row.ahora;
+  }
+
+  private async validarVentanaExacta(tx: ClienteTransaccion, id: string) {
+    const [window] = await tx.$queryRaw<Array<{ valid: boolean }>>`
+      SELECT estado='ACTIVA' AND "rondaIniciaEn"<=tug_presence_now()
+        AND tug_presence_now()<least("rondaVenceEn","expiraEn") AS valid
+      FROM "PartidaTiraAfloja" WHERE id=${id}::uuid`;
+    if (!window?.valid)
+      throw new BadRequestException(
+        'La ventana autoritativa de respuesta no esta activa.',
+      );
   }
 
   private async registrarPresentacion(

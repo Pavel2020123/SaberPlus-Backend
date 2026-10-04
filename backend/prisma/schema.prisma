@@ -980,6 +980,10 @@ model TugMatchIdentity {
 }
 
 model PartidaTiraAfloja {
+  temporalVersion Int?
+  activaEn DateTime? @db.Timestamp(6)
+  activaVersion Int?
+  activaPresenceId BigInt?
   competitiveAdmissionVersion Int?
   competitiveRulesVersion Int?
   competitivePolicy Json?

@@ -11,9 +11,11 @@
 
 ## Estado competitivo PR-I1 V1
 
-Catorce checkpoints están confirmados hasta `60b1228`. La ronda 15 local amplía replay privado de presencia, abandono y neutrales; evidencia insuficiente y GRACE durante countdown siguen bloqueadas. Admisión persistida y `COMPETITIVE_TUG_ENABLED=false`; verificador TUG_MATCH pendiente;
-no hay liquidación ni XP Tira. El núcleo del par permanece aislado. La auditoría conserva las
-decisiones deportivas, pruebas actuales e historial de validaciones.
+Quince checkpoints confirmados hasta `83d53da`. La ronda 16 local prepara
+ACTIVA exacta y coherencia temporal µs de nuevas búsquedas Tira admitidas, sin
+promover históricos. A3–A8, contrato compartido y liquidación TUG_MATCH siguen
+pendientes; núcleo del par aislado y COMPETITIVE_TUG_ENABLED=false por defecto.
+La auditoría conserva pruebas, matriz de cierre e historial.
 PR-I1 no está fusionado a main. Código implementado no significa desplegado ni
 activado: no se aplicaron migraciones remotas en esta revisión; la nueva evidencia
 Tira se prueba únicamente en PostgreSQL desechable local.

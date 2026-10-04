@@ -581,6 +581,8 @@ test('TUG V1: anon/authenticated cannot read evidence or invoke private recordin
       'tug_presence_require_open', 'tug_presence_answer_guard',
       'tug_certify_presented_round', 'tug_presented_origin_guard',
       'tug_visibility_guard', 'tug_visibility_origin_guard',
+      'tug_round_decision_at', 'tug_temporal_guard',
+      'tug_temporal_event_guard', 'tug_temporal_answer_guard',
     ].sort());
     assert.ok(permissions.every((p) => p.allowed === false));
   }

@@ -6,6 +6,7 @@ import { requireEvidence } from './competitive.rules';
 import { canonicalSourceId } from './competitive.source';
 import { readTugAdmission } from '../tira-afloja/tira-afloja.admission';
 import { replayTugPresence } from './competitive.tug-presence-replay';
+import { resolverRondaExacta } from '../tira-afloja/tira-afloja.rules';
 
 // Private evidence reader only. Deliberately absent from Nest/registry/workers.
 // The caller owns the sorted original Usuario locks before loadLockedPair.
@@ -17,25 +18,27 @@ const us = (value: string): bigint => {
   return BigInt(value);
 };
 const min = (a: bigint, b: bigint) => (a < b ? a : b);
+export function tugIsoUs(value: string): bigint {
+  check(
+    typeof value === 'string' &&
+      /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3,6}Z$/.test(value),
+    'TIME_INVALID',
+  );
+  const fraction = value.split('.')[1].slice(0, -1).padEnd(6, '0');
+  const millis = Date.parse(value.replace(/\.\d+Z$/, '.000Z'));
+  check(Number.isFinite(millis), 'TIME_INVALID');
+  return BigInt(millis) * 1000n + BigInt(fraction);
+}
 
 /** Exact PostgreSQL timestamp(6) comparison, independent of JS Date rounding. */
 export function replayTugRound(
   a?: { esCorrecta: boolean; atUs: string },
   b?: { esCorrecta: boolean; atUs: string },
 ) {
-  if (a?.esCorrecta && !b?.esCorrecta)
-    return { movement: 2, reason: 'SOLO_A_CORRECTA' };
-  if (b?.esCorrecta && !a?.esCorrecta)
-    return { movement: -2, reason: 'SOLO_B_CORRECTA' };
-  if (!a?.esCorrecta || !b?.esCorrecta)
-    return { movement: 0, reason: 'NINGUNA_CORRECTA' };
-  const difference = us(a.atUs) - us(b.atUs);
-  if (difference >= -200000n && difference <= 200000n)
-    return { movement: 0, reason: 'EMPATE_RAPIDEZ' };
-  return {
-    movement: difference < 0n ? 1 : -1,
-    reason: difference < 0n ? 'A_MAS_RAPIDO' : 'B_MAS_RAPIDO',
-  };
+  if (a) us(a.atUs);
+  if (b) us(b.atUs);
+  const r = resolverRondaExacta(a, b);
+  return { movement: r.movimiento, reason: r.motivo };
 }
 
 export interface TugReplayEvidence {
@@ -94,6 +97,8 @@ export class TugSportsReplay implements CompetitivePairEvidence {
       'ABANDONMENT_CONTRACT_UNSUPPORTED',
     );
     check(evidence.terminals, 'TERMINAL_PRECISION_UNSUPPORTED');
+    const m = await tx.partidaTiraAfloja.findUniqueOrThrow({ where: { id } });
+    check(m.temporalVersion !== 1, 'TEMPORAL_CONTRACT_UNSUPPORTED');
     return evidence.terminals!;
   }
 
@@ -111,6 +116,7 @@ export class TugSportsReplay implements CompetitivePairEvidence {
       (extract(epoch FROM "fechaFinalizacion")*1000000)::bigint::text AS terminal,
       (extract(epoch FROM "expiraEn")*1000000)::bigint::text AS deadline,
       (extract(epoch FROM "competitiveAdmissionAt")*1000000)::bigint::text AS admission
+      ,(extract(epoch FROM "activaEn")*1000000)::bigint::text AS activation
       FROM "PartidaTiraAfloja" WHERE id=${id}::uuid`;
     // to_jsonb preserves timestamp(6); Prisma Date would truncate event µs even
     // if they are used only in the canonical evidence hash.
@@ -156,6 +162,23 @@ export class TugSportsReplay implements CompetitivePairEvidence {
       'id',id::text,'atUs',(extract(epoch FROM "observedAt")*1000000)::bigint::text) AS row
       FROM "TugPresenceEvent" e WHERE "matchId"=${id}::uuid ORDER BY id`
     ).map((e) => e.row);
+    const activation =
+      m.temporalVersion === 1 && time.activation
+        ? { atUs: time.activation, presenceId: m.activaPresenceId!.toString() }
+        : undefined;
+    check(
+      m.temporalVersion !== 1 ||
+        !events.some((e) => e.tipo === 'RONDA_INICIADA') ||
+        (activation &&
+          m.activaVersion ===
+            events.find((e) => e.tipo === 'RONDA_INICIADA')!.version &&
+          tugIsoUs(m.snapshotInicial['config']['activaEn']) ===
+            us(time.activation) &&
+          m.snapshotInicial['config']['activaPresenceId'] ===
+            activation.presenceId &&
+          m.snapshotInicial['config']['temporalVersion'] === 1),
+      'ACTIVATION_CONFLICT',
+    );
     const presence = replayTugPresence(
       participants,
       connections,
@@ -170,6 +193,7 @@ export class TugSportsReplay implements CompetitivePairEvidence {
             ) * 1000n
           ).toString()
         : undefined,
+      activation,
     );
     const active = events.some((e) => e.tipo === 'RONDA_INICIADA');
     const final = events[events.length - 1];
@@ -371,7 +395,7 @@ export class TugSportsReplay implements CompetitivePairEvidence {
         c.cuentaRegresivaMs === 3000 &&
         c.posicionMeta === 4 &&
         c.empateRapidezMs === 200 &&
-        BigInt(Date.parse(c.expiraEn)) * 1000n === us(time.deadline),
+        tugIsoUs(c.expiraEn) === us(time.deadline),
       'CONFIG',
     );
     const assigned = await tx.tiraAflojaPregunta.findMany({
@@ -496,8 +520,8 @@ export class TugSportsReplay implements CompetitivePairEvidence {
         'ROUND_ORDER',
       );
       // ISO event windows are server-frozen milliseconds; pair times retain µs.
-      const start = BigInt(Date.parse(begin.iniciaEn)) * 1000n;
-      const end = BigInt(Date.parse(begin.venceEn)) * 1000n;
+      const start = tugIsoUs(begin.iniciaEn);
+      const end = tugIsoUs(begin.venceEn);
       check(
         end - start === 10000000n &&
           (i === 0 || start === lastEnd + 1500000n) &&
@@ -505,13 +529,20 @@ export class TugSportsReplay implements CompetitivePairEvidence {
         'ROUND_WINDOW',
       );
       if (i === 0) started = start;
+      check(
+        i !== 0 || !activation || start === us(activation.atUs) + 3000000n,
+        'ACTIVATION_WINDOW',
+      );
       // No exact activation timestamp exists across the two event streams.
       // A disconnect during countdown cannot be ordered against activation
       // independently: retain fail-closed until a future immutable phase marker.
       check(
         presence.graces.every(
           (g) =>
-            g.start >= BigInt(Date.parse(starts[0].datos.iniciaEn)) * 1000n,
+            g.start >=
+            (activation
+              ? us(activation.atUs)
+              : tugIsoUs(starts[0].datos.iniciaEn)),
         ),
         'GRACE_PHASE_UNPROVEN',
       );

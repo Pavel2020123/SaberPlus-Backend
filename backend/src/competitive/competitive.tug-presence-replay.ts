@@ -17,6 +17,7 @@ export function replayTugPresence(
   events: Row[],
   terminalUs: string,
   activeRoundStartUs?: string,
+  activation?: { atUs: string; presenceId: string },
 ) {
   const terminal = us(terminalUs);
   const states = new Map<string, Row>();
@@ -57,6 +58,11 @@ export function replayTugPresence(
       }
       states.set(c.id, { state: 'OPEN', last: at, auth: c.authUs });
     } else if (e.kind === 'GRACE') {
+      check(
+        !activation ||
+          (at >= us(activation.atUs) && us(e.id) > us(activation.presenceId)),
+        'GRACE_BEFORE_ACTIVE',
+      );
       check(
         old?.state === 'CLOSED' && old.closed === at && !active.has(e.userId),
         'GRACE_ORIGIN',
@@ -108,8 +114,16 @@ export function replayTugPresence(
             )
           ) {
             const start = us(activeRoundStartUs);
-            check(at < start - 3000000n || at >= start, 'GRACE_PHASE_UNPROVEN');
-            if (at >= start) {
+            const afterActivation = activation
+              ? at >= us(activation.atUs) &&
+                us(e.id) > us(activation.presenceId)
+              : at >= start;
+            if (!activation)
+              check(
+                at < start - 3000000n || at >= start,
+                'GRACE_PHASE_UNPROVEN',
+              );
+            if (afterActivation) {
               const next = events[events.indexOf(e) + 1];
               check(
                 next?.kind === 'GRACE' &&

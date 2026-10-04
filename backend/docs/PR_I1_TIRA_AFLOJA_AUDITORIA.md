@@ -1,6 +1,111 @@
 # PR-I1 V1 — auditoría y preparación de Tira y afloja
 
-## Estado vigente — checkpoint 15 local: replay de presencia y terminales aislado
+## Estado vigente — checkpoint 16 local: autoridad temporal, sin liquidación
+
+Rama `feat/pr-i1-competitive-infrastructure`, HEAD `83d53da`. Quince checkpoints
+confirmados/publicados por el propietario. CP16 local SIN COMMIT; solo A1/A2.
+No se registran TUG_MATCH, ledger ni recuperador competitivo; flags OFF por defecto.
+
+### Contrato temporal anterior y nuevo
+
+Anterior: ACTIVA demostrada por secuencia RONDA_INICIADA, sin timestamp propio;
+countdown GRACE bloqueada; motor Date y replay µs podían discrepar en 200001 µs.
+Nuevo: `temporalVersion=1` se envía únicamente al CREAR una nueva búsqueda
+admitida por servidor (`competitiveRulesVersion=1`). Filas existentes y nuevas
+no admitidas conservan NULL y sus reglas Date; no se promueven al emparejar,
+activar ni reiniciar. Omitir la versión conserva el contrato anterior de un
+backend previo; no acredita una marca exacta inexistente.
+
+Migración incremental `20261004160000_tug_temporal_authority`, después de evidencia,
+presencia, testigo R y admisión: columnas privadas activaEn timestamp(6),
+activaVersion y activaPresenceId. No hay backfill ni edición de migraciones
+confirmadas. En PREPARANDO→ACTIVA, bajo Usuario ordenado→partida, PostgreSQL fija
+activaEn mediante tug_presence_now(), guarda versión deportiva y watermark de
+IDs de presencia ya observados. Es inmutable y se congela en snapshot.config.
+Countdown sigue siendo ACTIVA; primera pregunta comienza exactamente +3 s.
+Una desconexión anterior, aun con mismo timestamp, queda antes del watermark;
+una GRACE posterior exige timestamp >= activaEn e ID posterior al watermark.
+La reconexión conserva [inicio, vencimiento), sin pausar ningún reloj.
+
+Para este contrato, PostgreSQL fija creación/búsqueda (+2 min), emparejamiento
+/plazo global (+30 min), respuesta aceptada, ventanas de ronda y terminal normal.
+RONDA_INICIADA conserva ISO UTC de seis decimales. Con dos respuestas, decisión
+=max(recibidaEn); con cero/una, deadline congelado. La pausa posterior es +1.5 s
+exactos; velocidad usa BigInt y empate inclusivo ±200000 µs en motor y replay.
+Los Date públicos son proyecciones; no son evidencia para resolver rapidez,
+programar nuevas rondas ni decidir precedencia. Snapshot expiraEn conserva µs.
+Global/gracia se comparan en SQL con los campos originales después de locks.
+
+### Límites explícitos y matriz de cierre
+
+| Requisito | Estado CP16 | Bloqueo conservado |
+|---|---|---|
+| A1 ACTIVA/countdown | Marca exacta + watermark, sin historia inventada | Versiones anteriores mantienen barrera countdown |
+| A2 rapidez/programación | Motor/replay exactos para nuevos admitidos | Date legacy intacto |
+| A2 terminal fraccionario | Replay privado conserva terminalUs/hash | No se redondea a VerifiedTerminal |
+| A2 reloj Node | Replay privado no valida contra Date.now() | loadLockedPair bloquea también el contrato temporal nuevo, aun alineado a ms; integración futura debe resolver Date.now() con tiempo DB |
+| A3 neutral/fase/tiempo compartido | No implementado | Contrato y kernel intactos |
+| A4 penalización propia/simultánea | No implementado | No se autorizan dos −15 implícitos |
+| A5 presencia beneficiario | No implementado | Ganador deportivo no prueba premio |
+| A6–A8 integración/recuperación/neutrales | No implementados | TUG_MATCH ausente de registro y liquidación |
+| B1–B2 operación | Pendiente | Rol/RLS, WAL físico, capacidad y multiinstancia productivos |
+
+Pruebas nuevas en competitive-tug-temporal-postgres.test.cjs: servicios deportivos
+reales, reloj propio controlado por PG, locks concurrentes, countdown, igualdad,
+reconexión, EXPLICIT, respuestas exactas, fracción y rollback de contradicción.
+Las suites CP14/15 preservan explícitamente el contrato anterior: middleware de
+fixture omite temporalVersion como aquel creador publicado; no deshabilita guards
+ni modifica evidencia. La suite CP16 usa el creador nuevo sin ese middleware.
+No se modifican otras partidas en pruebas negativas; ALTER privilegiado solo en
+rollback y el reloj se restaura en finally. Runner propio añade esta migración
+pendiente y un archivo, manteniendo los quince archivos y gates anteriores.
+
+### Diagnóstico y validaciones CP16
+
+Primera ejecución PG: 247/249, 16 archivos, 492568 ms; cero cancelados,
+omitidos, TODO o incompletos. Dos fallos: inventario RLS esperado no incluía las
+cuatro funciones nuevas (se amplió manteniendo denied para todos los roles), y
+fixture negativo adelantaba solo GRACE, dejando DISCONNECTED con otro instante.
+El replay rechazaba correctamente MISSING_GRACE antes de la condición buscada.
+Se adelantó la pareja de eventos de esa única partida dentro del mismo rollback;
+no se relajó la aserción GRACE_BEFORE_ACTIVE ni ningún guard.
+
+Segunda ejecución PG: 250/251, 16 archivos, 489224 ms; quince archivos previos
+240/240 y nuevos 10/11. Falló el caso añadido del último µs: SQLSTATE 23514,
+Invalid original Tug answer. El guard confirmado consultaba clock_timestamp(),
+mientras el reloj de presencia controlado seguía en deadline−1 µs; se observaron
+dos fuentes de lectura temporal. La migración NUEVA redefine ese guard con el
+mismo cuerpo y controles, usando tug_presence_now() SOLO para temporalVersion=1;
+legacy mantiene clock_timestamp(). No se edita SQL confirmado ni se quita el
+rechazo en now >= deadline. El testigo R conserva su observación independiente
+real después de locks; no se reemplaza por el reloj controlado del fixture.
+
+Tercera ejecución PG completa limpia: **251/251, 16 archivos, 486297 ms**,
+exit 0; quince archivos anteriores 240/240, nuevo archivo 11/11
+(40337,4898 ms Node / 40482 ms bloque). Cero fail/cancelled/skipped/todo,
+failedFiles/incompleteFiles/invalidFiles vacíos. PostgreSQL 16.15, 59 migraciones
+confirmadas más la temporal pendiente, zona Etc/UTC; recurso propio retirado.
+El último µs se acepta y el deadline exacto se rechaza, sin perder R certificado.
+Resultados 199999/200000 µs: EMPATE_RAPIDEZ/movimiento 0; 200001 µs:
+A_MAS_RAPIDO/movimiento +1. Los tres casos usan respuestas aceptadas por servicios
+reales y snapshot, y el replay privado verifica el mismo resultado.
+ACTIVA/countdown, watermark, EXPLICIT, reinicio, contradicciones con rollback,
+terminal fraccionario y terminal alineado bloqueados para contrato compartido,
+compatibilidad anterior, y cero ledger/balances/XP general alterado pasan. Logs íntegros preservados en
+%TEMP%/saberplus-cp16-postgres-1.log, saberplus-cp16-postgres-final.log y
+saberplus-cp16-postgres-verified.log. Los command-failure docker exit 2 durante
+bootstrap corresponden al polling pg_isready del contenedor propio antes de
+estar disponible; no se atribuyen a ellos los fallos de pruebas anteriores.
+Build final exit 0; Jest competitivo 228/228, 16 suites (13,274 s); Jest completo
+1109/1109, 105 suites (51,386 s); audit omit=dev cero vulnerabilidades/TLS activo.
+Enlaces locales: 88 existentes. git diff --check exit 0. Ninguna validación fallida
+se presenta como aprobada por repetirla. Los resultados intermedios Jest también
+pasaron: competitivo 227/227 antes de la prueba ISO nueva (25,338 s), después
+228/228 (20,110 s); completos 1109/1109 (85,583 s y 61,703 s).
+Incidencias históricas de 34 fallos y Rescate siguen abiertas; PR-I1 no fusionado,
+sin migraciones remotas, despliegue, activación para usuarios ni PR-I2.
+
+## Historial — checkpoint 15 confirmado en 83d53da: replay de presencia y terminales aislado
 
 Rama `feat/pr-i1-competitive-infrastructure`, HEAD `60b1228`, sincronizada con
 origin y limpia al inicio. Catorce checkpoints confirmados por el propietario;

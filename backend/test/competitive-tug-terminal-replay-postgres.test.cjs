@@ -34,6 +34,13 @@ before(async () => {
     datasources: { db: { url: process.env.COMPETITIVE_TEST_URL } },
   };
   db = new PrismaClient(args);
+  // Preserve CP15's older-contract coverage, including its countdown barrier.
+  // CP16 exercises the new creator independently without this compatibility shim.
+  db.$use(async (params, next) => {
+    if (params.model === 'PartidaTiraAfloja' && params.action === 'create')
+      delete params.args.data.temporalVersion;
+    return next(params);
+  });
   other = new PrismaClient(args);
   engine = new TiraAflojaService(db, new TiraAflojaRealtimePublisher());
   restarted = new TiraAflojaService(other, new TiraAflojaRealtimePublisher());

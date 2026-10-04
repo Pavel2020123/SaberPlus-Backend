@@ -1,6 +1,30 @@
 # PR-I1 V1: infraestructura competitiva común
 
-## Estado vigente — checkpoint 15: replay de presencia aislado, sin XP Tira
+## Estado vigente — checkpoint 16 local: autoridad temporal Tira
+
+HEAD `83d53da`, rama `feat/pr-i1-competitive-infrastructure`; quince checkpoints
+confirmados/publicados. CP16 SIN COMMIT cierra A1/A2 para nuevas búsquedas admitidas:
+marca ACTIVA PostgreSQL µs/version/watermark, snapshot temporal inmutable, rapidez
+y programación exactas. Countdown GRACE puede reconstruirse con esa marca;
+versiones anteriores no reciben evidencia retroactiva ni cambian reglas Date.
+Migración nueva `20261004160000_tug_temporal_authority` depende de las cuatro
+migraciones Tira confirmadas (evidencia→presencia→visibilidad→admisión).
+TUG_MATCH sigue sin registro, kernel conectado, liquidación o XP. Fórmulas V1
+sin cambios y COMPETITIVE_TUG_ENABLED=false por defecto.
+
+TerminalUs exacto solo privado: fracciones no se redondean a VerifiedTerminal;
+el contrato temporal nuevo completo queda bloqueado en loadLockedPair hasta
+resolver la dependencia Date/Date.now() compartida en integración futura.
+A3–A8 no implementados; B1/B2 rol/RLS, WAL, capacidad/multiinstancia pendientes.
+Validación CP16: build exit 0; Jest competitivo 228/228 (16 suites), completo
+1109/1109 (105 suites); PostgreSQL 251/251 (16 archivos, 486297 ms), cero fallos,
+cancelaciones, omisiones, TODO o archivos incompletos; audit omit=dev cero
+vulnerabilidades y diff check exit 0. Se conservan PG 247/249 y 250/251, sus
+causas y correcciones en [contrato, matriz y pruebas](PR_I1_TIRA_AFLOJA_AUDITORIA.md).
+Historial inferior no sustituye el estado vigente. Incidencias de 34 fallos y
+Rescate abiertas; PR-I1 no fusionado y ninguna migración remota aplicada aquí.
+
+## Historial — checkpoint 15 publicado (83d53da): replay de presencia aislado, sin XP Tira
 
 Rama `feat/pr-i1-competitive-infrastructure`, HEAD `60b1228`, catorce checkpoints
 confirmados por el propietario; checkpoint 15 local sin commit.
@@ -130,7 +154,8 @@ Se aplica y prueba únicamente en PostgreSQL propio desechable.
 | 12 | fdfa9aa, confirmado | Núcleo aislado del par, con barreras de evidencia. |
 | 13 | d18a676, confirmado | Admisión persistida, flag apagado; sin verificador/XP Tira. |
 | 14 | 60b1228, confirmado | Replay normal aislado y barrido serial corregido; sin XP. |
-| 15 | Local, sin commit | Replay de presencia y terminales privado, con bloqueos de evidencia; sin XP. |
+| 15 | 83d53da, confirmado | Replay de presencia y terminales privado, con bloqueos de evidencia; sin XP. |
+| 16 | Local, sin commit | ACTIVA exacta y temporalidad µs para nuevas búsquedas admitidas; contrato de liquidación bloqueado, sin XP. |
 
 ## Historial — checkpoint 12 confirmado en fdfa9aa
 
@@ -383,6 +408,7 @@ por sí solas la partida; Duelo conserva su restricción servidor de ayudas.
 | `COMPETITIVE_SOLO_ENABLED` | Cima/Guardián/Rescate | Apagado. |
 | `COMPETITIVE_TRIVIA_ENABLED` | Trivia Rush | Apagado. |
 | `COMPETITIVE_GHOST_ENABLED` | Duelo fantasma | Apagado. |
+| `COMPETITIVE_TUG_ENABLED` | Solo admisión de nuevas búsquedas Tira; no habilita liquidación | Apagado. |
 
 Solo el literal `true` habilita su grupo/modalidad. Apagarlos no detiene cierre,
 reconciliación o liquidación de intentos ya admitidos. Sin admisión retroactiva
@@ -405,6 +431,10 @@ Orden y dependencias del esquema requerido:
 4. [Presencia](../prisma/migrations/20261002190000_trivia_presence/migration.sql), checkpoint 5, depende de evidencia.
 5. [Competitivo Trivia/Duelo](../prisma/migrations/20261002230000_trivia_competitive_v1/migration.sql), checkpoint 6, depende de base/evidencia/presencia.
 6. [Evidencia Tira](../prisma/migrations/20261003010000_tug_authoritative_evidence/migration.sql), checkpoint 8 confirmado, requiere esquema legacy Tira; snapshot y R, sin liquidación XP.
+7. [Presencia Tira](../prisma/migrations/20261003160000_tug_presence/migration.sql), checkpoint 9 confirmado; depende de evidencia.
+8. [Testigo R](../prisma/migrations/20261003220000_tug_round_visibility/migration.sql), checkpoint 11 confirmado; depende de evidencia/presencia.
+9. [Admisión Tira](../prisma/migrations/20261004010000_tug_competitive_admission/migration.sql), checkpoint 13 confirmado; conserva procedencia negativa e identidad.
+10. [Autoridad temporal Tira](../prisma/migrations/20261004160000_tug_temporal_authority/migration.sql), checkpoint 16 LOCAL sin commit; requiere las anteriores. Sin backfill ni autorización de migración remota.
 
 Incluso con flags apagados, el backend nuevo exige esquema compatible antes de
 usar campos Prisma/recuperadores. Respaldo/revisión → verificar rol real de

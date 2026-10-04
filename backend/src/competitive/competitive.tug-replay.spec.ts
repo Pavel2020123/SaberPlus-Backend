@@ -1,6 +1,17 @@
-import { replayTugRound } from './competitive.tug-replay';
+import { replayTugRound, tugIsoUs } from './competitive.tug-replay';
 
 describe('isolated TUG replay PostgreSQL microsecond boundary', () => {
+  it('keeps all six digits of the PostgreSQL ISO timestamp', () => {
+    expect(
+      tugIsoUs('2026-10-03T00:00:00.000001Z') -
+        tugIsoUs('2026-10-03T00:00:00.000Z'),
+    ).toBe(1n);
+    expect(
+      tugIsoUs('2026-10-03T00:00:00.200001Z') -
+        tugIsoUs('2026-10-03T00:00:00.000Z'),
+    ).toBe(200001n);
+    expect(() => tugIsoUs('client-time')).toThrow('TUG_REPLAY_TIME_INVALID');
+  });
   const at = 1791000000000999n;
   const answer = (offset: bigint) => ({
     esCorrecta: true,
