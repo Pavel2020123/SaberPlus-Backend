@@ -35,8 +35,10 @@ export function validateCompetitiveDatabase(urlValue, marker) {
   return url;
 }
 async function main() {
-  if (process.argv.length !== 2)
+  const rankingOnly = process.argv.length === 3 && process.argv[2] === '--ranking';
+  if (process.argv.length !== 2 && !rankingOnly)
     throw new Error('No external database or arguments accepted.');
+  console.log(JSON.stringify({ phase: 'postgres-scope', scope: rankingOnly ? 'ranking-only' : 'complete' }));
   const nonce = randomBytes(8).toString('hex');
   const password = randomBytes(24).toString('hex');
   const user = `sp_test_${nonce}`;
@@ -352,11 +354,15 @@ async function main() {
       productionDurabilityCertified:false}));
 
     };
-    console.log(JSON.stringify({ phase: 'linux-runtime-build-start', node: '24.14.1', timeoutMs: 600000 }));
-    linuxImage = await prepareLinuxRuntime(backend, directory, nonce, ownedDocker);
-    env.COMPETITIVE_LINUX_IMAGE = linuxImage;
-    console.log(JSON.stringify({ phase: 'linux-runtime-build-end', isolated: true }));
-    await backupRestore('schema',false);
+    if (!rankingOnly) {
+      console.log(JSON.stringify({ phase: 'linux-runtime-build-start', node: '24.14.1', timeoutMs: 600000 }));
+      linuxImage = await prepareLinuxRuntime(backend, directory, nonce, ownedDocker);
+      env.COMPETITIVE_LINUX_IMAGE = linuxImage;
+      console.log(JSON.stringify({ phase: 'linux-runtime-build-end', isolated: true }));
+      await backupRestore('schema',false);
+    }
+    // Directed reader tests do not seed every sports engine. The full mode keeps
+    // its Linux and populated backup/restore gates unchanged; no test is skipped.
     await clockDiagnostic('before-tests');
     await schemaDiagnostic('before-tests');
     let result;
@@ -364,7 +370,8 @@ async function main() {
       // Node already isolated each file in a child; keep that isolation and
       // order, but bound each process rather than truncate the whole growing
       // suite. The existing command budget is 120 s; no test/window is extended.
-      const files = [
+      const files = rankingOnly ? ['test/competitive-ranking-postgres.test.cjs'] : [
+        'test/competitive-ranking-postgres.test.cjs',
         'test/competitive-linux-postgres.test.cjs',
         'test/competitive-timeouts-postgres.test.cjs',
         'test/competitive-resilience-postgres.test.cjs',
@@ -515,7 +522,7 @@ async function main() {
     }
     await clockDiagnostic('after-tests');
     await schemaDiagnostic('after-tests');
-    await backupRestore('populated',true);
+    if (!rankingOnly) await backupRestore('populated',true);
 
     console.log(
       result.stdout

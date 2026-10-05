@@ -2,8 +2,8 @@
 
 ## Alcance vigente para revisión de integración
 
-PR-I1 reúne 22 checkpoints publicados, con base `0bb4855`, y se encuentra en
-Draft PR #5. Incluye infraestructura e integración competitiva local de Cima,
+PR-I1 reúne 22 checkpoints funcionales y fue integrado a main mediante PR #5,
+merge `5216383`. Incluye infraestructura e integración competitiva local de Cima,
 Guardián, Rescate, Trivia Rush, Duelo fantasma y Tira y afloja. Memoria y Batallas
 todavía **no están integradas competitivamente**.
 
@@ -13,6 +13,9 @@ La integración de código no significa activación productiva. Los flags
 defecto. La integración a `main` y el despliegue son decisiones separadas;
 los requisitos B1/B2 de producción siguen pendientes. Véase el
 [alcance de infraestructura](PR_I1_COMPETITIVE_INFRASTRUCTURE.md#alcance-vigente-para-revisión-de-integración).
+
+PR-I2 comienza con [I2-1: contrato y pruebas aisladas](PR_I2_RANKINGS.md), sin API
+ni Flutter. El ranking general permanece vigente; B1/B2 no están cerrados.
 
 ## Continuación CP22 — señales Linux y límites operativos
 
