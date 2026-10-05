@@ -2,8 +2,8 @@
 
 ## Alcance vigente para revisión de integración
 
-Los 22 checkpoints publicados de PR-I1, con base `0bb4855` y Draft PR #5,
-incluyen infraestructura e integración competitiva local de Cima, Guardián,
+PR-I1, con 22 checkpoints funcionales, fue integrado a main por PR #5 (`5216383`);
+incluye infraestructura e integración competitiva local de Cima, Guardián,
 Rescate, Trivia Rush, Duelo fantasma y Tira y afloja. Memoria y Batallas todavía
 **no están integradas competitivamente**.
 
@@ -14,6 +14,9 @@ por defecto. Integrar a `main` y desplegar son decisiones separadas; despliegue
 y activación siguen sujetos a los requisitos B1/B2 descritos en este documento.
 El [relevo técnico](PR_I1_RELEVO.md#alcance-vigente-para-revisión-de-integración)
 resume el estado vigente; los apartados siguientes conservan su historial.
+
+PR-I2 prepara [contratos de ranking competitivo y pruebas I2-1](PR_I2_RANKINGS.md);
+no implementa todavía API/Flutter ni sustituye el ranking general existente.
 
 > **Base funcional histórica: 97ebfc4, 18 checkpoints publicados entonces.** La integración
 > y corrección P1 de CP18 ya están confirmadas; validación local final PostgreSQL

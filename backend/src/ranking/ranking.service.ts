@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma, RolUsuario } from '@prisma/client';
-import { createHmac } from 'node:crypto';
+import { crearAliasRanking } from './ranking.alias';
 import { PrismaService } from '../prisma/prisma.service';
 
 export enum AlcanceRanking {
@@ -25,21 +25,6 @@ interface EntradaCalculada {
   posicion: number;
   esUsuarioActual: boolean;
 }
-
-const IDENTIDADES_RANKING = [
-  'Águila',
-  'Colibrí',
-  'Cóndor',
-  'Delfín',
-  'Jaguar',
-  'Lince',
-  'Lobo',
-  'Mariposa',
-  'Ocelote',
-  'Quetzal',
-  'Tortuga',
-  'Zorro',
-] as const;
 
 @Injectable()
 export class RankingService {
@@ -127,7 +112,7 @@ export class RankingService {
 
         return {
           usuarioId: usuario.id,
-          alias: this.crearAlias(usuario.id, alcance),
+          alias: crearAliasRanking(usuario.id, alcance),
           xp,
           esUsuarioActual: usuario.id === usuarioId,
         };
@@ -180,19 +165,5 @@ export class RankingService {
       fecha.getDate() - (periodo === PeriodoRanking.SEMANA ? 7 : 30),
     );
     return fecha;
-  }
-
-  private crearAlias(usuarioId: string, alcance: AlcanceRanking) {
-    const secreto =
-      process.env.RANKING_ALIAS_SECRET ??
-      process.env.JWT_SECRET ??
-      'saberplus-ranking-development';
-    const firma = createHmac('sha256', secreto)
-      .update(`ranking-v1:${alcance}:${usuarioId}`)
-      .digest();
-    const identidad =
-      IDENTIDADES_RANKING[firma[0] % IDENTIDADES_RANKING.length];
-    const numero = (firma.readUInt32BE(1) % 900000) + 100000;
-    return `Estudiante ${identidad} ${numero}`;
   }
 }
