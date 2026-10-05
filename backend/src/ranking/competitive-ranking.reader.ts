@@ -60,7 +60,7 @@ export function competitiveRankingStatement(
     FROM stats`;
 }
 
-/** Internal only: no controller/provider registration yet; never writes XP. */
+/** Shared internal reader used by the authenticated HTTP controller; never writes XP. */
 @Injectable()
 export class CompetitiveRankingReader {
   private readonly logger = new Logger(CompetitiveRankingReader.name);

@@ -1,5 +1,141 @@
 # PR-I2 — rankings competitivos por juego y temporada
 
+## I2-3: API HTTP autenticada — estado vigente
+
+Base `60da6de`, rama `feat/pr-i2-competitive-rankings`, árbol limpio al iniciar.
+I2-1 (`1962224`) e I2-2 (`60da6de`) confirmados/publicados. I2-3 implementado y
+validado localmente, pendiente de revisión y publicación del propietario.
+No está desplegado, no activa admisión y no cierra PR-I2.
+
+### Ruta, identidad y autorización
+
+`GET /ranking/competitivo?juego=TRIVIA_RUSH&temporada=2026`.
+Ambos parámetros son obligatorios: juego exacto del enum `JuegoCompetitivo` y
+año decimal canónico 1..9999. Se rechazan parámetros adicionales, arrays,
+duplicados, espacios, exponentes, fracciones y ceros iniciales. Se conserva la
+sintaxis original frente a la conversión implícita del ValidationPipe existente.
+No hay selección de año por defecto ni filtros de institución/periodo/limite.
+
+[Controlador y DTO](../src/ranking/competitive-ranking.controller.ts) registrados
+en [RankingModule](../src/ranking/ranking.module.ts). Reutilizan el
+[JwtGuard existente](../src/auth/jwt.guard.ts), que verifica firma y vigencia con
+JwtService, consulta el usuario actual y establece `req.usuario`; el rol no se
+toma del claim antiguo. La configuración JWT HS256 y expiración de los tokens
+emitidos siguen siendo las de AuthModule, sin verificador ni caducidad paralelos.
+Después se exige rol actual ESTUDIANTE y se aplica EmailVerificadoGuard con sus
+reglas existentes; se conserva también la restricción de contraseña inicial.
+Profesores y administradores reciben 403 en esta ruta.
+
+La posición propia procede exclusivamente de `req.usuario.sub`. Selectores en
+query o un body no vacío reciben 400. Headers personalizados de identidad no
+seleccionan usuario y se ignoran. El controlador delega al lector I2-2 sin
+recalcular posiciones ni abrir consultas paralelas. Usa el mismo PrismaService
+y pool del módulo existente; no introduce otro cliente, esquema o dependencia.
+Las respuestas exitosas llevan `Cache-Control: private, no-store` y
+`Vary: Authorization`.
+
+### Respuesta y errores
+
+Los tres estados contractuales son HTTP 200: CON_PARTICIPANTES,
+SIN_PARTICIPANTES y NO_DISPONIBLE. Conservan TOP 50, total completo y posición
+propia independiente. Los seis juegos PR-I1 están disponibles contractualmente;
+Memoria/Batallas devuelven NO_DISPONIBLE, total null y sin posición.
+Flags de admisión OFF no ocultan balances ya liquidados.
+
+Ejemplo ficticio, sin datos personales ni UUID:
+
+```json
+{
+  "juego": "TRIVIA_RUSH",
+  "temporada": 2026,
+  "limite": 50,
+  "estado": "CON_PARTICIPANTES",
+  "totalParticipantes": 1,
+  "ranking": [{ "posicion": 1, "alias": "Tú", "xp": 80, "esUsuarioActual": true }],
+  "miPosicion": { "posicion": 1, "alias": "Tú", "xp": 80, "esUsuarioActual": true }
+}
+```
+
+Cada entrada tiene exclusivamente posicion, alias, xp y esUsuarioActual. Se
+reutiliza HMAC I2-1: no expone nombre, correo, institución, fecha, partida o
+evidencia. No se cambia Usuario.xpTotal ni se escribe XP, ledger o alcanzadoEn.
+
+| HTTP | Situación |
+|---|---|
+| 401 | Sin JWT, firma inválida, token expirado/no vigente o usuario no válido según JwtGuard |
+| 403 | Rol no estudiante o restricciones existentes de correo/contraseña |
+| 400 | Query inválida o body no admitido; validación Nest existente y código INVALID_COMPETITIVE_RANKING_QUERY donde corresponde |
+| 500 | Anomalía de datos/contexto interno o error inesperado |
+| 503 | Fallo de lectura PostgreSQL del lector |
+
+500/503 usan el código público `COMPETITIVE_RANKING_UNAVAILABLE` y mensaje
+genérico. No serializan SQL, Prisma metadata, UUID, secretos o conexiones.
+Los diagnósticos del lector siguen siendo privados; el controlador registra
+solamente un código seguro para errores inesperados. No atribuye anomalías
+de datos del servidor al estudiante ni las convierte en ranking vacío.
+
+### Evidencia y límites de validación I2-3
+
+[Pruebas HTTP Jest](../src/ranking/competitive-ranking.controller.spec.ts)
+usan RankingModule real, JWT firmado y los guards reales, sin sustituirlos.
+Usuario/lector son dobles: comprueban HTTP, autorización, parámetros, privacidad,
+estados y traducción de errores, pero no SQL real. Prueban firma incorrecta,
+expiración, nbf, roles actuales frente a claims antiguos, TOP/posición 51,
+selectores query/body/headers y compatibilidad del GET legacy `/ranking`.
+
+[Suite PostgreSQL dirigida](../test/competitive-ranking-postgres.test.cjs)
+conserva las diez pruebas I2-2 y añade dos HTTP con RankingModule, JWT, guards,
+lector y PostgreSQL reales. Verifica el mismo PrismaService, corrección real
+visible por HTTP, roles actuales, privacidad y ausencia de escrituras XP.
+Introduce anomalía temporal y tabla ausente exclusivamente en la DB OWNED;
+restaura ambas en finally y comprueba recuperación. No prueba AppModule completo
+ni certifica roles productivos o un nuevo motor deportivo.
+
+```text
+npm run build
+npm test -- --runInBand competitive-ranking.controller.spec.ts competitive-ranking.reader.spec.ts competitive-ranking.contract.spec.ts ranking.service.spec.ts jwt.guard.spec.ts email-verificado.guard.spec.ts
+node --check test/competitive-ranking-postgres.test.cjs
+node tool/test_competitive_postgres.mjs --ranking
+git diff --check
+```
+
+Resultados I2-3: build exit 0; Jest **102/102, cinco suites**, 12,036 s.
+Suites: controlador HTTP 37, lector 6, contrato 51, legacy 3 y JwtGuard 5.
+No existe suite independiente email-verificado.guard.spec.ts; su guard real
+sí está ejercitado por las pruebas HTTP. Sintaxis CJS correcta.
+PostgreSQL **12/12, un archivo, exit 0**, 4,428 s de tests / 4,601 s de archivo;
+cero fallidos, cancelados, omitidos, TODO o resúmenes incompletos. Aplicó las
+61 migraciones versionadas en un contenedor propio desechable, luego retirado.
+Una sonda pg_isready inicial devolvió exit 2 durante el arranque; la espera
+acotada existente comprobó disponibilidad antes de migrar/probar. No hubo
+fallos de tests. Registro local: `sp-i2-3-postgres.log` en TEMP.
+
+La regresión PostgreSQL completa **no se volvió a ejecutar al cerrar I2-2 ni
+en I2-3**. Aquí se eligió cobertura dirigida del módulo real y los componentes
+afectados: no cambian workers, migraciones, reglas, liquidaciones o ciclo de vida.
+Estos resultados no equivalen a regresión integral PR-I1 ni pruebas Linux/POSIX.
+La integración global y la regresión de cierre se mantienen como criterio I2-5.
+
+Archivos I2-3: controlador y spec nuevos; RankingModule, comentario del lector,
+suite PostgreSQL y este documento actualizados. Sin cambios en ranking legacy,
+autenticación existente, reglas competitivas, migraciones, flags o Flutter.
+
+### Continuidad y requisitos externos
+
+I2-4 pendiente: consumir esta API en Flutter, seleccionar juego/año, presentar
+los tres estados y TOP/posición propia, tratar 401/403/400/5xx sin exponer datos
+privados y probar compatibilidad del ranking general. No implementado aquí.
+I2-5 pendiente: validación global Backend/Flutter, regresión de cierre e
+integración real con AppModule/autenticación del entorno autorizado; revisar
+privacidad, errores, correcciones y admisión OFF antes de proponer merge.
+No declarar PR-I2 completo por esta ruta ni empezar esos checkpoints sin orden.
+
+B1/B2 siguen abiertos: rol/RLS con visibilidad completa para el backend,
+esquema compatible incluso con flags OFF, HMAC privado estable, presupuesto
+de conexiones, capacidad, respaldo/durabilidad y pruebas operativas autorizadas.
+No se verificaron producción, Supabase o despliegue; no se activaron flags.
+La API local no integra Memoria/Batallas, premios, perfiles o ranking institucional.
+
 ## I2-2: lector PostgreSQL interno
 
 Base `1962224`, rama `feat/pr-i2-competitive-rankings`, árbol limpio al iniciar.
@@ -99,7 +235,7 @@ window/CTEs siguen procesando la población completa en PostgreSQL y pueden requ
 más memoria/ordenación al crecer. Logs locales sp-i2-2-postgres-1.log, -2.log y
 sp-i2-2-postgres-final.log en TEMP.
 
-### Continuidad I2-3
+### Continuidad prevista al cerrar I2-2 (histórica)
 
 Registrar/invocar el lector desde una API autenticada separada de `/ranking`;
 UUID propio exclusivamente del JWT, nunca query/body. Mapear errores internos a
@@ -111,8 +247,8 @@ B1/B2 siguen abiertos: backend necesita rol con visibilidad completa de balances
 y usuarios (no RLS por estudiante), esquema compatible incluso con flags OFF,
 secreto HMAC privado estable, presupuesto del pool y validación operativa real.
 El ensayo usa dueño de la DB OWNED y no certifica roles/RLS productivos.
-Pendientes de I2-3: autenticación, DTO/HTTP, mapping de errores y pruebas de rutas;
-sin decisiones de producto nuevas identificadas. Flutter continúa en I2-4.
+Los pendientes de autenticación, DTO/HTTP, mapping de errores y pruebas de rutas
+quedan implementados en la sección vigente I2-3 superior. Flutter continúa en I2-4.
 
 ## I2-1: contrato aislado
 

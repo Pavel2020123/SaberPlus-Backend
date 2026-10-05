@@ -4,11 +4,16 @@ const assert = require('node:assert/strict');
 const { readFile } = require('node:fs/promises');
 const { randomUUID } = require('node:crypto');
 const { PrismaClient, Prisma } = require('@prisma/client');
+const { Test } = require('@nestjs/testing');
+const { JwtModule, JwtService } = require('@nestjs/jwt');
+const { ValidationPipe } = require('@nestjs/common');
+const { PrismaService } = require('../src/prisma/prisma.service');
+const { RankingModule } = require('../src/ranking/ranking.module');
 const { CompetitiveRankingReader, competitiveRankingStatement } = require('../src/ranking/competitive-ranking.reader');
 const { projectCompetitiveRanking } = require('../src/ranking/competitive-ranking.contract');
 const { CompetitiveService, competitiveHash } = require('../src/competitive/competitive.service');
 const { CompetitiveVerifierRegistry } = require('../src/competitive/competitive.contracts');
-let db, reader, nextSeason=3100;
+let db, reader, app, jwt, baseUrl, nextSeason=3100;
 const clients=[];
 const query=(temporada,juego='TRIVIA_RUSH')=>({juego,temporada});
 const date=new Date('2026-09-01T12:00:00.000Z');
@@ -18,11 +23,22 @@ before(async()=>{
   validateCompetitiveDatabase(process.env.COMPETITIVE_TEST_URL,JSON.parse(await readFile(process.env.COMPETITIVE_TEST_OWNER,'utf8')));
   db=new PrismaClient({datasources:{db:{url:process.env.COMPETITIVE_TEST_URL}}});
   reader=new CompetitiveRankingReader(db);
+  const module=await Test.createTestingModule({imports:[JwtModule.register({global:true,secret:'owned-ranking-http-only',verifyOptions:{algorithms:['HS256']}}),RankingModule]})
+    .overrideProvider(PrismaService).useValue(db).compile();
+  assert.equal(module.get(PrismaService),db);
+  app=module.createNestApplication();
+  app.useGlobalPipes(new ValidationPipe({whitelist:true,forbidNonWhitelisted:true,transform:true,transformOptions:{enableImplicitConversion:true}}));
+  await app.listen(0,'127.0.0.1');
+  baseUrl=await app.getUrl();jwt=module.get(JwtService);
 });
-after(async()=>{await Promise.all(clients.map(c=>c.$disconnect()));await db?.$disconnect();});
+after(async()=>{await app?.close();await Promise.all(clients.map(c=>c.$disconnect()));await db?.$disconnect();});
 function client(){const c=new PrismaClient({datasources:{db:{url:process.env.COMPETITIVE_TEST_URL}}});clients.push(c);return c;}
 async function user(rol='ESTUDIANTE',id=randomUUID()){
-  return db.usuario.create({data:{id,rol,nombre:'PRIVATE_RANKING_NAME',correo:`${id}@example.invalid`,contrasenaHash:'PRIVATE_HASH',xpTotal:999,institucionId:null}});
+  return db.usuario.create({data:{id,rol,nombre:'PRIVATE_RANKING_NAME',correo:`${id}@example.invalid`,contrasenaHash:'PRIVATE_HASH',xpTotal:999,institucionId:null,correoVerificado:true}});
+}
+async function httpBoard(q,id,expected=200){
+  const response=await fetch(`${baseUrl}/ranking/competitivo?juego=${q.juego}&temporada=${q.temporada}`,{headers:{Authorization:`Bearer ${jwt.sign({sub:id},{expiresIn:'1h'})}`}});
+  assert.equal(response.status,expected);return response.json();
 }
 async function seed(season,xps,role='ESTUDIANTE'){
   const rows=[];
@@ -124,6 +140,45 @@ test('ranking PostgreSQL: real PR-I1 administrative correction changes ranking; 
   const before=await counts(), board=await reader.read(query(original.temporada),a.id);
   assert.equal(board.miPosicion.xp,80);assert.equal(board.miPosicion.posicion,2);
   assert.equal(board.ranking[0].xp,99);assert.deepEqual(await counts(),before);
+  assert.deepEqual(await httpBoard(query(original.temporada),a.id),board);
+  assert.deepEqual(await counts(),before);
+});
+
+test('ranking HTTP PostgreSQL: actual module, JWT/current roles, TOP/own position, legacy and no writes',async()=>{
+  const season=nextSeason++, rows=await seed(season,Array.from({length:60},(_,i)=>1000-i)), own=rows[50].usuarioId;
+  const before=await counts(), board=await httpBoard(query(season),own);
+  assert.deepEqual(board,await reader.read(query(season),own));assert.equal(board.miPosicion.posicion,51);
+  assert.doesNotMatch(JSON.stringify(board),/PRIVATE_|usuarioId|@example.invalid/);for(const row of rows)assert.ok(!JSON.stringify(board).includes(row.usuarioId));
+  const signed=jwt.sign({sub:own,rol:'ESTUDIANTE'},{expiresIn:'1h'});
+  assert.equal((await fetch(`${baseUrl}/ranking/competitivo?juego=TRIVIA_RUSH&temporada=${season}`)).status,401);
+  for(const n of ['PROFESOR','ADMIN']){
+    await db.usuario.update({where:{id:own},data:{rol:n}});
+    assert.equal((await fetch(`${baseUrl}/ranking/competitivo?juego=TRIVIA_RUSH&temporada=${season}`,{headers:{Authorization:`Bearer ${signed}`}})).status,403);
+  }
+  await db.usuario.update({where:{id:own},data:{rol:'ESTUDIANTE'}});
+  const legacy=await fetch(`${baseUrl}/ranking?alcance=GLOBAL&periodo=TOTAL&limite=50`,{headers:{Authorization:`Bearer ${signed}`}});
+  assert.equal(legacy.status,200);assert.equal((await legacy.json()).periodo,'TOTAL');
+  assert.equal((await httpBoard(query(season,'MEMORY_MATCH'),own)).estado,'NO_DISPONIBLE');
+  assert.equal((await httpBoard(query(season,'SUMMIT'),own)).estado,'SIN_PARTICIPANTES');
+  assert.deepEqual(await counts(),before);
+});
+
+test('ranking HTTP PostgreSQL: committed owned temporal anomaly gives safe 500, missing table safe 503; both restored',async()=>{
+  const season=nextSeason++, [row]=await seed(season,[100]);const before=await counts();
+  try{
+    await db.$executeRaw`UPDATE "BalanceCompetitivo" SET "alcanzadoEn"=NULL WHERE "usuarioId"=${row.usuarioId}::uuid AND "gameId"='TRIVIA_RUSH' AND temporada=${season}`;
+    const body=await httpBoard(query(season),row.usuarioId,500);
+    assert.equal(body.code,'COMPETITIVE_RANKING_UNAVAILABLE');assert.ok(!JSON.stringify(body).includes(row.usuarioId));
+    assert.doesNotMatch(JSON.stringify(body),/REACHED_AT|Prisma|SQL|PRIVATE_/);
+  }finally{
+    await db.$executeRaw`UPDATE "BalanceCompetitivo" SET "alcanzadoEn"=${row.alcanzadoEn} WHERE "usuarioId"=${row.usuarioId}::uuid AND "gameId"='TRIVIA_RUSH' AND temporada=${season}`;
+  }
+  try{
+    await db.$executeRaw`ALTER TABLE "BalanceCompetitivo" RENAME TO "OwnedRankingHttpMissingTable"`;
+    const body=await httpBoard(query(season),row.usuarioId,503);
+    assert.equal(body.code,'COMPETITIVE_RANKING_UNAVAILABLE');assert.doesNotMatch(JSON.stringify(body),/BalanceCompetitivo|42P01|Prisma|postgresql|PRIVATE_/);
+  }finally{await db.$executeRaw`ALTER TABLE "OwnedRankingHttpMissingTable" RENAME TO "BalanceCompetitivo"`;}
+  assert.equal((await httpBoard(query(season),row.usuarioId)).estado,'CON_PARTICIPANTES');assert.deepEqual(await counts(),before);
 });
 
 test('ranking PostgreSQL: one snapshot stays coherent across a writer COMMIT while the SELECT waits on a real lock',async()=>{
