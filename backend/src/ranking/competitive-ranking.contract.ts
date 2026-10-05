@@ -101,7 +101,7 @@ export function parseCompetitiveRankingQuery(
   return { juego: juego as JuegoCompetitivo, temporada: year };
 }
 
-function canonicalUserId(id: string): string {
+export function canonicalRankingUserId(id: string): string {
   requireContract(
     typeof id === 'string' &&
       /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(id),
@@ -119,7 +119,7 @@ export function projectCompetitiveRanking(
   authenticatedUserId: string,
 ): CompetitiveRankingBoard {
   const selection = parseCompetitiveRankingQuery(query.juego, query.temporada);
-  const ownId = canonicalUserId(authenticatedUserId);
+  const ownId = canonicalRankingUserId(authenticatedUserId);
   const base = { ...selection, limite: COMPETITIVE_TOP_LIMIT };
   if (!COMPETITIVE_RANKING_AVAILABILITY[selection.juego]) {
     return {
@@ -139,7 +139,7 @@ export function projectCompetitiveRanking(
   );
   const ids = new Set<string>();
   const positive = selected.flatMap((row) => {
-    const id = canonicalUserId(row.usuarioId);
+    const id = canonicalRankingUserId(row.usuarioId);
     requireContract(!ids.has(id), 'DUPLICATE_COMPETITIVE_BALANCE');
     ids.add(id);
     requireContract(
