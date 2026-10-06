@@ -94,7 +94,10 @@ Inspección del 4 de octubre de 2026: HEAD y referencia local origin coinciden;
 también merge-base: la rama contiene **18 commits adicionales**. El propietario
 confirma los 18 checkpoints publicados en GitHub; no se hizo fetch ni consulta
 remota en esta tarea. El commit 18 incluye integración Tira y corrección P1.
-PR-I1 no está fusionado a main. Este documento se preparó a partir del checkpoint funcional 97ebfc4; cualquier commit documental posterior deberá verificarse mediante Git.
+Estado histórico previo al PR #5: PR-I1 todavía no estaba fusionado cuando se
+preparó este bloque desde `97ebfc4`. Hoy está integrado por `5216383`;
+PR-I2 hasta I2-3 también está integrado por `66b5aa2`. Sigue I2-5 según
+[el relevo vigente](PR_I2_RANKINGS.md), sin despliegue ni activación automática.
 
 Tira A1–A8 está implementado, integrado internamente y validado localmente.
 Eso **no acredita despliegue ni autoriza activación productiva**. No hay código

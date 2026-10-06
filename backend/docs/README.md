@@ -13,8 +13,9 @@ Memoria y Batallas no están integradas competitivamente. Flags apagados por def
 merge no equivale a despliegue. Esquema compatible aun con flags OFF y B1/B2
 productivos pendientes; incidencias históricas conservadas.
 
-- [PR-I2 — contrato I2-1](PR_I2_RANKINGS.md): población/privacidad, parámetros y
-  pruebas aisladas; todavía sin API funcional, lector PostgreSQL ni Flutter.
+- [PR-I2 — I2-1/2/3 integrados](PR_I2_RANKINGS.md): contrato, lector PostgreSQL
+  y API autenticada; merge `66b5aa2`. Flutter I2-4 fusionada en `1921ba9`.
+  Sigue I2-5: validación integrada y regresión PostgreSQL completa pendientes.
   El ranking general permanece vigente.
 - [Relevo PR-I1](PR_I1_RELEVO.md).
 - [Infraestructura y evidencia PR-I1](PR_I1_COMPETITIVE_INFRASTRUCTURE.md).

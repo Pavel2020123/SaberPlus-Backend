@@ -16,8 +16,9 @@ funcionales. Incluye infraestructura e integración competitiva local de Cima,
 Guardián, Rescate, Trivia Rush, Duelo fantasma y Tira y afloja. Memoria y Batallas
 todavía no están integradas competitivamente.
 
-[PR-I2 — I2-1](docs/PR_I2_RANKINGS.md) prepara exclusivamente contratos y pruebas
-aisladas de ranking por juego/año: no API funcional, consultas DB ni Flutter.
+[PR-I2 — I2-1/2/3](docs/PR_I2_RANKINGS.md) incluye contrato, lector PostgreSQL
+y API autenticada, fusionados por PR #6 (`66b5aa2`). Flutter I2-4 está fusionada
+por PR #3 (`1921ba9`). Sigue I2-5: validación integrada y cierre, todavía pendientes.
 El ranking general `/ranking` continúa vigente y separado.
 
 [Relevo PR-I1](docs/PR_I1_RELEVO.md) e

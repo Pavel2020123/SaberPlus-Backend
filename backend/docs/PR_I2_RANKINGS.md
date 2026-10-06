@@ -1,6 +1,29 @@
 # PR-I2 — rankings competitivos por juego y temporada
 
-## I2-3: API HTTP autenticada — estado vigente
+## Estado vigente — recepción del relevo, 5 de octubre de 2026
+
+Verificado Git local: PR #6 fusionado en `66b5aa2`, con I2-1/2/3; Flutter PR #3
+fusionado en `1921ba9`, con I2-4. El relevo de Luis precede esos merges: no falta
+volver a publicar/mergear esas ramas. PR-I1 integrado por `5216383`.
+
+Sigue **I2-5**, no cerrado: API + Flutter con sesión real local, TOP/posición propia,
+estados, correcciones/balances, permisos/privacidad y ranking legacy; regresión
+PostgreSQL completa aislada y prueba física. Los 12 tests PostgreSQL dirigidos
+reportados por Luis no equivalen a esa regresión completa ni fueron reejecutados
+en recepción (Docker no disponible). La auditoría de recepción sí ejecutó build,
+1.258 tests Jest, 691 Flutter con 4 omitidos y 88 del panel, todos los ejecutados
+correctos; no sustituye E2E. Flutter corrige después problemas visuales de I2-4.
+
+No migraciones remotas, despliegue, activación ni cierre B1/B2 en esta entrega.
+I2-4 solo consulta: no asumir clientes de juegos competitivos por ver el ranking.
+Memoria/Batallas siguen NO_DISPONIBLE; integrarlos es otro alcance, no PR-I2.
+Se conservan fórmulas y precedencias aprobadas; no reabrir decisiones sin defecto.
+El relevo incluye deuda histórica de lint (111 errores/11 avisos) y dependencias
+(4 high/3 moderate). No se han revalidado esos recuentos en esta corrección
+documental ni se declaran resueltos; revisar antes de producción sin aplicar
+actualizaciones forzadas ni confundir build/Jest correctos con auditoría de seguridad.
+
+## Histórico I2-3: API HTTP autenticada antes de la fusión
 
 Base `60da6de`, rama `feat/pr-i2-competitive-rankings`, árbol limpio al iniciar.
 I2-1 (`1962224`) e I2-2 (`60da6de`) confirmados/publicados. I2-3 implementado y

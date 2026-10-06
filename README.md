@@ -1,5 +1,12 @@
 # SaberPlus Backend
 
+> Estado vigente, 5 de octubre de 2026: PR-I1 integrado por `5216383` y PR-I2
+> I2-1/2/3 por `66b5aa2` (PR #6); Flutter I2-4 integrado por `1921ba9` (PR #3).
+> Sigue **I2-5**: validación integrada, regresión PostgreSQL completa y prueba física.
+> No hay cierre E2E/productivo. Gates y B1/B2 siguen pendientes. Ver
+> [relevo de rankings](backend/docs/PR_I2_RANKINGS.md). Las notas de septiembre
+> inferiores son históricas, no la ruta actual ni autorización de despliegue.
+
 > Estado del relevo, 29 de septiembre de 2026: MA-2A/B/C y MA-3A/B/C tienen
 > implementación local en backend, ADMIN (MA-2) y Flutter; JN-1C/JN-2C también
 > existen. No acredita migraciones, despliegue ni ensayo físico. Los apartados
