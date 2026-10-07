@@ -1,5 +1,10 @@
 # Documentación backend
 
+Estado más reciente: [validación local del 6 de octubre de 2026](VALIDACION_LOCAL_I2_5_2026-10-06.md)
+y [evidencia sanitizada](validacion-local-2026-10-06/resultados.json).
+I2-5 abierto; regresión competitiva completa 347/347 ejecutada, comprobación física
+pendiente y fallos de lint/audit/panel registrados. No acredita producción.
+
 Entrada vigente para colaboradores. [README de la API](../README.md) contiene
 desarrollo local y contratos generales; [README del repositorio](../../README.md)
 describe su estructura. Las referencias a documentación Flutter corresponden

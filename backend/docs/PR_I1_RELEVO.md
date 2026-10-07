@@ -1,5 +1,13 @@
 # PR-I1 V1 — relevo técnico de SaberPlus-Backend
 
+## Validación posterior — 6 de octubre de 2026
+
+PR-I1 permanece integrado. [Validación I2-5](VALIDACION_LOCAL_I2_5_2026-10-06.md)
+ejecutó 347/347 competitivas PostgreSQL, Linux y backup/restauración incluidos,
+y nueve modos adicionales (102 pruebas). No acredita activación ni producción.
+I2-5 sigue abierto por comprobación física incompleta y pendientes del informe;
+no reimplementar PR-I1. Main autorizado, sin commits/push ni servicios remotos.
+
 ## Alcance vigente para revisión de integración
 
 PR-I1 reúne 22 checkpoints funcionales y fue integrado a main mediante PR #5,

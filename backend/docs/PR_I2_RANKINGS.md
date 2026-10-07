@@ -1,5 +1,17 @@
 # PR-I2 — rankings competitivos por juego y temporada
 
+## Estado vigente — validación del 6 de octubre de 2026
+
+**I2-5 abierto.** [Informe reproducible](VALIDACION_LOCAL_I2_5_2026-10-06.md):
+347/347 PostgreSQL completo, 25 archivos sin omisiones; dirigido 12/12 y otros
+nueve modos 102 pruebas. Login/ranking Flutter HTTP real 6/6 y corrección 5/5;
+fixtures sintéticos, no partidas verificadas. APK separada compilada/instalada,
+comprobación física completa pendiente. Jest 1.258/1.258; panel serial 88/88,
+predeterminado falla; lint 567 errores/150 avisos; audit 13 paquetes afectados,
+producción 1 critical. No se modificó runtime ni se activaron flags competitivos.
+Sin commit/push, despliegues ni cierre B1/B2. El estado del 5 de octubre siguiente
+queda como histórico, especialmente los recuentos anteriores de lint/audit.
+
 ## Estado vigente — recepción del relevo, 5 de octubre de 2026
 
 Verificado Git local: PR #6 fusionado en `66b5aa2`, con I2-1/2/3; Flutter PR #3

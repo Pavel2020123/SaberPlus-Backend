@@ -1,0 +1,1078 @@
+{
+  "date": "2026-10-06",
+  "source": "Ejecuciones locales de esta validacion; sin logs completos ni credenciales",
+  "commands": [
+    {
+      "id": "admin-check-npm",
+      "command": "node <herramientas-temporales>\\npm\\package\\bin\\npm-cli.js run check",
+      "exit": 0,
+      "seconds": 4.3871521
+    },
+    {
+      "id": "admin-check",
+      "command": "node check.mjs",
+      "exit": 0,
+      "seconds": 4.698019599999999
+    },
+    {
+      "id": "admin-editorial-isolated",
+      "command": "node --require <herramientas-temporales>\\panel-trace.cjs --test test/editorial-review.test.mjs",
+      "exit": 0,
+      "seconds": 1.7553220999999999,
+      "nodeSummary": {
+        "tests": 6,
+        "suites": 0,
+        "pass": 6,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      }
+    },
+    {
+      "id": "admin-test-final",
+      "command": "node <herramientas-temporales>\\npm\\package\\bin\\npm-cli.js test",
+      "exit": 1,
+      "seconds": 335.1961761,
+      "nodeSummary": {
+        "tests": 88,
+        "suites": 0,
+        "pass": 73,
+        "fail": 15,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      }
+    },
+    {
+      "id": "admin-test-repeat",
+      "command": "node <herramientas-temporales>\\npm\\package\\bin\\npm-cli.js test",
+      "exit": 1,
+      "seconds": 234.4720777,
+      "nodeSummary": {
+        "tests": 88,
+        "suites": 0,
+        "pass": 74,
+        "fail": 14,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      }
+    },
+    {
+      "id": "admin-test-serial-direct",
+      "command": "node --test --test-concurrency=1 test/*.test.mjs",
+      "exit": 0,
+      "seconds": 11.350325999999999,
+      "nodeSummary": {
+        "tests": 88,
+        "suites": 0,
+        "pass": 88,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      }
+    },
+    {
+      "id": "admin-test-serial",
+      "command": "node <herramientas-temporales>\\npm\\package\\bin\\npm-cli.js test -- --test-concurrency=1",
+      "exit": 1,
+      "seconds": 235.006343,
+      "nodeSummary": {
+        "tests": 88,
+        "suites": 0,
+        "pass": 75,
+        "fail": 13,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      }
+    },
+    {
+      "id": "admin-test",
+      "command": "node --test test/*.test.mjs",
+      "exit": 1,
+      "seconds": 373.76157059999997,
+      "nodeSummary": {
+        "tests": 88,
+        "suites": 0,
+        "pass": 78,
+        "fail": 10,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      }
+    },
+    {
+      "id": "apk-debug-local-trust",
+      "command": "flutter build apk --debug --no-pub --dart-define=APP_ENV=dev --dart-define=DEMO_MODE=false --dart-define=API_BASE_URL=http://127.0.0.1:43187 --dart-define=CONTENT_BASE_URL=http://127.0.0.1:43187",
+      "exit": 1,
+      "seconds": 430.2715285
+    },
+    {
+      "id": "apk-debug-windows-trust",
+      "command": "flutter build apk --debug --no-pub --dart-define=APP_ENV=dev --dart-define=DEMO_MODE=false --dart-define=API_BASE_URL=http://127.0.0.1:43187 --dart-define=CONTENT_BASE_URL=http://127.0.0.1:43187",
+      "exit": 1,
+      "seconds": 4.6757865
+    },
+    {
+      "id": "apk-debug",
+      "command": "flutter build apk --debug --no-pub --dart-define=APP_ENV=dev --dart-define=DEMO_MODE=false --dart-define=API_BASE_URL=http://127.0.0.1:43187 --dart-define=CONTENT_BASE_URL=http://127.0.0.1:43187",
+      "exit": 1,
+      "seconds": 6.8121088
+    },
+    {
+      "id": "apk-isolated",
+      "command": "flutter build apk --debug --no-pub (local defines; temporary debug applicationIdSuffix .i2validation; one worker, 1 GiB heap)",
+      "exit": 0,
+      "seconds": 8702.9073815
+    },
+    {
+      "id": "audit-all",
+      "command": "node <herramientas-temporales>\\npm\\package\\bin\\npm-cli.js audit --json",
+      "exit": 1,
+      "seconds": 18.1027467
+    },
+    {
+      "id": "audit-prod",
+      "command": "node <herramientas-temporales>\\npm\\package\\bin\\npm-cli.js audit --omit=dev --json",
+      "exit": 1,
+      "seconds": 7.5497768999999995
+    },
+    {
+      "id": "backend-build",
+      "command": "node <herramientas-temporales>\\npm\\package\\bin\\npm-cli.js run build",
+      "exit": 0,
+      "seconds": 75.57952759999999
+    },
+    {
+      "id": "backend-ci-system-ca",
+      "command": "node <herramientas-temporales>\\npm\\package\\bin\\npm-cli.js ci",
+      "exit": 0,
+      "seconds": 426.90974309999996
+    },
+    {
+      "id": "backend-ci",
+      "command": "<herramientas-temporales>\\node-v24.14.1-win-x64\\node.exe <herramientas-temporales>\\npm\\package\\bin\\npm-cli.js ci",
+      "exit": 1,
+      "seconds": 254.4883697
+    },
+    {
+      "id": "backend-jest",
+      "command": "node <herramientas-temporales>\\npm\\package\\bin\\npm-cli.js test -- --runInBand",
+      "exit": 0,
+      "seconds": 133.71379249999998
+    },
+    {
+      "id": "backend-lint",
+      "command": "node node_modules/eslint/bin/eslint.js {src,apps,libs,test}/**/*.ts --format json",
+      "exit": 1,
+      "seconds": 55.0847128
+    },
+    {
+      "id": "browser-probe-repeat",
+      "command": "node <herramientas-temporales>\\browser-probe.cjs",
+      "exit": 0,
+      "seconds": 5.335700699999999
+    },
+    {
+      "id": "browser-probe",
+      "command": "node <herramientas-temporales>\\browser-probe.cjs",
+      "exit": 1,
+      "seconds": 39.4586091
+    },
+    {
+      "id": "certificates-preview-repeat",
+      "command": "node tool/preview_course_certificate.cjs",
+      "exit": 0,
+      "seconds": 11.79055
+    },
+    {
+      "id": "certificates-preview",
+      "command": "node tool/preview_course_certificate.cjs",
+      "exit": 1,
+      "seconds": 173.92786999999998
+    },
+    {
+      "id": "certificates-seven",
+      "command": "node tool/preview_course_certificate.cjs",
+      "exit": 0,
+      "seconds": 22.5076832
+    },
+    {
+      "id": "docker-pull-postgres16",
+      "command": "docker --context desktop-linux pull postgres:16",
+      "exit": 0,
+      "seconds": 13.973538999999999
+    },
+    {
+      "id": "editorial-attempt",
+      "command": "node tool/test_editorial_postgres.mjs",
+      "exit": 1,
+      "seconds": 0.6195613,
+      "cleanupConfirmed": false
+    },
+    {
+      "id": "editorial-coverage",
+      "command": "node tool/test_editorial_postgres.mjs --coverage",
+      "exit": 0,
+      "seconds": 80.667,
+      "nodeSummary": {
+        "tests": 4,
+        "suites": 0,
+        "pass": 4,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "cleanupConfirmed": true
+    },
+    {
+      "id": "editorial-default",
+      "command": "node tool/test_editorial_postgres.mjs",
+      "exit": 0,
+      "seconds": 95.199,
+      "nodeSummary": {
+        "tests": 13,
+        "suites": 0,
+        "pass": 13,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "cleanupConfirmed": true
+    },
+    {
+      "id": "editorial-deferred-review",
+      "command": "node tool/test_editorial_postgres.mjs --deferred-review",
+      "exit": 0,
+      "seconds": 3215.699,
+      "nodeSummary": {
+        "tests": 5,
+        "suites": 0,
+        "pass": 5,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "cleanupConfirmed": true
+    },
+    {
+      "id": "editorial-institution-approval",
+      "command": "node tool/test_editorial_postgres.mjs --institution-approval",
+      "exit": 0,
+      "seconds": 81.781,
+      "nodeSummary": {
+        "tests": 13,
+        "suites": 0,
+        "pass": 13,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "cleanupConfirmed": true
+    },
+    {
+      "id": "editorial-learning-map-repeat",
+      "command": "<herramientas-temporales>\\node-v24.14.1-win-x64\\node.exe tool/test_editorial_postgres.mjs --learning-map",
+      "exit": 0,
+      "seconds": 98.18394459999999,
+      "nodeSummary": {
+        "tests": 7,
+        "suites": 0,
+        "pass": 7,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "cleanupConfirmed": true
+    },
+    {
+      "id": "editorial-learning-map",
+      "command": "node tool/test_editorial_postgres.mjs --learning-map",
+      "exit": 1,
+      "seconds": 3506.228,
+      "cleanupConfirmed": true
+    },
+    {
+      "id": "editorial-runner-guards",
+      "command": "node --test tool/test_editorial_postgres.test.mjs",
+      "exit": 0,
+      "seconds": 0.5588075,
+      "nodeSummary": {
+        "tests": 11,
+        "suites": 0,
+        "pass": 11,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "cleanupConfirmed": false
+    },
+    {
+      "id": "editorial-star-rescue",
+      "command": "node tool/test_editorial_postgres.mjs --star-rescue",
+      "exit": 0,
+      "seconds": 85.907,
+      "nodeSummary": {
+        "tests": 20,
+        "suites": 0,
+        "pass": 20,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "cleanupConfirmed": true
+    },
+    {
+      "id": "editorial-study-time",
+      "command": "node tool/test_editorial_postgres.mjs --study-time",
+      "exit": 0,
+      "seconds": 82.527,
+      "nodeSummary": {
+        "tests": 11,
+        "suites": 0,
+        "pass": 11,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "cleanupConfirmed": true
+    },
+    {
+      "id": "editorial-summit",
+      "command": "node tool/test_editorial_postgres.mjs --summit",
+      "exit": 0,
+      "seconds": 82.442,
+      "nodeSummary": {
+        "tests": 16,
+        "suites": 0,
+        "pass": 16,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "cleanupConfirmed": true
+    },
+    {
+      "id": "editorial-teacher-priorities",
+      "command": "node tool/test_editorial_postgres.mjs --teacher-priorities",
+      "exit": 0,
+      "seconds": 84.533,
+      "nodeSummary": {
+        "tests": 13,
+        "suites": 0,
+        "pass": 13,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "cleanupConfirmed": true
+    },
+    {
+      "id": "flutter-analyze-final",
+      "command": "flutter analyze --no-pub",
+      "exit": 0,
+      "seconds": 25.775786399999998
+    },
+    {
+      "id": "flutter-analyze",
+      "command": "flutter analyze --no-pub",
+      "exit": 0,
+      "seconds": 20.4163022
+    },
+    {
+      "id": "flutter-local-api-corrected",
+      "command": "flutter test --no-pub --reporter expanded --dart-define-from-file=<sesion-local-propia>\\flutter-private.json --dart-define=LOCAL_RANKING_CORRECTED=true test/competitive_ranking_local_api_test.dart",
+      "exit": 0,
+      "seconds": 26.359695799999997,
+      "flutterSummary": {
+        "pass": 5,
+        "skipped": 0
+      }
+    },
+    {
+      "id": "flutter-local-api",
+      "command": "flutter test --no-pub --reporter expanded --dart-define-from-file=<sesion-local-propia>\\flutter-private.json test/auth_api_live_test.dart test/competitive_ranking_local_api_test.dart",
+      "exit": 0,
+      "seconds": 31.146936999999998,
+      "flutterSummary": {
+        "pass": 6,
+        "skipped": 0
+      }
+    },
+    {
+      "id": "flutter-pub",
+      "command": "flutter pub get --enforce-lockfile",
+      "exit": 0,
+      "seconds": 7.4657659999999995
+    },
+    {
+      "id": "flutter-test-final",
+      "command": "flutter test --no-pub --reporter expanded",
+      "exit": 0,
+      "seconds": 129.5942954,
+      "flutterSummary": {
+        "pass": 694,
+        "skipped": 9
+      }
+    },
+    {
+      "id": "flutter-test",
+      "command": "flutter test --no-pub",
+      "exit": 0,
+      "seconds": 199.65862629999998,
+      "flutterSummary": {
+        "pass": 694,
+        "skipped": 4
+      }
+    },
+    {
+      "id": "local-ranking-android",
+      "command": "node tool/local_ranking_validation.mjs",
+      "exit": 1,
+      "seconds": 333.21523199999996,
+      "cleanupConfirmed": true
+    },
+    {
+      "id": "local-ranking-environment",
+      "command": "node tool/local_ranking_validation.mjs",
+      "exit": 0,
+      "seconds": 449.594547,
+      "cleanupConfirmed": true
+    },
+    {
+      "id": "local-ranking-phone",
+      "command": "<herramientas-temporales>\\node-v24.14.1-win-x64\\node.exe tool/local_ranking_validation.mjs",
+      "exit": 0,
+      "seconds": 375.585214,
+      "cleanupConfirmed": true
+    },
+    {
+      "id": "panel-browser",
+      "command": "node <herramientas-temporales>\\panel-browser.cjs",
+      "exit": 0,
+      "seconds": 8.4151363
+    },
+    {
+      "id": "panel-real-api-repeat",
+      "command": "node --test tool/test_local_panel.mjs",
+      "exit": 0,
+      "seconds": 2.6209788,
+      "nodeSummary": {
+        "tests": 2,
+        "suites": 0,
+        "pass": 2,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      }
+    },
+    {
+      "id": "panel-real-api",
+      "command": "node --test tool/test_local_panel.mjs",
+      "exit": 0,
+      "seconds": 2.7602213,
+      "nodeSummary": {
+        "tests": 2,
+        "suites": 0,
+        "pass": 2,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      }
+    },
+    {
+      "id": "postgres-complete",
+      "command": "node tool/test_competitive_postgres.mjs",
+      "exit": 0,
+      "seconds": 1302.3956792
+    },
+    {
+      "id": "postgres-ranking-final",
+      "command": "node tool/test_competitive_postgres.mjs --ranking",
+      "exit": 0,
+      "seconds": 28.643778299999997,
+      "nodeSummary": {
+        "tests": 12,
+        "suites": 0,
+        "pass": 12,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      }
+    },
+    {
+      "id": "postgres-ranking-repeat",
+      "command": "node tool/test_competitive_postgres.mjs --ranking",
+      "exit": 1,
+      "seconds": 230.328738
+    },
+    {
+      "id": "postgres-ranking",
+      "command": "node tool/test_competitive_postgres.mjs --ranking",
+      "exit": 1,
+      "seconds": 121.63654749999999
+    }
+  ],
+  "competitive": [
+    {
+      "phase": "owned-backup-restore",
+      "probe": "schema",
+      "result": "PASS",
+      "tables": 74,
+      "dataDigestsEqual": true,
+      "rlsEqual": true,
+      "constraintsEqual": true,
+      "indexesEqual": true,
+      "functionsEqual": true,
+      "sequencesEqual": true,
+      "tableAclsEqual": true,
+      "productionDurabilityCertified": false
+    },
+    {
+      "phase": "postgres-file-end",
+      "file": "test/competitive-ranking-postgres.test.cjs",
+      "durationMs": 9779,
+      "summary": {
+        "tests": 12,
+        "suites": 0,
+        "pass": 12,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0,
+        "duration_ms": 9610.9037
+      },
+      "summaryErrors": []
+    },
+    {
+      "phase": "postgres-file-end",
+      "file": "test/competitive-linux-postgres.test.cjs",
+      "durationMs": 40910,
+      "summary": {
+        "tests": 3,
+        "suites": 0,
+        "pass": 3,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0,
+        "duration_ms": 40735.5913
+      },
+      "summaryErrors": []
+    },
+    {
+      "phase": "postgres-file-end",
+      "file": "test/competitive-timeouts-postgres.test.cjs",
+      "durationMs": 2932,
+      "summary": {
+        "tests": 3,
+        "suites": 0,
+        "pass": 3,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0,
+        "duration_ms": 2732.7563
+      },
+      "summaryErrors": []
+    },
+    {
+      "phase": "postgres-file-end",
+      "file": "test/competitive-resilience-postgres.test.cjs",
+      "durationMs": 28973,
+      "summary": {
+        "tests": 6,
+        "suites": 0,
+        "pass": 6,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0,
+        "duration_ms": 28788.3976
+      },
+      "summaryErrors": []
+    },
+    {
+      "phase": "postgres-file-end",
+      "file": "test/competitive-readiness-postgres.test.cjs",
+      "durationMs": 8825,
+      "summary": {
+        "tests": 13,
+        "suites": 0,
+        "pass": 13,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0,
+        "duration_ms": 8625.1743
+      },
+      "summaryErrors": []
+    },
+    {
+      "phase": "postgres-file-end",
+      "file": "test/competitive-postgres.test.cjs",
+      "durationMs": 9685,
+      "summary": {
+        "tests": 25,
+        "suites": 0,
+        "pass": 25,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0,
+        "duration_ms": 9514.628
+      },
+      "summaryErrors": []
+    },
+    {
+      "phase": "postgres-file-end",
+      "file": "test/competitive-solo-postgres.test.cjs",
+      "durationMs": 14885,
+      "summary": {
+        "tests": 38,
+        "suites": 0,
+        "pass": 38,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0,
+        "duration_ms": 14722.0315
+      },
+      "summaryErrors": []
+    },
+    {
+      "phase": "postgres-file-end",
+      "file": "test/competitive-trivia-boundary-postgres.test.cjs",
+      "durationMs": 4957,
+      "summary": {
+        "tests": 1,
+        "suites": 0,
+        "pass": 1,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0,
+        "duration_ms": 4794.4071
+      },
+      "summaryErrors": []
+    },
+    {
+      "phase": "postgres-file-end",
+      "file": "test/competitive-trivia-evidence-postgres.test.cjs",
+      "durationMs": 30112,
+      "summary": {
+        "tests": 15,
+        "suites": 0,
+        "pass": 15,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0,
+        "duration_ms": 29953.1741
+      },
+      "summaryErrors": []
+    },
+    {
+      "phase": "postgres-file-end",
+      "file": "test/competitive-trivia-presence-postgres.test.cjs",
+      "durationMs": 21124,
+      "summary": {
+        "tests": 26,
+        "suites": 0,
+        "pass": 26,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0,
+        "duration_ms": 20960.9826
+      },
+      "summaryErrors": []
+    },
+    {
+      "phase": "postgres-file-end",
+      "file": "test/competitive-trivia-xp-postgres.test.cjs",
+      "durationMs": 40758,
+      "summary": {
+        "tests": 17,
+        "suites": 0,
+        "pass": 17,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0,
+        "duration_ms": 40577.6521
+      },
+      "summaryErrors": []
+    },
+    {
+      "phase": "postgres-file-end",
+      "file": "test/competitive-tug-boundary-postgres.test.cjs",
+      "durationMs": 4956,
+      "summary": {
+        "tests": 8,
+        "suites": 0,
+        "pass": 8,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0,
+        "duration_ms": 4785.9389
+      },
+      "summaryErrors": []
+    },
+    {
+      "phase": "postgres-file-end",
+      "file": "test/competitive-tug-evidence-postgres.test.cjs",
+      "durationMs": 79025,
+      "summary": {
+        "tests": 15,
+        "suites": 0,
+        "pass": 15,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0,
+        "duration_ms": 78866.8211
+      },
+      "summaryErrors": []
+    },
+    {
+      "phase": "postgres-file-end",
+      "file": "test/competitive-tug-presence-postgres.test.cjs",
+      "durationMs": 36833,
+      "summary": {
+        "tests": 15,
+        "suites": 0,
+        "pass": 15,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0,
+        "duration_ms": 36670.5343
+      },
+      "summaryErrors": []
+    },
+    {
+      "phase": "postgres-file-end",
+      "file": "test/competitive-tug-preflight-postgres.test.cjs",
+      "durationMs": 19160,
+      "summary": {
+        "tests": 7,
+        "suites": 0,
+        "pass": 7,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0,
+        "duration_ms": 18978.8857
+      },
+      "summaryErrors": []
+    },
+    {
+      "phase": "postgres-file-end",
+      "file": "test/competitive-tug-visibility-postgres.test.cjs",
+      "durationMs": 96130,
+      "summary": {
+        "tests": 14,
+        "suites": 0,
+        "pass": 14,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0,
+        "duration_ms": 95936.7546
+      },
+      "summaryErrors": []
+    },
+    {
+      "phase": "postgres-file-end",
+      "file": "test/competitive-pair-protocol-postgres.test.cjs",
+      "durationMs": 6051,
+      "summary": {
+        "tests": 16,
+        "suites": 0,
+        "pass": 16,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0,
+        "duration_ms": 5884.1634
+      },
+      "summaryErrors": []
+    },
+    {
+      "phase": "postgres-file-end",
+      "file": "test/competitive-tug-admission-postgres.test.cjs",
+      "durationMs": 5336,
+      "summary": {
+        "tests": 9,
+        "suites": 0,
+        "pass": 9,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0,
+        "duration_ms": 5168.5956
+      },
+      "summaryErrors": []
+    },
+    {
+      "phase": "postgres-file-end",
+      "file": "test/competitive-tug-replay-postgres.test.cjs",
+      "durationMs": 92246,
+      "summary": {
+        "tests": 13,
+        "suites": 0,
+        "pass": 13,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0,
+        "duration_ms": 92080.6562
+      },
+      "summaryErrors": []
+    },
+    {
+      "phase": "postgres-file-end",
+      "file": "test/competitive-tug-terminal-replay-postgres.test.cjs",
+      "durationMs": 49163,
+      "summary": {
+        "tests": 21,
+        "suites": 0,
+        "pass": 21,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0,
+        "duration_ms": 48997.455
+      },
+      "summaryErrors": []
+    },
+    {
+      "phase": "postgres-file-end",
+      "file": "test/competitive-tug-temporal-postgres.test.cjs",
+      "durationMs": 44672,
+      "summary": {
+        "tests": 11,
+        "suites": 0,
+        "pass": 11,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0,
+        "duration_ms": 44504.0576
+      },
+      "summaryErrors": []
+    },
+    {
+      "phase": "postgres-file-end",
+      "file": "test/competitive-tug-contract-postgres.test.cjs",
+      "durationMs": 75436,
+      "summary": {
+        "tests": 22,
+        "suites": 0,
+        "pass": 22,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0,
+        "duration_ms": 75267.4213
+      },
+      "summaryErrors": []
+    },
+    {
+      "phase": "postgres-file-end",
+      "file": "test/competitive-tug-settlement-postgres.test.cjs",
+      "durationMs": 64745,
+      "summary": {
+        "tests": 16,
+        "suites": 0,
+        "pass": 16,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0,
+        "duration_ms": 64568.2513
+      },
+      "summaryErrors": []
+    },
+    {
+      "phase": "postgres-file-end",
+      "file": "test/competitive-tug-recovery-postgres.test.cjs",
+      "durationMs": 80493,
+      "summary": {
+        "tests": 15,
+        "suites": 0,
+        "pass": 15,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0,
+        "duration_ms": 80320.9228
+      },
+      "summaryErrors": []
+    },
+    {
+      "phase": "postgres-file-end",
+      "file": "test/competitive-operational-postgres.test.cjs",
+      "durationMs": 14274,
+      "summary": {
+        "tests": 6,
+        "suites": 0,
+        "pass": 6,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0,
+        "duration_ms": 14074.3006
+      },
+      "summaryErrors": []
+    },
+    {
+      "phase": "postgres-summary",
+      "files": 25,
+      "totals": {
+        "tests": 347,
+        "pass": 347,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "failedFiles": [],
+      "incompleteFiles": [],
+      "invalidFiles": [],
+      "durationMs": 881463
+    },
+    {
+      "phase": "owned-backup-restore",
+      "probe": "populated",
+      "result": "PASS",
+      "tables": 76,
+      "dataDigestsEqual": true,
+      "rlsEqual": true,
+      "constraintsEqual": true,
+      "indexesEqual": true,
+      "functionsEqual": true,
+      "sequencesEqual": true,
+      "tableAclsEqual": true,
+      "productionDurabilityCertified": false
+    }
+  ],
+  "lint": {
+    "errors": 567,
+    "warnings": 150
+  },
+  "audits": {
+    "audit-all": {
+      "counts": {
+        "info": 0,
+        "low": 0,
+        "moderate": 7,
+        "high": 5,
+        "critical": 1,
+        "total": 13
+      },
+      "packages": [
+        {
+          "name": "@angular-devkit/core",
+          "severity": "moderate",
+          "range": "19.2.22 - 19.2.27 || 20.3.18 - 20.3.38 || >=21.1.5"
+        },
+        {
+          "name": "@angular-devkit/schematics",
+          "severity": "moderate",
+          "range": "19.2.22 - 19.2.27 || 20.3.18 - 20.3.38 || >=21.1.5"
+        },
+        {
+          "name": "@angular-devkit/schematics-cli",
+          "severity": "moderate",
+          "range": "19.2.22 - 19.2.27 || 20.3.18 - 20.3.38 || >=21.1.5"
+        },
+        {
+          "name": "@nestjs/cli",
+          "severity": "moderate",
+          "range": ">=11.0.17"
+        },
+        {
+          "name": "@nestjs/schematics",
+          "severity": "moderate",
+          "range": ">=11.0.10"
+        },
+        {
+          "name": "ajv",
+          "severity": "moderate",
+          "range": ""
+        },
+        {
+          "name": "brace-expansion",
+          "severity": "high",
+          "range": "4.0.0 - 5.0.11"
+        },
+        {
+          "name": "braces",
+          "severity": "high",
+          "range": "*"
+        },
+        {
+          "name": "fast-uri",
+          "severity": "moderate",
+          "range": "3.0.0 - 3.1.7"
+        },
+        {
+          "name": "micromatch",
+          "severity": "high",
+          "range": ">=0.2.0"
+        },
+        {
+          "name": "minimatch",
+          "severity": "high",
+          "range": "10.0.0 || 10.0.2"
+        },
+        {
+          "name": "proxy-addr",
+          "severity": "critical",
+          "range": "1.1.0 - 2.0.7"
+        },
+        {
+          "name": "ts-loader",
+          "severity": "high",
+          "range": "3.3.0 - 9.6.1"
+        }
+      ]
+    },
+    "audit-prod": {
+      "counts": {
+        "info": 0,
+        "low": 0,
+        "moderate": 0,
+        "high": 0,
+        "critical": 1,
+        "total": 1
+      },
+      "packages": [
+        {
+          "name": "proxy-addr",
+          "severity": "critical",
+          "range": "1.1.0 - 2.0.7"
+        }
+      ]
+    }
+  }
+}

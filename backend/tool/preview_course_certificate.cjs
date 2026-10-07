@@ -9,6 +9,10 @@ async function main() {
   const renderer = new CertificadoHtmlService();
   const cases = [
     ['certificado-area-demo', 'Juan David Ospino Pérez', 'Sociales y ciudadanas', false],
+    ['certificado-lectura-demo', 'Estudiante de demostración', 'Lectura crítica', false],
+    ['certificado-matematicas-demo', 'Estudiante de demostración', 'Matemáticas', false],
+    ['certificado-ciencias-demo', 'Estudiante de demostración', 'Ciencias naturales', false],
+    ['certificado-ingles-demo', 'Estudiante de demostración', 'Inglés', false],
     ['certificado-curso-demo', 'Juanito Pérez', 'Curso completo de SaberPlus', true],
     ['certificado-nombre-largo-demo', 'María José de los Ángeles Fernández de la Cruz '.repeat(5).trim(), 'Matemáticas', false],
   ];
