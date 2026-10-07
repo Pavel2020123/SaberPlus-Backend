@@ -12,7 +12,41 @@ producción 1 critical. No se modificó runtime ni se activaron flags competitiv
 Sin commit/push, despliegues ni cierre B1/B2. El estado del 5 de octubre siguiente
 queda como histórico, especialmente los recuentos anteriores de lint/audit.
 
-## Estado vigente — recepción del relevo, 5 de octubre de 2026
+## Antecedente — primera ejecución en el PC de Pavel, 5 de octubre de 2026
+
+Docker Desktop instalado y motor 29.8.2 disponible inicialmente mediante
+`desktop-linux`, socket local. `npm run build` correcto. Host Node 24.11.1:
+difiere de 24.14.1 fijado por el proyecto; no se cambió la instalación global.
+
+`node tool/test_competitive_postgres.mjs --ranking`: **12/12 aprobadas**, sin
+omitidas ni canceladas. PostgreSQL 16.15 temporal, 61 migraciones aplicadas por
+Prisma, lector y HTTP reales, privacidad, errores, puesto fuera del TOP y
+correcciones. El runner confirmó eliminación de esa primera base temporal.
+No se usaron Supabase, Render ni credenciales de bases reales.
+
+La ejecución completa aplicó 61 migraciones en un segundo contenedor, pero se
+bloqueó preparando la imagen Linux, antes de comenzar sus 25 archivos de pruebas.
+La descarga, npm ci y Prisma generate dentro de Linux terminaron; exportar/extraer
+la imagen falló con `read-only file system` en el almacenamiento de containerd.
+No es evidencia de un fallo de lógica del ranking ni de regresión aprobada.
+El chequeo posterior encontró solo **0,21 GB libres en C:**. La presión de disco
+es una causa plausible, no confirmada por ese dato aislado. Docker empezó a
+responder HTTP 500; la limpieza terminó con error al inspeccionar el contenedor.
+Liberar espacio con el propietario y recuperar el motor antes de continuar.
+No purgar Docker ni aumentar tiempos para ocultar el fallo.
+
+Recurso temporal de esta ejecución: `saberplus-competitive-test-6aa5110292a553cf`;
+imagen prevista `saberplus-competitive-linux:6aa5110292a553cf`. La limpieza falló;
+debe completarse y confirmarse después de recuperar Docker antes de repetir.
+Solo retirar recursos de esta ejecución tras verificar sus etiquetas de propiedad;
+nunca ejecutar prune global ni borrar otras bases/volúmenes.
+
+Flutter detectó un Android 15 por USB. En esta primera ejecución no se ejecutó
+la app contra la API aislada ni login real desde Flutter. La validación posterior
+del 6 de octubre en el PC del compañero se documenta arriba; no acredita limpieza
+de Docker en el PC de Pavel. B1/B2 productivos siguen aparte.
+
+## Histórico — recepción del relevo, 5 de octubre de 2026
 
 Verificado Git local: PR #6 fusionado en `66b5aa2`, con I2-1/2/3; Flutter PR #3
 fusionado en `1921ba9`, con I2-4. El relevo de Luis precede esos merges: no falta
