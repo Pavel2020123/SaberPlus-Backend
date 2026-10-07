@@ -1,9 +1,11 @@
 # Documentación backend
 
-Estado más reciente: [validación local del 6 de octubre de 2026](VALIDACION_LOCAL_I2_5_2026-10-06.md)
-y [evidencia sanitizada](validacion-local-2026-10-06/resultados.json).
-I2-5 abierto; regresión competitiva completa 347/347 ejecutada, comprobación física
-pendiente y fallos de lint/audit/panel registrados. No acredita producción.
+Estado más reciente: [conciliación del 7 de octubre](CONCILIACION_2026_10_07.md).
+I2-5 abierto por recorrido físico/cierre de criterios; regresión competitiva e
+integración HTTP ya documentadas. Panel normal 88/88, audit producción 0,
+lint 603 errores/150 avisos en el PC de Pavel. No acredita producción.
+[Informe histórico del día 6](VALIDACION_LOCAL_I2_5_2026-10-06.md).
+IC-1/2/3 cubren clientes, Memoria y Batallas; QA-1/DOC-1 son apoyo.
 
 Entrada vigente para colaboradores. [README de la API](../README.md) contiene
 desarrollo local y contratos generales; [README del repositorio](../../README.md)
@@ -20,7 +22,7 @@ productivos pendientes; incidencias históricas conservadas.
 
 - [PR-I2 — I2-1/2/3 integrados](PR_I2_RANKINGS.md): contrato, lector PostgreSQL
   y API autenticada; merge `66b5aa2`. Flutter I2-4 fusionada en `1921ba9`.
-  Sigue I2-5: validación integrada y regresión PostgreSQL completa pendientes.
+  Sigue I2-5: recorrido Android y cierre de criterios; regresión e integración HTTP documentadas.
   El ranking general permanece vigente.
 - [Relevo PR-I1](PR_I1_RELEVO.md).
 - [Infraestructura y evidencia PR-I1](PR_I1_COMPETITIVE_INFRASTRUCTURE.md).

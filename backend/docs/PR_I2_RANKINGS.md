@@ -1,6 +1,16 @@
 # PR-I2 — rankings competitivos por juego y temporada
 
-## Estado vigente — validación del 6 de octubre de 2026
+## Estado vigente — 7 de octubre de 2026
+
+[Conciliación actual](CONCILIACION_2026_10_07.md): I2-5 abierto, regresión
+completa e integración HTTP documentadas, recorrido físico pendiente.
+Panel normal 88/88 y audit producción 0 reejecutados el día 7; lint 603/150.
+El fallo previo del panel no se reprodujo, causa sin confirmar.
+Validación ya publicada; no commit/push automático para nuevas entregas.
+Después IC-1/2/3: clientes de seis juegos, Memoria y Batallas, fuera de I2-5.
+No activación ni operaciones remotas; preservar contrato y evidencia histórica.
+
+## Antecedente — validación del 6 de octubre de 2026
 
 **I2-5 abierto.** [Informe reproducible](VALIDACION_LOCAL_I2_5_2026-10-06.md):
 347/347 PostgreSQL completo, 25 archivos sin omisiones; dirigido 12/12 y otros

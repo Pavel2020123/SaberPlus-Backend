@@ -1,5 +1,9 @@
 # API de SaberPlus
 
+Estado actual: [conciliación del 7 de octubre](docs/CONCILIACION_2026_10_07.md).
+I2-5 tiene regresión e integración HTTP documentadas; falta cierre físico.
+IC-1/2/3 cubren clientes, Memoria y Batallas sin activar servicios.
+
 > Conciliación del relevo, 29 de septiembre de 2026: las referencias «sigue
 > MA-3C», «sigue JN-2C» y «pendiente de JN-1C» inferiores describen el cierre
 > histórico de cada entrega backend. Las tres integraciones Flutter ya existen
@@ -30,7 +34,7 @@ siguen pendientes. No se aplicaron migraciones remotas en estos checkpoints.
 
 MA-3B: [Agenda y sincronización del repaso diferido](DEFERRED_REVIEW.md).
 Implementada/probada localmente: API privada, recibos idempotentes y migración
-con RLS. Sin despliegue en Supabase. Sigue MA-3C (UI y ciclo de sincronización Flutter).
+con RLS. MA-3C Flutter implementada localmente; ensayo desplegado pendiente.
 
 MA-2A: [Mapa de aprendizaje — reglas y API](LEARNING_MAP.md), relaciones orientativas
 entre subtemas con control de ciclos/concurrencia. Implementado y probado localmente;
@@ -48,10 +52,10 @@ el entorno Linux de Render.
 ## Comandos
 
 JN-2B: [Rescate de estrellas — contrato y pruebas locales](STAR_RESCUE.md).
-Backend y migración preparados; sigue JN-2C Flutter remoto. Sin despliegue automático.
+Backend y JN-2C Flutter implementados localmente; falta ensayo desplegado. Sin despliegue automático.
 
 JN-1B: [Salto a la cima — API, reglas y pruebas locales](SUMMIT_CHALLENGE.md).
-Migración preparada, sin despliegue; integración Flutter pendiente de JN-1C.
+Migración preparada; JN-1C Flutter implementada localmente. Ensayo desplegado pendiente.
 
 Pasarelas heredadas retiradas el 12 de septiembre de 2026: no hay integración
 operativa de ePayco/Wompi. Las rutas antiguas solo responden HTTP 410, sin modificar

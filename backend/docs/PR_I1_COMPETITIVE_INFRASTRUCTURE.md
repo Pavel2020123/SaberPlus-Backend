@@ -15,8 +15,9 @@ y activación siguen sujetos a los requisitos B1/B2 descritos en este documento.
 El [relevo técnico](PR_I1_RELEVO.md#alcance-vigente-para-revisión-de-integración)
 resume el estado vigente; los apartados siguientes conservan su historial.
 
-PR-I2 prepara [contratos de ranking competitivo y pruebas I2-1](PR_I2_RANKINGS.md);
-no implementa todavía API/Flutter ni sustituye el ranking general existente.
+PR-I2 tiene [contrato, lector y API](PR_I2_RANKINGS.md) integrados, e I2-4 Flutter.
+I2-5 abierto. Ver [conciliación vigente](CONCILIACION_2026_10_07.md) e IC-1/2/3
+para clientes y juegos pendientes. El ranking general se conserva.
 
 > **Base funcional histórica: 97ebfc4, 18 checkpoints publicados entonces.** La integración
 > y corrección P1 de CP18 ya están confirmadas; validación local final PostgreSQL

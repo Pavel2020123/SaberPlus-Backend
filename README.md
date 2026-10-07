@@ -1,11 +1,12 @@
 # SaberPlus Backend
 
-> Estado vigente, 5 de octubre de 2026: PR-I1 integrado por `5216383` y PR-I2
-> I2-1/2/3 por `66b5aa2` (PR #6); Flutter I2-4 integrado por `1921ba9` (PR #3).
-> Sigue **I2-5**: validación integrada, regresión PostgreSQL completa y prueba física.
-> No hay cierre E2E/productivo. Gates y B1/B2 siguen pendientes. Ver
-> [relevo de rankings](backend/docs/PR_I2_RANKINGS.md). Las notas de septiembre
-> inferiores son históricas, no la ruta actual ni autorización de despliegue.
+> Estado vigente, 7 de octubre de 2026: PR-I1 y PR-I2 hasta I2-4 integrados.
+> I2-5 tiene regresión PostgreSQL e integración HTTP documentadas; falta
+> recorrido Android y cierre de criterios. Panel normal 88/88, audit producción
+> 0 y lint 603 errores/150 avisos en la revisión del día 7.
+> [Conciliación, ruta IC-1/2/3 y límites](backend/docs/CONCILIACION_2026_10_07.md).
+> La fuente global es docs/ETAPAS_PENDIENTES.md del repositorio Flutter.
+> Main autorizado, sin publicación automática ni operaciones remotas.
 
 > Estado del relevo, 29 de septiembre de 2026: MA-2A/B/C y MA-3A/B/C tienen
 > implementación local en backend, ADMIN (MA-2) y Flutter; JN-1C/JN-2C también
@@ -26,8 +27,8 @@ reglas de negocio. La aplicacion Flutter no accede directamente a PostgreSQL.
 
 - `backend/`: API NestJS, Prisma y migraciones versionadas.
 - `render.yaml`: Blueprint del ambiente de staging en Render.
-- `admin/`: panel editorial 7F-C3-D1, con acceso ADMIN, catálogo, editores y
-  revisión/publicación en demo. Nuevas escrituras reales apagadas hasta D2.
+- `admin/`: panel ADMIN, catálogo y editores. Flujo simple: guardar válido publica
+  directamente; demo en memoria separada de API real. Ensayo desplegado D3 pendiente.
   Instrucciones en [admin/README.md](admin/README.md).
 - **7F-C3-D2-A:** escrituras heredadas retiradas y bloqueo editorial común por
   área. Cambio de compatibilidad HTTP 410; no desplegado automáticamente.
@@ -51,15 +52,12 @@ reglas de negocio. La aplicacion Flutter no accede directamente a PostgreSQL.
 
 ## Desarrollo local
 
-PR-I1 competitivo V1 sigue abierto y sin fusionar a main. La infraestructura y
-Cima/Guardián/Rescate y Trivia/Duelo están versionados hasta `ebe40e3`.
-La evidencia de Tira está confirmada hasta `83d53da`; la ronda 16 temporal sigue local y sin XP. Esto no acredita despliegue, migraciones
-remotas ni activación para usuarios. Los flags de admisión están apagados
-por defecto; apagar nuevas admisiones permite recuperar/liquidar las existentes.
-Consultar [checkpoints, flags y dependencias](backend/docs/PR_I1_COMPETITIVE_INFRASTRUCTURE.md)
-y [auditoría, pruebas e incidencias](backend/docs/PR_I1_TRIVIA_DUELO_AUDITORIA.md).
-La [auditoría de Tira](backend/docs/PR_I1_TIRA_AFLOJA_AUDITORIA.md) distingue
-correcciones actuales de los requisitos pendientes de integración competitiva.
+PR-I1 integrado y PR-I2 hasta I2-4 fusionados. Completar I2-5 sin rehacer
+infraestructura ni considerar pendiente toda la regresión. Los clientes
+competitivos y Memoria/Batallas tienen entregas IC-1/2/3 explícitas.
+Consultar [estado actual](backend/docs/CONCILIACION_2026_10_07.md) y
+[contrato de ranking](backend/docs/PR_I2_RANKINGS.md).
+Integración no acredita despliegue, migraciones remotas ni activación.
 
 Requisitos: Node.js 24 y PostgreSQL compatible con las migraciones Prisma.
 

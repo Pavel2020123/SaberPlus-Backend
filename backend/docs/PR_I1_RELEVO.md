@@ -1,5 +1,12 @@
 # PR-I1 V1 — relevo técnico de SaberPlus-Backend
 
+## Continuidad vigente — 7 de octubre de 2026
+
+Ver [conciliación](CONCILIACION_2026_10_07.md). PR-I1 y PR-I2 hasta I2-4
+integrados; I2-5 abierto con regresión e integración HTTP documentadas.
+Luego IC-1/2/3 y PR-I3 según ruta Flutter. Main autorizado; sin publicación
+ni operaciones remotas automáticas. Lo siguiente registra evidencia histórica.
+
 ## Validación posterior — 6 de octubre de 2026
 
 PR-I1 permanece integrado. [Validación I2-5](VALIDACION_LOCAL_I2_5_2026-10-06.md)
@@ -22,8 +29,8 @@ defecto. La integración a `main` y el despliegue son decisiones separadas;
 los requisitos B1/B2 de producción siguen pendientes. Véase el
 [alcance de infraestructura](PR_I1_COMPETITIVE_INFRASTRUCTURE.md#alcance-vigente-para-revisión-de-integración).
 
-PR-I2 comienza con [I2-1: contrato y pruebas aisladas](PR_I2_RANKINGS.md), sin API
-ni Flutter. El ranking general permanece vigente; B1/B2 no están cerrados.
+PR-I2 [contrato, lector y API](PR_I2_RANKINGS.md) e I2-4 Flutter están integrados.
+I2-5 sigue abierto. Ranking general vigente; B1/B2 no cerrados.
 
 ## Continuación CP22 — señales Linux y límites operativos
 

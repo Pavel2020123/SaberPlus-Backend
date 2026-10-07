@@ -1,5 +1,12 @@
 # Panel administrativo de SaberPlus
 
+Estado vigente, 7 de octubre: [conciliación](../backend/docs/CONCILIACION_2026_10_07.md).
+Panel reejecutado en el PC de Pavel: check 22 módulos, npm test normal 88/88.
+El fallo del otro PC no se reprodujo; causa no confirmada. HTTP y navegación
+local documentados el día 6 no equivalen a D3 desplegado. MA-2C ya implementada.
+El flujo simple publica al guardar válido; no imponer revisión obligatoria.
+Los apartados fechados siguientes son históricos; la ruta global está en Flutter.
+
 > Conciliación del relevo, 29 de septiembre de 2026: este archivo conserva
 > entregas históricas y sus cifras de pruebas. No define la siguiente etapa
 > global. MA-2C Flutter ya está implementada; «Sigue MA-2C» al final describe
@@ -8,7 +15,7 @@
 > revisión obligatorio por leer apartados antiguos. Línea base actual: check de
 > 22 módulos y 88 pruebas locales; revisión visual e integración real pendientes.
 > Consultar la Ruta vigente del equipo en Flutter (`docs/ETAPAS_PENDIENTES.md`)
-> y `docs/AUDITORIA_RELEVO_2026-09-28.md` antes de PR-I1.
+> y la conciliación actual; no reiniciar PR-I1.
 
 ## MA-1 — Cobertura básica (24 de septiembre de 2026)
 
@@ -407,4 +414,4 @@ es solo memoria, valida ciclos y revisiones y no conecta con Supabase.
 Archivos: `public/learning-map-editor.mjs`, `public/learning-map-fields.mjs`,
 `demo-learning-map.mjs`, `test/learning-map.test.mjs`. Contrato real:
 `../backend/LEARNING_MAP.md`. Verificar con `npm run check` y `npm test` en `admin/`.
-Sigue MA-2C (Flutter). Migración/despliegue y ensayo real siguen pendientes.
+MA-2C Flutter implementada localmente. Migración/despliegue y ensayo real siguen pendientes.
