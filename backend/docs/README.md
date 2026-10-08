@@ -1,10 +1,15 @@
 # Documentación backend
 
 **8 de octubre:** recorrido Android y criterios funcionales de rankings revisados;
-limpieza operativa y QA-1 siguen pendientes. [IC-1A Cima](IC1_CIMA.md) preparado
-en Flutter; próximo ensayo IC-1A2 app/API/ledger, no realizado. Ensayo académico
+limpieza operativa anterior y QA-1 siguen pendientes. [IC-1A/IC-1A2 Cima](IC1_CIMA.md)
+validada localmente en Android/API/ledger: un evento de 100 XP, recuperación,
+reintento, OFF y normal sin XP. [IC-1B1 Guardián](IC1_GUARDIAN.md) implementado
+en Flutter, 34 tests; IC-1B2 local acredita victoria/100 XP únicos, recuperación,
+reintento/ranking y normal sin XP; derrota +30 por 3 aciertos y abandono −10,
+saldo final120. IC-1B local validada; siguiente IC-1C Rescate. Ensayo académico
 local confirma publicación/progreso y conservación de versiones. Sin cambios del
-runtime backend, migraciones ni activación productiva. Prevalece sobre las notas
+runtime productivo, migraciones remotas ni activación productiva; solo herramientas
+del harness temporal/control IPC modificadas. Prevalece sobre las notas
 históricas del día 7 siguientes.
 
 [Seguimiento I2-5](I2_5_SEGUIMIENTO_2026_10_07.md): panel 3 × 88/88,

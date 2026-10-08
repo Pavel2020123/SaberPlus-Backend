@@ -5,8 +5,12 @@
 Recorrido Android confirmado y criterios funcionales revisados; limpieza/cierre
 operativo y QA-1 conservados, no producción. Flutter ranking 66/66 y backend
 ranking 43/43 (dos suites) reejecutados el día 8. No nueva ejecución de toda la
-regresión SQL. [IC-1A Cima](IC1_CIMA.md) es el cliente local preparado;
-siguiente IC-1A2 app/API/ledger real. No cerrar IC-1 por este avance ni confundir
+regresión SQL. [IC-1A/IC-1A2 Cima](IC1_CIMA.md) validó Android/API/ledger local:
+un evento real de 100 XP, recuperación/red/reintento, OFF y normal sin XP;
+cliente [IC-1B1 Guardián](IC1_GUARDIAN.md) implementado, 34 tests dirigidos;
+IC-1B2 acredita localmente victoria/100 XP únicos, recuperación/reintento/ranking
+y normal sin XP, derrota +30 por 3 aciertos y abandono −10, saldo120. Siguiente
+IC-1C Rescate. No cerrar IC-1 por esto ni confundir
 el ensayo académico editorial con partidas competitivas verificadas.
 El estado del 7 siguiente es antecedente de esta actualización.
 

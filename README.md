@@ -2,8 +2,15 @@
 
 > Actualización del 8 de octubre: criterios funcionales de I2-5 revisados tras
 > recorrido Android; limpieza operativa y QA-1 pendientes. [IC-1A Cima](backend/docs/IC1_CIMA.md)
-> preparado localmente en Flutter, siguiente ensayo app/API/ledger real IC-1A2.
-> Sin cambios de runtime backend, migraciones ni activación productiva. Esta
+> validado localmente con Android/API/ledger: un evento real de 100 XP,
+> recuperación/red/reintento, OFF y normal sin XP. [IC-1B1 Guardián](backend/docs/IC1_GUARDIAN.md)
+> implementado con 34 tests; IC-1B2 local acredita victoria/100 XP únicos,
+> recuperación/reintento/ranking y normal sin XP; derrota +30 por 3 aciertos,
+> abandono −10, saldo final120. IC-1B local validada; sigue IC-1C Rescate.
+> Decisión vigente: un commit por juego después de pruebas/documentación;
+> revisar cambios acumulados, sin push automático.
+> Solo herramientas de ensayo/control IPC modificadas; sin cambios de runtime
+> productivo, migraciones remotas ni activación productiva. Esta
 > actualización prevalece sobre los antecedentes del 7 siguientes.
 
 > Estado vigente, 7 de octubre de 2026: PR-I1 y PR-I2 hasta I2-4 integrados.

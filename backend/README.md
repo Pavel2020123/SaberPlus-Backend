@@ -1,8 +1,13 @@
 # API de SaberPlus
 
-**8 de octubre:** [IC-1A Cima](docs/IC1_CIMA.md) preparado localmente en Flutter;
-siguiente IC-1A2 app/API/ledger real. Criterios funcionales del lector revisados;
-limpieza operativa y QA-1 pendientes. No cambios funcionales backend ni activación.
+**8 de octubre:** [IC-1A/IC-1A2 Cima](docs/IC1_CIMA.md) validada localmente:
+Android/API/ledger real, un evento de 100 XP, recuperación/red/reintento,
+admisión OFF y normal sin XP. [IC-1B1 Guardián](docs/IC1_GUARDIAN.md) implementado
+en Flutter, 34 tests; IC-1B2 local confirma victoria/100 XP únicos, recuperación,
+reintento/ranking y normal sin XP; derrota +30 por 3 aciertos y abandono −10,
+saldo final120. IC-1B local validada; siguiente IC-1C Rescate. Control IPC del harness
+exclusivamente temporal; sin cambios del runtime productivo ni activación remota.
+Criterios funcionales I2-5 revisados; su deuda operativa y QA-1 se conservan.
 El resumen del día 7 siguiente es antecedente.
 
 Estado actual: [conciliación del 7 de octubre](docs/CONCILIACION_2026_10_07.md).
