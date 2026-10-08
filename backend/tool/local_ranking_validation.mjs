@@ -98,6 +98,19 @@ try {
       temporada: event.temporada, xp: i < 50 ? 1000 - i : 90 - i, alcanzadoEn: clock.now, updatedAt: clock.now } });
   }
   await db.balanceCompetitivo.create({ data: { usuarioId: accounts.zero.id, gameId: 'TRIVIA_RUSH', temporada: event.temporada, xp: 0 } });
+  // Academic fixtures only. Cima XP must come from a genuine attempt and verifier.
+  const summitTheme = await db.tema.create({ data: { nombre: 'Cima - ensayo local IC-1A2',
+    area: 'MATEMATICAS', estadoContenido: 'PUBLICADO', fechaPublicacion: new Date() } });
+  const summitSubtheme = await db.subtema.create({ data: { nombre: 'Sumas para el ascenso',
+    temaId: summitTheme.id, contenido: 'Banco sintetico local para probar Cima. No es contenido del curso.',
+    estadoContenido: 'PUBLICADO', fechaPublicacion: new Date() } });
+  for (let n = 1; n <= 12; n++) {
+    await db.pregunta.create({ data: { subtemaId: summitSubtheme.id,
+      enunciado: `Ensayo Cima: cuanto es ${n} + 1?`, explicacion: `Al sumar uno a ${n} obtenemos ${n + 1}.`,
+      dificultad: 'BASICO', estadoContenido: 'PUBLICADO', fechaPublicacion: new Date(),
+      respuestas: { create: [{ texto: String(n + 1), esCorrecta: true },
+        { texto: String(n + 3), esCorrecta: false }] } } });
+  }
   await mkdir(join(directory, 'uploads'));
   child = fork(join(backend, 'tool/local_ranking_api.cjs'), [], { cwd: directory, env,
     windowsHide: true, stdio: ['ignore', 'pipe', 'pipe', 'ipc'] });
@@ -115,8 +128,9 @@ try {
   await writeFile(join(directory, 'flutter-private.json'), JSON.stringify(config), { mode: 0o600 });
   console.log(JSON.stringify({ phase: 'local-ranking-ready', directory, migrations: paths.length,
     api: config.API_BASE_URL, syntheticFixtures: true, ownPosition: 51, totalParticipants: 61 }));
-  console.log('Write {"action":"correct"} or {"action":"stop"} to control.json in this owned directory. No HTTP mutation route.');
+  console.log('Local control.json actions: correct, solo-on, solo-off, stop. No HTTP mutation route.');
   let corrected = false;
+  let soloEnabled = false;
   const deadline = Date.now() + 2 * 60 * 60 * 1000;
   while (Date.now() < deadline) {
     if (child.exitCode !== null) throw new Error('Local API exited unexpectedly.');
@@ -124,6 +138,23 @@ try {
     try { action = JSON.parse(await readFile(join(directory, 'control.json'), 'utf8')).action; }
     catch (error) { if (error.code !== 'ENOENT') throw error; }
     if (action === 'stop') break;
+    if ((action === 'solo-on' || action === 'solo-off') && soloEnabled !== (action === 'solo-on')) {
+      const enabled = action === 'solo-on';
+      const requestId = randomUUID();
+      await new Promise((resolve, reject) => {
+        const onMessage = message => {
+          if (message?.type !== 'local-solo-admission-ack' || message.requestId !== requestId) return;
+          cleanup();
+          message.enabled === enabled ? resolve() : reject(new Error('Local admission mismatch.'));
+        };
+        const cleanup = () => { clearTimeout(timer); child.off('message', onMessage); };
+        const timer = setTimeout(() => { cleanup(); reject(new Error('Local admission timeout.')); }, 10000);
+        child.on('message', onMessage);
+        child.send({ type: 'local-solo-admission', enabled, requestId });
+      });
+      soloEnabled = enabled;
+      console.log(JSON.stringify({ phase: 'local-solo-admission', enabled }));
+    }
     if (action === 'correct' && !corrected) {
       await service.correct({ operationId: randomUUID(), originalEventId: event.id, actorId: accounts.admin.id,
         reason: 'I2-5 correction in owned synthetic fixture', nominalDelta: 2000, kind: 'CORRECCION' });

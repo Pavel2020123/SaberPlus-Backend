@@ -30,10 +30,10 @@ runner competitivo cubren por separado el bootstrap real.
 
 Se crea PostgreSQL 16 en tmpfs, con puerto loopback aleatorio, etiqueta de
 propiedad y usuario aleatorio. Prisma aplica las migraciones SQL de HEAD desde
-el directorio propio. No se cargan `.env`, SMTP real, flags competitivos ni bases
+el directorio propio. No se cargan `.env`, SMTP real, flags competitivos heredados ni bases
 anteriores. El SMTP apunta a loopback:1; no usar registro/recuperación de correo.
 La publicación editorial se habilita exclusivamente en esta API propia para
-ensayar el panel; los flags competitivos permanecen apagados. Con la sesión lista:
+ensayar el panel; la admisión competitiva empieza apagada. Con la sesión lista:
 
 ```powershell
 $env:SABERPLUS_LOCAL_SESSION = $sessionDirectory
@@ -70,6 +70,30 @@ XP 2100, puesto 1. Repetir el test Flutter con
 archivo, no un endpoint HTTP. Solo aplica la corrección una vez por sesión.
 
 ## Android
+
+### IC-1A2: Cima competitiva, exclusivamente en esta API temporal
+
+El harness también crea `Cima - ensayo local IC-1A2` / `Sumas para el ascenso`
+en Matemáticas: doce preguntas sintéticas `n + 1`, con dos opciones y una correcta.
+No crea eventos ni balances de Cima. Estos deben proceder de partidas reales,
+verificador y reconciliador de AppModule, no del fixture de Trivia.
+
+Después de comprobar en Android el rechazo con admisión apagada, escribir en el
+directorio propio `control.json` con `{"action":"solo-on"}`. Esperar en la consola
+`local-solo-admission` con `enabled: true`. Para apagar nuevas admisiones sin
+reiniciar cuentas ni interrumpir la recuperación de una partida aceptada, usar
+`{"action":"solo-off"}` y esperar `enabled: false`.
+
+El supervisor controla por IPC únicamente `COMPETITIVE_SOLO_ENABLED` del proceso
+local verificado. No hay endpoint HTTP de activación ni cambio en `main.ts`,
+Render/Supabase o las reglas de XP. El control no liquida resultados; esperar
+el reconciliador real y consultar ledger/balance para confirmar una sola concesión.
+Repetir lecturas no constituye otra partida. No interpretar el fixture de Trivia
+como evidencia de esta integración. `node --test tool/local_competitive_control.test.cjs`
+cubre rechazo de mensajes malformados y cambios explícitos de admisión.
+
+Una sesión creada por la versión anterior del harness debe cerrarse normalmente
+y recrearse para usar este control: las credenciales y JWT de ensayo cambian.
 
 Conectar USB y usar `adb reverse tcp:43187 tcp:43187`. Compilar exclusivamente
 con `APP_ENV=dev`, `DEMO_MODE=false`, `API_BASE_URL=http://127.0.0.1:43187` y

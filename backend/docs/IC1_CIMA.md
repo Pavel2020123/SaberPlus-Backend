@@ -4,11 +4,32 @@
 
 El recorrido Android del lector de rankings y sus criterios funcionales fueron
 revisados, sin cierre productivo. Cierre operativo/limpieza y QA-1 conservados.
-Flutter implementa localmente el cliente IC-1A; siguiente IC-1A2: partida real
-app/API/ledger con liquidación única. No está validada todavía esa integración.
+Flutter implementa el cliente IC-1A; IC-1A2 validada en su ensayo local
+Android/API/ledger con liquidación única. Siguiente IC-1B Guardián; IC-1 sigue
+abierta y no hay activación productiva.
 Fuente global: `docs/ETAPAS_PENDIENTES.md` y `docs/IC1_CIMA.md` del repo Flutter.
 
-No se cambió código backend, esquema, migraciones, fórmulas o flags. Se reutiliza
+Preparación histórica IC-1A2 (8 de octubre): propietario confirma rechazo OFF
+en la APK nueva de pruebas. Harness temporal ampliado con doce preguntas de
+Matemáticas, control de admisión por IPC `solo-on`/`solo-off` y ocho tests
+aprobados. No se modificó código productivo ni se añadieron endpoints HTTP.
+Sesión anterior limpiada; nueva API en loopback con 61 migraciones y activación
+IPC confirmada. Baseline SQL: doce preguntas publicadas, cero intentos/eventos
+de Cima. Esperar partida física y verificar ledger real; no darla por aprobada.
+
+Resultado posterior confirmado por propietario y SQL: recuperación del mismo
+intento al cerrar, desconexión previa al POST/reintento con una sola respuesta,
+victoria competitiva con cinco aciertos aunque la admisión nueva estaba OFF.
+Un evento `SUMMIT_ATTEMPT` / `RESULTADO` / `APLICADO`, reglas 1, saldo 0 → 100.
+Ranking Android: puesto 1/100 XP en 2026. Lecturas posteriores conservan un solo
+evento. Segunda victoria normal: modalidad nula, ningún evento adicional,
+balance 100 conservado. No son los balances sintéticos de Trivia.
+IC-1A2 aprobada localmente en ese alcance, no todos los juegos ni producción.
+No se probó pérdida de acuse después de guardar ni toda la regresión SQL histórica.
+La limpieza del entorno se registra en el acta Flutter; no mantener secretos
+ni suponer servicios vivos por leer esta evidencia histórica.
+
+La entrega IC-1A no cambió código backend, esquema, migraciones, fórmulas o flags. Se reutiliza
 `SummitController`/`SummitService`: creación con `competitive?: boolean`, respuesta
 pública con `competitive: boolean`, recuperación activa/por ID, respuesta
 idempotente y abandono autenticado. El cliente no envía XP ni identidad ajena.

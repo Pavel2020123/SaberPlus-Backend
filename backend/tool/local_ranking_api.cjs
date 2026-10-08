@@ -2,6 +2,7 @@
 const { readFile } = require('node:fs/promises');
 const { NestFactory } = require('@nestjs/core');
 const { ValidationPipe } = require('@nestjs/common');
+const { applyLocalCompetitiveControl } = require('./local_competitive_control.cjs');
 
 (async () => {
   const { validateCompetitiveDatabase } = await import('./test_competitive_postgres.mjs');
@@ -16,5 +17,7 @@ const { ValidationPipe } = require('@nestjs/common');
   process.send?.({ ready: true });
   process.on('message', async message => {
     if (message === 'stop') { await app.close(); process.exit(0); }
+    const acknowledgement = applyLocalCompetitiveControl(message, process.env);
+    if (acknowledgement) process.send?.(acknowledgement);
   });
 })().catch(() => { console.error('Local validation API failed; no credentials logged.'); process.exit(1); });
