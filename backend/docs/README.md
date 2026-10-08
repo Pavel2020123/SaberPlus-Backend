@@ -1,5 +1,15 @@
 # Documentación backend
 
+**8 de octubre:** recorrido Android y criterios funcionales de rankings revisados;
+limpieza operativa y QA-1 siguen pendientes. [IC-1A Cima](IC1_CIMA.md) preparado
+en Flutter; próximo ensayo IC-1A2 app/API/ledger, no realizado. Ensayo académico
+local confirma publicación/progreso y conservación de versiones. Sin cambios del
+runtime backend, migraciones ni activación productiva. Prevalece sobre las notas
+históricas del día 7 siguientes.
+
+[Seguimiento I2-5](I2_5_SEGUIMIENTO_2026_10_07.md): panel 3 × 88/88,
+clasificación de lint y evidencia del recorrido Android (con preparación histórica).
+
 Estado más reciente: [conciliación del 7 de octubre](CONCILIACION_2026_10_07.md).
 I2-5 abierto por recorrido físico/cierre de criterios; regresión competitiva e
 integración HTTP ya documentadas. Panel normal 88/88, audit producción 0,

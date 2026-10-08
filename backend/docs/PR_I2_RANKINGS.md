@@ -1,5 +1,15 @@
 # PR-I2 — rankings competitivos por juego y temporada
 
+## Actualización — 8 de octubre de 2026
+
+Recorrido Android confirmado y criterios funcionales revisados; limpieza/cierre
+operativo y QA-1 conservados, no producción. Flutter ranking 66/66 y backend
+ranking 43/43 (dos suites) reejecutados el día 8. No nueva ejecución de toda la
+regresión SQL. [IC-1A Cima](IC1_CIMA.md) es el cliente local preparado;
+siguiente IC-1A2 app/API/ledger real. No cerrar IC-1 por este avance ni confundir
+el ensayo académico editorial con partidas competitivas verificadas.
+El estado del 7 siguiente es antecedente de esta actualización.
+
 ## Estado vigente — 7 de octubre de 2026
 
 [Conciliación actual](CONCILIACION_2026_10_07.md): I2-5 abierto, regresión

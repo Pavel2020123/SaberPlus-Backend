@@ -1,5 +1,10 @@
 # API de SaberPlus
 
+**8 de octubre:** [IC-1A Cima](docs/IC1_CIMA.md) preparado localmente en Flutter;
+siguiente IC-1A2 app/API/ledger real. Criterios funcionales del lector revisados;
+limpieza operativa y QA-1 pendientes. No cambios funcionales backend ni activación.
+El resumen del día 7 siguiente es antecedente.
+
 Estado actual: [conciliación del 7 de octubre](docs/CONCILIACION_2026_10_07.md).
 I2-5 tiene regresión e integración HTTP documentadas; falta cierre físico.
 IC-1/2/3 cubren clientes, Memoria y Batallas sin activar servicios.

@@ -1,5 +1,11 @@
 # SaberPlus Backend
 
+> Actualización del 8 de octubre: criterios funcionales de I2-5 revisados tras
+> recorrido Android; limpieza operativa y QA-1 pendientes. [IC-1A Cima](backend/docs/IC1_CIMA.md)
+> preparado localmente en Flutter, siguiente ensayo app/API/ledger real IC-1A2.
+> Sin cambios de runtime backend, migraciones ni activación productiva. Esta
+> actualización prevalece sobre los antecedentes del 7 siguientes.
+
 > Estado vigente, 7 de octubre de 2026: PR-I1 y PR-I2 hasta I2-4 integrados.
 > I2-5 tiene regresión PostgreSQL e integración HTTP documentadas; falta
 > recorrido Android y cierre de criterios. Panel normal 88/88, audit producción
