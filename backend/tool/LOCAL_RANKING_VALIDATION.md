@@ -1,5 +1,22 @@
 # Ensayo I2-5 exclusivamente local
 
+## Acuerdo de alcance — 9 de octubre de 2026
+
+Fuente del orden: `docs/ETAPAS_PENDIENTES.md` y
+`docs/ALCANCE_V1_NOVIEMBRE_2026.md` del repositorio Flutter
+`Pavel2020123/saber_plus` (no pertenecen a este árbol).
+Competición inicial: Cima, Guardián y Rescate. Después de Rescate: instituciones.
+Trivia/Duelo/Tira/Memoria/Batallas competitivos se aplazan sin borrar código,
+migraciones ni modos normales. OV-1, perfiles, insignias anuales y territorio
+permanecen. Las secuencias anteriores son antecedentes; no activar servicios
+por este acuerdo. Sustentación y lanzamiento comercial son hitos distintos.
+
+Para retomar con un compañero/otro chat, ver
+[relevo de pruebas](../docs/RELEVO_PRUEBAS_LOCALES.md) y el checkpoint vivo del
+roadmap Flutter. Esta guía describe el harness, no decide la siguiente etapa.
+Unitarias no requieren contraseña; HTTP/login físico usan la credencial ficticia
+privada de SU nueva sesión. No copiar directorio, token ni contraseña de otro PC.
+
 Requiere Node/npm del manifest, `npm ci`, `npm run build`, Docker local Linux y
 `postgres:16`. Descargar la imagen previamente si la red supera el plazo de
 preparación del runner. Nunca usar `.env` ni una base existente.

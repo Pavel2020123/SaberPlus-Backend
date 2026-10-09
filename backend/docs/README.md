@@ -1,5 +1,20 @@
 # Documentación backend
 
+## Acuerdo de alcance — 9 de octubre de 2026
+
+Fuente del orden: `docs/ETAPAS_PENDIENTES.md` y
+`docs/ALCANCE_V1_NOVIEMBRE_2026.md` del repositorio Flutter
+`Pavel2020123/saber_plus` (no pertenecen a este árbol).
+Competición inicial: Cima, Guardián y Rescate. Después de Rescate: instituciones.
+Trivia/Duelo/Tira/Memoria/Batallas competitivos se aplazan sin borrar código,
+migraciones ni modos normales. OV-1, perfiles, insignias anuales y territorio
+permanecen. Las secuencias anteriores son antecedentes; no activar servicios
+por este acuerdo. Sustentación y lanzamiento comercial son hitos distintos.
+
+- [Relevo operativo de pruebas para compañeros](RELEVO_PRUEBAS_LOCALES.md):
+  requiere ambos repositorios; guía completa y checkpoint vivo en Flutter.
+  Registrar cada caso antes de avanzar, preparar sesión Docker propia y Android USB.
+
 **8 de octubre:** recorrido Android y criterios funcionales de rankings revisados;
 limpieza operativa anterior y QA-1 siguen pendientes. [IC-1A/IC-1A2 Cima](IC1_CIMA.md)
 validada localmente en Android/API/ledger: un evento de 100 XP, recuperación,

@@ -1,5 +1,22 @@
 # SaberPlus Backend
 
+## Acuerdo de alcance — 9 de octubre de 2026
+
+Fuente del orden: `docs/ETAPAS_PENDIENTES.md` y
+`docs/ALCANCE_V1_NOVIEMBRE_2026.md` del repositorio Flutter
+`Pavel2020123/saber_plus` (no pertenecen a este árbol).
+Competición inicial: Cima, Guardián y Rescate. Después de Rescate: instituciones.
+Trivia/Duelo/Tira/Memoria/Batallas competitivos se aplazan sin borrar código,
+migraciones ni modos normales. OV-1, perfiles, insignias anuales y territorio
+permanecen. Las secuencias anteriores son antecedentes; no activar servicios
+por este acuerdo. Sustentación y lanzamiento comercial son hitos distintos.
+
+**Relevo de pruebas para compañeros:** leer
+[guía de ambos repositorios](backend/docs/RELEVO_PRUEBAS_LOCALES.md) y el
+checkpoint vivo en `docs/ETAPAS_PENDIENTES.md` del repositorio Flutter.
+Docker local, Android USB, credenciales ficticias y acta tras cada prueba;
+no reutilizar base/contraseña del PC anterior ni asumir push por un commit local.
+
 > Actualización del 8 de octubre: criterios funcionales de I2-5 revisados tras
 > recorrido Android; limpieza operativa y QA-1 pendientes. [IC-1A Cima](backend/docs/IC1_CIMA.md)
 > validado localmente con Android/API/ledger: un evento real de 100 XP,
