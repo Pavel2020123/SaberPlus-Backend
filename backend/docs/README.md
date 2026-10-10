@@ -1,5 +1,8 @@
 # Documentación backend
 
+**Etapa actual: [PR-I5A — directorio institucional](PR_I5_DIRECTORIO.md).**
+Base de API implementada; pendiente integración Flutter y pruebas con base real.
+
 **IC-1C Rescate, cierre local 10 de octubre:** [acta](IC1_RESCATE.md).
 Cliente/tests/Android/API/SQL aprobados en su alcance local; saldo final80 tras
 dos abandonos distintos. Push manual/cierre operativo separados. Después: instituciones.

@@ -1,5 +1,10 @@
 # API de SaberPlus
 
+**10 de octubre — [PR-I5A, directorio institucional](docs/PR_I5_DIRECTORIO.md):**
+listado y detalle autenticados, solo instituciones aprobadas e identidad pública.
+Cliente Flutter, territorio y solicitudes estudiantiles pendientes; P4-C se conserva.
+Rescate local cerrado en `3fdf699`; las secuencias inferiores son antecedentes.
+
 **8 de octubre:** [IC-1A/IC-1A2 Cima](docs/IC1_CIMA.md) validada localmente:
 Android/API/ledger real, un evento de 100 XP, recuperación/red/reintento,
 admisión OFF y normal sin XP. [IC-1B1 Guardián](docs/IC1_GUARDIAN.md) implementado
