@@ -34,7 +34,24 @@ al directorio público aprobado y mantienen su contrato independiente.
 
 Resultado del 10 de octubre: **29 pruebas aprobadas en 2 suites** (16 del
 directorio y 13 de aprobación), `tsc --noEmit` sin errores y Prettier conforme.
-No se ejecutó la suite global ni una base real en esta entrega.
+No se ejecutó la suite global ni una base real en la implementación inicial PR-I5A.
+
+Ensayo posterior del 10 de octubre: `tool/test_local_institution_directory.mjs`
+aprobado contra AppModule/PostgreSQL de la sesión temporal propia (61 migraciones).
+25 instituciones sintéticas APROBADA y4 ocultas: páginas20/5, búsqueda, vacío,
+proyección pública, detalle oculto404, parámetros inválidos400 y anónimo401.
+Fixture SQL directa: no acredita la revisión ADMIN. Cliente Flutter implementado
+PR-I5B; suite762/10 opt-in y analyze limpios. APK instalada con Success; usuario
+confirma login, primera pantalla, búsqueda única/vacío y Página2 con cinco
+instituciones21–25 y detalle informativo de ensayo01 en Android. Usuario confirma
+error/Reintentar tras retirar reverse43187 (API PC HTTP200) y recuperación del
+listado tras restaurarlo. Ensayo01 suspendida en la base propia; helper confirma
+detalle404, búsqueda0 y24 aprobadas restantes. Usuario confirma ficha no disponible
+y ausencia de ensayo01 en el listado/búsqueda. PR-I5A/B aprobada localmente en este
+alcance; no acredita P4-C/P5, grupos, iOS ni despliegue remoto.
+Ejecutar el script con `SABERPLUS_LOCAL_SESSION` apuntando a SU sesión; valida
+loopback/owner y etiqueta del contenedor. `--suspend` suspende solo ensayo01 de
+esa sesión, para comprobar ficha y recarga en Android tras aprobación humana.
 
 `institution-directory.spec.ts` ejecuta peticiones HTTP contra Nest con el guard
 JWT real y dobles de Prisma/JwtService. Comprueba autenticación, validación,
@@ -49,8 +66,8 @@ npx tsc --noEmit
 
 ## Continuación acordada
 
-1. Integrar listado/búsqueda/detalle mínimo en Flutter: carga, vacío, error,
-   reintento y paginación; no mostrar botones de ingreso ficticios.
+1. Listado/búsqueda/detalle mínimo Flutter PR-I5B implementado y aprobado en
+   Android/API/PostgreSQL local: carga, vacío, error, reintento y paginación.
 2. PR-I5-T: catálogo oficial versionado, departamento → municipio, validación
    servidor, revisión ADMIN y migración sin adivinar ubicación de registros viejos.
 3. Perfil institucional y permisos del propietario; C5 antes de archivos reales.

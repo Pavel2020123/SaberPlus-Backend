@@ -1,7 +1,8 @@
 # Documentación backend
 
 **Etapa actual: [PR-I5A — directorio institucional](PR_I5_DIRECTORIO.md).**
-Base de API implementada; pendiente integración Flutter y pruebas con base real.
+Base de API y cliente Flutter aprobados en ensayo local HTTP/PostgreSQL/Android.
+Siguiente implementación: territorio PR-I5-T. Ver acta para alcance y límites.
 
 **IC-1C Rescate, cierre local 10 de octubre:** [acta](IC1_RESCATE.md).
 Cliente/tests/Android/API/SQL aprobados en su alcance local; saldo final80 tras
