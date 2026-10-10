@@ -1,5 +1,13 @@
 # JN-2B — Rescate de estrellas: backend
 
+Actualización IC-1C del 9 de octubre: [cliente competitivo y evidencia](docs/IC1_RESCATE.md).
+El servidor vigente admite `competitive` booleano opcional en creación (ausente:
+normal); expone `competitive` booleano en todos los estados. Con opt-in nuevo
+requiere `COMPETITIVE_SOLO_ENABLED=true`; un intento admitido conserva su modalidad
+al recuperar/responder/abandonar. El verificador y reconciliador existentes conceden
+XP competitivo una vez por intento. Flutter ya lo integra localmente; pendiente
+recorrido físico/productivo. El texto JN-2 siguiente es el antecedente normal.
+
 Entrega local del 23 de septiembre de 2026. No desplegada en Render ni migrada a
 Supabase. Flutter conserva la demo hasta JN-2C. No concede XP, rachas, premios,
 insignias ni evidencia diagnóstica.

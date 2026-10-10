@@ -86,6 +86,34 @@ XP 2100, puesto 1. Repetir el test Flutter con
 `--dart-define=LOCAL_RANKING_CORRECTED=true`. El comando es de control local por
 archivo, no un endpoint HTTP. Solo aplica la corrección una vez por sesión.
 
+### Lectura segura de control.json
+
+El editor puede dejar el archivo vacío o con JSON parcial durante un guardado.
+El supervisor ignora esa lectura, avisa sin imprimir el contenido y vuelve a
+leer; no modifica admisión ni ejecuta órdenes incompletas. Solo acepta un objeto
+con una clave `action`: `correct`, `solo-on`, `solo-off` o `stop`. Un error real
+de disco/permisos sigue notificándose. Esperar siempre el ACK de ON/OFF; que el
+archivo exista no demuestra que se aplicó la orden.
+
+Regresión (también ejecutada por Backend CI):
+
+```powershell
+node --test tool/local_control_file.test.mjs tool/local_competitive_control.test.cjs
+```
+
+Para preparar puntos de Rescate en una sesión NUEVA sin copiarlos de otra base,
+se puede jugar mediante el test opt-in Flutter con la cuenta `student`:
+
+```powershell
+flutter test --no-pub --reporter expanded "--dart-define-from-file=$sessionDirectory/flutter-private.json" --dart-define=RESCUE_LOCAL_COMPETITIVE=true --dart-define=RESCUE_LOCAL_EMAIL=student@example.invalid test/star_rescue_local_api_test.dart
+```
+
+Ejecutar desde el repo Flutter, solo con SOLO ON confirmado y antes de que el
+teléfono use esa cuenta. Por defecto el test usa `zero@example.invalid`; no
+alterarlo para una prueba normal. Esta preparación juega seis respuestas contra
+la API/verificador reales, no inserta balances; debe documentarse como automática,
+no victoria humana. Registrar el saldo nuevo y no reutilizar el de otra sesión.
+
 ## Android
 
 ### IC-1A2: Cima competitiva, exclusivamente en esta API temporal

@@ -8,6 +8,7 @@ import { join, dirname, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { validateCompetitiveDatabase } from './test_competitive_postgres.mjs';
+import { readLocalControl } from './local_control_file.mjs';
 
 if (process.argv.length !== 2) throw new Error('No external arguments accepted.');
 const backend = fileURLToPath(new URL('../', import.meta.url));
@@ -131,12 +132,16 @@ try {
   console.log('Local control.json actions: correct, solo-on, solo-off, stop. No HTTP mutation route.');
   let corrected = false;
   let soloEnabled = false;
+  let invalidControlReported = false;
   const deadline = Date.now() + 2 * 60 * 60 * 1000;
   while (Date.now() < deadline) {
     if (child.exitCode !== null) throw new Error('Local API exited unexpectedly.');
-    let action;
-    try { action = JSON.parse(await readFile(join(directory, 'control.json'), 'utf8')).action; }
-    catch (error) { if (error.code !== 'ENOENT') throw error; }
+    const control = await readLocalControl(join(directory, 'control.json'));
+    if (control.kind === 'invalid' && !invalidControlReported) {
+      console.warn('Incomplete or invalid local control ignored; API remains running.');
+    }
+    invalidControlReported = control.kind === 'invalid';
+    const action = control.kind === 'action' ? control.action : undefined;
     if (action === 'stop') break;
     if ((action === 'solo-on' || action === 'solo-off') && soloEnabled !== (action === 'solo-on')) {
       const enabled = action === 'solo-on';

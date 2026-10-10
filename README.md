@@ -1,5 +1,9 @@
 # SaberPlus Backend
 
+**IC-1C Rescate, cierre local 10 de octubre:** [acta](backend/docs/IC1_RESCATE.md).
+Cliente/tests/Android/API/SQL aprobados en su alcance local; saldo final80 tras
+dos abandonos distintos. Push manual/cierre operativo separados. Después: instituciones.
+
 ## Acuerdo de alcance — 9 de octubre de 2026
 
 Fuente del orden: `docs/ETAPAS_PENDIENTES.md` y

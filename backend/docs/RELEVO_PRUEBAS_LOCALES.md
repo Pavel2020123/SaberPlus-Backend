@@ -10,8 +10,11 @@ No duplicar aquí una ruta independiente: verificar siempre ese bloque actualiza
 
 - Cima y Guardián tienen actas locales Android/API/ledger. Ver
   [Cima](IC1_CIMA.md) y [Guardián](IC1_GUARDIAN.md); no implica producción.
-- Siguiente **IC-1C Rescate de estrellas**: cliente competitivo y pruebas; después
-  instituciones PR-I5/P4-C/PR-I5-T, no Trivia. Releer checkpoint al continuar.
+- **IC-1C Rescate de estrellas**: cliente competitivo integrado localmente,
+  [tests y recorrido Android/API/SQL aprobados localmente](IC1_RESCATE.md),
+  incluido contraste100→90→80. Guardado autorizado, push manual/cierre operativo
+  separados; no repetir batería.
+  Después instituciones PR-I5/P4-C/PR-I5-T, no Trivia. Releer checkpoint al continuar.
 - Competición V1: Cima, Guardián y Rescate. Trivia/Duelo/Tira/IC-2/IC-3 se aplazan,
   sin borrar motores, migraciones ni modos normales. OV-1, perfiles, insignias,
   territorio y demás funciones permanecen; leer `docs/ALCANCE_V1_NOVIEMBRE_2026.md`

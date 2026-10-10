@@ -55,5 +55,8 @@ jobs:
       - name: Ejecutar pruebas
         run: npm test -- --runInBand
 
+      - name: Probar controles del entorno local aislado
+        run: node --test tool/local_control_file.test.mjs tool/local_competitive_control.test.cjs
+
       - name: Auditar dependencias de produccion
         run: npm audit --omit=dev
