@@ -1,5 +1,14 @@
 # API de SaberPlus
 
+**10 de octubre — [PR-I5-T1/T2 territorio](docs/PR_I5_T_TERRITORIO.md):** catálogo
+DANE/API y persistencia/revisión ADMIN implementados; regresión 1.311 aprobados,
+16 casos PostgreSQL reales T2 aprobados y build correcto. Migración solo probada
+en base temporal, no desplegada. T3 formularios Flutter/ADMIN implementados el
+11 de octubre; T4 filtros implementados y **T5 cerrado localmente** con guion
+HTTP/PostgreSQL, panel y Android. Siguiente: perfil institucional y solicitudes
+PR-I5. Sin despliegue ni validación iOS. Evidencia/límites en acta territorial.
+Prevalece sobre el siguiente paso histórico de las notas inferiores.
+
 **10 de octubre — [PR-I5A, directorio institucional](docs/PR_I5_DIRECTORIO.md):**
 listado y detalle autenticados, solo instituciones aprobadas e identidad pública.
 Cliente Flutter y recorrido local API/PostgreSQL/Android aprobados; pendientes

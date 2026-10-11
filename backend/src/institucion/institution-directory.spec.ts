@@ -5,6 +5,7 @@ import request = require('supertest');
 import { PrismaService } from '../prisma/prisma.service';
 import { InstitutionDirectoryController } from './institution-directory.controller';
 import { InstitutionDirectoryService } from './institution-directory.service';
+import { InstitutionTerritoryService } from './institution-territory.service';
 
 describe('PR-I5A directorio institucional', () => {
   let app: INestApplication;
@@ -21,6 +22,7 @@ describe('PR-I5A directorio institucional', () => {
       controllers: [InstitutionDirectoryController],
       providers: [
         InstitutionDirectoryService,
+        InstitutionTerritoryService,
         { provide: PrismaService, useValue: prisma },
         { provide: JwtService, useValue: jwt },
       ],
@@ -86,7 +88,12 @@ describe('PR-I5A directorio institucional', () => {
     });
     expect(prisma.institucion.findMany).toHaveBeenCalledWith({
       where: { estadoVerificacion: 'APROBADA' },
-      select: { id: true, nombre: true },
+      select: {
+        id: true,
+        nombre: true,
+        departamentoCodigo: true,
+        municipioCodigo: true,
+      },
       orderBy: [{ nombre: 'asc' }, { id: 'asc' }],
       skip: 0,
       take: 21,
@@ -150,11 +157,20 @@ describe('PR-I5A directorio institucional', () => {
       .get(`/instituciones/directorio/${id}`)
       .set(auth)
       .expect(200);
-    expect(response.body).toEqual({ id, nombre: 'Colegio aprobado' });
+    expect(response.body).toEqual({
+      id,
+      nombre: 'Colegio aprobado',
+      ubicacion: null,
+    });
     expect(response.headers['cache-control']).toBe('private, no-store');
     expect(prisma.institucion.findFirst).toHaveBeenCalledWith({
       where: { id, estadoVerificacion: 'APROBADA' },
-      select: { id: true, nombre: true },
+      select: {
+        id: true,
+        nombre: true,
+        departamentoCodigo: true,
+        municipioCodigo: true,
+      },
     });
   });
   it('no distingue un id oculto de uno inexistente y valida UUID', async () => {
@@ -168,5 +184,77 @@ describe('PR-I5A directorio institucional', () => {
       .set(auth)
       .expect(400);
     expect(prisma.institucion.findFirst).not.toHaveBeenCalled();
+  });
+  it.each([
+    { municipioCodigo: '91001' },
+    { departamentoCodigo: '9' },
+    { departamentoCodigo: '00' },
+    { departamentoCodigo: '91', municipioCodigo: '20001' },
+    { departamentoCodigo: ['91', '20'] },
+    { departamentoCodigo: '' },
+  ])(
+    'rechaza filtros territoriales inválidos %j antes de leer instituciones',
+    async (query) => {
+      await request(app.getHttpServer())
+        .get('/instituciones/directorio')
+        .query(query)
+        .set(auth)
+        .expect(400);
+      expect(prisma.institucion.findMany).not.toHaveBeenCalled();
+    },
+  );
+  it('combina territorio y nombre antes de paginar y publica solo ubicación oficial', async () => {
+    prisma.institucion.findMany.mockResolvedValue([
+      {
+        id,
+        nombre: 'Colegio',
+        departamentoCodigo: '05',
+        municipioCodigo: '05001',
+        contacto: 'privado',
+      },
+    ]);
+    const response = await request(app.getHttpServer())
+      .get('/instituciones/directorio')
+      .query({
+        departamentoCodigo: '05',
+        municipioCodigo: '05001',
+        q: 'Colegio',
+        pagina: 2,
+      })
+      .set(auth)
+      .expect(200);
+    expect(prisma.institucion.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        skip: 20,
+        take: 21,
+        where: {
+          estadoVerificacion: 'APROBADA',
+          departamentoCodigo: '05',
+          municipioCodigo: '05001',
+          nombre: { contains: 'Colegio', mode: 'insensitive' },
+        },
+      }),
+    );
+    expect(response.body.instituciones[0].ubicacion).toMatchObject({
+      departamentoCodigo: '05',
+      municipioCodigo: '05001',
+    });
+    expect(Object.keys(response.body.instituciones[0]).sort()).toEqual([
+      'id',
+      'nombre',
+      'ubicacion',
+    ]);
+  });
+  it('permite solo departamento sin inventar municipio', async () => {
+    await request(app.getHttpServer())
+      .get('/instituciones/directorio')
+      .query({ departamentoCodigo: '91' })
+      .set(auth)
+      .expect(200);
+    expect(prisma.institucion.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { estadoVerificacion: 'APROBADA', departamentoCodigo: '91' },
+      }),
+    );
   });
 });

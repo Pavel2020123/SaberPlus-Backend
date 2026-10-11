@@ -12,6 +12,7 @@ import {
 } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../prisma/prisma.service';
+import { InstitutionTerritoryService } from './institution-territory.service';
 import {
   ApprovalListDto,
   ReviewInstitutionDto,
@@ -29,6 +30,9 @@ const publicRequest = (row: SolicitudAltaInstitucion) => ({
   id: row.id,
   nombre: row.nombre,
   ciudad: row.ciudad,
+  departamentoCodigo: row.departamentoCodigo ?? null,
+  municipioCodigo: row.municipioCodigo ?? null,
+  territorioVersion: row.territorioVersion ?? null,
   correoInstitucional: row.correoInstitucional,
   contacto: row.contacto,
   referenciaUrl: row.referenciaUrl,
@@ -42,7 +46,54 @@ const publicRequest = (row: SolicitudAltaInstitucion) => ({
 
 @Injectable()
 export class InstitutionApprovalService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly territory: InstitutionTerritoryService = new InstitutionTerritoryService(),
+  ) {}
+
+  private locationFields(dto: {
+    departamentoCodigo?: string;
+    municipioCodigo?: string;
+  }) {
+    if (
+      dto.departamentoCodigo === undefined &&
+      dto.municipioCodigo === undefined
+    )
+      return undefined;
+    if (
+      typeof dto.departamentoCodigo !== 'string' ||
+      typeof dto.municipioCodigo !== 'string'
+    )
+      throw new BadRequestException(
+        'Selecciona departamento y municipio juntos.',
+      );
+    let location: ReturnType<InstitutionTerritoryService['resolveLocation']>;
+    try {
+      location = this.territory.resolveLocation(
+        dto.departamentoCodigo,
+        dto.municipioCodigo,
+      );
+    } catch (error) {
+      if (error instanceof NotFoundException)
+        throw new BadRequestException(
+          'El departamento no pertenece al catálogo vigente.',
+        );
+      throw error;
+    }
+    return {
+      departamentoCodigo: location.departamento.codigo,
+      municipioCodigo: location.municipio.codigo,
+      territorioVersion: location.version,
+    };
+  }
+
+  private storedLocation(row: SolicitudAltaInstitucion) {
+    return {
+      departamentoCodigo: row.departamentoCodigo ?? null,
+      municipioCodigo: row.municipioCodigo ?? null,
+      territorioVersion: row.territorioVersion ?? null,
+    };
+  }
 
   private async teacher(
     id: string,
@@ -172,7 +223,17 @@ export class InstitutionApprovalService {
           'Consulta tu institución o solicitud actual.',
         );
       }
+      const location = this.locationFields(dto);
+      if (
+        !location &&
+        row?.municipioCodigo &&
+        normalizeInstitution(dto.ciudad) !== row.ciudadNormalizada
+      )
+        throw new BadRequestException(
+          'Para cambiar la ciudad clasificada, selecciona también departamento y municipio.',
+        );
       const fields = {
+        ...(location ?? (row ? this.storedLocation(row) : {})),
         nombre: dto.nombre.trim(),
         nombreNormalizado: normalizeInstitution(dto.nombre),
         ciudad: dto.ciudad.trim(),
@@ -187,6 +248,7 @@ export class InstitutionApprovalService {
         fields.nombreNormalizado,
         fields.ciudadNormalizada,
         row?.id,
+        fields.municipioCodigo,
       );
       const history = this.history(row, {
         actorId: userId,
@@ -240,6 +302,9 @@ export class InstitutionApprovalService {
         id: true,
         nombre: true,
         ciudad: true,
+        departamentoCodigo: true,
+        municipioCodigo: true,
+        territorioVersion: true,
         estado: true,
         revision: true,
         actualizadoEn: true,
@@ -291,7 +356,7 @@ export class InstitutionApprovalService {
       const allowed: Record<EstadoAltaInstitucion, string[]> = {
         PENDIENTE: ['APROBADA', 'RECHAZADA', 'REQUIERE_INFORMACION'],
         REQUIERE_INFORMACION: ['APROBADA', 'RECHAZADA'],
-        APROBADA: ['SUSPENDIDA'],
+        APROBADA: ['SUSPENDIDA', 'APROBADA'],
         RECHAZADA: [],
         SUSPENDIDA: ['APROBADA'],
         LEGADO_EN_REVISION: ['APROBADA', 'RECHAZADA', 'REQUIERE_INFORMACION'],
@@ -303,22 +368,55 @@ export class InstitutionApprovalService {
         throw new ConflictException(
           'El estado o la revisión cambiaron. Actualiza la solicitud.',
         );
+      const suppliedLocation = this.locationFields(dto);
+      if (suppliedLocation && dto.estado !== 'APROBADA')
+        throw new BadRequestException(
+          'La ubicación verificada solo se modifica al aprobar o corregir una aprobación.',
+        );
+      const previousLocation = this.storedLocation(row);
+      const location = suppliedLocation ?? previousLocation;
+      const correctingLocation =
+        row.estado === 'APROBADA' && dto.estado === 'APROBADA';
+      if (
+        correctingLocation &&
+        (!suppliedLocation ||
+          JSON.stringify(location) === JSON.stringify(previousLocation))
+      )
+        throw new BadRequestException(
+          'Indica una ubicación diferente para corregir la aprobación.',
+        );
+      // Revalidate the declared codes at approval, not only at submission.
+      if (dto.estado === 'APROBADA' && location.municipioCodigo) {
+        const validated = this.locationFields(location);
+        if (validated.territorioVersion !== location.territorioVersion)
+          throw new ConflictException(
+            'Revisa la ubicación con la versión vigente del catálogo.',
+          );
+      }
       if (dto.estado === 'APROBADA')
         await this.ensureNoDuplicate(
           tx,
           row.nombreNormalizado,
           row.ciudadNormalizada,
           row.id,
+          location.municipioCodigo,
         );
       const changed = await tx.solicitudAltaInstitucion.updateMany({
         where: { id, revision: dto.revision },
         data: {
+          ...(dto.estado === 'APROBADA' ? location : {}),
           estado: dto.estado,
           revision: { increment: 1 },
           mensajeSolicitante: dto.mensaje,
           historial: this.history(row, {
             actorId,
-            accion: dto.estado,
+            accion: correctingLocation ? 'UBICACION_CORREGIDA' : dto.estado,
+            ...(dto.estado === 'APROBADA'
+              ? {
+                  ubicacionAnterior: previousLocation,
+                  ubicacionNueva: location,
+                }
+              : {}),
             fecha: new Date().toISOString(),
             mensaje: dto.mensaje,
             notaInterna: dto.notaInterna,
@@ -342,6 +440,7 @@ export class InstitutionApprovalService {
         const institution = await tx.institucion.create({
           data: {
             nombre: row.nombre,
+            ...location,
             codigoUnico: `INST-${randomUUID().replaceAll('-', '').slice(0, 16).toUpperCase()}`,
             estadoVerificacion: 'APROBADA',
             planActual: 'GRATIS',
@@ -380,7 +479,9 @@ export class InstitutionApprovalService {
           data: {
             estadoVerificacion: dto.estado,
             transicionHasta: null,
-            ...(dto.estado === 'APROBADA' ? { nombre: row.nombre } : {}),
+            ...(dto.estado === 'APROBADA'
+              ? { nombre: row.nombre, ...location }
+              : {}),
           },
         });
       }
@@ -399,6 +500,7 @@ export class InstitutionApprovalService {
     name: string,
     city: string,
     except?: string,
+    municipalityCode?: string,
   ) {
     // La exclusión mutua evita dos aprobaciones simultáneas del mismo colegio.
     await tx.$queryRaw`SELECT 1 FROM pg_advisory_xact_lock(hashtext(${name}))`;
@@ -423,9 +525,40 @@ export class InstitutionApprovalService {
               },
             ],
           },
-          ...(city
-            ? [{ OR: [{ ciudadNormalizada: city }, { ciudadNormalizada: '' }] }]
-            : []),
+          ...(municipalityCode
+            ? [
+                {
+                  OR: [
+                    { municipioCodigo: municipalityCode },
+                    { institucion: { municipioCodigo: municipalityCode } },
+                    {
+                      municipioCodigo: null,
+                      OR: [
+                        { ciudadNormalizada: city },
+                        {
+                          ciudadNormalizada: normalizeInstitution(
+                            this.territory.resolveLocation(
+                              municipalityCode.slice(0, 2),
+                              municipalityCode,
+                            ).municipio.nombre,
+                          ),
+                        },
+                        { ciudadNormalizada: '' },
+                      ],
+                    },
+                  ],
+                },
+              ]
+            : city
+              ? [
+                  {
+                    OR: [
+                      { ciudadNormalizada: city },
+                      { ciudadNormalizada: '' },
+                    ],
+                  },
+                ]
+              : []),
         ],
       },
       select: { id: true },

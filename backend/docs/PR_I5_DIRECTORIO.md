@@ -1,5 +1,10 @@
 # PR-I5A — Base del directorio institucional
 
+Continuación del 11 de octubre: [PR-I5-T1/T2/T3/T4](PR_I5_T_TERRITORIO.md)
+implementadas. Próximo bloque T5 ensayo conjunto. El contrato actual añade
+ubicación pública opcional y filtros territoriales; la evidencia inferior es PR-I5A/B.
+No cambia el contrato del directorio descrito en esta acta.
+
 Inicio: 10 de octubre de 2026. Entrega incremental de PR-I5, no cierre de toda
 la etapa. No modifica migraciones, aprobación P4-C, códigos, XP ni rankings.
 

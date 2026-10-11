@@ -1,5 +1,23 @@
 # Panel administrativo de SaberPlus
 
+## PR-I5-T3 — Ubicación institucional (11 de octubre de 2026)
+
+En Instituciones, ADMIN selecciona departamento y después municipio/distrito/
+unidad territorial de la sede. Cambiar departamento borra el municipio anterior.
+Para aprobar se exige pareja válida; rechazar/pedir información/suspender no
+depende de cargar el catálogo. Una aprobación existente permite **Corregir
+ubicación aprobada**, con revisión, mensaje, nota interna y confirmación.
+La ciudad heredada sigue como referencia, nunca clasifica automáticamente.
+El historial muestra ubicación anterior/nueva. Tras error de escritura, consultar
+estado antes de repetir. Respuestas tardías no reactivan un formulario cerrado
+o bloqueado mientras guarda. No cambia la edición/publicación de contenido.
+
+La demo incluye solo Amazonas/Leticia, Bogotá D.C. y Cesar/Valledupar, en memoria.
+En modo real se consume el catálogo autenticado del backend, no esa lista reducida.
+Pruebas: 93 aprobadas; sintaxis: 23 módulos. Evidencia y pasos siguientes en
+[PR-I5-T](../backend/docs/PR_I5_T_TERRITORIO.md). Ensayo navegador/celular pendiente;
+los antecedentes fechados abajo no describen esta entrega ni un despliegue.
+
 Estado vigente, 7 de octubre: [conciliación](../backend/docs/CONCILIACION_2026_10_07.md).
 Panel reejecutado en el PC de Pavel: check 22 módulos, npm test normal 88/88.
 El fallo del otro PC no se reprodujo; causa no confirmada. HTTP y navegación

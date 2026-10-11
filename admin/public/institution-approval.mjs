@@ -1,3 +1,4 @@
+import { InstitutionTerritoryEditor } from "./institution-territory.mjs";
 const labels = {
   PENDIENTE: "Pendiente",
   REQUIERE_INFORMACION: "Requiere información",
@@ -10,7 +11,7 @@ const actions = {
   PENDIENTE: ["APROBADA", "REQUIERE_INFORMACION", "RECHAZADA"],
   REQUIERE_INFORMACION: ["APROBADA", "RECHAZADA"],
   LEGADO_EN_REVISION: ["APROBADA", "REQUIERE_INFORMACION", "RECHAZADA"],
-  APROBADA: ["SUSPENDIDA"],
+  APROBADA: ["APROBADA", "SUSPENDIDA"],
   SUSPENDIDA: ["APROBADA"],
   RECHAZADA: [],
 };
@@ -68,6 +69,7 @@ export class InstitutionApproval {
       filter.append(option);
     }
     filter.value = this.state;
+    this.filter = filter;
     filter.onchange = () => {
       this.state = filter.value;
       this.page = 1;
@@ -143,7 +145,8 @@ export class InstitutionApproval {
       heading.tabIndex = -1;
       this.detail.append(heading);
       const fields = {
-        Ciudad: row.ciudad,
+        "Ciudad declarada anteriormente (no asigna ubicación oficial)":
+          row.ciudad,
         Solicitante: row.solicitante?.nombre,
         "Correo de la cuenta": row.solicitante?.correo,
         "Correo institucional": row.correoInstitucional,
@@ -175,6 +178,20 @@ export class InstitutionApproval {
           history.append(node("p", `Nota interna: ${event.notaInterna}`));
         if (event.datos)
           history.append(node("pre", JSON.stringify(event.datos, null, 2)));
+        if (event.ubicacionAnterior || event.ubicacionNueva)
+          history.append(
+            node(
+              "pre",
+              JSON.stringify(
+                {
+                  anterior: event.ubicacionAnterior,
+                  nueva: event.ubicacionNueva,
+                },
+                null,
+                2,
+              ),
+            ),
+          );
       }
       this.detail.append(history);
       if (actions[row.estado].length) this.reviewForm(row, version);
@@ -193,10 +210,26 @@ export class InstitutionApproval {
     choice.append(placeholder);
     choice.required = true;
     for (const value of actions[row.estado]) {
-      const option = node("option", labels[value]);
+      const option = node(
+        "option",
+        row.estado === "APROBADA" && value === "APROBADA"
+          ? "Corregir ubicación aprobada"
+          : labels[value],
+      );
       option.value = value;
       choice.append(option);
     }
+    const territoryHost = node("fieldset");
+    territoryHost.append(node("legend", "Ubicación de la sede representada"));
+    form.append(territoryHost);
+    let submitting = false;
+    const territory = new InstitutionTerritoryEditor({
+      api: this.api,
+      host: territoryHost,
+      row,
+      current: () => version === this.version && !submitting,
+    });
+    void territory.load();
     const message = node("textarea"),
       note = node("textarea"),
       confirmation = node("input");
@@ -229,6 +262,26 @@ export class InstitutionApproval {
     form.onsubmit = async (event) => {
       event.preventDefault();
       if (!form.reportValidity() || submit.disabled) return;
+      if (!actions[row.estado].includes(choice.value)) return;
+      let location = {};
+      try {
+        if (choice.value === "APROBADA") {
+          location = territory.value();
+          if (
+            row.estado === "APROBADA" &&
+            location.departamentoCodigo === row.departamentoCodigo &&
+            location.municipioCodigo === row.municipioCodigo &&
+            row.territorioVersion === territory.version
+          )
+            throw new Error(
+              "Selecciona una ubicación diferente para corregir la aprobación.",
+            );
+        }
+      } catch (error) {
+        this.status.textContent = error.message;
+        return;
+      }
+      submitting = true;
       for (const field of form.elements) field.disabled = true;
       this.status.textContent = "Guardando revisión…";
       try {
@@ -238,9 +291,20 @@ export class InstitutionApproval {
           mensaje: message.value.trim(),
           notaInterna: note.value.trim(),
           confirmado: confirmation.checked,
+          ...location,
         });
         if (version !== this.version) return;
-        await this.inspect(row.id);
+        this.state = choice.value;
+        this.filter.value = this.state;
+        this.page = 1;
+        const refresh = this.load();
+        const listVersion = this.version;
+        await refresh;
+        if (listVersion !== this.version) return;
+        const detail = this.inspect(row.id);
+        const detailVersion = this.version;
+        await detail;
+        if (detailVersion !== this.version) return;
         this.status.textContent =
           "Decisión guardada. El profesor la verá al actualizar su estado.";
       } catch (error) {

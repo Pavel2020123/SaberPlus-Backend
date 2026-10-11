@@ -1,8 +1,12 @@
 # Documentación backend
 
-**Etapa actual: [PR-I5A — directorio institucional](PR_I5_DIRECTORIO.md).**
-Base de API y cliente Flutter aprobados en ensayo local HTTP/PostgreSQL/Android.
-Siguiente implementación: territorio PR-I5-T. Ver acta para alcance y límites.
+**Etapa actual: [PR-I5-T — territorio](PR_I5_T_TERRITORIO.md).**
+T1 catálogo/API y T2 persistencia/revisión implementadas; 16 casos SQL reales y
+regresión 1.311 aprobados. T3 formularios implementados el 11 de octubre;
+T4 filtros implementados y T5 cerrado localmente con API/PostgreSQL/panel/Android.
+Siguiente: perfil institucional y solicitudes estudiantiles PR-I5. Sin despliegue ni iOS.
+[PR-I5A/B](PR_I5_DIRECTORIO.md) mantiene su
+cierre local HTTP/PostgreSQL/Android. Ver actas para alcance y límites.
 
 **IC-1C Rescate, cierre local 10 de octubre:** [acta](IC1_RESCATE.md).
 Cliente/tests/Android/API/SQL aprobados en su alcance local; saldo final80 tras

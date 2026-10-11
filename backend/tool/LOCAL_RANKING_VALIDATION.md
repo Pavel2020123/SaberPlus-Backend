@@ -1,5 +1,11 @@
 # Ensayo I2-5 exclusivamente local
 
+Actualización PR-I5-T5, 11 de octubre: el harness admite por ruta explícita la
+única migración pendiente `20261010193000_institution_territory`; las demás
+proceden de HEAD. Se comprobó arranque con 62 migraciones y guion territorial
+HTTP/PostgreSQL aprobado. Seguimiento humano en el acta territorial de Flutter.
+Ese cambio permite ensayar antes del commit sin copiar otros SQL locales.
+
 ## Acuerdo de alcance — 9 de octubre de 2026
 
 Fuente del orden: `docs/ETAPAS_PENDIENTES.md` y

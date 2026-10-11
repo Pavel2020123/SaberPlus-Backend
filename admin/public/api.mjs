@@ -137,6 +137,13 @@ export class CatalogApi {
     if (estado) query.set('estado', estado);
     return this.#protected(`/admin/instituciones/solicitudes?${query}`);
   }
+  territoryDepartments() {
+    return this.#protected('/instituciones/territorio/departamentos');
+  }
+  territoryMunicipalities(department) {
+    if (typeof department !== 'string' || !/^\d{2}$/.test(department)) throw new PanelError('Departamento inválido.');
+    return this.#protected(`/instituciones/territorio/departamentos/${department}/municipios`);
+  }
   institutionApplication(id) {
     return this.#protected(`/admin/instituciones/solicitudes/${encodeURIComponent(id)}`);
   }

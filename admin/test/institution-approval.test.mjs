@@ -20,6 +20,9 @@ test("demo ADMIN: pedir información, aprobar, conflicto, suspender y cerrar ses
   );
   assert.equal((await fetch(`${base}/institution-approval.mjs`)).status, 200);
   await api.login("demo@saberplus.invalid", "solo-demostracion");
+  assert.equal((await fetch(`${base}/institution-territory.mjs`)).status, 200);
+  assert.equal((await api.territoryDepartments()).departamentos.length, 3);
+  assert.equal((await api.territoryMunicipalities('91')).municipios[0].nombre, 'Leticia');
   const list = await api.institutionApplications("PENDIENTE");
   assert.equal(list.items.length, 1);
   assert.equal(list.items[0].evidencia, undefined);
@@ -45,6 +48,14 @@ test("demo ADMIN: pedir información, aprobar, conflicto, suspender y cerrar ses
   const detail = await api.institutionApplication(id);
   assert.equal(detail.estado, "SUSPENDIDA");
   assert.equal(detail.historial.length, 3);
+  await assert.rejects(api.reviewInstitution(id, { ...decision(4, 'APROBADA'), departamentoCodigo: '91', municipioCodigo: '20001' }), e => e.status === 400);
+  await api.reviewInstitution(id, { ...decision(4, 'APROBADA'), departamentoCodigo: '91', municipioCodigo: '91001' });
+  await api.reviewInstitution(id, { ...decision(5, 'APROBADA'), departamentoCodigo: '20', municipioCodigo: '20001' });
+  const corrected = await api.institutionApplication(id);
+  assert.equal(corrected.municipioCodigo, '20001');
+  assert.equal(corrected.historial.at(-1).accion, 'UBICACION_CORREGIDA');
+  assert.equal(corrected.historial.at(-1).ubicacionAnterior.municipioCodigo, '91001');
+  await assert.rejects(api.reviewInstitution(id, { ...decision(6, 'APROBADA'), departamentoCodigo: '20', municipioCodigo: '20001' }), e => e.status === 400);
   api.logout();
   assert.throws(() => api.institutionApplications());
 });

@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { InstitutionTerritoryController } from './institution-territory.controller';
+import { InstitutionTerritoryService } from './institution-territory.service';
 import { InstitutionDirectoryController } from './institution-directory.controller';
 import { InstitutionDirectoryService } from './institution-directory.service';
 import { InstitutionApprovalService } from './institution-approval.service';
@@ -39,6 +41,7 @@ import {
 @Module({
   imports: [PrismaModule],
   controllers: [
+    InstitutionTerritoryController,
     InstitutionDirectoryController,
     InstitutionApprovalController,
     InstitutionRegistrationController,
@@ -50,6 +53,7 @@ import {
     TeacherStudyTimeController,
   ],
   providers: [
+    InstitutionTerritoryService,
     InstitutionDirectoryService,
     InstitutionApprovalService,
     InstitutionOperationalGuard,

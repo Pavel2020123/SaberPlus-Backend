@@ -62,10 +62,16 @@ try {
   const paths = (await run('git', ['ls-tree', '-r', '--name-only', 'HEAD', '--', 'prisma/migrations'])).stdout
     .split(/\r?\n/).filter(p => /^prisma\/migrations\/[a-zA-Z0-9_]+\/migration\.sql$/.test(p)).sort();
   if (!paths.length) throw new Error('Committed migrations required.');
-  for (const path of paths) {
+  // One explicit pending migration for PR-I5-T; never enumerate arbitrary local SQL.
+  const territoryMigration = 'prisma/migrations/20261010193000_institution_territory/migration.sql';
+  const actualPaths = paths.includes(territoryMigration) ? paths : [...paths, territoryMigration].sort();
+  for (const path of actualPaths) {
     const dest = join(directory, path.replace(/^prisma\//, ''));
     await mkdir(dirname(dest), { recursive: true });
-    await writeFile(dest, (await run('git', ['show', `HEAD:backend/${path}`])).stdout);
+    const content = paths.includes(path)
+      ? (await run('git', ['show', `HEAD:backend/${path}`])).stdout
+      : await readFile(join(backend, territoryMigration), 'utf8');
+    await writeFile(dest, content);
   }
   await writeFile(join(directory, 'migrations/migration_lock.toml'), 'provider = "postgresql"\n');
   await writeFile(join(directory, 'schema.prisma'), await readFile(join(backend, 'prisma/schema.prisma')));
@@ -127,7 +133,8 @@ try {
     AUTH_E2E_EMAIL: accounts.student.correo, AUTH_E2E_PASSWORD: loginPassword,
     LOCAL_RANKING_SEASON: String(event.temporada), LOCAL_RANKING_ENABLED: 'true' };
   await writeFile(join(directory, 'flutter-private.json'), JSON.stringify(config), { mode: 0o600 });
-  console.log(JSON.stringify({ phase: 'local-ranking-ready', directory, migrations: paths.length,
+  console.log(JSON.stringify({ phase: 'local-ranking-ready', directory, migrations: actualPaths.length,
+    pendingTerritoryMigration: !paths.includes(territoryMigration),
     api: config.API_BASE_URL, syntheticFixtures: true, ownPosition: 51, totalParticipants: 61 }));
   console.log('Local control.json actions: correct, solo-on, solo-off, stop. No HTTP mutation route.');
   let corrected = false;

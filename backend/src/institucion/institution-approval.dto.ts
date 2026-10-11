@@ -13,6 +13,8 @@ import {
   MaxLength,
   Min,
   MinLength,
+  Matches,
+  ValidateIf,
 } from 'class-validator';
 
 export const approvalStates = [
@@ -26,7 +28,23 @@ export const approvalStates = [
 const trim = ({ value }: { value: unknown }) =>
   typeof value === 'string' ? value.trim().replace(/\s+/g, ' ') : value;
 
-export class SubmitInstitutionDto {
+// Preserve raw JSON types despite global implicit conversion. Null cannot erase
+// a previously classified location. Both omitted = legacy client compatibility.
+class OptionalInstitutionTerritoryDto {
+  @Transform(({ obj, key }) => obj[key], { toClassOnly: true })
+  @ValidateIf((_object, value) => value !== undefined)
+  @IsString()
+  @Matches(/^\d{2}$/)
+  departamentoCodigo?: string;
+
+  @Transform(({ obj, key }) => obj[key], { toClassOnly: true })
+  @ValidateIf((_object, value) => value !== undefined)
+  @IsString()
+  @Matches(/^\d{5}$/)
+  municipioCodigo?: string;
+}
+
+export class SubmitInstitutionDto extends OptionalInstitutionTerritoryDto {
   @IsInt() @Min(0) @Max(1000000) revision!: number;
   @Transform(trim) @IsString() @MinLength(3) @MaxLength(120) nombre!: string;
   @Transform(trim) @IsString() @MinLength(2) @MaxLength(120) ciudad!: string;
@@ -44,7 +62,7 @@ export class SubmitInstitutionDto {
   @IsJsonBoolean() @Equals(true) declaracion!: boolean;
 }
 
-export class ReviewInstitutionDto {
+export class ReviewInstitutionDto extends OptionalInstitutionTerritoryDto {
   @IsInt() @Min(1) @Max(1000000) revision!: number;
   @IsIn(['APROBADA', 'RECHAZADA', 'REQUIERE_INFORMACION', 'SUSPENDIDA'])
   estado!: 'APROBADA' | 'RECHAZADA' | 'REQUIERE_INFORMACION' | 'SUSPENDIDA';

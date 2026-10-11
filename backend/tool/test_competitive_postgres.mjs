@@ -36,9 +36,11 @@ export function validateCompetitiveDatabase(urlValue, marker) {
 }
 async function main() {
   const rankingOnly = process.argv.length === 3 && process.argv[2] === '--ranking';
-  if (process.argv.length !== 2 && !rankingOnly)
+  const territoryOnly = process.argv.length === 3 && process.argv[2] === '--institution-territory';
+  const directedOnly = rankingOnly || territoryOnly;
+  if (process.argv.length !== 2 && !directedOnly)
     throw new Error('No external database or arguments accepted.');
-  console.log(JSON.stringify({ phase: 'postgres-scope', scope: rankingOnly ? 'ranking-only' : 'complete' }));
+  console.log(JSON.stringify({ phase: 'postgres-scope', scope: territoryOnly ? 'institution-territory-only' : rankingOnly ? 'ranking-only' : 'complete' }));
   const nonce = randomBytes(8).toString('hex');
   const password = randomBytes(24).toString('hex');
   const user = `sp_test_${nonce}`;
@@ -200,10 +202,12 @@ async function main() {
     // is copied from HEAD; pending SQL is copied only when absent from HEAD.
     const roleSql = 'CREATE ROLE anon NOLOGIN NOSUPERUSER NOBYPASSRLS; CREATE ROLE authenticated NOLOGIN NOSUPERUSER NOBYPASSRLS; GRANT USAGE ON SCHEMA public TO anon, authenticated;';
     await docker('exec',name,'psql','-X','-U',user,'-d','postgres','-v','ON_ERROR_STOP=1','-c',roleSql);
-    const candidates = [migration,presenceMigration,competitiveTriviaMigration,tugMigration,
+    const territoryMigration = 'prisma/migrations/20261010193000_institution_territory/migration.sql';
+    const candidates = [territoryMigration,migration,presenceMigration,competitiveTriviaMigration,tugMigration,
       tugPresenceMigration,tugVisibilityMigration,tugAdmissionMigration,tugTemporalMigration,tugSettlementMigration];
     const actualPaths = [...paths,...candidates.filter(p=>!paths.includes(p))].sort();
     for (const path of actualPaths) {
+      if (territoryOnly && path >= territoryMigration) continue;
       const destination=join(directory,path.replace(/^prisma\//,''));
       await mkdir(dirname(destination),{recursive:true});
       const content=paths.includes(path) ? (await run('git',['show',`HEAD:backend/${path}`])).stdout : await readFile(join(backend,path),'utf8');
@@ -214,6 +218,23 @@ async function main() {
     await writeFile(schemaPath,await readFile(join(backend,'prisma','schema.prisma'),'utf8'),'utf8');
     await run(process.execPath,[join(backend,'node_modules','prisma','build','index.js'),
       'migrate','deploy','--schema',schemaPath],120000,directory);
+    if (territoryOnly) {
+      // Seed BEFORE T2 to prove preservation of real pre-existing records.
+      await docker('exec', name, 'psql', '-X', '-U', user, '-d', 'postgres', '-v', 'ON_ERROR_STOP=1', '-c',
+        `INSERT INTO "Institucion" (id,nombre,"codigoUnico","estadoVerificacion")
+          VALUES ('11111111-1111-4111-8111-111111111112','Legado territorial','LEGADO-T2','APROBADA');
+         INSERT INTO "SolicitudAltaInstitucion" (id,"institucionId",nombre,"nombreNormalizado",ciudad,"ciudadNormalizada","correoInstitucional",contacto,evidencia,estado)
+          VALUES ('11111111-1111-4111-8111-111111111113','11111111-1111-4111-8111-111111111112','Legado territorial','legado territorial','Ciudad ambigua antigua','ciudad ambigua antigua','test@example.invalid','Contacto de ensayo','Evidencia de ensayo conservada','APROBADA');`);
+      for (const path of actualPaths.filter(path => path >= territoryMigration)) {
+        const destination = join(directory, path.replace(/^prisma\//, ''));
+        await mkdir(dirname(destination), { recursive: true });
+        await writeFile(destination, paths.includes(path)
+          ? (await run('git', ['show', `HEAD:backend/${path}`])).stdout
+          : await readFile(join(backend, path), 'utf8'), 'utf8');
+      }
+      await run(process.execPath,[join(backend,'node_modules','prisma','build','index.js'),
+        'migrate','deploy','--schema',schemaPath],120000,directory);
+    }
     console.log(`PostgreSQL 16 local: ${actualPaths.length} versioned migrations applied by Prisma deploy; owned migration history verified by readiness.`);
     const clockDiagnostic = async (phase) => {
       const hostBefore = Date.now();
@@ -354,7 +375,7 @@ async function main() {
       productionDurabilityCertified:false}));
 
     };
-    if (!rankingOnly) {
+    if (!directedOnly) {
       console.log(JSON.stringify({ phase: 'linux-runtime-build-start', node: '24.14.1', timeoutMs: 600000 }));
       linuxImage = await prepareLinuxRuntime(backend, directory, nonce, ownedDocker);
       env.COMPETITIVE_LINUX_IMAGE = linuxImage;
@@ -370,7 +391,7 @@ async function main() {
       // Node already isolated each file in a child; keep that isolation and
       // order, but bound each process rather than truncate the whole growing
       // suite. The existing command budget is 120 s; no test/window is extended.
-      const files = rankingOnly ? ['test/competitive-ranking-postgres.test.cjs'] : [
+      const files = territoryOnly ? ['test/institution-territory-postgres.test.cjs'] : rankingOnly ? ['test/competitive-ranking-postgres.test.cjs'] : [
         'test/competitive-ranking-postgres.test.cjs',
         'test/competitive-linux-postgres.test.cjs',
         'test/competitive-timeouts-postgres.test.cjs',
@@ -522,7 +543,7 @@ async function main() {
     }
     await clockDiagnostic('after-tests');
     await schemaDiagnostic('after-tests');
-    if (!rankingOnly) await backupRestore('populated',true);
+    if (!directedOnly) await backupRestore('populated',true);
 
     console.log(
       result.stdout

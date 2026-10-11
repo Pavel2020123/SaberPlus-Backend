@@ -255,6 +255,10 @@ async function main() {
       sql.push(privacyFixture);
       sql.push(await readFile(join(repository, approvalPrivacyMigration), 'utf8'));
     }
+    const territoryMigration = 'backend/prisma/migrations/20261010193000_institution_territory/migration.sql';
+    if (institutionApproval && !migrations.includes(territoryMigration)) {
+      sql.push(await readFile(join(repository, territoryMigration), 'utf8'));
+    }
     await writeFile(migrationFile, sql.join('\n'), 'utf8');
     await run(binary('psql'), [
       '-X',
