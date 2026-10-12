@@ -127,6 +127,8 @@ model Institucion {
   planActual           String?                       @default("GRATIS") @db.VarChar(50)
   logoUrl              String?                       @db.VarChar(255)
   mensajeBienvenida    String?                       @db.Text
+  descripcionPublica   String?                       @db.VarChar(500)
+  revisionPerfil       Int                           @default(0)
   imagenPortada        String?                       @db.VarChar(255)
   limiteGrado10        Int?
   limiteGrado11        Int?

@@ -161,11 +161,13 @@ describe('PR-I5A directorio institucional', () => {
       id,
       nombre: 'Colegio aprobado',
       ubicacion: null,
+      descripcion: null,
     });
     expect(response.headers['cache-control']).toBe('private, no-store');
     expect(prisma.institucion.findFirst).toHaveBeenCalledWith({
       where: { id, estadoVerificacion: 'APROBADA' },
       select: {
+        descripcionPublica: true,
         id: true,
         nombre: true,
         departamentoCodigo: true,

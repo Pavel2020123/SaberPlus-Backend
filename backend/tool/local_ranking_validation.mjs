@@ -62,15 +62,16 @@ try {
   const paths = (await run('git', ['ls-tree', '-r', '--name-only', 'HEAD', '--', 'prisma/migrations'])).stdout
     .split(/\r?\n/).filter(p => /^prisma\/migrations\/[a-zA-Z0-9_]+\/migration\.sql$/.test(p)).sort();
   if (!paths.length) throw new Error('Committed migrations required.');
-  // One explicit pending migration for PR-I5-T; never enumerate arbitrary local SQL.
+  // Explicit pending migrations for PR-I5-T/C; never enumerate arbitrary local SQL.
   const territoryMigration = 'prisma/migrations/20261010193000_institution_territory/migration.sql';
-  const actualPaths = paths.includes(territoryMigration) ? paths : [...paths, territoryMigration].sort();
+  const profileMigration = 'prisma/migrations/20261011200000_institution_public_profile/migration.sql';
+  const actualPaths = [...new Set([...paths, territoryMigration, profileMigration])].sort();
   for (const path of actualPaths) {
     const dest = join(directory, path.replace(/^prisma\//, ''));
     await mkdir(dirname(dest), { recursive: true });
     const content = paths.includes(path)
       ? (await run('git', ['show', `HEAD:backend/${path}`])).stdout
-      : await readFile(join(backend, territoryMigration), 'utf8');
+      : await readFile(join(backend, path), 'utf8');
     await writeFile(dest, content);
   }
   await writeFile(join(directory, 'migrations/migration_lock.toml'), 'provider = "postgresql"\n');
@@ -135,6 +136,7 @@ try {
   await writeFile(join(directory, 'flutter-private.json'), JSON.stringify(config), { mode: 0o600 });
   console.log(JSON.stringify({ phase: 'local-ranking-ready', directory, migrations: actualPaths.length,
     pendingTerritoryMigration: !paths.includes(territoryMigration),
+    pendingProfileMigration: !paths.includes(profileMigration),
     api: config.API_BASE_URL, syntheticFixtures: true, ownPosition: 51, totalParticipants: 61 }));
   console.log('Local control.json actions: correct, solo-on, solo-off, stop. No HTTP mutation route.');
   let corrected = false;

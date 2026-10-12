@@ -104,9 +104,12 @@ export class InstitutionDirectoryService {
     // La misma restricción se aplica al acceso directo, incluso tras suspensión.
     const row = await this.prisma.institucion.findFirst({
       where: { id, estadoVerificacion: 'APROBADA' },
-      select: publicIdentity,
+      select: { ...publicIdentity, descripcionPublica: true },
     });
     if (!row) throw new NotFoundException('Institución no disponible.');
-    return this.publicRow(row);
+    return {
+      ...this.publicRow(row),
+      descripcion: row.descripcionPublica ?? null,
+    };
   }
 }

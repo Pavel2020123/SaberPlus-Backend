@@ -1,5 +1,19 @@
 # API de SaberPlus
 
+**12 de octubre — C1C completada localmente:** perfil con15 HTTP/SQL +3 Flutter/API reales
+aprobadas, 63 migraciones solo en base temporal, APK instalada. Prueba física 1
+aprobada y pruebas 2–10 confirmadas; SQL confirma descarte sin escritura/revisión15.
+Siguiente C2, logo institucional. No acredita despliegue Supabase/Render.
+[Estado y relevo](docs/PR_I5_C_PERFIL.md).
+
+**Continuación PR-I5-C:** código del editor Flutter C1B implementado. Sigue C1C,
+ensayo integrado; migración del perfil todavía no aplicada. Ver acta C1A/C1B.
+
+**11 de octubre — [PR-I5-C1A perfil](docs/PR_I5_C_PERFIL.md):** contrato de
+presentación pública, permisos del propietario, revisión y auditoría. Build y
+45 pruebas dirigidas correctos. Migración NO aplicada. Próximo: editor Flutter
+C1B y ensayo HTTP/PostgreSQL/Android. Prevalece sobre próximos pasos inferiores.
+
 **10 de octubre — [PR-I5-T1/T2 territorio](docs/PR_I5_T_TERRITORIO.md):** catálogo
 DANE/API y persistencia/revisión ADMIN implementados; regresión 1.311 aprobados,
 16 casos PostgreSQL reales T2 aprobados y build correcto. Migración solo probada
