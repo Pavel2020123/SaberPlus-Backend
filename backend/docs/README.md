@@ -1,5 +1,12 @@
 # Documentación backend
 
+## Entrada vigente — 13 de octubre de 2026
+
+Propietario: [C2C, logo](PR_I5_C2_LOGO.md). Compañero: [OV-1A](CHECKPOINT_OV1.md).
+Leer [reparto y checkpoints](TRABAJO_PARALELO.md). Las conciliaciones de septiembre
+u octubre anteriores son evidencia histórica, no la próxima etapa.
+
+
 **Trabajo paralelo acordado:** propietario → instituciones (sigue C2C);
 compañero → test vocacional OV-1 (comienza A, después B/C/D), sin esperar C2C.
 Ver [responsables, ramas y entrega](TRABAJO_PARALELO.md). Este acuerdo sustituye
@@ -60,8 +67,9 @@ históricas del día 7 siguientes.
 [Seguimiento I2-5](I2_5_SEGUIMIENTO_2026_10_07.md): panel 3 × 88/88,
 clasificación de lint y evidencia del recorrido Android (con preparación histórica).
 
-Estado más reciente: [conciliación del 7 de octubre](CONCILIACION_2026_10_07.md).
-I2-5 abierto por recorrido físico/cierre de criterios; regresión competitiva e
+Antecedente fechado: [conciliación del 7 de octubre](CONCILIACION_2026_10_07.md).
+I2-5: criterios funcionales revisados el 8 de octubre; cierre operativo pendiente.
+Evidencia histórica de regresión competitiva e
 integración HTTP ya documentadas. Panel normal 88/88, audit producción 0,
 lint 603 errores/150 avisos en el PC de Pavel. No acredita producción.
 [Informe histórico del día 6](VALIDACION_LOCAL_I2_5_2026-10-06.md).
@@ -82,7 +90,8 @@ productivos pendientes; incidencias históricas conservadas.
 
 - [PR-I2 — I2-1/2/3 integrados](PR_I2_RANKINGS.md): contrato, lector PostgreSQL
   y API autenticada; merge `66b5aa2`. Flutter I2-4 fusionada en `1921ba9`.
-  Sigue I2-5: recorrido Android y cierre de criterios; regresión e integración HTTP documentadas.
+  I2-5 conserva cierre operativo; recorrido funcional Android ya revisado.
+  Seguir el reparto vigente: propietario C2C, compañero OV-1A.
   El ranking general permanece vigente.
 - [Relevo PR-I1](PR_I1_RELEVO.md).
 - [Infraestructura y evidencia PR-I1](PR_I1_COMPETITIVE_INFRASTRUCTURE.md).

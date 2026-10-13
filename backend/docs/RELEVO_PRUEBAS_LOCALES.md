@@ -18,10 +18,12 @@ Territorio T5 también cerrado localmente. No repetir esos recorridos salvo regr
 [Contrato y guion C2](PR_I5_C2_LOGO.md). La ruta maestra está en el repo Flutter.
 Las notas inferiores son antecedentes; no reiniciar Rescate, territorio ni C1.
 
-Actualizado: 12 de octubre de 2026. Se necesitan **ambos repositorios**.
+Actualizado: 12 de octubre de 2026. Se necesitan **ambos repositorios**, públicos según API GitHub el 13 de octubre;
+permisos de escritura se coordinan sin cambiar visibilidad.
 Guía completa y prompt operativo: `docs/RELEVO_PRUEBAS_LOCALES.md` del repositorio
 Flutter `Pavel2020123/saber_plus`; no es un archivo dentro de este árbol backend.
-Punto vivo: `docs/ETAPAS_PENDIENTES.md`, bloque «Checkpoint de relevo de pruebas».
+Puntos vivos en Flutter: PR_I5_C2_LOGO.md (propietario) y CHECKPOINT_OV1.md
+(compañero). Roadmap general: consolidación del propietario al entregar/integrar bloques.
 No duplicar aquí una ruta independiente: verificar siempre ese bloque actualizado.
 
 ## Estado al entregar esta guía
@@ -55,8 +57,9 @@ No duplicar aquí una ruta independiente: verificar siempre ese bloque actualiza
 5. Flags solo mediante control.json propio/ACK IPC; nunca endpoints de prueba
    públicos ni variables productivas. Ledger real por partida; fixtures sintéticos
    de Trivia no acreditan liquidación de otro juego.
-6. Tras CADA prueba: acta backend del juego + acta/checkpoint del repo Flutter;
+6. Tras CADA prueba: acta backend del módulo + checkpoint propio en Flutter;
    registrar humano/HTTP/SQL, resultados/límites y siguiente paso, sin secretos.
+   No editar roadmap general simultáneamente: propietario consolida por bloque.
 7. Juego completo: documentación actualizada, tests y commit por repo afectado
    autorizado; dar rutas/hash/comando push. Push no automático. La guía operativa
    de soporte puede ir en commit documental separado para no mezclar código de juegos.

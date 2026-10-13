@@ -1,5 +1,9 @@
 # PR-I5-C2 — Logo institucional
 
+Checkpoint del propietario, 13 de octubre: C2C pendiente; no hay pruebas nuevas
+por la conciliación documental. Registrar cada resultado API aquí y en el acta
+Flutter; el compañero actualiza CHECKPOINT_OV1.md. Roadmap consolidado por bloque.
+
 12 de octubre de 2026. Backend y Flutter implementados; C2C integrado pendiente.
 Fuente del orden y acta completa: `docs/PR_I5_C2_LOGO.md` en Flutter.
 

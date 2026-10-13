@@ -1,5 +1,9 @@
 # SaberPlus Backend
 
+13 de octubre: [checkpoint del compañero OV-1](backend/docs/CHECKPOINT_OV1.md)
+y [C2C del propietario](backend/docs/PR_I5_C2_LOGO.md) independientes.
+[Conciliación documental](backend/docs/AUDITORIA_DOCUMENTAL_2026_10_13.md).
+
 **Trabajo paralelo acordado:** propietario → instituciones (sigue C2C);
 compañero → test vocacional OV-1 (comienza A, después B/C/D), sin esperar C2C.
 Ver [responsables, ramas y entrega](backend/docs/TRABAJO_PARALELO.md). Este acuerdo sustituye

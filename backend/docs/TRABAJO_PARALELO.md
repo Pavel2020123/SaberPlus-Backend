@@ -4,6 +4,8 @@ Fuente del acuerdo: `docs/TRABAJO_PARALELO.md` del repo Flutter `saber_plus`.
 Leerlo completo antes de empezar; no es un archivo de este árbol backend.
 Incluye primera sesión paso a paso, archivos Flutter existentes, criterios de
 aceptación A/B/C/D, comandos de prueba, coordinación Git y prompt copiable.
+Ambos repositorios son públicos según API GitHub el 13 de octubre de 2026;
+clonar no concede permiso para push. No cambiar visibilidad automáticamente.
 Confirmar primero que el propietario publicó la documentación de ambos repos;
 un cambio local no está disponible automáticamente en el PC del compañero.
 
@@ -23,3 +25,10 @@ No modificar migraciones ajenas/aplicadas. Bases locales separadas y credenciale
 ficticias privadas. El compañero documenta su acta OV-1; el propietario consolida
 roadmap general al integrar. Pruebas y compatibilidad entre los dos PR obligatorias.
 No cambiar XP, instituciones ni publicar resultados vocacionales a terceros.
+
+## Checkpoints independientes
+
+Instituciones: propietario mantiene backend/docs/PR_I5_C2_LOGO.md y el acta
+Flutter PR_I5_C2_LOGO.md. OV-1: compañero mantiene [checkpoint](CHECKPOINT_OV1.md)
+y su equivalente Flutter. Actualizar evidencia propia después de cada caso;
+propietario consolida roadmap/índices al entregar o integrar bloques.
