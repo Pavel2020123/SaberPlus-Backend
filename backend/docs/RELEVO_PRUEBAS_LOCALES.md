@@ -44,7 +44,7 @@ No duplicar aquí una ruta independiente: verificar siempre ese bloque actualiza
 
 ## Preparación mínima en este repositorio
 
-1. Acceso privado, main y pull fast-forward con worktree limpio; revisar cambios
+1. Acceso GitHub de lectura pública; permiso de escritura por colaborador o fork/PR. Main y pull fast-forward con worktree limpio; revisar cambios
    y contratos afectados. No reset/force-push ni cambios ajenos automáticos.
 2. Docker Desktop LOCAL Linux abierto; Node/npm según `backend/package.json`.
    En `backend/`: `npm ci --include=dev`, `npm run build`, después
@@ -60,7 +60,7 @@ No duplicar aquí una ruta independiente: verificar siempre ese bloque actualiza
 6. Tras CADA prueba: acta backend del módulo + checkpoint propio en Flutter;
    registrar humano/HTTP/SQL, resultados/límites y siguiente paso, sin secretos.
    No editar roadmap general simultáneamente: propietario consolida por bloque.
-7. Juego completo: documentación actualizada, tests y commit por repo afectado
+7. Módulo completado en su alcance: documentación actualizada, tests y commit por repo afectado
    autorizado; dar rutas/hash/comando push. Push no automático. La guía operativa
    de soporte puede ir en commit documental separado para no mezclar código de juegos.
 8. Stop por control propio, esperar confirmación, retirar solo reverse USB del

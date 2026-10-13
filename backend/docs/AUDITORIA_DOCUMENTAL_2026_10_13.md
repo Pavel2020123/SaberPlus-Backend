@@ -10,5 +10,6 @@ Cada frente registra su evidencia; propietario consolida roadmap/índices por bl
 revisados y cierre operativo pendiente. C2 específico no cierra C5 general.
 No afirmar despliegue remoto por las pruebas locales. Ver TRABAJO_PARALELO.md.
 
-Pendiente: autorización para publicar documentación y coordinación de permisos/
+La corrección original ya se publicó en `main`: Flutter `64ef962`, backend `5cbc7e1`.
+Pendiente: coordinación de permisos/
 archivos compartidos. No se verificaron protecciones de ramas ni nuevas pruebas.

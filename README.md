@@ -1,5 +1,7 @@
 # SaberPlus Backend
 
+**Para iniciar con un compañero:** [guía de colaboración y relevos](backend/docs/INICIO_Y_TRABAJO_EN_EQUIPO.md). La guía operativa completa está en el repositorio Flutter, `docs/INICIO_Y_TRABAJO_EN_EQUIPO.md`.
+
 13 de octubre: [checkpoint del compañero OV-1](backend/docs/CHECKPOINT_OV1.md)
 y [C2C del propietario](backend/docs/PR_I5_C2_LOGO.md) independientes.
 [Conciliación documental](backend/docs/AUDITORIA_DOCUMENTAL_2026_10_13.md).
