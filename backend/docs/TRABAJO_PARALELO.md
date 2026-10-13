@@ -1,5 +1,7 @@
 # Reparto paralelo — 12 de octubre de 2026
 
+**Punto de entrada backend:** [INICIO_Y_TRABAJO_EN_EQUIPO.md](INICIO_Y_TRABAJO_EN_EQUIPO.md), resumen de ramas, migraciones, actas y PR. Fuente completa: guía del repo Flutter.
+
 Fuente del acuerdo: `docs/TRABAJO_PARALELO.md` del repo Flutter `saber_plus`.
 Leerlo completo antes de empezar; no es un archivo de este árbol backend.
 Incluye primera sesión paso a paso, archivos Flutter existentes, criterios de
