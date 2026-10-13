@@ -44,6 +44,7 @@ import {
 } from '../auth/jwt.guard';
 import { EmailVerificadoGuard } from '../auth/email-verificado.guard';
 import { logoMulterOptions } from './logo-upload.config';
+import { InstitutionLogoDto } from './institution-logo.dto';
 import { csvMulterOptions } from './csv-upload.config';
 import { MulterExceptionFilter } from './multer-exception.filter';
 import {
@@ -436,7 +437,7 @@ export class InstitucionController {
   }
 
   @Patch('me')
-  @UseGuards(AdministradorInstitucionGuard)
+  @UseGuards(PropietarioInstitucionGuard, EmailVerificadoGuard)
   actualizarMiInstitucion(
     @Body() body: ActualizarInstitucionDto,
     @Request() req: AuthenticatedRequest,
@@ -456,12 +457,13 @@ export class InstitucionController {
   }
 
   @Post('me/logo')
-  @UseGuards(AdministradorInstitucionGuard)
+  @UseGuards(PropietarioInstitucionGuard, EmailVerificadoGuard)
   @UseInterceptors(FileInterceptor('logo', logoMulterOptions))
   @UseFilters(MulterExceptionFilter)
   subirLogo(
     @UploadedFile() archivo: Express.Multer.File,
     @Request() req: AuthenticatedRequest,
+    @Body() dto: InstitutionLogoDto,
   ) {
     if (!archivo) {
       throw new BadRequestException(
@@ -472,14 +474,19 @@ export class InstitucionController {
     return this.archivoAlmacenamientoService.subirLogoDeMiInstitucion(
       req.usuario.sub,
       archivo,
+      dto.revision,
     );
   }
 
   @Delete('me/logo')
-  @UseGuards(AdministradorInstitucionGuard)
-  eliminarLogo(@Request() req: AuthenticatedRequest) {
+  @UseGuards(PropietarioInstitucionGuard, EmailVerificadoGuard)
+  eliminarLogo(
+    @Request() req: AuthenticatedRequest,
+    @Body() dto: InstitutionLogoDto,
+  ) {
     return this.archivoAlmacenamientoService.eliminarLogoDeMiInstitucion(
       req.usuario.sub,
+      dto.revision,
     );
   }
 

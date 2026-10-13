@@ -7,11 +7,13 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { InstitutionDirectoryQuery } from './institution-directory.dto';
 import { InstitutionTerritoryService } from './institution-territory.service';
+import { managedLogoUrl } from './institution-logo.dto';
 
 // Nunca serializar códigos de ingreso, contactos o expedientes privados.
 const publicIdentity = {
   id: true,
   nombre: true,
+  logoUrl: true,
   departamentoCodigo: true,
   municipioCodigo: true,
 } as const;
@@ -27,6 +29,7 @@ export class InstitutionDirectoryService {
   private publicRow(row: {
     id: string;
     nombre: string;
+    logoUrl?: string | null;
     departamentoCodigo?: string | null;
     municipioCodigo?: string | null;
   }) {
@@ -54,7 +57,12 @@ export class InstitutionDirectoryService {
           throw error;
       }
     }
-    return { id: row.id, nombre: row.nombre, ubicacion };
+    return {
+      id: row.id,
+      nombre: row.nombre,
+      ubicacion,
+      logoUrl: managedLogoUrl(row.logoUrl),
+    };
   }
 
   async list(query: InstitutionDirectoryQuery) {
@@ -111,5 +119,18 @@ export class InstitutionDirectoryService {
       ...this.publicRow(row),
       descripcion: row.descripcionPublica ?? null,
     };
+  }
+
+  async logo(id: string, revision: number) {
+    const row = await this.prisma.institucion.findFirst({
+      where: {
+        id,
+        estadoVerificacion: 'APROBADA',
+        logoUrl: `/instituciones/directorio/${id}/logo/${revision}`,
+      },
+      select: { logoArchivo: { select: { contenido: true } } },
+    });
+    if (!row?.logoArchivo) throw new NotFoundException('Logo no disponible.');
+    return row.logoArchivo.contenido;
   }
 }

@@ -65,7 +65,8 @@ try {
   // Explicit pending migrations for PR-I5-T/C; never enumerate arbitrary local SQL.
   const territoryMigration = 'prisma/migrations/20261010193000_institution_territory/migration.sql';
   const profileMigration = 'prisma/migrations/20261011200000_institution_public_profile/migration.sql';
-  const actualPaths = [...new Set([...paths, territoryMigration, profileMigration])].sort();
+  const logoMigration = 'prisma/migrations/20261012180000_institution_logo/migration.sql';
+  const actualPaths = [...new Set([...paths, territoryMigration, profileMigration, logoMigration])].sort();
   for (const path of actualPaths) {
     const dest = join(directory, path.replace(/^prisma\//, ''));
     await mkdir(dirname(dest), { recursive: true });
@@ -137,6 +138,7 @@ try {
   console.log(JSON.stringify({ phase: 'local-ranking-ready', directory, migrations: actualPaths.length,
     pendingTerritoryMigration: !paths.includes(territoryMigration),
     pendingProfileMigration: !paths.includes(profileMigration),
+    pendingLogoMigration: !paths.includes(logoMigration),
     api: config.API_BASE_URL, syntheticFixtures: true, ownPosition: 51, totalParticipants: 61 }));
   console.log('Local control.json actions: correct, solo-on, solo-off, stop. No HTTP mutation route.');
   let corrected = false;

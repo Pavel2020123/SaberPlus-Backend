@@ -1,5 +1,18 @@
 # SaberPlus Backend
 
+## Continuación vigente — 12 de octubre de 2026
+
+**Siguiente: PR-I5-C2C, ensayo integrado del logo institucional.**
+C2A/backend y C2B/Flutter implementadas: 79 pruebas backend y 45 Flutter
+aprobadas, build y análisis correctos. APK debug compilada, no instalada en C2.
+Migración C2 no aplicada; seis casos reales HTTP/PostgreSQL y ocho pruebas
+humanas Android pendientes. No se acredita despliegue remoto ni validación iOS.
+C1C ya completó 15 HTTP/SQL, 3 Flutter/API y 10/10 pruebas humanas locales.
+Territorio T5 también cerrado localmente. No repetir esos recorridos salvo regresión.
+
+[Contrato y guion C2](backend/docs/PR_I5_C2_LOGO.md). La ruta maestra está en el repo Flutter.
+Las notas inferiores son antecedentes; no reiniciar Rescate, territorio ni C1.
+
 **IC-1C Rescate, cierre local 10 de octubre:** [acta](backend/docs/IC1_RESCATE.md).
 Cliente/tests/Android/API/SQL aprobados en su alcance local; saldo final80 tras
 dos abandonos distintos. Push manual/cierre operativo separados. Después: instituciones.

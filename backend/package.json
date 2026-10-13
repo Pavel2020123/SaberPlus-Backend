@@ -52,6 +52,7 @@
     "read-excel-file": "^9.3.10",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
+    "sharp": "0.35.5",
     "socket.io": "^4.8.1",
     "yauzl": "^3.4.0"
   },

@@ -1,10 +1,17 @@
 # Ensayo I2-5 exclusivamente local
 
+Actualización C2,12 de octubre: allowlist incorpora explícitamente
+`20261012180000_institution_logo`; demás migraciones conservan su origen en HEAD.
+Guion `node --test tool/test_institution_logo_local.cjs` preparado (no ejecutado):
+requiere fixtures del guion C1 en sesión nueva; seis casos SQL/HTTP. Ver
+[contrato y relevo C2](../docs/PR_I5_C2_LOGO.md) y acta Flutter para ocho pruebas
+Android pendientes. C1C ya terminó diez pruebas humanas; nota inferior histórica.
+
 Actualización PR-I5-C1C,12 de octubre: allowlist explícita de migraciones
 territorial y perfil `20261011200000_institution_public_profile`, demás desde HEAD.
 Sesión nueva arrancó con63 migraciones; `tool/test_institution_profile_local.cjs`
 15 casos HTTP/PostgreSQL reales aprobados. Flutter/API3/3, APK instalada y
-recorrido humano pendiente. Ver acta PR_I5_C_PERFIL del repo Flutter.
+recorrido humano C1C completado localmente (10/10). Ver acta PR_I5_C_PERFIL del repo Flutter.
 
 Actualización PR-I5-T5, 11 de octubre: el harness admite por ruta explícita la
 única migración pendiente `20261010193000_institution_territory`; las demás

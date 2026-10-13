@@ -41,6 +41,7 @@ describe('PR-I5 perfil público institucional', () => {
       descripcion: null,
       revision: 0,
       puedeEditar: true,
+      logoUrl: null,
     });
   });
   it('permite consultar pero no editar a otros docentes', async () => {

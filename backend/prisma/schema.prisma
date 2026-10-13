@@ -129,6 +129,7 @@ model Institucion {
   mensajeBienvenida    String?                       @db.Text
   descripcionPublica   String?                       @db.VarChar(500)
   revisionPerfil       Int                           @default(0)
+  logoArchivo          InstitucionLogo?
   imagenPortada        String?                       @db.VarChar(255)
   limiteGrado10        Int?
   limiteGrado11        Int?
@@ -147,6 +148,13 @@ model Institucion {
   auditorias           AuditoriaInstitucion[]
 
   @@index([estadoVerificacion, departamentoCodigo, municipioCodigo], map: "Institucion_territorio_idx")
+}
+
+// Se consulta únicamente al descargar la imagen, no al listar instituciones.
+model InstitucionLogo {
+  institucionId String @id @db.Uuid
+  contenido Bytes
+  institucion Institucion @relation(fields: [institucionId], references: [id], onDelete: Cascade)
 }
 
 model Usuario {

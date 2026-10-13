@@ -4,6 +4,8 @@ import {
   Header,
   Param,
   ParseUUIDPipe,
+  ParseIntPipe,
+  StreamableFile,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -27,5 +29,17 @@ export class InstitutionDirectoryController {
   @Header('Cache-Control', 'private, no-store')
   detail(@Param('id', new ParseUUIDPipe()) id: string) {
     return this.service.detail(id);
+  }
+
+  @Get(':id/logo/:revision')
+  @Header('Cache-Control', 'private, no-store')
+  @Header('X-Content-Type-Options', 'nosniff')
+  async logo(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('revision', ParseIntPipe) revision: number,
+  ) {
+    return new StreamableFile(await this.service.logo(id, revision), {
+      type: 'image/webp',
+    });
   }
 }

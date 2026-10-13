@@ -54,6 +54,9 @@ describe('PR-I5A directorio institucional', () => {
 
   it('rechaza consultas anónimas sin acceder al catálogo', async () => {
     await request(app.getHttpServer())
+      .get(`/instituciones/directorio/${id}/logo/1`)
+      .expect(401);
+    await request(app.getHttpServer())
       .get('/instituciones/directorio')
       .expect(401);
     await request(app.getHttpServer())
@@ -93,6 +96,7 @@ describe('PR-I5A directorio institucional', () => {
         nombre: true,
         departamentoCodigo: true,
         municipioCodigo: true,
+        logoUrl: true,
       },
       orderBy: [{ nombre: 'asc' }, { id: 'asc' }],
       skip: 0,
@@ -162,12 +166,14 @@ describe('PR-I5A directorio institucional', () => {
       nombre: 'Colegio aprobado',
       ubicacion: null,
       descripcion: null,
+      logoUrl: null,
     });
     expect(response.headers['cache-control']).toBe('private, no-store');
     expect(prisma.institucion.findFirst).toHaveBeenCalledWith({
       where: { id, estadoVerificacion: 'APROBADA' },
       select: {
         descripcionPublica: true,
+        logoUrl: true,
         id: true,
         nombre: true,
         departamentoCodigo: true,
@@ -243,6 +249,7 @@ describe('PR-I5A directorio institucional', () => {
     });
     expect(Object.keys(response.body.instituciones[0]).sort()).toEqual([
       'id',
+      'logoUrl',
       'nombre',
       'ubicacion',
     ]);
@@ -258,5 +265,31 @@ describe('PR-I5A directorio institucional', () => {
         where: { estadoVerificacion: 'APROBADA', departamentoCodigo: '91' },
       }),
     );
+  });
+  it('entrega únicamente los bytes del logo actual de una institución aprobada', async () => {
+    prisma.institucion.findFirst.mockResolvedValue({
+      logoArchivo: { contenido: Buffer.from('webp') },
+    });
+    const response = await request(app.getHttpServer())
+      .get(`/instituciones/directorio/${id}/logo/4`)
+      .set(auth)
+      .expect(200);
+    expect(response.headers['content-type']).toBe('image/webp');
+    expect(response.headers['cache-control']).toBe('private, no-store');
+    expect(response.headers['x-content-type-options']).toBe('nosniff');
+    expect(prisma.institucion.findFirst).toHaveBeenCalledWith({
+      where: {
+        id,
+        estadoVerificacion: 'APROBADA',
+        logoUrl: `/instituciones/directorio/${id}/logo/4`,
+      },
+      select: { logoArchivo: { select: { contenido: true } } },
+    });
+  });
+  it('logo eliminado, antiguo o suspendido devuelve 404', async () => {
+    await request(app.getHttpServer())
+      .get(`/instituciones/directorio/${id}/logo/4`)
+      .set(auth)
+      .expect(404);
   });
 });

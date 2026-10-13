@@ -147,6 +147,10 @@ export class InstitucionService {
     mensajeBienvenida?: string,
     logoUrl?: string,
   ) {
+    if (logoUrl !== undefined)
+      throw new BadRequestException(
+        'Cambia el logo mediante la carga de imagen del perfil.',
+      );
     const institucionId =
       await this.institucionAcceso.obtenerInstitucionIdGestionable(usuarioId);
 
@@ -166,7 +170,6 @@ export class InstitucionService {
       data: {
         ...(nombre !== undefined && { nombre }),
         ...(mensajeBienvenida !== undefined && { mensajeBienvenida }),
-        ...(logoUrl !== undefined && { logoUrl }),
       },
     });
   }

@@ -27,6 +27,8 @@ supervisor; `node --test tool/test_institution_profile_local.cjs`. Exige fixture
 nuevos; deja propietario/lector/institución para Android y presentación vacía.
 La credencial temporal nunca se imprime/commitea. Relevo completo en acta Flutter.
 
+## Antecedentes del 11 de octubre (superados por C1C)
+
 Actualización C1B: editor Flutter implementado con repositorio y protección de
 borrador/revisión. Siguiente C1C: pruebas HTTP, PostgreSQL temporal y Android.
 Migración aún no aplicada. Esta nota actualiza el pendiente Flutter inferior.
@@ -61,7 +63,12 @@ en base de pruebas autorizada antes de ejecutar esta versión de la API.
 `institution-directory.spec.ts`: **45 aprobadas**. Pruebas con mocks y validación
 DTO real; no demuestran concurrencia/rollback en PostgreSQL ni integración física.
 
-## Continuación
+## Plan original C1 (completado localmente)
+
+Continuación vigente: [C2C, ensayo del logo](PR_I5_C2_LOGO.md).
+El contrato C2 añade `logoUrl` a perfil/listado/detalle; conserva la revisión compartida.
+
+### Alcance original
 
 C1B: editor propietario Flutter, repositorio y demo explícita; sesión aislada,
 borrador conservado ante error, lectura antes de reenviar escritura incierta.

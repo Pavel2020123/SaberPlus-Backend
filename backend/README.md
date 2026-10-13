@@ -1,18 +1,14 @@
 # API de SaberPlus
 
+**Actual: C2 logo implementado; sigue ensayo C2C.** Imagen validada/optimizada,
+tabla privada PostgreSQL, revisión/auditoría y propietario exclusivo. Migración
+C2 no aplicada. [Contrato y relevo](docs/PR_I5_C2_LOGO.md). Notas inferiores históricas.
+
 **12 de octubre — C1C completada localmente:** perfil con15 HTTP/SQL +3 Flutter/API reales
 aprobadas, 63 migraciones solo en base temporal, APK instalada. Prueba física 1
 aprobada y pruebas 2–10 confirmadas; SQL confirma descarte sin escritura/revisión15.
 Siguiente C2, logo institucional. No acredita despliegue Supabase/Render.
 [Estado y relevo](docs/PR_I5_C_PERFIL.md).
-
-**Continuación PR-I5-C:** código del editor Flutter C1B implementado. Sigue C1C,
-ensayo integrado; migración del perfil todavía no aplicada. Ver acta C1A/C1B.
-
-**11 de octubre — [PR-I5-C1A perfil](docs/PR_I5_C_PERFIL.md):** contrato de
-presentación pública, permisos del propietario, revisión y auditoría. Build y
-45 pruebas dirigidas correctos. Migración NO aplicada. Próximo: editor Flutter
-C1B y ensayo HTTP/PostgreSQL/Android. Prevalece sobre próximos pasos inferiores.
 
 **10 de octubre — [PR-I5-T1/T2 territorio](docs/PR_I5_T_TERRITORIO.md):** catálogo
 DANE/API y persistencia/revisión ADMIN implementados; regresión 1.311 aprobados,
@@ -39,8 +35,9 @@ exclusivamente temporal; sin cambios del runtime productivo ni activación remot
 Criterios funcionales I2-5 revisados; su deuda operativa y QA-1 se conservan.
 El resumen del día 7 siguiente es antecedente.
 
-Estado actual: [conciliación del 7 de octubre](docs/CONCILIACION_2026_10_07.md).
-I2-5 tiene regresión e integración HTTP documentadas; falta cierre físico.
+Antecedente: [conciliación del 7 de octubre](docs/CONCILIACION_2026_10_07.md).
+I2-5 tiene criterios funcionales Android revisados el 8 de octubre;
+limpieza operativa y QA-1 siguen pendientes.
 IC-1/2/3 cubren clientes, Memoria y Batallas sin activar servicios.
 
 > Conciliación del relevo, 29 de septiembre de 2026: las referencias «sigue

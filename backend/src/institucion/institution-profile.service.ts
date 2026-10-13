@@ -6,12 +6,14 @@ import {
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateInstitutionProfileDto } from './institution-profile.dto';
+import { managedLogoUrl } from './institution-logo.dto';
 
 const profileSelection = {
   id: true,
   nombre: true,
   descripcionPublica: true,
   revisionPerfil: true,
+  logoUrl: true,
 } as const;
 
 @Injectable()
@@ -53,6 +55,7 @@ export class InstitutionProfileService {
       descripcion: profile.descripcionPublica,
       revision: profile.revisionPerfil,
       puedeEditar: member.rol === 'PROPIETARIO',
+      logoUrl: managedLogoUrl(profile.logoUrl),
     };
   }
 

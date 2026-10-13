@@ -67,7 +67,7 @@ test('C1 migration: nullable description/default revision, legacy welcome stays 
   const result = await http(`/instituciones/directorio/${institution.id}`, tokens.student);
   assert.equal(result.status, 200);
   assert.equal(result.data.descripcion, null);
-  assert.deepEqual(Object.keys(result.data).sort(), ['descripcion', 'id', 'nombre', 'ubicacion']);
+  assert.deepEqual(Object.keys(result.data).sort(), ['descripcion', 'id', 'logoUrl', 'nombre', 'ubicacion']);
   assert.equal(result.data.ubicacion.municipioCodigo, '91001');
 });
 test('C1 HTTP: anonymous and invalid token cannot read or write', async () => {
@@ -81,7 +81,7 @@ test('C1 HTTP: owner receives explicit editor contract without private fields', 
   assert.equal(result.status, 200);
   assert.equal(result.cache, 'private, no-store');
   assert.equal(result.data.puedeEditar, true);
-  assert.deepEqual(Object.keys(result.data).sort(), ['descripcion', 'id', 'nombre', 'puedeEditar', 'revision']);
+  assert.deepEqual(Object.keys(result.data).sort(), ['descripcion', 'id', 'logoUrl', 'nombre', 'puedeEditar', 'revision']);
 });
 test('C1 HTTP: administrator membership reads but cannot write', async () => {
   const result = await http(profilePath, tokens.member);

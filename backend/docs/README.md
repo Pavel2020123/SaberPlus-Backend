@@ -1,6 +1,19 @@
 # Documentación backend
 
-**Etapa actual: [PR-I5-T — territorio](PR_I5_T_TERRITORIO.md).**
+## Continuación vigente — 12 de octubre de 2026
+
+**Siguiente: PR-I5-C2C, ensayo integrado del logo institucional.**
+C2A/backend y C2B/Flutter implementadas: 79 pruebas backend y 45 Flutter
+aprobadas, build y análisis correctos. APK debug compilada, no instalada en C2.
+Migración C2 no aplicada; seis casos reales HTTP/PostgreSQL y ocho pruebas
+humanas Android pendientes. No se acredita despliegue remoto ni validación iOS.
+C1C ya completó 15 HTTP/SQL, 3 Flutter/API y 10/10 pruebas humanas locales.
+Territorio T5 también cerrado localmente. No repetir esos recorridos salvo regresión.
+
+[Contrato y guion C2](PR_I5_C2_LOGO.md). La ruta maestra está en el repo Flutter.
+Las notas inferiores son antecedentes; no reiniciar Rescate, territorio ni C1.
+
+**Entrega anterior: [PR-I5-T — territorio](PR_I5_T_TERRITORIO.md).**
 T1 catálogo/API y T2 persistencia/revisión implementadas; 16 casos SQL reales y
 regresión 1.311 aprobados. T3 formularios implementados el 11 de octubre;
 T4 filtros implementados y T5 cerrado localmente con API/PostgreSQL/panel/Android.
