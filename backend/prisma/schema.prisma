@@ -158,6 +158,7 @@ model InstitucionLogo {
 }
 
 model Usuario {
+  intentosVocacionales IntentoVocacional[]
   eventosXpCompetitivo EventoXpCompetitivo[]
   balancesCompetitivos BalanceCompetitivo[]
   repasosDiferidos RepasoDiferido[]
@@ -1667,4 +1668,29 @@ model ProgresoTema {
   subtema Subtema @relation(fields: [subtemaId], references: [id], onDelete: Cascade)
 
   @@unique([usuarioId, subtemaId])
+}
+
+enum EstadoIntentoVocacional {
+  EN_PROGRESO
+  COMPLETADO
+}
+model IntentoVocacional {
+  id String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  usuarioId String @db.Uuid
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  rulesVersion Int @default(1)
+  estado EstadoIntentoVocacional @default(EN_PROGRESO)
+  iniciadoEn DateTime @default(now()) @db.Timestamptz(3)
+  actualizadoEn DateTime @default(now()) @db.Timestamptz(3)
+  completadoEn DateTime? @db.Timestamptz(3)
+  resultado Json?
+  respuestas RespuestaVocacional[]
+  @@index([usuarioId, iniciadoEn, id])
+}
+model RespuestaVocacional {
+  intentoId String @db.Uuid
+  intento IntentoVocacional @relation(fields: [intentoId], references: [id], onDelete: Cascade)
+  preguntaId String @db.VarChar(2)
+  valor String @db.VarChar(5)
+  @@id([intentoId, preguntaId])
 }

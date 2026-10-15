@@ -1,3 +1,4 @@
+import { OrientacionVocacionalModule } from './orientacion-vocacional/orientacion-vocacional.module';
 import { Module } from '@nestjs/common';
 import { DeferredReviewModule } from './deferred-review/deferred-review.module';
 import { LearningMapModule } from './learning-map/learning-map.module';
@@ -31,6 +32,7 @@ import { RetiredGamesController } from './common/retired-games.controller';
 
 @Module({
   imports: [
+    OrientacionVocacionalModule,
     DeferredReviewModule,
     LearningMapModule,
     PrismaModule,
