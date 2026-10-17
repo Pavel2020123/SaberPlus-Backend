@@ -4,8 +4,12 @@
 Android+19 HTTP/SQL finales, no10 manuales independientes.66 migraciones solo temporales.
 APK corregida instalada, regresión Flutter final893 aprobadas/13 opt-in omitidas
 y análisis limpio. [Cierre técnico local consolidado](docs/CIERRE_INSTITUCIONES_LOCAL.md),
-backend119 suites/1.470 y panel95/95; commits locales autorizados el17,
-publicación/revisión pendientes, sin push/merge/despliegue automático.
+backend119 suites/1.470 y panel95/95; commits creados app6bab6be/API7ba93d7/lockbfce42e.
+PR app #5/API #8 integrados a main; CI backend del PR y main aprobado. Flutter
+analyze limpio y102 dirigidas aprobadas; sin workflow Flutter remoto. [Orden posterior](docs/ESTADO_Y_ORDEN_2026_10_17.md):
+MA-1R propuesto y no iniciado; OV-1 del compañero en curso sin entrega nueva verificada.
+Sin nuevos ensayos físicos/SQL ni despliegue. Auditoría documental en
+`docs/estado-post-instituciones`, publicación manual/PR pendientes.
 Sin producción. Notas inferiores son antecedentes, no el paso siguiente.
 
 **15 de octubre — C3A/B implementadas; sigue C3C integrado.**

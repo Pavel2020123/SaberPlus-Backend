@@ -52,4 +52,11 @@ Al reiniciar la demo se pierden los cambios; no llegan a Supabase.
 - En admin, `npm run check` y `npm test`: 19 módulos y 79 pruebas aprobados.
 
 Faltan revisión visual en navegador y ensayo con backend desplegado (D3/P5
-permanecen pausados). Siguiente entrega funcional: MA-2, mapa de aprendizaje.
+permanecen pausados). MA-2 como siguiente entrega era la secuencia del 24 de
+septiembre: mapa y repaso ya tienen implementaciones locales posteriores.
+
+Actualización documental del 17 de octubre: se propone MA-1R, reportes de preguntas
+integrados con esta cobertura, como siguiente bloque independiente de OV-1.
+No se implementó ni se acordaron automáticamente motivos, estados o permisos.
+`reportesDisponibles:false` y `reportes:null` siguen describiendo la carencia real,
+no cero incidencias. Ver [orden y límites](docs/ESTADO_Y_ORDEN_2026_10_17.md).

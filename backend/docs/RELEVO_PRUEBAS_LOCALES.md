@@ -1,11 +1,17 @@
 # Relevo de pruebas locales para compañeros
 
-**Trabajo paralelo acordado:** propietario → instituciones (sigue C2C);
-compañero → test vocacional OV-1 (comienza A, después B/C/D), sin esperar C2C.
+**17 de octubre, continuación vigente:** instituciones cerradas localmente, commits
+app6bab6be/API7ba93d7/lockbfce42e integrados a main por PR app #5/API #8,
+e679c50/388bb18. CI backend PR/main aprobado; Flutter analyze/102 dirigidas aprobados.
+La auditoría previa fue documental; la entrega posterior comprobó GitHub y pruebas.
+Sin nuevos ensayos físicos/SQL ni despliegue; documentación separada en
+`docs/estado-post-instituciones`, publicación manual/PR pendientes.
+[Orden posterior](ESTADO_Y_ORDEN_2026_10_17.md): MA-1R propuesto, no iniciado.
+Compañero → OV-1A/B/C/D en curso según el propietario; sin entrega nueva verificada aquí.
 Ver [responsables, ramas y entrega](TRABAJO_PARALELO.md). Este acuerdo sustituye
 la secuencia estricta de OV-1 y el trabajo individual directo en main.
 
-## Continuación vigente — 12 de octubre de 2026
+## Antecedente — 12 de octubre de 2026, no continuar por este paso
 
 **Siguiente: PR-I5-C2C, ensayo integrado del logo institucional.**
 C2A/backend y C2B/Flutter implementadas: 79 pruebas backend y 45 Flutter
@@ -22,7 +28,8 @@ Actualizado: 12 de octubre de 2026. Se necesitan **ambos repositorios**, públic
 permisos de escritura se coordinan sin cambiar visibilidad.
 Guía completa y prompt operativo: `docs/RELEVO_PRUEBAS_LOCALES.md` del repositorio
 Flutter `Pavel2020123/saber_plus`; no es un archivo dentro de este árbol backend.
-Puntos vivos en Flutter: PR_I5_C2_LOGO.md (propietario) y CHECKPOINT_OV1.md
+Puntos vivos en Flutter: CIERRE_INSTITUCIONES_LOCAL.md y ESTADO_Y_ORDEN_2026_10_17.md
+(propietario) y CHECKPOINT_OV1.md
 (compañero). Roadmap general: consolidación del propietario al entregar/integrar bloques.
 No duplicar aquí una ruta independiente: verificar siempre ese bloque actualizado.
 
@@ -44,8 +51,9 @@ No duplicar aquí una ruta independiente: verificar siempre ese bloque actualiza
 
 ## Preparación mínima en este repositorio
 
-1. Acceso privado, main y pull fast-forward con worktree limpio; revisar cambios
-   y contratos afectados. No reset/force-push ni cambios ajenos automáticos.
+1. Confirmar acceso y permisos de los dos repositorios, rama/HEAD y worktree antes
+   de actualizar. Trabajar por rama/PR; main recibe cambios revisados. No cambiar
+   visibilidad ni hacer reset/force-push o descartar cambios ajenos automáticamente.
 2. Docker Desktop LOCAL Linux abierto; Node/npm según `backend/package.json`.
    En `backend/`: `npm ci --include=dev`, `npm run build`, después
    `node tool/local_ranking_validation.mjs`. Revisar cada resultado y recursos.
@@ -60,7 +68,7 @@ No duplicar aquí una ruta independiente: verificar siempre ese bloque actualiza
 6. Tras CADA prueba: acta backend del módulo + checkpoint propio en Flutter;
    registrar humano/HTTP/SQL, resultados/límites y siguiente paso, sin secretos.
    No editar roadmap general simultáneamente: propietario consolida por bloque.
-7. Juego completo: documentación actualizada, tests y commit por repo afectado
+7. Entrega completa: documentación actualizada, tests y commit por repo afectado
    autorizado; dar rutas/hash/comando push. Push no automático. La guía operativa
    de soporte puede ir en commit documental separado para no mezclar código de juegos.
 8. Stop por control propio, esperar confirmación, retirar solo reverse USB del

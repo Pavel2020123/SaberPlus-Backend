@@ -4,8 +4,16 @@
 con Android+19 HTTP/SQL finales, no10 manuales independientes. APK corregida instalada,
 Regresión Flutter final893 aprobadas/13 opt-in omitidas y análisis limpio.
 [Cierre técnico local consolidado](backend/docs/CIERRE_INSTITUCIONES_LOCAL.md),
-backend119 suites/1.470 y panel95/95. Commits locales autorizados el17; sigue
-publicación/revisión, sin push/merge/despliegue automático. OV-1 independiente.
+backend119 suites/1.470 y panel95/95. Commits creados app6bab6be/API7ba93d7/lockbfce42e;
+integrados a main por [PR #8 API](https://github.com/Pavel2020123/SaberPlus-Backend/pull/8)
+y [PR #5 app](https://github.com/Pavel2020123/saber_plus/pull/5).
+CI backend del PR y main aprobado; Flutter analyze limpio y102 dirigidas aprobadas.
+[Orden posterior y auditoría](backend/docs/ESTADO_Y_ORDEN_2026_10_17.md): MA-1R,
+reportes académicos, propuesto y no iniciado. OV-1 del compañero en curso, sin
+entrega nueva verificada aquí. Sin nuevos ensayos físicos/SQL ni despliegue.
+La auditoría documental se entrega separada en `docs/estado-post-instituciones`;
+publicación manual y revisión por PR pendientes.
+Las notas fechadas inferiores son antecedentes, no el siguiente paso.
 
 **15 de octubre — C3A/B solicitudes implementadas localmente.**
 Backend37 nuevas, regresión1.411/118 suites y14 HTTP/PostgreSQL aprobadas;
@@ -21,8 +29,8 @@ Acta conserva observaciones de captura original/CI y límites; sin despliegue.
 y [C2C del propietario](backend/docs/PR_I5_C2_LOGO.md) independientes.
 [Conciliación documental](backend/docs/AUDITORIA_DOCUMENTAL_2026_10_13.md).
 
-**Trabajo paralelo acordado:** propietario → consolidación integrada de instituciones tras C4-C local;
-compañero → test vocacional OV-1 (comienza A, después B/C/D), sin esperar C2C.
+**Trabajo paralelo acordado:** propietario → entrega institucional integrada y
+próximo bloque por acordar; compañero → OV-1A/B/C/D en paralelo.
 Ver [responsables, ramas y entrega](backend/docs/TRABAJO_PARALELO.md). Este acuerdo sustituye
 la secuencia estricta de OV-1 y el trabajo individual directo en main.
 

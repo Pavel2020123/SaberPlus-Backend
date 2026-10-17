@@ -6,7 +6,12 @@
 no10 manuales independientes. APK corregida instalada,93 dirigidas Flutter/análisis
 aprobados; regresión global final893/13 opt-in omitidas. [C3C](PR_I5_C3_SOLICITUDES.md) cerrado.
 [Cierre técnico local consolidado](CIERRE_INSTITUCIONES_LOCAL.md): observaciones y
-entrega Git autorizada el17. Sigue publicación/revisión, sin push/merge/despliegue automático.
+commits app6bab6be/API7ba93d7/lockbfce42e integrados a main por PR app #5/API #8.
+CI backend del PR/main aprobado; Flutter analyze limpio/102 dirigidas aprobadas.
+[Orden posterior y auditoría](ESTADO_Y_ORDEN_2026_10_17.md):
+MA-1R propuesto, no iniciado; OV-1 del compañero en curso sin entrega nueva verificada.
+Sin nuevos ensayos físicos/SQL ni despliegue; documentación separada en
+`docs/estado-post-instituciones`, publicación manual/PR pendientes.
 Las entradas anteriores fechadas inferiores son antecedentes.
 
 ## Antecedente — 15 de octubre de 2026
@@ -23,8 +28,8 @@ Leer [reparto y checkpoints](TRABAJO_PARALELO.md). Las conciliaciones de septiem
 u octubre anteriores son evidencia histórica, no la próxima etapa.
 
 
-**Trabajo paralelo acordado:** propietario → instituciones (solicitudes tras C2C local);
-compañero → test vocacional OV-1 (comienza A, después B/C/D), sin esperar C2C.
+**Trabajo paralelo vigente:** propietario → entrega institucional integrada y
+próximo bloque por acordar; compañero → OV-1A/B/C/D en paralelo.
 Ver [responsables, ramas y entrega](TRABAJO_PARALELO.md). Este acuerdo sustituye
 la secuencia estricta de OV-1 y el trabajo individual directo en main.
 
@@ -107,7 +112,8 @@ productivos pendientes; incidencias históricas conservadas.
 - [PR-I2 — I2-1/2/3 integrados](PR_I2_RANKINGS.md): contrato, lector PostgreSQL
   y API autenticada; merge `66b5aa2`. Flutter I2-4 fusionada en `1921ba9`.
   I2-5 conserva cierre operativo; recorrido funcional Android ya revisado.
-  Seguir el reparto vigente: propietario C2C, compañero OV-1A.
+  Seguir el reparto vigente: propietario cierre/entrega institucional y próximo
+  bloque por acordar; compañero OV-1 según su checkpoint. No reiniciar C2C.
   El ranking general permanece vigente.
 - [Relevo PR-I1](PR_I1_RELEVO.md).
 - [Infraestructura y evidencia PR-I1](PR_I1_COMPETITIVE_INFRASTRUCTURE.md).
