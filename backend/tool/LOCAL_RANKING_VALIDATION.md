@@ -1,5 +1,12 @@
 # Ensayo I2-5 exclusivamente local
 
+Actualización16 de octubre,C4: allowlist explícita incorpora
+`20261016180000_student_institution_codes`; base temporal66 migraciones.
+`node --test tool/test_student_institution_codes_local.cjs`16/16 HTTP/SQL y
+regresión C3 posterior14/14 aprobadas. Contrato/checkpoint actual en
+[código estudiantil](../docs/PR_I5_C4_CODIGO.md). No acredita Android C4 ni bootstrap
+productivo429. Las preparaciones históricas inferiores no son tareas nuevas.
+
 Actualización C2,12 de octubre: allowlist incorpora explícitamente
 `20261012180000_institution_logo`; demás migraciones conservan su origen en HEAD.
 Guion `node --test tool/test_institution_logo_local.cjs` preparado (no ejecutado):

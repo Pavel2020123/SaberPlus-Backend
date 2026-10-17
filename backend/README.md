@@ -1,8 +1,23 @@
 # API de SaberPlus
 
-**Actual: C2 logo implementado; sigue ensayo C2C.** Imagen validada/optimizada,
-tabla privada PostgreSQL, revisión/auditoría y propietario exclusivo. Migración
-C2 no aplicada. [Contrato y relevo](docs/PR_I5_C2_LOGO.md). Notas inferiores históricas.
+**17 de octubre, estado vigente:** [C4-C10/10 guiones integrados cubiertos](docs/PR_I5_C4_CODIGO.md),
+Android+19 HTTP/SQL finales, no10 manuales independientes.66 migraciones solo temporales.
+APK corregida instalada, regresión Flutter final893 aprobadas/13 opt-in omitidas
+y análisis limpio. [Cierre técnico local consolidado](docs/CIERRE_INSTITUCIONES_LOCAL.md),
+backend119 suites/1.470 y panel95/95; commits locales autorizados el17,
+publicación/revisión pendientes, sin push/merge/despliegue automático.
+Sin producción. Notas inferiores son antecedentes, no el paso siguiente.
+
+**15 de octubre — C3A/B implementadas; sigue C3C integrado.**
+[Solicitudes estudiantiles](docs/PR_I5_C3_SOLICITUDES.md): permisos, historial,
+cancelación y decisión transaccional sin promover alumno.37 pruebas nuevas,
+regresión1.411/118 suites y14 HTTP/SQL aprobadas; Flutter27 dirigidas.
+65 migraciones solo en base temporal. Sin Android C3 ni despliegue remoto.
+
+**14 de octubre: C2C validada localmente.**6/6 HTTP/PostgreSQL y8/8 casos humanos
+Android aprobados; migración solo en base temporal propia. Siguen solicitudes
+estudiantiles/avisos/código institucional. Observaciones de captura original y
+CI Linux pendientes; sin despliegue remoto ni pruebas iOS. [Contrato y relevo](docs/PR_I5_C2_LOGO.md). Notas inferiores históricas.
 
 **12 de octubre — C1C completada localmente:** perfil con15 HTTP/SQL +3 Flutter/API reales
 aprobadas, 63 migraciones solo en base temporal, APK instalada. Prueba física 1

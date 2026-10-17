@@ -1,5 +1,9 @@
 # PR-I5A — Base del directorio institucional
 
+**17 de octubre, continuación vigente:** T5/C1/C2/C3 probadas localmente y
+[C4-C cubierto con evidencia mixta](PR_I5_C4_CODIGO.md). Sigue consolidación integrada
+institucional, no despliegue. El próximo T5 indicado debajo es histórico del11.
+
 Continuación del 11 de octubre: [PR-I5-T1/T2/T3/T4](PR_I5_T_TERRITORIO.md)
 implementadas. Próximo bloque T5 ensayo conjunto. El contrato actual añade
 ubicación pública opcional y filtros territoriales; la evidencia inferior es PR-I5A/B.

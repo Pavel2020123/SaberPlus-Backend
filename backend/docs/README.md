@@ -1,18 +1,34 @@
 # Documentación backend
 
-## Entrada vigente — 13 de octubre de 2026
+## Entrada vigente — 17 de octubre de 2026
 
-Propietario: [C2C, logo](PR_I5_C2_LOGO.md). Compañero: [OV-1A](CHECKPOINT_OV1.md).
+[C4-C](PR_I5_C4_CODIGO.md) cubre10/10 guiones locales con Android+19 HTTP/SQL finales,
+no10 manuales independientes. APK corregida instalada,93 dirigidas Flutter/análisis
+aprobados; regresión global final893/13 opt-in omitidas. [C3C](PR_I5_C3_SOLICITUDES.md) cerrado.
+[Cierre técnico local consolidado](CIERRE_INSTITUCIONES_LOCAL.md): observaciones y
+entrega Git autorizada el17. Sigue publicación/revisión, sin push/merge/despliegue automático.
+Las entradas anteriores fechadas inferiores son antecedentes.
+
+## Antecedente — 15 de octubre de 2026
+
+Propietario: [C3A/B solicitudes implementadas; sigue C3C integrado](PR_I5_C3_SOLICITUDES.md).
+37 nuevas/1.411 regresión/14 HTTP/SQL backend y27 dirigidas Flutter aprobadas;
+65 migraciones solo temporales. Sin ensayo Android C3 ni despliegue remoto.
+El checkpoint C3 prevalece sobre los siguientes pasos históricos inferiores.
+
+Antecedente14 de octubre: [C2C validada localmente](PR_I5_C2_LOGO.md); dieron paso a solicitudes
+estudiantiles/avisos/código institucional.6/6 HTTP/SQL y8/8 humanos; límites y
+observaciones de captura original/CI en acta. Compañero: [OV-1A](CHECKPOINT_OV1.md).
 Leer [reparto y checkpoints](TRABAJO_PARALELO.md). Las conciliaciones de septiembre
 u octubre anteriores son evidencia histórica, no la próxima etapa.
 
 
-**Trabajo paralelo acordado:** propietario → instituciones (sigue C2C);
+**Trabajo paralelo acordado:** propietario → instituciones (solicitudes tras C2C local);
 compañero → test vocacional OV-1 (comienza A, después B/C/D), sin esperar C2C.
 Ver [responsables, ramas y entrega](TRABAJO_PARALELO.md). Este acuerdo sustituye
 la secuencia estricta de OV-1 y el trabajo individual directo en main.
 
-## Continuación vigente — 12 de octubre de 2026
+## Antecedente — 12 de octubre de 2026
 
 **Siguiente: PR-I5-C2C, ensayo integrado del logo institucional.**
 C2A/backend y C2B/Flutter implementadas: 79 pruebas backend y 45 Flutter

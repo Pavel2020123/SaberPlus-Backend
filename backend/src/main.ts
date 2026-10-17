@@ -109,6 +109,20 @@ async function bootstrap() {
   });
   app.use('/auth/login', authLoginLimiter);
   app.use(
+    '/instituciones/codigo-estudiantes',
+    rateLimit({
+      windowMs: 60 * 1000,
+      max: esProduccion ? 60 : 200,
+      standardHeaders: true,
+      legacyHeaders: false,
+      message: {
+        statusCode: 429,
+        error: 'Too Many Requests',
+        message: 'Demasiadas consultas de código. Espera un minuto e intenta de nuevo.',
+      },
+    }),
+  );
+  app.use(
     '/auth/registro',
     rateLimit({
       windowMs: 15 * 60 * 1000,

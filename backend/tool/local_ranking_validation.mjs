@@ -66,7 +66,9 @@ try {
   const territoryMigration = 'prisma/migrations/20261010193000_institution_territory/migration.sql';
   const profileMigration = 'prisma/migrations/20261011200000_institution_public_profile/migration.sql';
   const logoMigration = 'prisma/migrations/20261012180000_institution_logo/migration.sql';
-  const actualPaths = [...new Set([...paths, territoryMigration, profileMigration, logoMigration])].sort();
+  const studentRequestsMigration = 'prisma/migrations/20261014180000_student_institution_requests/migration.sql';
+  const studentCodesMigration = 'prisma/migrations/20261016180000_student_institution_codes/migration.sql';
+  const actualPaths = [...new Set([...paths, territoryMigration, profileMigration, logoMigration, studentRequestsMigration, studentCodesMigration])].sort();
   for (const path of actualPaths) {
     const dest = join(directory, path.replace(/^prisma\//, ''));
     await mkdir(dirname(dest), { recursive: true });
@@ -139,6 +141,8 @@ try {
     pendingTerritoryMigration: !paths.includes(territoryMigration),
     pendingProfileMigration: !paths.includes(profileMigration),
     pendingLogoMigration: !paths.includes(logoMigration),
+    pendingStudentRequestsMigration: !paths.includes(studentRequestsMigration),
+    pendingStudentCodesMigration: !paths.includes(studentCodesMigration),
     api: config.API_BASE_URL, syntheticFixtures: true, ownPosition: 51, totalParticipants: 61 }));
   console.log('Local control.json actions: correct, solo-on, solo-off, stop. No HTTP mutation route.');
   let corrected = false;

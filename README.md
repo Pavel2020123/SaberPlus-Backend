@@ -1,15 +1,32 @@
 # SaberPlus Backend
 
+**17 de octubre, estado vigente:** [C4-C10/10 guiones locales cubiertos](backend/docs/PR_I5_C4_CODIGO.md)
+con Android+19 HTTP/SQL finales, no10 manuales independientes. APK corregida instalada,
+Regresión Flutter final893 aprobadas/13 opt-in omitidas y análisis limpio.
+[Cierre técnico local consolidado](backend/docs/CIERRE_INSTITUCIONES_LOCAL.md),
+backend119 suites/1.470 y panel95/95. Commits locales autorizados el17; sigue
+publicación/revisión, sin push/merge/despliegue automático. OV-1 independiente.
+
+**15 de octubre — C3A/B solicitudes implementadas localmente.**
+Backend37 nuevas, regresión1.411/118 suites y14 HTTP/PostgreSQL aprobadas;
+cliente Flutter27 dirigidas. Sigue C3C Flutter/API/Android, no despliegue.
+[Contrato y checkpoint](backend/docs/PR_I5_C3_SOLICITUDES.md). Migración solo temporal;
+OV-1 sigue separado. No hacer commit de instituciones todavía.
+
+**14 de octubre:** [C2C validada localmente](backend/docs/PR_I5_C2_LOGO.md),6/6
+HTTP/SQL y8/8 humanos. Siguen solicitudes estudiantiles/avisos/código institucional.
+Acta conserva observaciones de captura original/CI y límites; sin despliegue.
+
 13 de octubre: [checkpoint del compañero OV-1](backend/docs/CHECKPOINT_OV1.md)
 y [C2C del propietario](backend/docs/PR_I5_C2_LOGO.md) independientes.
 [Conciliación documental](backend/docs/AUDITORIA_DOCUMENTAL_2026_10_13.md).
 
-**Trabajo paralelo acordado:** propietario → instituciones (sigue C2C);
+**Trabajo paralelo acordado:** propietario → consolidación integrada de instituciones tras C4-C local;
 compañero → test vocacional OV-1 (comienza A, después B/C/D), sin esperar C2C.
 Ver [responsables, ramas y entrega](backend/docs/TRABAJO_PARALELO.md). Este acuerdo sustituye
 la secuencia estricta de OV-1 y el trabajo individual directo en main.
 
-## Continuación vigente — 12 de octubre de 2026
+## Antecedente — 12 de octubre de 2026
 
 **Siguiente: PR-I5-C2C, ensayo integrado del logo institucional.**
 C2A/backend y C2B/Flutter implementadas: 79 pruebas backend y 45 Flutter

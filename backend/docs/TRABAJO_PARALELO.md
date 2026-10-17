@@ -9,8 +9,10 @@ clonar no concede permiso para push. No cambiar visibilidad automáticamente.
 Confirmar primero que el propietario publicó la documentación de ambos repos;
 un cambio local no está disponible automáticamente en el PC del compañero.
 
-- **Propietario:** instituciones. Sigue C2C, pruebas del logo; después solicitudes
-  de ingreso, aprobación/rechazo, avisos y código institucional privado.
+- **Propietario:** instituciones. [C4-C10/10 guiones locales cubiertos](PR_I5_C4_CODIGO.md)
+  con Android+19 HTTP/SQL (no10 solo manuales). Regresión final893/13 opt-in omitidas;
+  [cierre local consolidado](CIERRE_INSTITUCIONES_LOCAL.md), revisión/autorización de
+  commits pendiente. Checkpoint17, sin despliegue remoto.
 - **Compañero:** OV-1, orientación vocacional. Empieza por contenido y reglas A,
   después persistencia privada B, cliente C y accesibilidad/validación D.
 
