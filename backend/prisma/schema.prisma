@@ -130,6 +130,8 @@ model Institucion {
   descripcionPublica   String?                       @db.VarChar(500)
   revisionPerfil       Int                           @default(0)
   logoArchivo          InstitucionLogo?
+  codigoIngresoEstudiantil CodigoIngresoEstudiantil?
+  ingresosPorCodigo IngresoInstitucionCodigo[]
   imagenPortada        String?                       @db.VarChar(255)
   limiteGrado10        Int?
   limiteGrado11        Int?
@@ -144,6 +146,7 @@ model Institucion {
   anuncios             Anuncio[]
   miembros             MiembroInstitucion[]
   solicitudesIngreso   SolicitudIngresoInstitucion[]
+  solicitudesEstudiantes SolicitudIngresoEstudiante[]
   invitaciones         InvitacionInstitucion[]
   auditorias           AuditoriaInstitucion[]
 
@@ -157,7 +160,32 @@ model InstitucionLogo {
   institucion Institucion @relation(fields: [institucionId], references: [id], onDelete: Cascade)
 }
 
+// Secreto de ingreso estudiantil: nunca incluir en directorios ni contexto docente general.
+model CodigoIngresoEstudiantil {
+  institucionId String @id @db.Uuid
+  codigo String @unique @db.VarChar(36)
+  revision Int
+  operacionId String @db.Uuid
+  fechaActualizacion DateTime @default(now()) @db.Timestamp(6)
+  institucion Institucion @relation(fields: [institucionId], references: [id], onDelete: Cascade)
+}
+
+// Recibo idempotente propio; conserva hash, no el código compartido en claro.
+model IngresoInstitucionCodigo {
+  id String @id @db.Uuid
+  institucionId String @db.Uuid
+  estudianteId String @db.Uuid
+  codigoHash String @db.Char(64)
+  revisionCodigo Int
+  fechaCreacion DateTime @default(now()) @db.Timestamp(6)
+  institucion Institucion @relation(fields: [institucionId], references: [id], onDelete: Cascade)
+  estudiante Usuario @relation(fields: [estudianteId], references: [id], onDelete: Cascade)
+
+  @@index([estudianteId, fechaCreacion])
+}
+
 model Usuario {
+  ingresosInstitucionCodigo IngresoInstitucionCodigo[]
   eventosXpCompetitivo EventoXpCompetitivo[]
   balancesCompetitivos BalanceCompetitivo[]
   repasosDiferidos RepasoDiferido[]
@@ -240,6 +268,8 @@ model Usuario {
   membresiaInstitucion      MiembroInstitucion?
   solicitudesInstitucion    SolicitudIngresoInstitucion[] @relation("SolicitanteInstitucion")
   solicitudesRevisadas      SolicitudIngresoInstitucion[] @relation("RevisorInstitucion")
+  ingresosEstudiantiles     SolicitudIngresoEstudiante[] @relation("EstudianteSolicitante")
+  ingresosEstudiantilesRevisados SolicitudIngresoEstudiante[] @relation("RevisorIngresoEstudiante")
   invitacionesCreadas       InvitacionInstitucion[]       @relation("CreadorInvitacionInstitucion")
   invitacionesAceptadas     InvitacionInstitucion[]       @relation("ReceptorInvitacionInstitucion")
   auditoriasCreadas         AuditoriaInstitucion[]        @relation("ActorAuditoriaInstitucion")
@@ -437,6 +467,27 @@ model SolicitudIngresoInstitucion {
 
   @@index([institucionId, estado, fechaCreacion])
   @@index([solicitanteId, estado, fechaCreacion])
+}
+
+// Separada del ingreso docente: aprobar vincula Usuario.institucionId,
+// nunca crea MiembroInstitucion ni cambia el rol ESTUDIANTE.
+model SolicitudIngresoEstudiante {
+  id                 String @id @db.Uuid
+  institucionId      String @db.Uuid
+  estudianteId       String @db.Uuid
+  estado             EstadoSolicitudIngresoInstitucion @default(PENDIENTE)
+  mensaje            String? @db.VarChar(500)
+  revision           Int @default(0)
+  revisadoPorId      String? @db.Uuid
+  fechaCreacion      DateTime @default(now()) @db.Timestamp(6)
+  fechaActualizacion DateTime @default(now()) @updatedAt @db.Timestamp(6)
+  institucion        Institucion @relation(fields: [institucionId], references: [id], onDelete: Cascade)
+  estudiante         Usuario @relation("EstudianteSolicitante", fields: [estudianteId], references: [id], onDelete: Cascade)
+  revisadoPor        Usuario? @relation("RevisorIngresoEstudiante", fields: [revisadoPorId], references: [id], onDelete: SetNull)
+
+  // Un índice parcial SQL impide más de una PENDIENTE por estudiante.
+  @@index([estudianteId, fechaCreacion, id])
+  @@index([institucionId, estado, fechaCreacion, id])
 }
 
 model InvitacionInstitucion {

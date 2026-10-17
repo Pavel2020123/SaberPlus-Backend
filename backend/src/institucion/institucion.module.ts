@@ -1,4 +1,8 @@
 import { Module } from '@nestjs/common';
+import { StudentInstitutionCodeController } from './student-institution-code.controller';
+import { StudentInstitutionCodeService } from './student-institution-code.service';
+import { StudentInstitutionRequestController } from './student-institution-request.controller';
+import { StudentInstitutionRequestService } from './student-institution-request.service';
 import { InstitutionProfileController } from './institution-profile.controller';
 import { InstitutionProfileService } from './institution-profile.service';
 import { InstitutionTerritoryController } from './institution-territory.controller';
@@ -43,6 +47,8 @@ import {
 @Module({
   imports: [PrismaModule],
   controllers: [
+    StudentInstitutionCodeController,
+    StudentInstitutionRequestController,
     InstitutionProfileController,
     InstitutionTerritoryController,
     InstitutionDirectoryController,
@@ -56,6 +62,8 @@ import {
     TeacherStudyTimeController,
   ],
   providers: [
+    StudentInstitutionCodeService,
+    StudentInstitutionRequestService,
     InstitutionProfileService,
     InstitutionTerritoryService,
     InstitutionDirectoryService,
