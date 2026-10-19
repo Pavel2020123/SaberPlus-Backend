@@ -5,6 +5,8 @@ import { resolve } from "node:path";
 import { createDemoApi } from "./demo-api.mjs";
 
 const assets = new Map([
+  ['/question-report-fields.mjs', ['question-report-fields.mjs', 'text/javascript; charset=utf-8']],
+  ['/question-reports.mjs', ['question-reports.mjs', 'text/javascript; charset=utf-8']],
   ["/institution-territory.mjs", ["institution-territory.mjs", "text/javascript; charset=utf-8"]],
   ["/learning-map-fields.mjs", ["learning-map-fields.mjs", "text/javascript; charset=utf-8"]],
   ["/learning-map-editor.mjs", ["learning-map-editor.mjs", "text/javascript; charset=utf-8"]],

@@ -185,6 +185,10 @@ model IngresoInstitucionCodigo {
 }
 
 model Usuario {
+  reportesPreguntas ReportePregunta[] @relation("AutorReportePregunta")
+  operacionesReportePregunta OperacionReportePregunta[] @relation("ActorOperacionReportePregunta")
+  auditoriasReportePregunta AuditoriaReportePregunta[] @relation("ActorAuditoriaReportePregunta")
+  tasaReportePregunta TasaReportePregunta?
   ingresosInstitucionCodigo IngresoInstitucionCodigo[]
   eventosXpCompetitivo EventoXpCompetitivo[]
   balancesCompetitivos BalanceCompetitivo[]
@@ -782,6 +786,7 @@ model RelacionAprendizaje {
 }
 
 model Pregunta {
+  reportesAcademicos ReportePregunta[]
   id                     String                  @id @default(uuid())
   enunciado              String                  @db.Text
   explicacion            String?                 @db.Text
@@ -814,6 +819,92 @@ model Pregunta {
   @@index([casoId, ordenEnCaso])
   @@index([huellaContenido, estadoContenido])
   @@index([estadoContenido, subtemaId])
+}
+
+enum MotivoReportePregunta {
+  ENUNCIADO_CONFUSO
+  RESPUESTA_INCORRECTA
+  EXPLICACION_INCORRECTA
+  IMAGEN_NO_CARGA
+  OTRO
+}
+
+enum EstadoReportePregunta {
+  PENDIENTE
+  EN_REVISION
+  RESUELTO
+  DESCARTADO
+}
+
+enum TipoOperacionReportePregunta {
+  CREAR
+  DECIDIR
+}
+
+// Snapshot de recepción, no una reconstrucción de lo mostrado en un dispositivo.
+model ReportePregunta {
+  id String @id @default(uuid()) @db.Uuid
+  autorId String? @db.Uuid
+  preguntaId String
+  motivo MotivoReportePregunta
+  detalle String? @db.VarChar(500)
+  areaCapturada AreaIcfes
+  subtemaIdCapturado String
+  snapshot Json
+  estado EstadoReportePregunta @default(PENDIENTE)
+  revision Int @default(0)
+  fechaCreacion DateTime @default(now()) @db.Timestamptz(3)
+  fechaActualizacion DateTime @default(now()) @db.Timestamptz(3)
+  autor Usuario? @relation("AutorReportePregunta", fields: [autorId], references: [id], onDelete: SetNull)
+  pregunta Pregunta @relation(fields: [preguntaId], references: [id], onDelete: Restrict)
+  operaciones OperacionReportePregunta[]
+  auditorias AuditoriaReportePregunta[]
+
+  @@unique([autorId, preguntaId, motivo])
+  @@index([preguntaId])
+  @@index([autorId, fechaCreacion, id])
+  @@index([estado, fechaCreacion, id])
+  @@index([areaCapturada, estado, fechaCreacion, id])
+  @@index([subtemaIdCapturado, estado])
+}
+
+// Un UUID alternativo que deduplica también recibe su propio recibo estable.
+model OperacionReportePregunta {
+  id String @id @db.Uuid
+  actorId String? @db.Uuid
+  reporteId String @db.Uuid
+  tipo TipoOperacionReportePregunta
+  huellaSolicitud String @db.Char(64)
+  resultado Json
+  fechaCreacion DateTime @default(now()) @db.Timestamptz(3)
+  actor Usuario? @relation("ActorOperacionReportePregunta", fields: [actorId], references: [id], onDelete: SetNull)
+  reporte ReportePregunta @relation(fields: [reporteId], references: [id], onDelete: Restrict)
+
+  @@index([actorId, fechaCreacion])
+  @@index([reporteId])
+}
+
+model AuditoriaReportePregunta {
+  id String @id @default(uuid()) @db.Uuid
+  reporteId String @db.Uuid
+  actorId String? @db.Uuid
+  estadoAnterior EstadoReportePregunta?
+  estadoNuevo EstadoReportePregunta
+  revision Int
+  motivoRevision String? @db.VarChar(500)
+  fechaCreacion DateTime @default(now()) @db.Timestamptz(3)
+  actor Usuario? @relation("ActorAuditoriaReportePregunta", fields: [actorId], references: [id], onDelete: SetNull)
+  reporte ReportePregunta @relation(fields: [reporteId], references: [id], onDelete: Restrict)
+
+  @@unique([reporteId, revision])
+}
+
+// Ventana técnica durable por cuenta; no almacena IP, correo ni token.
+model TasaReportePregunta {
+  usuarioId String @id @db.Uuid
+  inicio DateTime @db.Timestamptz(3)
+  solicitudes Int
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 }
 
 model CasoPregunta {

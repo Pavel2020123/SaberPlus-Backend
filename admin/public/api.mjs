@@ -1,6 +1,7 @@
 import { lessonFields } from "./lesson-fields.mjs";
 import { mapId, mapChange, mapDetail } from "./learning-map-fields.mjs";
 import { questionFields, caseFields } from "./question-fields.mjs";
+import { reportUuid, reportQuery, reportDecision, reportRow, reportPage } from './question-report-fields.mjs';
 import {
   areas as toolAreas,
   hash,
@@ -121,10 +122,27 @@ export class CatalogApi {
       );
     return rows;
   }
-  coverage(area, pagina = 1) {
+  coverage(area, pagina = 1, withReports = false) {
     if (!["LECTURA_CRITICA","MATEMATICAS","SOCIALES_CIUDADANAS","CIENCIAS_NATURALES","INGLES"].includes(area) ||
         !Number.isInteger(pagina) || pagina < 1 || pagina > 10000) throw new PanelError("Filtro de cobertura inválido.");
-    return this.#protected(`/admin/cobertura?${new URLSearchParams({ area, pagina: String(pagina), limite: "20" })}`);
+    return this.#protected(`/admin/cobertura?${new URLSearchParams({ area, pagina: String(pagina), limite: "20", ...(withReports ? {reportesVersion: '1'} : {}) })}`);
+  }
+  async questionReports(filters = {}, page = 1) {
+    return reportPage(await this.#protected(`/admin/reportes-preguntas?${reportQuery(filters, page)}`), page, filters);
+  }
+  async questionReport(id) {
+    if (!reportUuid(id)) throw new PanelError('Reporte inválido.');
+    const row = reportRow(await this.#protected(`/admin/reportes-preguntas/${id}`), { admin: true, detail: true });
+    if (row.id !== id) throw new PanelError('El detalle no corresponde al reporte.');
+    return row;
+  }
+  async decideQuestionReport(id, change) {
+    if (!reportUuid(id)) throw new PanelError('Reporte inválido.');
+    const row = reportRow(await this.#protected(`/admin/reportes-preguntas/${id}/estado`,
+      { method: 'PATCH', body: reportDecision(change) }));
+    if (row.id !== id || row.estado !== change.destino || row.revision !== change.revision + 1)
+      throw new PanelError('No se pudo confirmar el recibo de la decisión. Consulta el estado actual.');
+    return row;
   }
   async learningMap(id, area, change) {
     if (!mapId(id) || !["LECTURA_CRITICA","MATEMATICAS","SOCIALES_CIUDADANAS","CIENCIAS_NATURALES","INGLES"].includes(area)) throw new PanelError('Selección del mapa inválida.');
@@ -595,6 +613,14 @@ export class CatalogApi {
           this.logout();
           this.onSessionExpired();
         }
+        if (path.startsWith('/admin/reportes-preguntas'))
+          throw new PanelError({
+            400: 'Revisa los filtros y el motivo de la decisión.',
+            401: 'Tu sesión terminó. Ingresa de nuevo.', 403: 'Solo ADMIN puede gestionar reportes.',
+            404: 'Este reporte no está disponible.',
+            409: 'El reporte o la operación cambió. Consulta su estado actual antes de decidir de nuevo.',
+            429: 'Alcanzaste el límite de decisiones. Espera antes de reintentar.',
+          }[response.status] ?? 'No se pudo confirmar la operación. Consulta el reporte o reintenta la misma decisión.', response.status);
         if (response.status === 503 && path.startsWith("/admin/simple/"))
           throw new PanelError("Guardar y publicar no está habilitado o el servidor no está disponible. Revisa EDITORIAL_PUBLICATION_ENABLED en el backend antes de continuar.", 503);
         throw new PanelError(
@@ -616,6 +642,10 @@ export class CatalogApi {
       return data;
     } catch (error) {
       if (error instanceof PanelError) throw error;
+      if (path.startsWith('/admin/reportes-preguntas'))
+        throw new PanelError(method === 'GET'
+          ? 'No pudimos consultar los reportes. Reintenta sin cambiar la decisión pendiente.'
+          : 'No se pudo confirmar la decisión. Consulta el estado actual o reintenta la misma decisión.');
       if (method === 'POST' && path.startsWith('/admin/instituciones/solicitudes/'))
         throw new PanelError('No pudimos confirmar la decisión. Consulta el estado de la solicitud antes de volver a revisarla; podría haberse guardado.');
       if (path === "/auth/login" || path === "/auth/perfil")

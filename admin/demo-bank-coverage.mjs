@@ -1,12 +1,12 @@
 // Count the actual in-memory demo records, not the illustrative legacy _count.
-export function demoCoverage({ themes, subthemes, questions, cases }, area, pagina, limite) {
+export function demoCoverage({ themes, subthemes, questions, cases, reports = [] }, area, pagina, limite, withReports = false) {
   const rows = subthemes.filter(s => themes.some(t => t.id === s.temaId && t.area === area))
     .sort((a,b) => {
       const ta = themes.find(t => t.id === a.temaId), tb = themes.find(t => t.id === b.temaId);
       return ta.nombre.localeCompare(tb.nombre) || a.nombre.localeCompare(b.nombre) || a.id.localeCompare(b.id);
     });
   return { area, pagina, limite, totalSubtemas: rows.length, hayMas: pagina * limite < rows.length,
-    reportesDisponibles: false,
+    reportesDisponibles: withReports, ...(withReports ? { reportesVersion: 1 } : {}),
     items: rows.slice((pagina - 1) * limite, pagina * limite).map(s => {
       const t = themes.find(t => t.id === s.temaId);
       const all = questions.filter(q => q.subtemaId === s.id);
@@ -17,6 +17,10 @@ export function demoCoverage({ themes, subthemes, questions, cases }, area, pagi
         tema: { id: t.id, nombre: t.nombre, estadoContenido: t.estadoContenido },
         total: all.length, publicadas: visible.length, noDisponibles: all.length - visible.length,
         sinExplicacion: visible.filter(q => !q.explicacion?.trim()).length,
-        dificultades, dificultadesFaltantes: Object.keys(dificultades).filter(d => dificultades[d] === 0), reportes: null };
+        dificultades, dificultadesFaltantes: Object.keys(dificultades).filter(d => dificultades[d] === 0),
+        ...(withReports ? {
+          reportes: reports.filter(r => r.area === area && r.subtemaId === s.id && ['PENDIENTE', 'EN_REVISION'].includes(r.estado)).length,
+          preguntasConReportes: new Set(reports.filter(r => r.area === area && r.subtemaId === s.id && ['PENDIENTE', 'EN_REVISION'].includes(r.estado)).map(r => r.preguntaId)).size,
+        } : {reportes: null}) };
     }) };
 }
