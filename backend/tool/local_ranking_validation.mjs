@@ -68,7 +68,9 @@ try {
   const logoMigration = 'prisma/migrations/20261012180000_institution_logo/migration.sql';
   const studentRequestsMigration = 'prisma/migrations/20261014180000_student_institution_requests/migration.sql';
   const studentCodesMigration = 'prisma/migrations/20261016180000_student_institution_codes/migration.sql';
-  const actualPaths = [...new Set([...paths, territoryMigration, profileMigration, logoMigration, studentRequestsMigration, studentCodesMigration])].sort();
+  // R4: explicit academic-report migration, only in this newly owned tmpfs DB.
+  const questionReportsMigration = 'prisma/migrations/20261017220000_academic_question_reports/migration.sql';
+  const actualPaths = [...new Set([...paths, territoryMigration, profileMigration, logoMigration, studentRequestsMigration, studentCodesMigration, questionReportsMigration])].sort();
   for (const path of actualPaths) {
     const dest = join(directory, path.replace(/^prisma\//, ''));
     await mkdir(dirname(dest), { recursive: true });
@@ -143,6 +145,7 @@ try {
     pendingLogoMigration: !paths.includes(logoMigration),
     pendingStudentRequestsMigration: !paths.includes(studentRequestsMigration),
     pendingStudentCodesMigration: !paths.includes(studentCodesMigration),
+    pendingQuestionReportsMigration: !paths.includes(questionReportsMigration),
     api: config.API_BASE_URL, syntheticFixtures: true, ownPosition: 51, totalParticipants: 61 }));
   console.log('Local control.json actions: correct, solo-on, solo-off, stop. No HTTP mutation route.');
   let corrected = false;

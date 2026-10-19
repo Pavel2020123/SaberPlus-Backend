@@ -746,3 +746,7 @@ summary { cursor: pointer; font-size: 14px; font-weight: 650; padding: 10px 0; }
 }
 #learning-map-panel button { margin: .3rem; white-space: normal; overflow-wrap: anywhere; }
 #learning-map-panel li { margin-block: .6rem; overflow-wrap: anywhere; }
+#question-reports-panel { max-width: 100%; }
+#question-reports-panel button { margin: .3rem; white-space: normal; overflow-wrap: anywhere; }
+#question-reports-panel pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 28rem; overflow: auto; font-size: .85rem; }
+#question-reports-panel p { overflow-wrap: anywhere; }

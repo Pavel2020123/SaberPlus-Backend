@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { QuestionReportModule } from '../question-reports/question-report.module';
 import { BankCoverageController } from './bank-coverage.controller';
 import { BankCoverageService } from './bank-coverage.service';
 import { SimpleContentController } from './simple-content.controller';
@@ -23,7 +24,7 @@ import { QuestionReclassificationController } from './question-reclassification.
 import { QuestionReclassificationService } from './question-reclassification.service';
 
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, QuestionReportModule],
 
   controllers: [
     BankCoverageController,

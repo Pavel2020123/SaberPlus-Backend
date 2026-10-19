@@ -1,11 +1,30 @@
 # API de SaberPlus
 
+**19 de octubre — MA-1R/R4 técnico aprobado:**45/45 integradas PostgreSQL/HTTP,
+12/12 humanas, backend121 suites/1567 tras fix de concurrencia, ADMIN109, build/TypeScript y regresión
+Flutter920/13 opt-in omitidas/análisis correctos. [Comandos, incidencias y límites](docs/MA1R_R4_VALIDACION_LOCAL.md).
+Ejecutar `npm run test:question-reports:postgres` requiere Docker local, no celular
+ni URL/contraseña externa; crea/aplica67 migraciones y limpia solo su base temporal.
+Retirada del botón y borrador con flecha confirmados: R4 cerrada localmente.
+Código guardado en backend `a747c32` y app `418c291`; documentación separada.
+Sigue push manual del propietario y PR/CI. Sin SQL remoto/despliegue ni cambios OV-1;
+estados anteriores históricos.
+
+**MA-1R/R2:** [backend local y validación](docs/MA1R_R2_BACKEND.md), 121 suites/1.560
+aprobadas; build/TypeScript correctos. [R3 app/panel local](docs/MA1R_R3_APP_PANEL.md),
+18 de octubre:32 dirigidas Flutter/109 ADMIN aprobadas. Migración sin aplicar; R4 pendiente.
+Rutas nuevas no desplegadas; cobertura nueva opt-in reportesVersion=1.
+
 **17 de octubre, estado vigente:** [C4-C10/10 guiones integrados cubiertos](docs/PR_I5_C4_CODIGO.md),
 Android+19 HTTP/SQL finales, no10 manuales independientes.66 migraciones solo temporales.
 APK corregida instalada, regresión Flutter final893 aprobadas/13 opt-in omitidas
 y análisis limpio. [Cierre técnico local consolidado](docs/CIERRE_INSTITUCIONES_LOCAL.md),
-backend119 suites/1.470 y panel95/95; commits locales autorizados el17,
-publicación/revisión pendientes, sin push/merge/despliegue automático.
+backend119 suites/1.470 y panel95/95; commits creados app6bab6be/API7ba93d7/lockbfce42e.
+PR app #5/API #8 integrados a main; CI backend del PR y main aprobado. Flutter
+analyze limpio y102 dirigidas aprobadas; sin workflow Flutter remoto. [Orden posterior](docs/ESTADO_Y_ORDEN_2026_10_17.md):
+MA-1R/R1–R3 locales, sigue R4; OV-1 del compañero en curso sin entrega nueva verificada.
+Sin nuevos ensayos físicos/SQL ni despliegue. Auditoría documental en
+`docs/estado-post-instituciones`, publicación manual/PR pendientes.
 Sin producción. Notas inferiores son antecedentes, no el paso siguiente.
 
 **15 de octubre — C3A/B implementadas; sigue C3C integrado.**
