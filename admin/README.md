@@ -1,5 +1,25 @@
 # Panel administrativo de SaberPlus
 
+**19 de octubre — validación real R4:** bandeja/decisiones ADMIN y cobertura
+confirmadas con API/PostgreSQL/Android;12/12 humanos y45/45 integradas técnicas
+aprobadas dentro del alcance del [acta R4](../backend/docs/MA1R_R4_VALIDACION_LOCAL.md).
+Panel109/109 y sintaxis26 módulos repetidos. Sesión/base humana cerrada, no demo
+ni credenciales permanentes. Remate visual confirmado en Flutter, cierre local R4;
+sin despliegue.
+La sección R3 inferior conserva el estado antes del ensayo, no la continuación vigente.
+
+## MA-1R/R3 — Reportes académicos (18 de octubre de2026)
+
+Nueva pestaña **Reportes de preguntas**: filtros, detalle privado y decisiones
+ADMIN con revisión/UUID/motivo, confirmación y reconciliación del mismo envío.
+No impone revisión del contenido antes de publicarlo ni cambia el guardado simple.
+Cobertura pide reportesVersion=1 y conserva compatibilidad legacy sin falso cero;
+demo con reporte ficticio de una pregunta archivada, todo en memoria.
+[Contrato, pruebas y límites](../backend/docs/MA1R_R3_APP_PANEL.md).
+`npm run check`:26 módulos; `npm test`:109 aprobadas. HTTP solo demo efímera,
+no Nest/PostgreSQL/Android ni revisión visual humana. Sigue R4, sin despliegue.
+Las cifras y estados de apartados fechados inferiores son antecedentes.
+
 ## PR-I5-T3 — Ubicación institucional (11 de octubre de 2026)
 
 En Instituciones, ADMIN selecciona departamento y después municipio/distrito/

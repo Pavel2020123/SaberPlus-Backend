@@ -1,5 +1,21 @@
 # Documentación backend
 
+- **19 de octubre, entrada vigente:** [R4 integrada/regresiones/comando seguro](MA1R_R4_VALIDACION_LOCAL.md).
+  12/12 humanos y45/45 PostgreSQL/HTTP; backend121/1567 tras fix de concurrencia, ADMIN109, build/TS y
+  Flutter920/13 opt-in omitidas/análisis aprobados. Remate Android confirmado:
+  R4 cerrada localmente, código en API `a747c32`/app `418c291`, documentación separada;
+  siguen push manual y PR/CI. Sin despliegue. Sesiones anteriores
+  limpiadas, remate en otra temporal; no asumir disponibilidad por leer estas actas.
+  Entradas anteriores inferiores históricas, no pasos nuevos.
+
+- [MA-1R-UX1 — Ocultar/Deshacer personal](MA1R_UX1_OCULTAR_DESHACER.md): propuesta
+  posterior a R4; no DELETE, schema/endpoints nuevos ni cambios al estado ADMIN.
+
+- **18 de octubre, MA-1R/R3:** [App/panel y resultados](MA1R_R3_APP_PANEL.md).
+  [R2 backend local, contrato efectivo](MA1R_R2_BACKEND.md).
+  R1/flujo autorizados;121 suites/1.560 aprobadas, build/TypeScript correctos.
+  R3:32 dirigidas Flutter/109 ADMIN aprobadas. SQL sin aplicar; R4 pendiente, sin despliegue.
+
 ## Entrada vigente — 17 de octubre de 2026
 
 [C4-C](PR_I5_C4_CODIGO.md) cubre10/10 guiones locales con Android+19 HTTP/SQL finales,
@@ -9,7 +25,7 @@ aprobados; regresión global final893/13 opt-in omitidas. [C3C](PR_I5_C3_SOLICIT
 commits app6bab6be/API7ba93d7/lockbfce42e integrados a main por PR app #5/API #8.
 CI backend del PR/main aprobado; Flutter analyze limpio/102 dirigidas aprobadas.
 [Orden posterior y auditoría](ESTADO_Y_ORDEN_2026_10_17.md):
-MA-1R propuesto, no iniciado; OV-1 del compañero en curso sin entrega nueva verificada.
+MA-1R/R1–R3 locales, sigue R4; OV-1 del compañero en curso sin entrega nueva verificada.
 Sin nuevos ensayos físicos/SQL ni despliegue; documentación separada en
 `docs/estado-post-instituciones`, publicación manual/PR pendientes.
 Las entradas anteriores fechadas inferiores son antecedentes.

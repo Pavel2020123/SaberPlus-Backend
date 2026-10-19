@@ -1,5 +1,23 @@
 # SaberPlus Backend
 
+**19 de octubre — checkpoint vigente MA-1R/R4:**12/12 humanos y45/45 pruebas
+HTTP/PostgreSQL aisladas repetidas tras fix de concurrencia aprobadas; backend121 suites/1567, ADMIN109, build/TS
+y Flutter920/13 opt-in omitidas/análisis correctos. [Acta técnica y límites](backend/docs/MA1R_R4_VALIDACION_LOCAL.md).
+Repetir suite específica desde backend: `npm run test:question-reports:postgres`.
+Retirada del botón y borrador con flecha confirmados: **R4 cerrada localmente**.
+Código guardado en backend `a747c32` y app `418c291`; documentación en commit separado.
+Sigue push manual del propietario y PR/CI. Bases automáticas/anteriores limpiadas;
+remate en otra sesión temporal. Sin despliegue ni push/merge.
+OV-1 separado. Entradas anteriores inferiores son antecedentes, no estado vigente.
+
+**18 de octubre — MA-1R/R3 app/panel locales:** [acta R3](backend/docs/MA1R_R3_APP_PANEL.md).
+R2 backend local: [implementación](backend/docs/MA1R_R2_BACKEND.md).
+R1/flujo inicial autorizados; 121 suites/1.560 aprobadas, build/TypeScript correctos.
+R3:32 dirigidas Flutter/109 ADMIN aprobadas y26 módulos de sintaxis.
+Regresión Flutter del18:917 aprobadas/13 opt-in omitidas y análisis sin incidencias.
+SQL escrito, no aplicado; sigue R4 PostgreSQL/HTTP Nest/Android.
+Sin despliegue ni CI remoto de R2. OV-1 separado; contrato legacy de cobertura intacto.
+
 **17 de octubre, estado vigente:** [C4-C10/10 guiones locales cubiertos](backend/docs/PR_I5_C4_CODIGO.md)
 con Android+19 HTTP/SQL finales, no10 manuales independientes. APK corregida instalada,
 Regresión Flutter final893 aprobadas/13 opt-in omitidas y análisis limpio.

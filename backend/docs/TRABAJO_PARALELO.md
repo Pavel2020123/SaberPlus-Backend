@@ -14,8 +14,10 @@ un cambio local no está disponible automáticamente en el PC del compañero.
   [cierre local consolidado](CIERRE_INSTITUCIONES_LOCAL.md). Commits creados
   app6bab6be/API7ba93d7/lockbfce42e integrados a main por PR app #5/API #8
   (e679c50/388bb18). CI backend PR/main aprobado; Flutter analyze/102 dirigidas aprobados.
-  Siguiente recomendado [MA-1R reportes](ESTADO_Y_ORDEN_2026_10_17.md), propuesta
-  no iniciada. Sin despliegue remoto.
+  [MA-1R/R2](MA1R_R2_BACKEND.md) backend local implementada/probada,
+  121 suites/1.560 aprobadas y build correcto. Sin SQL aplicado ni despliegue;
+  [R3 UI/panel local](MA1R_R3_APP_PANEL.md):32 dirigidas Flutter/109 ADMIN aprobadas.
+  Sigue R4 integración. Rama feat/ma1r-reportes-preguntas, sin tocar OV-1.
 - **Compañero:** OV-1, orientación vocacional, en curso según el propietario;
   sin entrega nueva verificada en estos clones. Retomar su checkpoint para A
   contenido/reglas → B persistencia → C cliente → D validación, no reiniciarlo.

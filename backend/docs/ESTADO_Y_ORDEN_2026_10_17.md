@@ -1,5 +1,12 @@
 # Continuación después de instituciones — espejo backend
 
+**19 de octubre, actualización que prevalece:** [MA-1R/R4](MA1R_R4_VALIDACION_LOCAL.md)
+con12/12 humanos y45/45 HTTP/PostgreSQL, carrera ADMIN P2010/40001 corregida y
+regresiones/remate visual según acta: R4 cerrada localmente. Código guardado en
+backend `a747c32` y app `418c291`; documentación separada. Siguen push manual y PR/CI,
+no repetir fases.
+Bases temporales limpiadas; sin producción/SQL remoto ni cambios OV-1.
+
 17 de octubre de2026. Fuente maestra en repo Flutter:
 `docs/ESTADO_Y_ORDEN_2026_10_17.md`, vista del inventario
 `docs/ETAPAS_PENDIENTES.md`; no son archivos de este árbol.
@@ -19,17 +26,21 @@ Compañero: OV-1 en curso según propietario, sin nueva entrega recibida/verific
 No editar su checkpoint/código ni asumir cierre de A/B/C/D. Sabi inicial por seis
 familias, no cada carrera, sin assets/lógica productiva nueva ni XP/ranking/certificados.
 
-## Próximo bloque recomendado del propietario, todavía no iniciado
+## Bloque del propietario: MA-1R
 
 MA-1R: reportes académicos de preguntas. La cobertura base ya existe: ver
 [BANK_COVERAGE](../BANK_COVERAGE.md) y `src/admin/bank-coverage.service.ts`, con
-reportesDisponibles:false/reportes:null. No inventar conteos ni rehacer el panel.
+false/null por defecto, opt-in reportesVersion=1 con conteos nuevos. No inventarlos
+ni rehacer el panel; R3 consume ambos contratos de forma compatible.
 
 R1 auditar/confirmar quién reporta, motivos/estados/versiones/dedupe/permisos;
 R2 backend/persistencia; R3 app/ADMIN/cobertura; R4 pruebas separadas y acta.
-Es propuesta, no autorización para fijar reglas ni implementar en este turno.
+R1/flujo inicial autorizados. [R2 backend local](MA1R_R2_BACKEND.md) implementada,
+121 suites/1.560 aprobadas; build/TypeScript correctos. Migración escrita no aplicada.
+[R3 app/panel local](MA1R_R3_APP_PANEL.md),18 de octubre:32 dirigidas Flutter/109 ADMIN
+aprobadas. Sigue R4 PostgreSQL/HTTP Nest/Android, sin despliegue ni SQL aplicado.
 
-Orden restante compartido: entrega PR/CI/main completada → MA-1R propuesto → C5 → académico/profesor/
+Orden restante compartido: entrega PR/CI/main completada → MA-1R/R4 → C5 → académico/profesor/
 panel (P5→D3 autorizados, C4/C6 editorial, MA-2/3, contratos/certificados) →
 PR-I3/4 insignias/perfiles → PR-I6/6-T/7 ranking/ensayo social → seguridad/comercial/
 contenido/privacidad → UI-F → beta/validación → Play/operación. OV-1 paralelo.
