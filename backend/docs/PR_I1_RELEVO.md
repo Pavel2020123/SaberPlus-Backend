@@ -1,6 +1,13 @@
 # PR-I1 V1 — relevo técnico de SaberPlus-Backend
 
-## Continuidad vigente — 7 de octubre de 2026
+## Continuidad actualizada al19 de octubre
+
+PR-I1 integrado; recorrido funcional I2-5 documentado, cierre operativo/QA-1 pendiente.
+Instituciones y reportes posteriores integrados (PR backend #8/#9, app #5/#6).
+Consultar [orden vigente](ESTADO_Y_ORDEN_2026_10_17.md): siguiente preparación C5,
+OV-1 independiente. Nuevos cambios en rama por bloque y PR, sin trabajo directo en main.
+
+## Antecedente — 7 de octubre de 2026
 
 Ver [conciliación](CONCILIACION_2026_10_07.md). PR-I1 y PR-I2 hasta I2-4
 integrados; I2-5 abierto con regresión e integración HTTP documentadas.

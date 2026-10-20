@@ -4,13 +4,21 @@
 [R2 backend](MA1R_R2_BACKEND.md), [R3 app/panel](MA1R_R3_APP_PANEL.md).
 Checkpoint maestro y guion humano en `docs/MA1R_R4_VALIDACION_LOCAL.md` de Flutter.
 
-## Entrega Git autorizada el19 de octubre
+## Entrega Git integrada el19 de octubre
 
 Commits funcionales locales: backend/panel `a747c32`, Flutter `418c291`.
-Las actas y checkpoints se guardan en commits documentales posteriores separados.
-Rama en ambos: `feat/ma1r-reportes-preguntas`. Push manual del propietario pendiente;
-no PR/CI remoto ejecutado ni integración en main por esta entrega.
-Este registro sustituye las instrucciones anteriores de esperar para crear commits.
+Documentación guardada en backend `6a74f55` y Flutter `0a622e6`.
+Rama de entrega: `feat/ma1r-reportes-preguntas`. Push comprobado e integración
+autorizada por el propietario: [backend PR #9](https://github.com/Pavel2020123/SaberPlus-Backend/pull/9)
+como `eef0d40`, [app PR #6](https://github.com/Pavel2020123/saber_plus/pull/6)
+como `21757a1`. [CI backend del PR](https://github.com/Pavel2020123/SaberPlus-Backend/actions/runs/39321480923)
+aprobado: admin/verify, instalación, build, pruebas, controles locales y auditoría.
+[CI posterior de main](https://github.com/Pavel2020123/SaberPlus-Backend/actions/runs/39321700998)
+también aprobado para el merge backend `eef0d40`.
+No hay workflow Flutter remoto: QA-1 pendiente, conservar evidencia local sin
+presentarla como CI. Esta integración no ejecuta ni autoriza migraciones/despliegues
+remotos. Siguiente bloque recomendado: preparación local C5, archivos generales.
+Este registro sustituye las esperas para crear commits/publicar/integrar de las notas anteriores.
 
 ## Cierre local del19: remate visual confirmado en Flutter
 
@@ -26,9 +34,8 @@ datos de app normal. Propietario confirmó ausencia del botón inferior («si no
 y detalle conservado tras flecha/reapertura de la misma pregunta («si sigue apareciendo»).
 Sin pedir envío de reporte ni repetir12; es regresión del ajuste del caso8.
 **R4 cerrada localmente:**12/12 humanos, dos45/45 integradas tras fix y regresiones
-indicadas abajo. Sigue push manual de ambos repositorios y revisión por PR/CI,
-no nueva prueba obligatoria. Commits locales registrados arriba;
-sin push/merge/despliegue ni cambios OV-1 en este cierre.
+indicadas abajo. Entrega Git integrada según el registro superior;
+quedan staging/operación y QA-1 separados, sin despliegue ni cambios OV-1 en esta tarea.
 
 ## Pruebas técnicas del 19 de octubre: 45/45 integradas aprobadas
 

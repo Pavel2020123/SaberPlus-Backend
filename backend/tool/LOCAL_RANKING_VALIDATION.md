@@ -5,7 +5,8 @@ con regresiones y límites en [acta R4](../docs/MA1R_R4_VALIDACION_LOCAL.md).
 La suite independiente es `npm run test:question-reports:postgres`, no necesita
 sesión humana ni celular. API/base/credenciales del ensayo humano se cerraron
 y limpiaron; no reutilizarlas. Remate en otra sesión posterior, retirada del botón
-inferior/borrador confirmados: R4 cerrada localmente. Siguen commits/PR/CI.
+inferior/borrador confirmados: R4 cerrada localmente e integrada en main por PR
+API #9/app #6. CI backend del PR aprobado; sigue preparación C5, no otro ensayo por defecto.
 Las instrucciones inferiores de arranque son
 históricas/reutilizables únicamente cuando se solicite otro ensayo.
 

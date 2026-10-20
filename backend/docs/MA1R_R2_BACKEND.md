@@ -4,7 +4,7 @@
 humanos y45/45 HTTP/PostgreSQL, SQL aplicado solo en67 migraciones temporales y
 limpieza comprobada. Se corrigió carrera raw P2010/40001 con reintento acotado;
 7 unitarias nuevas/dirigidas100 aprobadas. Remate visual confirmado, cierre local R4;
-siguen revisión/commits/PR/CI.
+integrada a main por PR API #9/app #6 (eef0d40/21757a1), CI backend del PR aprobado.
 Las afirmaciones inferiores «sin aplicar»/«sin ensayo» corresponden al cierre R2
 del17, no al estado del19 ni a una autorización de migración remota/despliegue.
 

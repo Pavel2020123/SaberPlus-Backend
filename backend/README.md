@@ -6,8 +6,8 @@ Flutter920/13 opt-in omitidas/análisis correctos. [Comandos, incidencias y lím
 Ejecutar `npm run test:question-reports:postgres` requiere Docker local, no celular
 ni URL/contraseña externa; crea/aplica67 migraciones y limpia solo su base temporal.
 Retirada del botón y borrador con flecha confirmados: R4 cerrada localmente.
-Código guardado en backend `a747c32` y app `418c291`; documentación separada.
-Sigue push manual del propietario y PR/CI. Sin SQL remoto/despliegue ni cambios OV-1;
+Integrado en main por PR backend #9/app #6 (eef0d40/21757a1); CI backend del PR aprobado.
+Sigue preparación local C5; QA-1 Flutter remoto pendiente. Sin SQL remoto/despliegue ni cambios OV-1;
 estados anteriores históricos.
 
 **MA-1R/R2:** [backend local y validación](docs/MA1R_R2_BACKEND.md), 121 suites/1.560

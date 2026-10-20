@@ -5,10 +5,14 @@ HTTP/PostgreSQL aisladas repetidas tras fix de concurrencia aprobadas; backend12
 y Flutter920/13 opt-in omitidas/análisis correctos. [Acta técnica y límites](backend/docs/MA1R_R4_VALIDACION_LOCAL.md).
 Repetir suite específica desde backend: `npm run test:question-reports:postgres`.
 Retirada del botón y borrador con flecha confirmados: **R4 cerrada localmente**.
-Código guardado en backend `a747c32` y app `418c291`; documentación en commit separado.
-Sigue push manual del propietario y PR/CI. Bases automáticas/anteriores limpiadas;
-remate en otra sesión temporal. Sin despliegue ni push/merge.
+**Integrado en main:** [backend PR #9](https://github.com/Pavel2020123/SaberPlus-Backend/pull/9)
+(`eef0d40`) y [app PR #6](https://github.com/Pavel2020123/saber_plus/pull/6) (`21757a1`).
+CI backend del PR aprobado; QA-1 Flutter remoto pendiente. Sigue preparación local
+C5, archivos generales. Bases automáticas/anteriores limpiadas; remate en otra
+sesión temporal. Sin despliegue ni migraciones remotas por esta entrega.
 OV-1 separado. Entradas anteriores inferiores son antecedentes, no estado vigente.
+
+[Documentación conciliada y guía de continuidad](backend/docs/AUDITORIA_DOCUMENTAL_2026_10_19.md).
 
 **18 de octubre — MA-1R/R3 app/panel locales:** [acta R3](backend/docs/MA1R_R3_APP_PANEL.md).
 R2 backend local: [implementación](backend/docs/MA1R_R2_BACKEND.md).
