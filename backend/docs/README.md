@@ -1,10 +1,14 @@
 # Documentación backend
 
+- [Sincronización documental del19](AUDITORIA_DOCUMENTAL_2026_10_19.md): integración,
+  correcciones, límites de la revisión y siguiente preparación local C5.
+
 - **19 de octubre, entrada vigente:** [R4 integrada/regresiones/comando seguro](MA1R_R4_VALIDACION_LOCAL.md).
   12/12 humanos y45/45 PostgreSQL/HTTP; backend121/1567 tras fix de concurrencia, ADMIN109, build/TS y
   Flutter920/13 opt-in omitidas/análisis aprobados. Remate Android confirmado:
-  R4 cerrada localmente, código en API `a747c32`/app `418c291`, documentación separada;
-  siguen push manual y PR/CI. Sin despliegue. Sesiones anteriores
+  R4 cerrada localmente e integrada en main por PR API #9/app #6 (eef0d40/21757a1);
+  CI backend del PR aprobado. Sigue preparación local C5, QA-1 Flutter remoto pendiente.
+  Sin despliegue. Sesiones anteriores
   limpiadas, remate en otra temporal; no asumir disponibilidad por leer estas actas.
   Entradas anteriores inferiores históricas, no pasos nuevos.
 

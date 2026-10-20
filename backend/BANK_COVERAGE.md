@@ -1,9 +1,10 @@
 # MA-1 — Cobertura básica del banco
 
-**17 de octubre — MA-1R/R2 local:** [backend y contrato de reportes](docs/MA1R_R2_BACKEND.md)
-implementados/probados con mocks; sin SQL aplicado ni despliegue. R4 pendiente.
-[R3 consumidor compatible local](docs/MA1R_R3_APP_PANEL.md),18 de octubre:
-109 pruebas ADMIN aprobadas; pide opt-in, acepta legacy y enlaza la bandeja por subtema.
+**19 de octubre — MA-1R/R1–R4 integrada:** PR backend #9/app #6 (eef0d40/21757a1),
+CI backend del PR aprobado. [Acta R4](docs/MA1R_R4_VALIDACION_LOCAL.md):12/12 humanos,
+45/45 HTTP/PostgreSQL y regresiones. Resolver reportes actualiza conteos sin modificar
+preguntas ni XP. Migraciones solo temporales; staging/despliegue siguen pendientes.
+El panel pide opt-in, acepta legacy y enlaza la bandeja por subtema.
 Contrato legacy intacto; GET con reportesVersion=1 opta por conteos nuevos.
 
 Implementada localmente el 24 de septiembre de 2026. No desplegada.
@@ -36,7 +37,7 @@ Cinco áreas del catálogo, página 1–10000, límite 1–100 (por defecto 50).
 Consulta parametrizada y agrupada para la página seleccionada, transacción de
 lectura RepeatableRead. No devuelve enunciados, respuestas ni datos estudiantiles.
 La cobertura legacy no requiere nuevas migraciones; el opt-in depende de la
-migración R2 de reportes, escrita sin aplicar. Al salir del panel se limpia la vista; respuestas
+migración R2 de reportes, validada solo en bases temporales. Al salir del panel se limpia la vista; respuestas
 tardías de una consulta anterior no reemplazan el filtro vigente. Los errores no
 se presentan como banco vacío y se pueden reintentar con Actualizar cobertura.
 
@@ -49,7 +50,7 @@ y paginación. La demo cuenta registros reales en memoria, no los números
 ilustrativos de `_count` del catálogo inicial: puede mostrar cero correctamente.
 Al reiniciar la demo se pierden los cambios; no llegan a Supabase.
 
-## Verificación local
+## Verificación original del24 de septiembre
 
 - `npm run build` en backend: aprobado.
 - `npm test -- --runInBand`: 827 pruebas, 83 suites aprobadas.
@@ -59,11 +60,12 @@ Al reiniciar la demo se pierden los cambios; no llegan a Supabase.
   tras detenerla, sin modificar bases del usuario.
 - En admin, `npm run check` y `npm test`: 19 módulos y 79 pruebas aprobados.
 
-Faltan revisión visual en navegador y ensayo con backend desplegado (D3/P5
-permanecen pausados). MA-2 como siguiente entrega era la secuencia del 24 de
+La revisión visual del flujo de reportes/cobertura con API local se confirmó en R4.
+Falta ensayo con backend desplegado (D3/P5 permanecen pausados).
+MA-2 como siguiente entrega era la secuencia del 24 de
 septiembre: mapa y repaso ya tienen implementaciones locales posteriores.
 
-Actualización documental del 17 de octubre: se propone MA-1R, reportes de preguntas
+Antecedente documental del 17 de octubre: se propuso MA-1R, reportes de preguntas
 integrados con esta cobertura, como siguiente bloque independiente de OV-1.
 R1 tiene [auditoría/contrato](docs/MA1R_REPORTES_PREGUNTAS.md); el propietario autorizó
 el flujo inicial y se implementó R2 local, según la actualización superior.

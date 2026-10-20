@@ -3,7 +3,9 @@
 **Continuación verificada del19:** [R4](MA1R_R4_VALIDACION_LOCAL.md) con12/12
 humanos y45/45 PostgreSQL/HTTP en bases temporales propias, ya limpiadas. Carrera
 ADMIN P2010/40001 corregida y probada; contrato efectivo R2/R4, no la propuesta
-original inferior. Remate visual confirmado, cierre local R4; sin producción/SQL remoto.
+original inferior. Remate visual confirmado, cierre local R4 e integración a main
+por PR API #9/app #6 (eef0d40/21757a1); CI backend del PR aprobado.
+Sigue preparación local C5; sin producción/SQL remoto, QA-1 Flutter remoto pendiente.
 Este documento conserva la auditoría R1, no ordena rehacer fases completadas.
 
 17 de octubre de 2026. Responsable: propietario. **R1 auditada y flujo inicial

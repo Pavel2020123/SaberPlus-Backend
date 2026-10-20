@@ -1,5 +1,11 @@
 # PR-I2 — rankings competitivos por juego y temporada
 
+**Continuación al19 de octubre:** el ensayo IC-1C Rescate posterior ya está
+documentado en [IC1_RESCATE](IC1_RESCATE.md). Instituciones y reportes también
+están integrados en main; seguir [orden vigente](ESTADO_Y_ORDEN_2026_10_17.md).
+Las siguientes entradas conservan sus evidencias y fecha; no reiniciar IC-1C.
+Cierre operativo I2-5, QA-1 y activación productiva siguen separados.
+
 ## Actualización — 8 de octubre de 2026
 
 Recorrido Android confirmado y criterios funcionales revisados; limpieza/cierre

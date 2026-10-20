@@ -5,8 +5,9 @@
 probados. `npm run test:question-reports:postgres` crea su propia base, no requiere
 celular ni credenciales externas. La sesión humana anterior se cerró/limpió; no
 reutilizar archivo privado ni repetir12. Remate visual confirmado en sesión
-posterior: R4 cerrada localmente. Código guardado en API `a747c32`/app `418c291`,
-documentación separada; siguen push manual y PR/CI. OV-1 sigue con el compañero, no se le
+posterior: R4 cerrada localmente e integrada en main por PR API #9/app #6 (eef0d40/21757a1).
+CI backend del PR aprobado; sigue preparación local C5 y QA-1 Flutter remoto pendiente.
+OV-1 sigue con el compañero, no se le
 transfiere este frente. Sin push/merge/despliegue automático.
 Los guiones inferiores de instituciones/juegos son históricos, no pasos nuevos.
 

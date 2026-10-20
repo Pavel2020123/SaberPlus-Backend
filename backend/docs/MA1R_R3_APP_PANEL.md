@@ -2,7 +2,8 @@
 
 **Continuación del19:** [R4](MA1R_R4_VALIDACION_LOCAL.md) ya registra12/12 humanos
 y45/45 PostgreSQL/HTTP, incluyendo corrección reproducida P2010/40001. Remate
-visual confirmado en Flutter: cierre local R4. Sin SQL remoto/producción.
+visual confirmado en Flutter: cierre local R4 e integración a main por PR API #9/app #6
+(eef0d40/21757a1), CI backend del PR aprobado. Sin SQL remoto/producción.
 Las menciones inferiores de SQL sin aplicar/no ensayo pertenecen al cierre R3.
 
 **18 de octubre de 2026. Implementación local**, rama `feat/ma1r-reportes-preguntas`

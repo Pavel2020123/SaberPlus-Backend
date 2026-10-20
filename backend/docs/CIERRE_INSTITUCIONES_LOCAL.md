@@ -57,5 +57,6 @@ ensayo y respaldo. Funciones/integraciones→UI-F→8F/8G/beta antes de publicar
 seguridad/pruebas no se posponen hasta el final. No repetir manualmente cada unitaria.
 Producción autorizada solo smoke breve/controlado, no pruebas destructivas sin permiso.
 P5/D3 pausadas; entrega PR/CI/main completada. Guardar documentación pendiente, no desplegar.
-[Orden posterior](ESTADO_Y_ORDEN_2026_10_17.md): MA-1R reportes de preguntas,
-propuesto y no iniciado; OV-1 sigue con el compañero.
+[Orden posterior actualizado al19](ESTADO_Y_ORDEN_2026_10_17.md): MA-1R reportes
+cerrados localmente e integrados (PR API #9/app #6); sigue preparación C5.
+OV-1 sigue con el compañero.

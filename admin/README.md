@@ -5,7 +5,8 @@ confirmadas con API/PostgreSQL/Android;12/12 humanos y45/45 integradas técnicas
 aprobadas dentro del alcance del [acta R4](../backend/docs/MA1R_R4_VALIDACION_LOCAL.md).
 Panel109/109 y sintaxis26 módulos repetidos. Sesión/base humana cerrada, no demo
 ni credenciales permanentes. Remate visual confirmado en Flutter, cierre local R4;
-sin despliegue.
+sin despliegue. Integrado en main por PR backend #9/app #6 (eef0d40/21757a1),
+CI backend del PR aprobado. Sigue preparación local C5; QA-1 Flutter remoto pendiente.
 La sección R3 inferior conserva el estado antes del ensayo, no la continuación vigente.
 
 ## MA-1R/R3 — Reportes académicos (18 de octubre de2026)
