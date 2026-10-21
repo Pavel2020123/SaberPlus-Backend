@@ -39,7 +39,8 @@ ni se afirma que el usuario haya restaurado ya su ajuste.
 Entrega A/B/C1 guardada en app `af73039` y backend `0bfaaba`; push posterior
 confirmado hasta app `c69a5e9` y backend `e1c4d18`, incluyendo C2-A/B.
 Continuación: [C5-C2-C](C5C2C_CONSUMIDORES.md) validada automáticamente;
-sigue C2-D Android. C2-C permanece sin commit/push.
+sigue C2-D Android. C2-C posteriormente guardada e integrada en main local
+según [relevo](RELEVO_C5_C2.md), sin push nuevo ni despliegue.
 La carga por opción está preparada pero apagada por defecto. No se repitió el
 guion Android de C1 ni se validó todavía C2 en el celular.
 La confirmación es humana, no otra prueba automática. Credenciales nuevas solo

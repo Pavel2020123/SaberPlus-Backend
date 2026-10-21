@@ -5,7 +5,8 @@
 **C2-A/B/C implementadas y validadas automáticamente. Sigue C2-D, ensayo Android.**
 Preparación y confirmaciones humanas: [acta C2-D](C5C2D_VALIDACION_LOCAL.md),0/8.
 Ver [acta de consumidores C2-C](C5C2C_CONSUMIDORES.md):969 Flutter/16 omitidas,
-128 suites/1.675 backend y44 PostgreSQL/HTTP aprobadas. C2-C aún sin commit/push.
+128 suites/1.675 backend y44 PostgreSQL/HTTP aprobadas. C2-C guardada e integrada
+en main local según [relevo](RELEVO_C5_C2.md); sin push nuevo ni despliegue.
 C2-B incorpora DTO/guardado y selector por opción, pero su activación está apagada
 por defecto. Solo se habilitó dentro del ensayo desechable. No es el cierre completo
 de C5-C2 ni una autorización para publicar preguntas con imágenes a estudiantes.
@@ -15,7 +16,8 @@ Entrega anterior A/B/C1 guardada: app `af73039`, backend `0bfaaba`.
 Push de A/B/C1 y C2-A/B confirmado hasta app `c69a5e9` y backend `e1c4d18`.
 El push documental anterior `52a3488` no incluía el código funcional C5.
 C2-C está validada automáticamente; sigue C2-D Android. Su acta separa evidencia y pendientes.
-No se creó PR ni se hizo merge o despliegue. Rama: `feat/c5-archivos-base`.
+Entrega creada en feat/c5-archivos-base e integrada en main local por autorización
+expresa; no se creó PR nuevo ni se hizo push o despliegue en este cierre.
 OV-1 y su checkpoint siguen siendo responsabilidad del compañero.
 
 ## División y continuación

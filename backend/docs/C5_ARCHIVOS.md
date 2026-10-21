@@ -11,11 +11,12 @@ inferior; no atribuirle una nueva regresión global ni nuevo despliegue.
 Push A/B/C1+C2-A/B confirmado: app `c69a5e9`, backend `e1c4d18`.
 [C5-C2-C](C5C2C_CONSUMIDORES.md) validada automáticamente:44/44 PostgreSQL/HTTP,
 128 suites/1.675 backend y969 Flutter aprobadas/16 opt-in omitidas.
-70 migraciones temporales, ninguna nueva de C2-C; cambios aún sin commit/push.
+70 migraciones temporales, ninguna nueva de C2-C. C2-C guardada e integrada en
+main local según [relevo](RELEVO_C5_C2.md); sin push nuevo ni despliegue.
 Sigue C2-D, ensayo Android. Activación apagada por defecto; opt-in solo en la
 sesión desechable propia de C2-D. Después siguen
 PDF/offline, autorización histórica, fotos/evidencias y C5-D. C1 no cierra toda C5.
-OV-1 separado; sin merge/despliegue ni SQL remoto.
+OV-1 separado; sin despliegue ni SQL remoto.
 
 ## Antecedente — checkpoint del 20 de octubre de 2026
 

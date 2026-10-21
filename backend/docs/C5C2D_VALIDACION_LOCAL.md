@@ -29,6 +29,12 @@ en Flutter, sin destinos ausentes; guía espejo idéntica en ambos repos.
 No se ejecutó de nuevo la regresión global ni PostgreSQL en este relevo documental;
 su evidencia anterior permanece en C2-C. No hay confirmación humana nueva.
 
+Cierre posterior: código integrado en main local mediante los merges registrados
+en RELEVO_C5_C2.md, sin diferencias funcionales respecto a los commits probados.
+Verificación documental final:354 enlaces locales en diez documentos Flutter y
+129 en ocho documentos backend, sin destinos ausentes; siete documentos espejo
+idénticos. Sin push nuevo, CI remoto, instalación USB nueva ni despliegue.
+
 ## Datos de ensayo y seguridad
 
 - Sesión creada por local_ranking_validation.mjs, nunca una base existente.
@@ -45,7 +51,8 @@ su evidencia anterior permanece en C2-C. No hay confirmación humana nueva.
   dos referencias de imagen conservadas. Esto no confirma la vista física del panel.
 - Credenciales únicamente en flutter-private.json del directorio temporal.
   No imprimirlas, copiarlas a documentación, Git o defines del APK.
-- No hay cambios en main, producción, Supabase/Render, OV-1 o permisos históricos.
+- Preparador sin cambios en producción, Supabase/Render, OV-1 o permisos históricos.
+  La integración posterior del código en main local se registra en el relevo.
 
 ## Guion humano
 
@@ -91,4 +98,5 @@ comprobar adb devices y configurar adb reverse tcp:43187 tcp:43187.
 Instalar la APK nueva conservando los datos, sin dar por válido un binario anterior.
 
 **Siguiente acción:** detectar el celular, instalar y comenzar por el bloque1.
-No hay confirmaciones humanas nuevas ni commit/push de C2-C/D en este checkpoint.
+No hay confirmaciones humanas nuevas; código y relevo integrados en main local
+según [guía](RELEVO_C5_C2.md), sin push nuevo ni despliegue.

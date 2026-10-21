@@ -28,10 +28,10 @@ incidencias anteriores documentadas: no declarar lint global limpio ni usar
 `npm run lint` sin revisar que incluye `--fix`. No ejecutar todo de nuevo por cada
 toque, pero sí repetir las pruebas afectadas por una corrección y la regresión final.
 
-Al entregar este relevo se solicita integrar el código en main local de ambos
-repositorios. **Un commit/merge local no llega al otro PC: verificar publicación
-de ambos main antes de clonar/actualizar.** El cierre de integración se registra
-en los README y en el historial Git; este documento no certifica un push o CI.
+Código y relevo ya integrados en **main local** por autorización del propietario:
+app entrega `e833d6b`, merge `f912880`; backend entrega `cfba7cd`, merge `09c763b`.
+**Sin push nuevo ni CI remoto en este cierre. Un commit/merge local no llega al
+otro PC: publicar/verificar ambos main antes de clonar/actualizar.**
 Un push a main puede activar CI/despliegue si el repositorio tiene automatizaciones:
 la integración local no autoriza operar Render/Supabase ni migrar una base remota.
 

@@ -7,9 +7,10 @@ la carga para estudiantes ni se hizo una nueva prueba física Android.**
 La activación local de opciones sigue apagada por defecto. C2-D es el siguiente
 paso del propietario, con Docker y celular USB cuando se acuerde la sesión.
 
-Base publicada al iniciar este bloque: app `c69a5e9`, backend `e1c4d18`,
-rama `feat/c5-archivos-base`. Los cambios C2-C siguen en el árbol de trabajo,
-sin commit/push nuevos, merge o despliegue. OV-1 no se modificó.
+Base publicada al iniciar este bloque: app `c69a5e9`, backend `e1c4d18`.
+Entrega C2-C y relevo guardados: app `e833d6b`, backend `cfba7cd`.
+Integración posterior en main local: app `f912880`, backend `09c763b`.
+Sin push nuevo, CI remoto ni despliegue; OV-1 no se modificó.
 
 ## Implementación
 
@@ -144,4 +145,3 @@ No se necesita Supabase/Render para esos ensayos. No publicar ni migrar remotame
 
 Referencias: [C2 completo](C5C2_OPCIONES.md), [lectura online C1](C5C_FLUTTER.md),
 [contrato general C5](C5_ARCHIVOS.md).
-

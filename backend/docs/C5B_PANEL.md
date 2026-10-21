@@ -7,8 +7,9 @@ online autenticada, validada automáticamente y después en Android5/5 el21.
 Continuación vigente: [C5-C2-C](C5C2C_CONSUMIDORES.md) contratos y consumidores
 validados automáticamente; sigue C2-D Android, todavía sin confirmaciones humanas.
 Activación apagada por defecto; opt-in solo en la API desechable propia.
-Push C2-B confirmado en app `c69a5e9`/backend `e1c4d18`; C2-C sin commit/push.
-Sin merge ni despliegue.
+Push C2-B confirmado en app `c69a5e9`/backend `e1c4d18`; C2-C posteriormente
+guardada e integrada en main local según [relevo](RELEVO_C5_C2.md).
+Sin push nuevo ni despliegue en este cierre.
 El resto de C5-C/D permanece abierto.
 Las afirmaciones inferiores sobre Flutter pendiente describen el cierre de B,
 no sustituyen el checkpoint C1 más reciente.

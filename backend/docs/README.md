@@ -9,9 +9,9 @@ romper JSON antiguo.969 Flutter aprobadas/16 opt-in omitidas,128 suites/1.675
 backend y44/44 PostgreSQL/HTTP;70 migraciones temporales, ninguna nueva de C2-C.
 **Sigue C2-D:0/8 guiones humanos propuestos**, con Docker/USB al preparar la sesión.
 Activación apagada por defecto; sin nuevo ensayo Android ni despliegue. C1 conserva5/5.
-Último push de C2-B: app `c69a5e9`, backend `e1c4d18`; C2-C aún sin commit/push.
+Entrega C2-C/relevo: app `e833d6b`, backend `cfba7cd`.
 Deuda ESLint previa:27 incidencias verificadas en HEAD, descritas en el acta.
-Rama `feat/c5-archivos-base`; sin merge a main ni cambios OV-1.
+Integrada en main local: app `f912880`/backend `09c763b`; sin push nuevo ni cambios OV-1.
 
 - **20 de octubre, continuación vigente:** [C5-A/B archivos](C5_ARCHIVOS.md).
   [Panel validado](C5B_PANEL.md):23/23 PostgreSQL/HTTP y recorrido Chromium real.
