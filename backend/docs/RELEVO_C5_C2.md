@@ -448,3 +448,17 @@ de hoy no autoriza automáticamente futuros merges del compañero.
   No detener Docker Desktop completo si hay otros proyectos ni docker prune.
 - Entregar resumen de C2 cerrado localmente y pendientes del resto de C5.
   No avanzar automáticamente a OV-1, C5-D productivo u otras etapas.
+
+### Aviso obligatorio a Pavel antes de continuar
+
+Al terminar los trabajos y las pruebas de C2, decir explícitamente a Pavel:
+
+> Pavel, terminé la entrega de C5-C2. Por favor audita y verifica los cambios de
+> Flutter, backend y panel, la documentación y las evidencias antes de aceptar
+> el cierre y decidir la siguiente etapa.
+
+Adjuntar ramas/commits de ambos repositorios, archivos cambiados, pruebas
+aprobadas/fallidas/omitidas, pendientes y pasos para reproducir. Si falta un
+subcaso, decir «entrega parcial», no «C2 terminada». La autoevaluación del
+compañero no sustituye la revisión de Pavel. Esperar su decisión: no intervenir
+en OV-1 ni ampliar el trabajo al resto de C5 por iniciativa propia.
