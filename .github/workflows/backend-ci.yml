@@ -56,7 +56,7 @@ jobs:
         run: npm test -- --runInBand
 
       - name: Probar controles del entorno local aislado
-        run: node --test tool/local_control_file.test.mjs tool/local_competitive_control.test.cjs
+        run: node --test tool/local_control_file.test.mjs tool/local_competitive_control.test.cjs tool/test_editorial_files_postgres.test.mjs
 
       - name: Auditar dependencias de produccion
         run: npm audit --omit=dev

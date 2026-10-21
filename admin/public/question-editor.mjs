@@ -1,4 +1,6 @@
 import { previewBlocks, referenceUrl } from "./lesson-fields.mjs";
+import { EditorialImageUpload } from "./editorial-image-upload.mjs";
+import { fileUuid, managedImageId } from "./editorial-file-fields.mjs";
 
 export class QuestionEditor {
   constructor({
@@ -82,6 +84,10 @@ export class QuestionEditor {
         this.changed();
       }
     };
+    this.imageUpload = new EditorialImageUpload({ api, doc, host: this.$("bank-image-upload"), input: this.$("bank-image"), confirm,
+      setBusy: (value) => { this.setBusy(value); this.controls(); },
+      onChange: () => this.changed(),
+    });
   }
   message(text, error = false) {
     this.$("bank-message").textContent = text;
@@ -110,6 +116,7 @@ export class QuestionEditor {
     this.hasForm = false;
     this.$("bank-editor").hidden = true;
     this.$("bank-form").hidden = true;
+    this.imageUpload.reset();
     for (const id of [
       "bank-title",
       "bank-text",
@@ -221,6 +228,7 @@ export class QuestionEditor {
     this.$("bank-explanation").value = row?.explicacion ?? "";
     this.$("bank-explanation").required = question;
     this.$("bank-image").value = row?.imagenUrl ?? "";
+    this.imageUpload.setValue(row?.imagenUrl ?? "");
     this.$("bank-difficulty").value = row?.dificultad ?? "MEDIO";
     this.$("bank-order").value = row?.ordenEnCaso ?? "";
     this.selectedCase = row?.caso ?? null;
@@ -244,6 +252,7 @@ export class QuestionEditor {
     this.controls();
   }
   changed() {
+    this.imageUpload?.externalChanged();
     this.dirty = true;
     this.message("Cambios sin guardar.");
     this.preview();
@@ -346,6 +355,8 @@ export class QuestionEditor {
   }
   async save() {
     if (!this.hasForm || (this.record && !this.record.editable)) return;
+    try { this.imageUpload.ensureReady(); }
+    catch (error) { this.message(error.message, true); return; }
     const creating = !this.record;
     await this.run(async (version) => {
       const row = await this.api.bankRecord(
@@ -395,6 +406,7 @@ export class QuestionEditor {
       "bank-case",
     ])
       this.$(id).disabled = locked;
+    this.imageUpload?.lock(locked);
     this.$("bank-order").disabled = locked || !this.selectedCase;
     for (const row of this.options)
       for (const key of ["texto", "correcta", "explicacion"])
@@ -444,6 +456,7 @@ export class QuestionEditor {
       this.$("bank-image").value,
     ]) {
       try {
+        if (fileUuid(managedImageId(value))) continue;
         const url = referenceUrl(value);
         if (url) {
           const link = this.doc.createElement("a");

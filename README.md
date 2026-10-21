@@ -1,5 +1,19 @@
 # SaberPlus Backend
 
+**21 de octubre — C5-C1 cerrada localmente:** [acta5/5 Android](backend/docs/C5C_FLUTTER.md),
+3/3 Flutter VM/HTTP/PostgreSQL repetidas,57/57 dirigidas tras corregir el recorte,
+análisis limpio y APK instalada. La regresión global950/13 del20 no se repitió.
+Siguiente: consolidar código A/B/C1 y preparar C5-C2, imágenes en opciones.
+C5-C restante y C5-D abiertos. Rama feat/c5-archivos-base; solo la documentación
+móvil52a3488 está publicada. Sin merge/despliegue ni cambios OV-1.
+
+**20 de octubre — C5-A/B validadas localmente:** [imágenes desde el panel](backend/docs/C5B_PANEL.md),
+23/23 PostgreSQL/HTTP, panel124/124 y backend126/1650 aprobados en `feat/c5-archivos-base`.
+Recorrido Chromium aprobado; sigue C5-C Flutter.69 migraciones
+aplicadas solo en Docker temporal propio y limpiado. Rutas desactivadas por defecto,
+adaptador solo development/test. Sin merge, despliegue ni cambios OV-1.
+Esta entrada prevalece sobre el «siguiente C5» de las notas inferiores.
+
 **19 de octubre — checkpoint vigente MA-1R/R4:**12/12 humanos y45/45 pruebas
 HTTP/PostgreSQL aisladas repetidas tras fix de concurrencia aprobadas; backend121 suites/1567, ADMIN109, build/TS
 y Flutter920/13 opt-in omitidas/análisis correctos. [Acta técnica y límites](backend/docs/MA1R_R4_VALIDACION_LOCAL.md).

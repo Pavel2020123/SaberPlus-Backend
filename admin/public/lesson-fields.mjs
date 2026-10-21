@@ -1,3 +1,10 @@
+import { fileUuid, managedImageId } from "./editorial-file-fields.mjs";
+
+export function imageReference(value) {
+  const id = managedImageId(value);
+  return fileUuid(id) ? `/recursos/editoriales/${id.toLowerCase()}` : referenceUrl(value);
+}
+
 export function referenceUrl(value) {
   if (typeof value !== "string" || value.length > 2000)
     throw new Error("La referencia admite hasta 2000 caracteres.");
@@ -31,7 +38,7 @@ export function lessonFields(fields) {
   return {
     contenido: fields.contenido,
     videoUrl: referenceUrl(fields.videoUrl),
-    imagenUrl: referenceUrl(fields.imagenUrl),
+    imagenUrl: imageReference(fields.imagenUrl),
   };
 }
 

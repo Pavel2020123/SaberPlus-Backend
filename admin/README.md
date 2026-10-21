@@ -1,5 +1,11 @@
 # Panel administrativo de SaberPlus
 
+**20 de octubre — [C5-B implementada y validada localmente](../backend/docs/C5B_PANEL.md):**
+selector, vista previa, datos de autoría y carga recuperable en preguntas/casos/lecciones.
+Guardar mantiene publicación inmediata; Quitar imagen solo modifica este formulario.
+23/23 PostgreSQL/HTTP,124/124 ADMIN y recorrido Chromium/adaptable aprobados.
+Rama feat/c5-archivos-base, sin merge/despliegue. Sigue C5-C Flutter.
+
 **19 de octubre — validación real R4:** bandeja/decisiones ADMIN y cobertura
 confirmadas con API/PostgreSQL/Android;12/12 humanos y45/45 integradas técnicas
 aprobadas dentro del alcance del [acta R4](../backend/docs/MA1R_R4_VALIDACION_LOCAL.md).
@@ -95,7 +101,8 @@ SaberPlus conserva el panel ligero y sus API ADMIN protegidas.
 - No se copian ventas, pagos ni eliminación en cascada del sistema antiguo. Tampoco se simulan
   pestañas que no están conectadas a funciones reales de este panel.
 - Imágenes: se mantiene URL HTTPS. Los nombres locales de `frontend/public/imagenes` del
-  proyecto anterior no sirven como enlaces para la app móvil; la carga de archivos sigue pendiente.
+  proyecto anterior no sirven como enlaces para la app móvil; C5-B ya permite carga local
+  gestionada. Integrar sus referencias y bytes autenticados en Flutter sigue en C5-C.
 
 Verificado con pruebas automatizadas del panel. La inspección visual en navegador no pudo
 realizarse porque la conexión de navegador no está disponible en esta sesión.
@@ -179,7 +186,7 @@ Solo elimina borradores vacíos mediante la nueva ruta protegida D2-F.
 La reclasificación requiere revisión y habilitación explícita.
 Ahora incluye lecciones, preguntas y casos en borrador, vista previa del texto,
 corrección protegida de nombres y control de preguntas repetidas. El cierre
-editorial real sigue en C3-D2/D3; carga de archivos en C5.
+editorial real sigue en C3-D2/D3; carga local gestionada C5-B validada, proveedor externo en C5-D.
 El panel usa la API NestJS, nunca tablas ni credenciales de Supabase.
 
 ## Probar sin cuenta ni base de datos
@@ -376,7 +383,7 @@ Reglas:
   También aplica el límite global de tamaño JSON del backend.
 - Las opciones son de texto: el esquema Respuesta todavía no tiene imagenUrl.
   Imágenes dentro de opciones requieren ampliar modelo, contrato y Flutter en C5.
-  Por ahora se referencian imágenes en el enunciado o caso; no se suben archivos.
+  C5-B permite subir imágenes de enunciado/caso y lección; las de opciones se amplían en C5-C.
 - Duplicados: se reutiliza la huella v1 (área, enunciado, referencia de imagen y
   opciones normalizados; el orden de opciones no importa). Se revisan todos los
   estados, incluso archivados, y se muestra el ID coincidente. No es detección

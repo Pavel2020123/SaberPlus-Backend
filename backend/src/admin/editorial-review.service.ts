@@ -15,6 +15,7 @@ import {
   validateCatalogName,
 } from './academic-classification';
 import { lessonUrl } from './lesson-editor.service';
+import { managedEditorialImageId } from '../editorial-files/editorial-image-reference';
 import { validateClozeActivity } from './cloze-activity';
 
 export const REVIEW_KINDS = [
@@ -130,10 +131,11 @@ export class EditorialReviewService {
         );
       }
     };
-    const resource = (url: string | null) => {
+    const resource = (url: string | null, fileId: string | null = null) => {
       if (url) {
         try {
-          lessonUrl(url);
+          if (!fileId || managedEditorialImageId(url) !== fileId)
+            lessonUrl(url);
         } catch {
           bloqueos.push(
             'Referencia de recurso inválida: utiliza HTTPS sin credenciales.',
@@ -163,7 +165,7 @@ export class EditorialReviewService {
         'Publica primero el tema padre.',
       );
       contenido.push(row.nombre, row.contenido ?? '');
-      resource(row.imagenUrl);
+      resource(row.imagenUrl, row.archivoImagenId);
       resource(row.videoUrl);
       dependientesPublicados = row._count.preguntas;
       if (
@@ -205,7 +207,7 @@ export class EditorialReviewService {
       check(!!data.row.contexto.trim(), 'El caso necesita un contexto.');
       check(!!data.row.titulo?.trim(), 'El caso necesita un título.');
       contenido.push(data.row.titulo ?? '', data.row.contexto);
-      resource(data.row.imagenUrl);
+      resource(data.row.imagenUrl, data.row.archivoImagenId);
       dependientesPublicados = data.row._count.preguntas;
     }
     if (data.tipo === 'preguntas') {
@@ -266,7 +268,7 @@ export class EditorialReviewService {
         });
         check(!occupied, 'El orden del caso está ocupado por otra pregunta.');
         contenido.push(`Caso: ${row.caso.titulo ?? ''}`, row.caso.contexto);
-        resource(row.caso.imagenUrl);
+        resource(row.caso.imagenUrl, row.caso.archivoImagenId);
       } else
         check(
           !row.casoId && row.ordenEnCaso === null,
@@ -280,7 +282,7 @@ export class EditorialReviewService {
         ),
         `Explicación: ${row.explicacion ?? ''}`,
       );
-      resource(row.imagenUrl);
+      resource(row.imagenUrl, row.archivoImagenId);
       const huella = createQuestionFingerprint({
         area: this.area(data),
         enunciado: row.enunciado,

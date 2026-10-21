@@ -1,5 +1,12 @@
 # Reparto paralelo — 12 de octubre de 2026
 
+**21 de octubre — C5-C1 cerrada localmente:** [acta5/5 Android](C5C_FLUTTER.md),
+3/3 Flutter VM/HTTP/PostgreSQL repetidas,57/57 dirigidas tras corregir el recorte,
+análisis limpio y APK instalada. La regresión global950/13 del20 no se repitió.
+Siguiente: consolidar código A/B/C1 y preparar C5-C2, imágenes en opciones.
+C5-C restante y C5-D abiertos. Rama feat/c5-archivos-base; solo la documentación
+móvil52a3488 está publicada. Sin merge/despliegue ni cambios OV-1.
+
 Fuente del acuerdo: `docs/TRABAJO_PARALELO.md` del repo Flutter `saber_plus`.
 Leerlo completo antes de empezar; no es un archivo de este árbol backend.
 Incluye primera sesión paso a paso, archivos Flutter existentes, criterios de
@@ -17,14 +24,16 @@ un cambio local no está disponible automáticamente en el PC del compañero.
   [MA-1R/R1–R4](MA1R_R4_VALIDACION_LOCAL.md) cerrada localmente e integrada por
   PR API #9/app #6 (eef0d40/21757a1); CI backend del PR aprobado.12/12 humanos,
   45/45 HTTP/PostgreSQL y regresiones en acta. SQL solo temporal, sin despliegue.
-  Sigue preparación local C5 al autorizar implementación, sin tocar OV-1.
+  **20 de octubre: [C5-A/B](C5_ARCHIVOS.md)** validadas23/23 PostgreSQL/HTTP y recorrido Chromium;
+  sigue C5-C Flutter. Rama feat/c5-archivos-base,
+  sin tocar OV-1. Conciliar schema/migración y app.module.ts al integrar.
 - **Compañero:** OV-1, orientación vocacional, en curso según el propietario;
   sin entrega nueva verificada en estos clones. Retomar su checkpoint para A
   contenido/reglas → B persistencia → C cliente → D validación, no reiniciarlo.
 
 Ambos pueden trabajar ahora. Cada frente modifica Flutter/backend cuando lo
 necesite, sin dividir responsabilidades únicamente por tecnología.
-Ramas: `feat/instituciones-c2c` y `feat/orientacion-vocacional`; main recibe
+Ramas actuales: propietario `feat/c5-archivos-base` y compañero `feat/orientacion-vocacional`; main recibe
 entregas revisadas mediante PR. Sustituye el trabajo individual directo en main.
 Este documento no crea ramas ni autoriza push/merge/despliegue automáticos.
 

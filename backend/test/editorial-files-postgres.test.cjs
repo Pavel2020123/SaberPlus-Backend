@@ -1,0 +1,1165 @@
+// Solo mediante el ejecutor temporal propio: nunca aceptar una base existente.
+require('reflect-metadata');
+require('ts-node/register/transpile-only');
+const { test, before, after } = require('node:test');
+const assert = require('node:assert/strict');
+const { randomUUID, createHash } = require('node:crypto');
+const {
+  readFile,
+  realpath,
+  readdir,
+  writeFile,
+  unlink,
+  access,
+} = require('node:fs/promises');
+const { basename, dirname, join } = require('node:path');
+const { tmpdir } = require('node:os');
+const sharp = require('sharp');
+const bcrypt = require('bcrypt');
+const { Test } = require('@nestjs/testing');
+const { JwtModule, JwtService } = require('@nestjs/jwt');
+const {
+  ValidationPipe,
+  ServiceUnavailableException,
+} = require('@nestjs/common');
+const { PrismaService } = require('../src/prisma/prisma.service');
+const { PrismaModule } = require('../src/prisma/prisma.module');
+const {
+  EditorialFileModule,
+} = require('../src/editorial-files/editorial-file.module');
+const {
+  EditorialFileService,
+} = require('../src/editorial-files/editorial-file.service');
+const {
+  EditorialFileRuntime,
+} = require('../src/editorial-files/editorial-file-runtime');
+const {
+  EDITORIAL_FILE_ROOT,
+  EditorialFileStore,
+  LocalEditorialFileStore,
+} = require('../src/editorial-files/editorial-file.store');
+
+let db, root, disk, image, base, jwt, main;
+const instances = [],
+  peers = [];
+const prefix = '/admin/archivos';
+const digest = (bytes) => createHash('sha256').update(bytes).digest('hex');
+
+async function server(options = {}) {
+  let builder = Test.createTestingModule({
+    imports: [
+      PrismaModule,
+      JwtModule.register({
+        global: true,
+        secret: process.env.JWT_SECRET,
+        signOptions: { algorithm: 'HS256' },
+        verifyOptions: { algorithms: ['HS256'] },
+      }),
+      EditorialFileModule,
+      ...(options.panel
+        ? [
+            require('../src/auth/auth.module').AuthModule,
+            require('../src/admin/admin.module').AdminModule,
+          ]
+        : []),
+    ],
+  })
+    .overrideProvider(EDITORIAL_FILE_ROOT)
+    .useValue(root);
+  if (options.panel)
+    builder = builder
+      .overrideProvider(require('../src/mail/mail.service').MailService)
+      .useValue({});
+  if (options.store)
+    builder = builder
+      .overrideProvider(EditorialFileStore)
+      .useValue(options.store);
+  if (options.serviceFactory)
+    builder = builder.overrideProvider(EditorialFileService).useFactory({
+      factory: options.serviceFactory,
+      inject: [PrismaService, EditorialFileStore, EditorialFileRuntime],
+    });
+  const module = await builder.compile();
+  const app = module.createNestApplication({ logger: false });
+  if (options.panel)
+    app.enableCors({
+      origin: /^http:\/\/127\.0\.0\.1:\d+$/,
+      allowedHeaders: ['Authorization', 'Content-Type'],
+      methods: ['GET', 'POST', 'PATCH', 'DELETE'],
+    });
+  app.useGlobalPipes(
+    new ValidationPipe({
+      transform: true,
+      whitelist: true,
+      forbidNonWhitelisted: true,
+    }),
+  );
+  if (options.dropResponse) {
+    let dropped = false;
+    app.use((req, res, next) => {
+      if (!dropped && req.method === 'POST' && req.url === prefix) {
+        const end = res.end;
+        res.end = function (...args) {
+          if (res.statusCode === 201) {
+            dropped = true;
+            res.socket?.destroy();
+            return res;
+          }
+          return end.apply(this, args);
+        };
+      }
+      next();
+    });
+  }
+  await app.listen(0, '127.0.0.1');
+  instances.push(app);
+  return { app, base: await app.getUrl(), jwt: module.get(JwtService) };
+}
+
+async function user(rol = 'ADMIN', extra = {}) {
+  return db.usuario.create({
+    data: {
+      nombre: 'Ensayo automático C5',
+      correo: `${randomUUID()}@example.invalid`,
+      contrasenaHash: 'fixture-sin-inicio-de-sesion',
+      rol,
+      correoVerificado: true,
+      ...extra,
+    },
+  });
+}
+const tokenFor = (user, claims = {}) =>
+  jwt.sign({ sub: user.id, rol: user.rol, ...claims }, { expiresIn: '5m' });
+function fields(extra = {}) {
+  return {
+    operacionId: randomUUID(),
+    titulo: 'Diagrama C5',
+    textoAlternativo: 'Cuatro sectores iguales',
+    fuente: 'Ilustración del ensayo',
+    titular: 'Equipo SaberPlus',
+    autorizacion: 'ORIGINAL',
+    ...extra,
+  };
+}
+async function call(path, token, options = {}, origin = base) {
+  const response = await fetch(origin + path, {
+    ...options,
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...options.headers,
+    },
+    signal: AbortSignal.timeout(15000),
+  });
+  const bytes = Buffer.from(await response.arrayBuffer());
+  const json = response.headers
+    .get('content-type')
+    ?.includes('application/json');
+  return {
+    status: response.status,
+    headers: response.headers,
+    data: json ? JSON.parse(bytes.toString()) : bytes,
+  };
+}
+async function upload(
+  token,
+  metadata = fields(),
+  bytes = image,
+  origin = base,
+) {
+  const body = new FormData();
+  for (const [key, value] of Object.entries(metadata)) body.append(key, value);
+  body.append(
+    'archivo',
+    new Blob([bytes], { type: 'image/png' }),
+    'imagen.png',
+  );
+  return call(prefix, token, { method: 'POST', body }, origin);
+}
+async function resource(extra = {}) {
+  const admin = await user();
+  const token = tokenFor(admin),
+    metadata = fields(extra);
+  const response = await upload(token, metadata);
+  assert.equal(response.status, 201);
+  return { admin, token, metadata, file: response.data };
+}
+const sqlState = (code) => (error) => error?.meta?.code === code;
+
+before(async () => {
+  if (!process.env.EDITORIAL_FILES_TEST_OWNER)
+    throw new Error('Usa npm run test:editorial-files:postgres.');
+  const owner = await realpath(process.env.EDITORIAL_FILES_TEST_OWNER);
+  const directory = dirname(owner),
+    temporary = await realpath(tmpdir());
+  if (
+    dirname(directory) !== temporary ||
+    !basename(directory).startsWith('saberplus-c5-pg-') ||
+    basename(owner) !== 'owner.json'
+  )
+    throw new Error('No pertenece al ejecutor temporal propio.');
+  const marker = JSON.parse(await readFile(owner, 'utf8'));
+  const { validateEditorialFilesDatabase } =
+    await import('../tool/test_editorial_files_postgres.mjs');
+  validateEditorialFilesDatabase(process.env.DATABASE_URL, marker);
+  root = join(directory, 'files');
+  disk = new LocalEditorialFileStore(root);
+  db = new PrismaService();
+  await db.$connect();
+  image = await sharp({
+    create: { width: 120, height: 60, channels: 3, background: 'blue' },
+  })
+    .png()
+    .toBuffer();
+  main = await server();
+  base = main.base;
+  jwt = main.jwt;
+});
+after(async () => {
+  await Promise.allSettled(instances.map((app) => app.close()));
+  await Promise.allSettled(peers.map((peer) => peer.$disconnect()));
+  await db?.$disconnect();
+});
+
+test('C5 cadena completa aplicada y límites SQL/FK efectivos', async () => {
+  const migrations =
+    await db.$queryRaw`SELECT migration_name FROM "_prisma_migrations" WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL`;
+  assert.ok(
+    migrations.some(
+      (row) => row.migration_name === '20261020120000_editorial_files_base',
+    ),
+  );
+  const f = await resource();
+  await assert.rejects(
+    db.$executeRaw`UPDATE "ArchivoEditorial" SET "bytes" = 0 WHERE id = ${f.file.id}::uuid`,
+    sqlState('23514'),
+  );
+  await assert.rejects(
+    db.$executeRaw`UPDATE "ArchivoEditorial" SET "ancho" = 2561 WHERE id = ${f.file.id}::uuid`,
+    sqlState('23514'),
+  );
+  const row = await db.archivoEditorial.findUniqueOrThrow({
+    where: { id: f.file.id },
+  });
+  await assert.rejects(
+    db.archivoEditorial.create({
+      data: {
+        ...row,
+        id: randomUUID(),
+        operacionId: randomUUID(),
+        creadoPorId: randomUUID(),
+      },
+    }),
+    (error) => error.code === 'P2003',
+  );
+  assert.equal(
+    (await db.archivoEditorial.findUniqueOrThrow({ where: { id: row.id } }))
+      .bytes,
+    row.bytes,
+  );
+});
+
+test('C5 PostgreSQL y bytes sobreviven al reinicio real de la instancia HTTP', async () => {
+  const f = await resource();
+  const original = await call(f.file.contenidoUrl, f.token);
+  assert.equal(original.status, 200);
+  await main.app.close();
+  main = await server();
+  base = main.base;
+  jwt = main.jwt;
+  const recovered = await call(
+    `${prefix}/operaciones/${f.metadata.operacionId}`,
+    f.token,
+  );
+  assert.equal(recovered.status, 200);
+  assert.deepEqual(recovered.data, f.file);
+  const content = await call(f.file.contenidoUrl, f.token);
+  assert.equal(content.status, 200);
+  assert.deepEqual(content.data, original.data);
+  assert.equal(content.headers.get('cache-control'), 'private, no-store');
+  assert.equal(content.headers.get('x-content-type-options'), 'nosniff');
+  const row = await db.archivoEditorial.findUniqueOrThrow({
+    where: { id: f.file.id },
+  });
+  assert.equal(digest(content.data), row.sha256);
+  assert.equal(content.data.length, row.bytes);
+  assert.equal(
+    await db.archivoEditorial.count({
+      where: { operacionId: f.metadata.operacionId },
+    }),
+    1,
+  );
+});
+
+test('C5 ocho cargas simultáneas convergen en una fila y un archivo íntegro', async () => {
+  const admin = await user(),
+    token = tokenFor(admin),
+    metadata = fields();
+  const peer = await server();
+  const responses = await Promise.all(
+    Array.from({ length: 8 }, (_, i) =>
+      upload(token, metadata, image, i % 2 ? peer.base : base),
+    ),
+  );
+  assert.deepEqual(
+    responses.map((r) => r.status),
+    Array(8).fill(201),
+  );
+  assert.equal(new Set(responses.map((r) => r.data.id)).size, 1);
+  assert.equal(
+    await db.archivoEditorial.count({
+      where: { operacionId: metadata.operacionId },
+    }),
+    1,
+  );
+  const row = await db.archivoEditorial.findUniqueOrThrow({
+    where: { operacionId: metadata.operacionId },
+  });
+  assert.equal(digest(await disk.read(row.id)), row.sha256);
+  assert.equal(
+    (await readdir(root)).filter((name) => name.startsWith(row.id)).length,
+    1,
+  );
+});
+
+test('C5 dos cuentas compitiendo por la misma operación no comparten recibo', async () => {
+  const a = await user(),
+    b = await user(),
+    metadata = fields();
+  const responses = await Promise.all([
+    upload(tokenFor(a), metadata),
+    upload(tokenFor(b), metadata),
+  ]);
+  assert.deepEqual(responses.map((r) => r.status).sort(), [201, 404]);
+  const winner = await db.archivoEditorial.findUniqueOrThrow({
+    where: { operacionId: metadata.operacionId },
+  });
+  const loser = winner.creadoPorId === a.id ? b : a;
+  assert.equal(
+    (
+      await call(
+        `${prefix}/operaciones/${metadata.operacionId}`,
+        tokenFor(loser),
+      )
+    ).status,
+    404,
+  );
+  assert.equal(
+    await db.archivoEditorial.count({
+      where: { operacionId: metadata.operacionId },
+    }),
+    1,
+  );
+});
+
+test('C5 reutilizar una operación con otro texto o imagen no sobrescribe', async () => {
+  const f = await resource();
+  const original = await disk.read(f.file.id);
+  assert.equal(
+    (await upload(f.token, { ...f.metadata, titulo: 'Cambio indebido' }))
+      .status,
+    409,
+  );
+  const other = await sharp(image).negate().png().toBuffer();
+  assert.equal((await upload(f.token, f.metadata, other)).status, 409);
+  assert.deepEqual(await disk.read(f.file.id), original);
+  assert.equal(
+    (await db.archivoEditorial.findUniqueOrThrow({ where: { id: f.file.id } }))
+      .titulo,
+    f.metadata.titulo,
+  );
+});
+
+test('C5 permisos HTTP consultan rol real y bloquean todas las rutas privadas', async () => {
+  const f = await resource();
+  for (const role of ['ESTUDIANTE', 'PROFESOR']) {
+    const account = await user(role),
+      token = tokenFor(account, { rol: 'ADMIN' });
+    assert.equal((await upload(token)).status, 403);
+    assert.equal((await call(f.file.contenidoUrl, token)).status, 403);
+    assert.equal((await call(`${prefix}/${f.file.id}`, token)).status, 403);
+    assert.equal(
+      (await call(`${prefix}/${f.file.id}`, token, { method: 'DELETE' }))
+        .status,
+      403,
+    );
+  }
+  assert.equal((await call(f.file.contenidoUrl)).status, 401);
+  const other = await user();
+  assert.equal((await call(f.file.contenidoUrl, tokenFor(other))).status, 200);
+  assert.equal(
+    (
+      await call(
+        `${prefix}/operaciones/${f.metadata.operacionId}`,
+        tokenFor(other),
+      )
+    ).status,
+    404,
+  );
+  await db.usuario.update({
+    where: { id: f.admin.id },
+    data: { rol: 'ESTUDIANTE' },
+  });
+  assert.equal((await call(f.file.contenidoUrl, f.token)).status, 403);
+});
+
+test('C5 fallo del disco deja recibo PREPARADO y el reenvío recupera sin duplicar', async () => {
+  let fail = true;
+  const fault = await server({
+    store: {
+      put: async (...args) => {
+        if (fail) throw new ServiceUnavailableException();
+        return disk.put(...args);
+      },
+      read: (...args) => disk.read(...args),
+      remove: (...args) => disk.remove(...args),
+    },
+  });
+  const admin = await user(),
+    token = tokenFor(admin),
+    metadata = fields();
+  assert.equal((await upload(token, metadata, image, fault.base)).status, 503);
+  const pending = await call(
+    `${prefix}/operaciones/${metadata.operacionId}`,
+    token,
+  );
+  assert.equal(pending.data.estado, 'PREPARADO');
+  assert.equal(
+    (await call(`${prefix}/${pending.data.id}/contenido`, token)).status,
+    404,
+  );
+  fail = false;
+  const recovered = await upload(token, metadata, image, fault.base);
+  assert.equal(recovered.status, 201);
+  assert.equal(recovered.data.id, pending.data.id);
+  assert.equal(
+    await db.archivoEditorial.count({
+      where: { operacionId: metadata.operacionId },
+    }),
+    1,
+  );
+});
+
+test('C5 socket perdido después de confirmar: SQL, recibo y reintento concilian', async () => {
+  const dropped = await server({ dropResponse: true });
+  const admin = await user(),
+    token = tokenFor(admin),
+    metadata = fields();
+  await assert.rejects(upload(token, metadata, image, dropped.base));
+  const row = await db.archivoEditorial.findUniqueOrThrow({
+    where: { operacionId: metadata.operacionId },
+  });
+  assert.equal(row.estado, 'DISPONIBLE');
+  const receipt = await call(
+    `${prefix}/operaciones/${metadata.operacionId}`,
+    token,
+  );
+  assert.equal(receipt.data.id, row.id);
+  const retried = await upload(token, metadata);
+  assert.equal(retried.status, 201);
+  assert.deepEqual(retried.data, receipt.data);
+  assert.equal(
+    await db.archivoEditorial.count({
+      where: { operacionId: metadata.operacionId },
+    }),
+    1,
+  );
+});
+
+test('C5 fallo PostgreSQL al confirmar conserva PREPARADO y permite recuperar', async () => {
+  const name = `c5_confirm_${randomUUID().replaceAll('-', '')}`;
+  const admin = await user(),
+    token = tokenFor(admin),
+    metadata = fields();
+  await db.$executeRawUnsafe(
+    `CREATE FUNCTION "${name}"() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'C5 ensayo de confirmacion fallida' USING ERRCODE = '40001'; END $$`,
+  );
+  await db.$executeRawUnsafe(
+    `CREATE TRIGGER "${name}" BEFORE UPDATE ON "ArchivoEditorial" FOR EACH ROW WHEN (NEW.estado = 'DISPONIBLE') EXECUTE FUNCTION "${name}"()`,
+  );
+  try {
+    assert.equal((await upload(token, metadata)).status, 503);
+    const pending = await db.archivoEditorial.findUniqueOrThrow({
+      where: { operacionId: metadata.operacionId },
+    });
+    assert.equal(pending.estado, 'PREPARADO');
+    assert.equal(digest(await disk.read(pending.id)), pending.sha256);
+    assert.equal(
+      (await call(`${prefix}/operaciones/${metadata.operacionId}`, token)).data
+        .estado,
+      'PREPARADO',
+    );
+  } finally {
+    await db.$executeRawUnsafe(`DROP TRIGGER "${name}" ON "ArchivoEditorial"`);
+    await db.$executeRawUnsafe(`DROP FUNCTION "${name}"()`);
+  }
+  assert.equal((await upload(token, metadata)).status, 201);
+  assert.equal(
+    await db.archivoEditorial.count({
+      where: { operacionId: metadata.operacionId },
+    }),
+    1,
+  );
+});
+
+test('C5 una retirada incompleta revoca descarga y su reintento limpia los bytes', async () => {
+  const f = await resource();
+  let fail = true;
+  const fault = await server({
+    store: {
+      put: (...args) => disk.put(...args),
+      read: (...args) => disk.read(...args),
+      remove: async (...args) => {
+        if (fail) throw new ServiceUnavailableException();
+        return disk.remove(...args);
+      },
+    },
+  });
+  assert.equal(
+    (
+      await call(
+        `${prefix}/${f.file.id}`,
+        f.token,
+        { method: 'DELETE' },
+        fault.base,
+      )
+    ).status,
+    503,
+  );
+  assert.equal(
+    (await db.archivoEditorial.findUniqueOrThrow({ where: { id: f.file.id } }))
+      .estado,
+    'RETIRADO',
+  );
+  assert.equal((await call(f.file.contenidoUrl, f.token)).status, 404);
+  fail = false;
+  assert.equal(
+    (
+      await call(
+        `${prefix}/${f.file.id}`,
+        f.token,
+        { method: 'DELETE' },
+        fault.base,
+      )
+    ).status,
+    200,
+  );
+  await assert.rejects(disk.read(f.file.id));
+  assert.equal((await upload(f.token, f.metadata)).status, 410);
+});
+
+test('C5 carga y retirada concurrentes nunca reactivan el archivo', async () => {
+  let ready, release;
+  const writing = new Promise((ok) => {
+    ready = ok;
+  });
+  const resume = new Promise((ok) => {
+    release = ok;
+  });
+  const slow = await server({
+    store: {
+      put: async (...args) => {
+        ready();
+        await resume;
+        return disk.put(...args);
+      },
+      read: (...args) => disk.read(...args),
+      remove: (...args) => disk.remove(...args),
+    },
+  });
+  const admin = await user(),
+    token = tokenFor(admin),
+    metadata = fields();
+  const pending = upload(token, metadata, image, slow.base);
+  try {
+    await Promise.race([
+      writing,
+      new Promise((_, fail) => {
+        const timer = setTimeout(
+          () => fail(new Error('No comenzó la escritura')),
+          10000,
+        );
+        timer.unref();
+      }),
+    ]);
+    const row = await db.archivoEditorial.findUniqueOrThrow({
+      where: { operacionId: metadata.operacionId },
+    });
+    assert.equal(
+      (await call(`${prefix}/${row.id}`, token, { method: 'DELETE' })).status,
+      200,
+    );
+    release();
+    assert.equal((await pending).status, 410);
+    assert.equal(
+      (await call(`${prefix}/${row.id}/contenido`, token)).status,
+      404,
+    );
+    assert.equal(
+      (await db.archivoEditorial.findUniqueOrThrow({ where: { id: row.id } }))
+        .estado,
+      'RETIRADO',
+    );
+    await assert.rejects(disk.read(row.id));
+  } finally {
+    release();
+    await pending.catch(() => undefined);
+  }
+});
+
+test('C5 integridad del disco: bytes modificados o ausentes devuelven 503', async () => {
+  const f = await resource();
+  await writeFile(join(root, `${f.file.id}.webp`), Buffer.alloc(f.file.bytes));
+  assert.equal((await call(f.file.contenidoUrl, f.token)).status, 503);
+  await unlink(join(root, `${f.file.id}.webp`));
+  assert.equal((await call(f.file.contenidoUrl, f.token)).status, 503);
+  assert.equal(
+    (await call(`${prefix}/operaciones/${f.metadata.operacionId}`, f.token))
+      .data.estado,
+    'DISPONIBLE',
+  );
+});
+
+test('C5 bandera apagada y production bloquean sin crear recursos', async () => {
+  const admin = await user(),
+    token = tokenFor(admin),
+    metadata = fields();
+  const flag = process.env.EDITORIAL_FILES_LOCAL_ENABLED,
+    environment = process.env.NODE_ENV;
+  try {
+    process.env.EDITORIAL_FILES_LOCAL_ENABLED = 'false';
+    assert.equal((await upload(token, metadata)).status, 503);
+    process.env.EDITORIAL_FILES_LOCAL_ENABLED = 'true';
+    process.env.NODE_ENV = 'production';
+    assert.equal((await upload(token, metadata)).status, 503);
+  } finally {
+    process.env.EDITORIAL_FILES_LOCAL_ENABLED = flag;
+    process.env.NODE_ENV = environment;
+  }
+  assert.equal(
+    await db.archivoEditorial.count({
+      where: { operacionId: metadata.operacionId },
+    }),
+    0,
+  );
+});
+
+test('C5 migración ausente responde 503 seguro sin insertar archivos', async () => {
+  const schema = `c5_missing_${randomUUID().replaceAll('-', '')}`;
+  await db.$executeRawUnsafe(`CREATE SCHEMA "${schema}"`);
+  const url = new URL(process.env.DATABASE_URL);
+  url.searchParams.set('schema', schema);
+  const missing = new PrismaService({ datasources: { db: { url: url.href } } });
+  peers.push(missing);
+  await missing.$connect();
+  const app = await server({
+    serviceFactory: (_db, store, runtime) =>
+      new EditorialFileService(missing, store, runtime),
+  });
+  const admin = await user(),
+    metadata = fields();
+  const result = await upload(tokenFor(admin), metadata, image, app.base);
+  assert.equal(result.status, 503);
+  assert.doesNotMatch(
+    JSON.stringify(result.data),
+    /Prisma|c5_missing_|DATABASE_URL|postgresql:/,
+  );
+  assert.equal(
+    await db.archivoEditorial.count({
+      where: { operacionId: metadata.operacionId },
+    }),
+    0,
+  );
+});
+
+test('C5 ACL y RLS bloquean lectura directa de recibos para anon/authenticated', async () => {
+  await resource();
+  const [acl] = await db.$queryRaw`SELECT relrowsecurity AS rls,
+    has_table_privilege('anon', '"ArchivoEditorial"', 'SELECT,INSERT,UPDATE,DELETE') AS anon,
+    has_table_privilege('authenticated', '"ArchivoEditorial"', 'SELECT,INSERT,UPDATE,DELETE') AS authenticated
+    FROM pg_class WHERE oid = '"ArchivoEditorial"'::regclass`;
+  assert.deepEqual(acl, { rls: true, anon: false, authenticated: false });
+  for (const role of ['anon', 'authenticated']) {
+    await assert.rejects(
+      db.$transaction(async (tx) => {
+        await tx.$executeRawUnsafe(`SET LOCAL ROLE ${role}`);
+        await tx.$queryRaw`SELECT * FROM "ArchivoEditorial" LIMIT 1`;
+      }),
+      sqlState('42501'),
+    );
+    const rollback = new Error('Restaurar privilegios del ensayo');
+    await assert.rejects(
+      db.$transaction(async (tx) => {
+        await tx.$executeRawUnsafe(
+          `GRANT SELECT ON "ArchivoEditorial" TO ${role}`,
+        );
+        await tx.$executeRawUnsafe(`SET LOCAL ROLE ${role}`);
+        assert.deepEqual(
+          await tx.$queryRaw`SELECT count(*)::int AS n FROM "ArchivoEditorial"`,
+          [{ n: 0 }],
+        );
+        await tx.$executeRawUnsafe('RESET ROLE');
+        throw rollback;
+      }),
+      (error) => error === rollback,
+    );
+  }
+});
+
+async function structure(name = `Contenido C5 ${randomUUID()}`) {
+  const theme = await db.tema.create({
+    data: { nombre: name, area: 'MATEMATICAS', estadoContenido: 'PUBLICADO' },
+  });
+  const sub = await db.subtema.create({
+    data: {
+      nombre: 'Fracciones ilustradas',
+      temaId: theme.id,
+      estadoContenido: 'PUBLICADO',
+    },
+  });
+  return { theme, sub };
+}
+function questionBody(sub, imagenUrl, extra = {}) {
+  return {
+    subtemaId: sub.id,
+    enunciado: `Pregunta ilustrada ${randomUUID()}`,
+    explicacion: 'Dos unidades forman una pareja.',
+    imagenUrl,
+    dificultad: 'BASICO',
+    respuestas: [
+      { texto: '2', esCorrecta: true, explicacion: '' },
+      { texto: '3', esCorrecta: false, explicacion: '' },
+    ],
+    casoId: '',
+    ...extra,
+  };
+}
+async function panelFixture() {
+  const app = await server({ panel: true });
+  const password = randomUUID();
+  const admin = await user('ADMIN', {
+    contrasenaHash: await bcrypt.hash(password, 4),
+  });
+  const { CatalogApi } = await import('../../admin/public/api.mjs');
+  const api = new CatalogApi(app.base, { simple: true });
+  await api.login(admin.correo, password);
+  return { app, admin, password, api, token: tokenFor(admin) };
+}
+
+test('C5-B cliente real del panel inicia sesión, carga y asocia a lección, caso y pregunta', async () => {
+  const f = await panelFixture(),
+    s = await structure();
+  const operation = randomUUID();
+  const file = await f.api.uploadEditorialFile(
+    new Blob([image], { type: 'image/png' }),
+    fields(),
+    operation,
+  );
+  const path = `/recursos/editoriales/${file.id}`;
+  assert.equal((await f.api.editorialFileContent(file.id)).type, 'image/webp');
+  const student = await user('ESTUDIANTE');
+  assert.equal((await call(path, tokenFor(student))).status, 404);
+  const lesson = await f.api.editor('subtemas', s.sub.id, s.theme.id);
+  const saved = await f.api.editor('subtemas', s.sub.id, s.theme.id, {
+    revision: lesson.revision,
+    contenido: 'Lección con gráfico',
+    videoUrl: '',
+    imagenUrl: path,
+  });
+  assert.equal(saved.estadoContenido, 'PUBLICADO');
+  assert.equal(
+    (await db.subtema.findUniqueOrThrow({ where: { id: s.sub.id } }))
+      .archivoImagenId,
+    file.id,
+  );
+  const c = await f.api.bankRecord('casos', 'MATEMATICAS', undefined, {
+    area: 'MATEMATICAS',
+    titulo: 'Caso ilustrado',
+    contexto: 'Compara los sectores.',
+    imagenUrl: path,
+  });
+  const q = await f.api.bankRecord(
+    'preguntas',
+    s.sub.id,
+    undefined,
+    questionBody(s.sub, path, { casoId: c.id, ordenEnCaso: 1 }),
+  );
+  assert.equal(q.estadoContenido, 'PUBLICADO');
+  assert.equal(
+    (await db.pregunta.findUniqueOrThrow({ where: { id: q.id } }))
+      .archivoImagenId,
+    file.id,
+  );
+  assert.equal(
+    (await db.casoPregunta.findUniqueOrThrow({ where: { id: c.id } }))
+      .archivoImagenId,
+    file.id,
+  );
+  assert.equal((await call(path, tokenFor(student))).status, 200);
+  assert.equal(
+    (await call(`/admin/archivos/${file.id}`, f.token, { method: 'DELETE' }))
+      .status,
+    409,
+  );
+});
+
+test('C5-B recurso inexistente o retirado no se asocia ni publica una pregunta', async () => {
+  const f = await panelFixture(),
+    s = await structure();
+  const before = await db.pregunta.count({ where: { subtemaId: s.sub.id } });
+  await assert.rejects(
+    f.api.bankRecord(
+      'preguntas',
+      s.sub.id,
+      undefined,
+      questionBody(s.sub, `/recursos/editoriales/${randomUUID()}`),
+    ),
+    (e) => e.status === 409,
+  );
+  const file = await f.api.uploadEditorialFile(
+    new Blob([image]),
+    fields(),
+    randomUUID(),
+  );
+  assert.equal(
+    (await call(`/admin/archivos/${file.id}`, f.token, { method: 'DELETE' }))
+      .status,
+    200,
+  );
+  await assert.rejects(
+    f.api.bankRecord(
+      'preguntas',
+      s.sub.id,
+      undefined,
+      questionBody(s.sub, `/recursos/editoriales/${file.id}`),
+    ),
+    (e) => e.status === 409,
+  );
+  assert.equal(
+    await db.pregunta.count({ where: { subtemaId: s.sub.id } }),
+    before,
+  );
+});
+
+test('C5-B edición directa crea versión nueva y conserva imagen de la pregunta archivada', async () => {
+  const f = await panelFixture(),
+    s = await structure();
+  const a = await f.api.uploadEditorialFile(
+    new Blob([image]),
+    fields(),
+    randomUUID(),
+  );
+  const b = await f.api.uploadEditorialFile(
+    new Blob([image]),
+    fields(),
+    randomUUID(),
+  );
+  const body = questionBody(s.sub, `/recursos/editoriales/${a.id}`);
+  const original = await f.api.bankRecord(
+    'preguntas',
+    s.sub.id,
+    undefined,
+    body,
+  );
+  const revised = await f.api.bankRecord('preguntas', s.sub.id, original.id, {
+    ...body,
+    enunciado: 'Versión revisada ' + randomUUID(),
+    imagenUrl: `/recursos/editoriales/${b.id}`,
+    revision: original.revision,
+  });
+  assert.notEqual(revised.id, original.id);
+  const old = await db.pregunta.findUniqueOrThrow({
+    where: { id: original.id },
+    include: { respuestas: true },
+  });
+  assert.equal(old.estadoContenido, 'ARCHIVADO');
+  assert.equal(old.archivoImagenId, a.id);
+  assert.equal(old.respuestas.length, 2);
+  assert.equal(
+    (await call(`/admin/archivos/${a.id}`, f.token, { method: 'DELETE' }))
+      .status,
+    409,
+  );
+  assert.equal(
+    (await db.pregunta.findUniqueOrThrow({ where: { id: revised.id } }))
+      .archivoImagenId,
+    b.id,
+  );
+});
+
+test('C5-B quitar la imagen de una lección limpia FK y permite retirar el recurso sin usos', async () => {
+  const f = await panelFixture(),
+    s = await structure();
+  const file = await f.api.uploadEditorialFile(
+    new Blob([image]),
+    fields(),
+    randomUUID(),
+  );
+  const first = await f.api.editor('subtemas', s.sub.id, s.theme.id);
+  const saved = await f.api.editor('subtemas', s.sub.id, s.theme.id, {
+    revision: first.revision,
+    contenido: 'Texto que se conserva',
+    videoUrl: '',
+    imagenUrl: `/recursos/editoriales/${file.id}`,
+  });
+  await f.api.editor('subtemas', s.sub.id, s.theme.id, {
+    revision: saved.revision,
+    contenido: saved.contenido,
+    videoUrl: '',
+    imagenUrl: '',
+  });
+  const row = await db.subtema.findUniqueOrThrow({ where: { id: s.sub.id } });
+  assert.equal(row.archivoImagenId, null);
+  assert.equal(row.imagenUrl, null);
+  assert.equal(row.contenido, 'Texto que se conserva');
+  assert.equal(
+    (await call(`/admin/archivos/${file.id}`, f.token, { method: 'DELETE' }))
+      .status,
+    200,
+  );
+});
+
+test('C5-B una revisión obsoleta no reemplaza la asociación actual', async () => {
+  const f = await panelFixture(),
+    s = await structure();
+  const a = await f.api.uploadEditorialFile(
+    new Blob([image]),
+    fields(),
+    randomUUID(),
+  );
+  const b = await f.api.uploadEditorialFile(
+    new Blob([image]),
+    fields(),
+    randomUUID(),
+  );
+  const first = await f.api.editor('subtemas', s.sub.id, s.theme.id);
+  await f.api.editor('subtemas', s.sub.id, s.theme.id, {
+    revision: first.revision,
+    contenido: 'Primera edición',
+    videoUrl: '',
+    imagenUrl: `/recursos/editoriales/${a.id}`,
+  });
+  await assert.rejects(
+    f.api.editor('subtemas', s.sub.id, s.theme.id, {
+      revision: first.revision,
+      contenido: 'Intento obsoleto',
+      videoUrl: '',
+      imagenUrl: `/recursos/editoriales/${b.id}`,
+    }),
+    (e) => e.status === 409,
+  );
+  assert.equal(
+    (await db.subtema.findUniqueOrThrow({ where: { id: s.sub.id } }))
+      .archivoImagenId,
+    a.id,
+  );
+});
+
+test('C5-B publicación y retirada simultáneas no dejan enlaces a una imagen retirada', async () => {
+  const f = await panelFixture(),
+    s = await structure();
+  for (let i = 0; i < 3; i++) {
+    const file = await f.api.uploadEditorialFile(
+      new Blob([image]),
+      fields(),
+      randomUUID(),
+    );
+    const body = questionBody(s.sub, `/recursos/editoriales/${file.id}`);
+    const [save, retire] = await Promise.allSettled([
+      f.api.bankRecord('preguntas', s.sub.id, undefined, body),
+      call(`/admin/archivos/${file.id}`, f.token, { method: 'DELETE' }),
+    ]);
+    const row = await db.archivoEditorial.findUniqueOrThrow({
+      where: { id: file.id },
+    });
+    const count = await db.pregunta.count({
+      where: { archivoImagenId: file.id },
+    });
+    assert.ok(
+      (row.estado === 'DISPONIBLE' && count === 1) ||
+        (row.estado === 'RETIRADO' && count === 0),
+    );
+    if (save.status === 'fulfilled') {
+      assert.equal(retire.status, 'fulfilled');
+      assert.equal(retire.value.status, 409);
+    } else {
+      assert.equal(save.reason.status, 409);
+      assert.equal(retire.value.status, 200);
+    }
+  }
+});
+
+test('C5-B lectura estudiantil exige publicación de todos los padres y no expone metadatos', async () => {
+  const f = await panelFixture(),
+    s = await structure();
+  const file = await f.api.uploadEditorialFile(
+    new Blob([image]),
+    fields(),
+    randomUUID(),
+  );
+  const path = `/recursos/editoriales/${file.id}`,
+    student = await user('ESTUDIANTE'),
+    token = tokenFor(student);
+  assert.equal((await call(path, token)).status, 404);
+  await f.api.bankRecord(
+    'preguntas',
+    s.sub.id,
+    undefined,
+    questionBody(s.sub, path),
+  );
+  assert.equal((await call(path, token)).status, 200);
+  assert.equal((await call(path)).status, 401);
+  await db.tema.update({
+    where: { id: s.theme.id },
+    data: { estadoContenido: 'ARCHIVADO' },
+  });
+  assert.equal((await call(path, token)).status, 404);
+  await db.tema.update({
+    where: { id: s.theme.id },
+    data: { estadoContenido: 'PUBLICADO' },
+  });
+  await db.subtema.update({
+    where: { id: s.sub.id },
+    data: { estadoContenido: 'BORRADOR' },
+  });
+  assert.equal((await call(path, token)).status, 404);
+});
+
+test('C5-B panel real en Chromium: seleccionar, previsualizar, subir y guardar con publicación inmediata', async (t) => {
+  let executable;
+  for (const candidate of [
+    'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
+    'C:/Program Files/Google/Chrome/Application/chrome.exe',
+    '/usr/bin/chromium',
+    '/usr/bin/google-chrome',
+  ]) {
+    try {
+      await access(candidate);
+      executable = candidate;
+      break;
+    } catch {
+      /* No descargar navegadores. */
+    }
+  }
+  if (!executable) {
+    t.skip('No hay Chromium instalado; recorrido visual pendiente.');
+    return;
+  }
+  const f = await panelFixture(),
+    s = await structure('AAA C5 navegador ' + randomUUID());
+  const { createAdminServer } = await import('../../admin/server.mjs');
+  const panel = createAdminServer({ apiBase: f.app.base });
+  await new Promise((ok) => panel.listen(0, '127.0.0.1', ok));
+  const origin = `http://127.0.0.1:${panel.address().port}`;
+  const fixture = join(dirname(root), 'imagen.png');
+  await writeFile(fixture, image);
+  const puppeteer = require('puppeteer');
+  let browser;
+  const runtimeErrors = [];
+  try {
+    browser = await puppeteer.launch({
+      executablePath: executable,
+      headless: true,
+      userDataDir: join(dirname(root), 'browser-profile'),
+      args: [
+        '--no-first-run',
+        '--disable-background-networking',
+        '--disable-sync',
+      ],
+    });
+    const page = await browser.newPage();
+    page.on('pageerror', (error) => runtimeErrors.push(error.message));
+    await page.setViewport({ width: 1280, height: 1000, deviceScaleFactor: 1 });
+    await page.goto(origin, { waitUntil: 'networkidle0' });
+    await page.type('#email', f.admin.correo);
+    await page.type('#password', f.password);
+    await page.click('#login-submit');
+    await page.waitForSelector('#select-area option[value="MATEMATICAS"]');
+    await page.click('#section-questions');
+    await page.select('#select-area', 'MATEMATICAS');
+    await page.waitForSelector(`#select-theme option[value="${s.theme.id}"]`);
+    await page.select('#select-theme', s.theme.id);
+    await page.waitForSelector(`#select-sub option[value="${s.sub.id}"]`);
+    await page.select('#select-sub', s.sub.id);
+    await page.waitForFunction(
+      () =>
+        !document.querySelector('#bank-text').disabled &&
+        !document.querySelector('#bank-form').hidden,
+    );
+    await page.type('#bank-text', 'Pregunta del navegador ' + randomUUID());
+    await page.type(
+      '#bank-explanation',
+      'La respuesta se obtiene sumando dos unidades.',
+    );
+    const choices = await page.$$('#bank-options .answer-text textarea');
+    for (let i = 0; i < choices.length; i++)
+      await choices[i].type(String(i + 2));
+    await page.click('#bank-options input[type="radio"]');
+    await (await page.$('#bank-image-upload-file')).uploadFile(fixture);
+    await page.waitForFunction(
+      () => !document.querySelector('#bank-image-upload fieldset').hidden,
+    );
+    for (const [key, value] of Object.entries({
+      titulo: 'Fracciones para el ensayo',
+      textoAlternativo: 'Rectángulo azul de proporción dos a uno',
+      fuente: 'Creación propia del ensayo',
+      titular: 'Equipo de ensayo C5',
+    }))
+      await page.type(`#bank-image-upload-${key}`, value);
+    await page.waitForFunction(
+      () => document.querySelector('#bank-image-upload img').naturalWidth > 0,
+    );
+    const screenshot = async (name) => {
+      await (
+        await page.$('#bank-image-upload')
+      ).screenshot({ path: join(process.env.EDITORIAL_FILES_QA_DIR, name) });
+    };
+    await screenshot('c5b-desktop-antes.png');
+    await page.click(
+      '#bank-image-upload .editorial-image-actions button:first-child',
+    );
+    await page.waitForFunction(
+      () =>
+        document
+          .querySelector('#bank-image')
+          .value.startsWith('/recursos/editoriales/') &&
+        !document.querySelector('#bank-save').disabled,
+    );
+    await screenshot('c5b-desktop-lista.png');
+    const reference = await page.$eval('#bank-image', (node) => node.value);
+    await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1 });
+    await screenshot('c5b-responsive-lista.png');
+    const fits = await page.$eval('#bank-image-upload', (node) => ({
+      width: node.getBoundingClientRect().width,
+      scroll: node.scrollWidth,
+      client: node.clientWidth,
+    }));
+    assert.ok(fits.width <= 390 && fits.scroll <= fits.client + 1);
+    await page.click('#bank-save');
+    await page.waitForFunction(() =>
+      document
+        .querySelector('#bank-message')
+        .textContent.includes('Guardado y publicado'),
+    );
+    const question = await db.pregunta.findFirstOrThrow({
+      where: { subtemaId: s.sub.id, imagenUrl: reference },
+    });
+    assert.equal(question.estadoContenido, 'PUBLICADO');
+    assert.ok(question.archivoImagenId);
+    assert.deepEqual(runtimeErrors, []);
+    console.log(
+      JSON.stringify({
+        phase: 'c5b-browser-verified',
+        desktop: true,
+        responsive390: true,
+        android: false,
+        screenshots: process.env.EDITORIAL_FILES_QA_DIR,
+      }),
+    );
+  } finally {
+    await browser?.close();
+    await new Promise((ok) => {
+      panel.close(ok);
+      panel.closeAllConnections();
+    });
+  }
+});

@@ -1,4 +1,4 @@
-import { referenceUrl } from "./lesson-fields.mjs";
+import { imageReference } from "./lesson-fields.mjs";
 const key = (text) =>
   text.normalize("NFKC").trim().toLocaleLowerCase("es-CO").replace(/\s+/g, " ");
 function field(value, limit, required = true) {
@@ -28,7 +28,7 @@ export function caseFields(value) {
     area: value.area,
     titulo: field(value.titulo, 200),
     contexto: field(value.contexto, 20000),
-    imagenUrl: referenceUrl(value.imagenUrl),
+    imagenUrl: imageReference(value.imagenUrl),
   };
 }
 export function questionFields(value) {
@@ -68,7 +68,7 @@ export function questionFields(value) {
     subtemaId: field(value.subtemaId, 120),
     enunciado: field(value.enunciado, 12000),
     explicacion: field(value.explicacion, 12000),
-    imagenUrl: referenceUrl(value.imagenUrl),
+    imagenUrl: imageReference(value.imagenUrl),
     dificultad: value.dificultad,
     respuestas,
     casoId,

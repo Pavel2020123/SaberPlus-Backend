@@ -750,3 +750,10 @@ summary { cursor: pointer; font-size: 14px; font-weight: 650; padding: 10px 0; }
 #question-reports-panel button { margin: .3rem; white-space: normal; overflow-wrap: anywhere; }
 #question-reports-panel pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 28rem; overflow: auto; font-size: .85rem; }
 #question-reports-panel p { overflow-wrap: anywhere; }
+:root { --editorial-image-border: #d4dfeb; }
+.editorial-image-upload { margin-block: 1rem; padding: 1rem; border: 1px solid var(--editorial-image-border); border-radius: 12px; }
+.editorial-image-upload fieldset { margin-block: 1rem; padding: 1rem; border: 1px solid var(--editorial-image-border); border-radius: 8px; }
+.editorial-image-upload label { display: block; margin-top: .6rem; }
+.editorial-image-preview { display: block; max-width: 100%; max-height: 360px; object-fit: contain; margin-block: 1rem; }
+.editorial-image-preview[hidden], .editorial-image-upload [hidden] { display: none; }
+.editorial-image-actions { display: flex; flex-wrap: wrap; gap: .6rem; }

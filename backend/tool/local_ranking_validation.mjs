@@ -28,6 +28,7 @@ const env = Object.fromEntries(Object.entries(process.env).filter(([key]) =>
 Object.assign(env, { POSTGRES_USER: user, POSTGRES_PASSWORD: password, POSTGRES_DB: 'postgres',
   NODE_ENV: 'test', SMTP_HOST: '127.0.0.1', SMTP_PORT: '1',
   EDITORIAL_PUBLICATION_ENABLED: 'true', // Only this freshly owned local API.
+  EDITORIAL_FILES_LOCAL_ENABLED: 'true', // C5: private files only in this owned test environment.
   JWT_SECRET: randomBytes(32).toString('hex'), RANKING_ALIAS_SECRET: randomBytes(32).toString('hex') });
 let db, child, context, url = '', created = false;
 const run = (command, args, cwd = backend) => execute(command, args, {
@@ -70,7 +71,10 @@ try {
   const studentCodesMigration = 'prisma/migrations/20261016180000_student_institution_codes/migration.sql';
   // R4: explicit academic-report migration, only in this newly owned tmpfs DB.
   const questionReportsMigration = 'prisma/migrations/20261017220000_academic_question_reports/migration.sql';
-  const actualPaths = [...new Set([...paths, territoryMigration, profileMigration, logoMigration, studentRequestsMigration, studentCodesMigration, questionReportsMigration])].sort();
+  // C5-A/B are not committed yet: explicitly allow these two additive migrations only.
+  const editorialFilesMigration = 'prisma/migrations/20261020120000_editorial_files_base/migration.sql';
+  const editorialLinksMigration = 'prisma/migrations/20261020150000_editorial_image_links/migration.sql';
+  const actualPaths = [...new Set([...paths, territoryMigration, profileMigration, logoMigration, studentRequestsMigration, studentCodesMigration, questionReportsMigration, editorialFilesMigration, editorialLinksMigration])].sort();
   for (const path of actualPaths) {
     const dest = join(directory, path.replace(/^prisma\//, ''));
     await mkdir(dirname(dest), { recursive: true });

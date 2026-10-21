@@ -1,5 +1,18 @@
 # Continuación después de instituciones — espejo backend
 
+**21 de octubre — C5-C1 cerrada localmente:** [acta5/5 Android](C5C_FLUTTER.md),
+3/3 Flutter VM/HTTP/PostgreSQL repetidas,57/57 dirigidas tras corregir el recorte,
+análisis limpio y APK instalada. La regresión global950/13 del20 no se repitió.
+Siguiente: consolidar código A/B/C1 y preparar C5-C2, imágenes en opciones.
+C5-C restante y C5-D abiertos. Rama feat/c5-archivos-base; solo la documentación
+móvil52a3488 está publicada. Sin merge/despliegue ni cambios OV-1.
+
+**20 de octubre, continuación vigente:** [C5-A/B](C5_ARCHIVOS.md), imágenes del
+panel validadas23/23 PostgreSQL/HTTP y recorrido Chromium;69 migraciones
+solo temporales. Sigue C Flutter y D integración.
+Rama feat/c5-archivos-base, sin merge/despliegue. Cambios aditivos de schema,
+migración y app.module.ts deben conciliarse con OV-1 al integrar ambas ramas.
+
 **19 de octubre, actualización que prevalece:** [MA-1R/R4](MA1R_R4_VALIDACION_LOCAL.md)
 con12/12 humanos y45/45 HTTP/PostgreSQL, carrera ADMIN P2010/40001 corregida y
 regresiones/remate visual según acta: R4 cerrada localmente e integrada en main

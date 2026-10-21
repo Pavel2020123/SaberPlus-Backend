@@ -1,5 +1,24 @@
 # API de SaberPlus
 
+**21 de octubre — C5-C1 cerrada localmente:** [acta5/5 Android](docs/C5C_FLUTTER.md),
+3/3 Flutter VM/HTTP/PostgreSQL repetidas,57/57 dirigidas tras corregir el recorte,
+análisis limpio y APK instalada. La regresión global950/13 del20 no se repitió.
+Siguiente: consolidar código A/B/C1 y preparar C5-C2, imágenes en opciones.
+C5-C restante y C5-D abiertos. Rama feat/c5-archivos-base; solo la documentación
+móvil52a3488 está publicada. Sin merge/despliegue ni cambios OV-1.
+
+**20 de octubre — C5-A/B validadas localmente:23/23 PostgreSQL/HTTP.**
+[archivos editoriales privados](docs/C5_ARCHIVOS.md), recibos, metadatos y límites.
+Rama `feat/c5-archivos-base`;69 migraciones solo temporales. [Panel C5-B](docs/C5B_PANEL.md)
+comprobado en Chromium,124/124 pruebas ADMIN y126/1650 backend. Sigue C5-C, app
+y almacenamiento externo. La bandera EDITORIAL_FILES_LOCAL_ENABLED está apagada
+por defecto y bloqueada fuera de development/test. No activar ni aplicar la
+migración en servicios reales por seguir esta guía. OV-1 se mantiene separado.
+
+Ensayo automático repetible con Docker, sin celular:
+`npm run test:editorial-files:postgres`. No acepta URL externa y limpia solo
+su contenedor/directorio temporal. [Resultados y límites](docs/C5_ARCHIVOS.md).
+
 **19 de octubre — MA-1R/R4 técnico aprobado:**45/45 integradas PostgreSQL/HTTP,
 12/12 humanas, backend121 suites/1567 tras fix de concurrencia, ADMIN109, build/TypeScript y regresión
 Flutter920/13 opt-in omitidas/análisis correctos. [Comandos, incidencias y límites](docs/MA1R_R4_VALIDACION_LOCAL.md).

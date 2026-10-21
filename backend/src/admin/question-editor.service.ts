@@ -10,9 +10,9 @@ import { PrismaService } from '../prisma/prisma.service';
 import { lockEditorialArea } from './editorial-lock';
 import { createQuestionFingerprint } from '../common/question-fingerprint';
 import { validateAcademicClassification } from './academic-classification';
-import { lessonUrl } from './lesson-editor.service';
 import { EditorialCaseDto, EditorialQuestionDto } from './question-editor.dto';
 import { publishParents, requireDirectPublication } from './direct-publication';
+import { editorialImageData } from '../editorial-files/editorial-file-association';
 
 const questionInclude = {
   respuestas: { orderBy: { id: 'asc' } },
@@ -190,12 +190,12 @@ export class QuestionEditorService {
     const data = {
       titulo: textField(body.titulo, 200),
       contexto: textField(body.contexto, 20000),
-      imagenUrl: lessonUrl(body.imagenUrl),
       ...(direct ? { estadoContenido: 'PUBLICADO' as const } : {}),
       ...(direct ? { fechaPublicacion: new Date() } : {}),
     };
     return this.prisma.$transaction(async (tx) => {
       await lockEditorialArea(tx, body.area);
+      const image = await editorialImageData(tx, body.imagenUrl);
       if (id) {
         await tx.$queryRaw`SELECT id FROM "CasoPregunta" WHERE id = ${id} FOR UPDATE`;
         const row = await this.case(tx, id);
@@ -208,12 +208,13 @@ export class QuestionEditorService {
       const row = id
         ? await tx.casoPregunta.update({
             where: { id },
-            data,
+            data: { ...data, ...image },
             include: caseInclude,
           })
         : await tx.casoPregunta.create({
             data: {
               ...data,
+              ...image,
               area: body.area,
               estadoContenido: direct ? 'PUBLICADO' : 'BORRADOR',
               ...(direct ? { fechaPublicacion: new Date() } : {}),
@@ -232,7 +233,6 @@ export class QuestionEditorService {
     if (direct) requireDirectPublication();
     const enunciado = textField(body.enunciado, 12000),
       explicacion = textField(body.explicacion, 12000);
-    const imagenUrl = lessonUrl(body.imagenUrl);
     if (
       !Array.isArray(body.respuestas) ||
       body.respuestas.length < 2 ||
@@ -285,6 +285,8 @@ export class QuestionEditorService {
       });
       if (!parent) throw new NotFoundException('El subtema no existe.');
       validateAcademicClassification(parent);
+      const image = await editorialImageData(tx, body.imagenUrl);
+      const imagenUrl = image.imagenUrl;
       if (id) {
         await tx.$queryRaw`SELECT id FROM "Pregunta" WHERE id = ${id} FOR UPDATE`;
         const row = await this.question(tx, id);
@@ -384,7 +386,7 @@ export class QuestionEditorService {
       const data = {
         enunciado,
         explicacion,
-        imagenUrl,
+        ...image,
         dificultad: body.dificultad,
         casoId,
         ordenEnCaso: casoId ? body.ordenEnCaso : null,

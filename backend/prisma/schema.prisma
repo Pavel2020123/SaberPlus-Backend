@@ -185,6 +185,7 @@ model IngresoInstitucionCodigo {
 }
 
 model Usuario {
+  archivosEditoriales ArchivoEditorial[]
   reportesPreguntas ReportePregunta[] @relation("AutorReportePregunta")
   operacionesReportePregunta OperacionReportePregunta[] @relation("ActorOperacionReportePregunta")
   auditoriasReportePregunta AuditoriaReportePregunta[] @relation("ActorAuditoriaReportePregunta")
@@ -278,6 +279,47 @@ model Usuario {
   invitacionesAceptadas     InvitacionInstitucion[]       @relation("ReceptorInvitacionInstitucion")
   auditoriasCreadas         AuditoriaInstitucion[]        @relation("ActorAuditoriaInstitucion")
   auditoriasRecibidas       AuditoriaInstitucion[]        @relation("AfectadoAuditoriaInstitucion")
+}
+
+// C5-A: recursos preparados, todavía sin asociación a contenido publicado.
+// Los bytes están detrás de un adaptador privado, nunca en /uploads.
+enum EstadoArchivoEditorial {
+  PREPARADO
+  DISPONIBLE
+  RETIRADO
+}
+
+enum AutorizacionArchivoEditorial {
+  ORIGINAL
+  LICENCIA
+  DOMINIO_PUBLICO
+  AUTORIZACION_ESCRITA
+}
+
+model ArchivoEditorial {
+  preguntas             Pregunta[]
+  casos                 CasoPregunta[]
+  lecciones             Subtema[]
+  id                    String                       @id @db.Uuid
+  operacionId           String                       @unique @db.Uuid
+  creadoPorId           String                       @db.Uuid
+  huellaSolicitud       String                       @db.Char(64)
+  estado                EstadoArchivoEditorial       @default(PREPARADO)
+  titulo                String                       @db.VarChar(120)
+  textoAlternativo      String                       @db.VarChar(500)
+  fuente                String                       @db.VarChar(500)
+  titular               String                       @db.VarChar(255)
+  autorizacion          AutorizacionArchivoEditorial
+  referenciaAutorizacion String?                     @db.VarChar(2000)
+  sha256                String                       @db.Char(64)
+  bytes                 Int
+  ancho                 Int
+  alto                  Int
+  creadoEn              DateTime                     @default(now()) @db.Timestamptz(3)
+  actualizadoEn         DateTime                     @updatedAt @db.Timestamptz(3)
+  creadoPor             Usuario                      @relation(fields: [creadoPorId], references: [id], onDelete: Restrict)
+
+  @@index([creadoPorId, estado, creadoEn])
 }
 
 enum JuegoCompetitivo {
@@ -743,6 +785,8 @@ model Tema {
 }
 
 model Subtema {
+  archivoImagenId       String?                @db.Uuid
+  archivoImagen         ArchivoEditorial?      @relation(fields: [archivoImagenId], references: [id], onDelete: Restrict)
   id                    String                 @id @default(uuid())
   nombre                String
   temaId                String
@@ -762,6 +806,7 @@ model Subtema {
   siguientesAprendizaje RelacionAprendizaje[]  @relation("BaseAprendizaje")
 
   @@index([estadoContenido, temaId])
+  @@index([archivoImagenId])
 }
 
 model MapaAprendizaje {
@@ -786,6 +831,8 @@ model RelacionAprendizaje {
 }
 
 model Pregunta {
+  archivoImagenId        String?                @db.Uuid
+  archivoImagen          ArchivoEditorial?      @relation(fields: [archivoImagenId], references: [id], onDelete: Restrict)
   reportesAcademicos ReportePregunta[]
   id                     String                  @id @default(uuid())
   enunciado              String                  @db.Text
@@ -817,6 +864,7 @@ model Pregunta {
   cuadernoErrores        CuadernoError[]
 
   @@index([casoId, ordenEnCaso])
+  @@index([archivoImagenId])
   @@index([huellaContenido, estadoContenido])
   @@index([estadoContenido, subtemaId])
 }
@@ -908,6 +956,8 @@ model TasaReportePregunta {
 }
 
 model CasoPregunta {
+  archivoImagenId    String?          @db.Uuid
+  archivoImagen      ArchivoEditorial? @relation(fields: [archivoImagenId], references: [id], onDelete: Restrict)
   id                 String          @id @default(uuid())
   titulo             String?
   contexto           String          @db.Text
@@ -921,6 +971,7 @@ model CasoPregunta {
 
   @@index([area, fechaCreacion])
   @@index([estadoContenido, area])
+  @@index([archivoImagenId])
 }
 
 model Respuesta {
