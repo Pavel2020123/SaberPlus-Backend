@@ -1158,7 +1158,7 @@ export class ContentImportService {
         imagenUrl: true,
         huellaContenido: true,
         estadoContenido: true,
-        respuestas: { select: { texto: true } },
+        respuestas: { select: { texto: true, imagenUrl: true } },
         subtema: {
           select: {
             tema: { select: { area: true } },
@@ -1175,6 +1175,7 @@ export class ContentImportService {
             imagen: item.imagenUrl,
             opciones: item.respuestas.map((respuesta) => ({
               texto: respuesta.texto,
+              imagen: respuesta.imagenUrl,
             })),
           }),
         item,

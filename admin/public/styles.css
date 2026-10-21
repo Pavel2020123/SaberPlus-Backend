@@ -752,6 +752,10 @@ summary { cursor: pointer; font-size: 14px; font-weight: 650; padding: 10px 0; }
 #question-reports-panel p { overflow-wrap: anywhere; }
 :root { --editorial-image-border: #d4dfeb; }
 .editorial-image-upload { margin-block: 1rem; padding: 1rem; border: 1px solid var(--editorial-image-border); border-radius: 12px; }
+#bank-form .answer-image { grid-column: 1 / -1; min-width: 0; }
+#bank-form .answer-image summary { cursor: pointer; padding-block: .7rem; font-weight: 600; }
+#bank-form .answer-image input { max-width: 100%; box-sizing: border-box; }
+#bank-form .answer-image .editorial-image-upload { padding: .75rem; }
 .editorial-image-upload fieldset { margin-block: 1rem; padding: 1rem; border: 1px solid var(--editorial-image-border); border-radius: 8px; }
 .editorial-image-upload label { display: block; margin-top: .6rem; }
 .editorial-image-preview { display: block; max-width: 100%; max-height: 360px; object-fit: contain; margin-block: 1rem; }

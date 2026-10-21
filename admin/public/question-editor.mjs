@@ -74,13 +74,16 @@ export class QuestionEditor {
       if (this.options.length < 6) {
         const rows = this.readOptions();
         rows.push({ texto: "", explicacion: "", esCorrecta: false });
-        this.renderOptions(rows);
+        this.renderOptions(rows, true);
         this.changed();
       }
     };
     this.$("option-remove").onclick = () => {
       if (this.options.length > 2) {
-        this.renderOptions(this.readOptions().slice(0, -1));
+        const last = this.options.at(-1);
+        if ((last.imageUpload?.file || last.imageUpload?.request) &&
+          !this.confirm("Esta opción tiene una imagen pendiente o una carga incierta. Quitar la opción no borra el archivo del servidor. ¿Continuar?")) return;
+        this.renderOptions(this.readOptions().slice(0, -1), true);
         this.changed();
       }
     };
@@ -109,6 +112,7 @@ export class QuestionEditor {
     this.dirty = false;
     this.parent = null;
     this.selectedCase = null;
+    for (const option of this.options) option.imageUpload?.reset();
     this.options = [];
     this.caseRows = [];
     this.caseData = null;
@@ -253,13 +257,19 @@ export class QuestionEditor {
   }
   changed() {
     this.imageUpload?.externalChanged();
+    for (const option of this.options) option.imageUpload?.externalChanged();
     this.dirty = true;
     this.message("Cambios sin guardar.");
     this.preview();
     this.controls();
   }
-  renderOptions(rows) {
+  renderOptions(rows, preserve = false) {
+    const previous = this.options;
+    if (!preserve) for (const option of previous) option.imageUpload?.reset();
+    const imagesEnabled = !this.api.demo &&
+      (this.record?.imagenesEnOpcionesHabilitadas ?? this.data?.imagenesEnOpcionesHabilitadas) === true;
     this.options = rows.map((row, index) => {
+      if (preserve && previous[index]) return previous[index];
       const group = this.doc.createElement("fieldset");
       group.className = "answer-row";
       const legend = this.doc.createElement("legend");
@@ -284,7 +294,7 @@ export class QuestionEditor {
         group.append(wrap);
         return control;
       };
-      return {
+      const option = {
         group,
         texto: input("textarea", "Respuesta", row.texto),
         correcta: input("input", "Correcta", row.esCorrecta, "radio"),
@@ -294,7 +304,37 @@ export class QuestionEditor {
           row.explicacion,
         ),
       };
+      if (imagesEnabled || row.imagenUrl) {
+        const details = this.doc.createElement("details");
+        details.className = "answer-image";
+        const summary = this.doc.createElement("summary");
+        summary.textContent = `Imagen de opción ${"ABCDEF"[index]} (opcional)`;
+        details.append(summary);
+        const label = this.doc.createElement("label");
+        label.textContent = "Enlace HTTPS de la imagen (opcional)";
+        const imageInput = this.doc.createElement("input");
+        imageInput.type = "text";
+        imageInput.maxLength = 2000;
+        imageInput.id = `bank-option-${index + 1}-image`;
+        label.htmlFor = imageInput.id;
+        imageInput.value = row.imagenUrl ?? "";
+        imageInput.oninput = () => this.changed();
+        const help = this.doc.createElement("p");
+        help.textContent = "La imagen complementa la respuesta: conserva un texto descriptivo, sin indicar si es correcta.";
+        const host = this.doc.createElement("div");
+        host.id = `bank-option-${index + 1}-upload`;
+        details.append(help, label, imageInput, host);
+        group.append(details);
+        option.imageInput = imageInput;
+        option.imageUpload = new EditorialImageUpload({
+          api: this.api, doc: this.doc, host, input: imageInput, confirm: this.confirm,
+          setBusy: (value) => { this.setBusy(value); this.controls(); },
+          onChange: () => this.changed(),
+        });
+      }
+      return option;
     });
+    if (preserve) for (const option of previous.slice(rows.length)) option.imageUpload?.reset();
     this.$("bank-options").replaceChildren(
       ...this.options.map((row) => row.group),
     );
@@ -304,6 +344,7 @@ export class QuestionEditor {
       texto: row.texto.value,
       esCorrecta: row.correcta.checked,
       explicacion: row.explicacion.value,
+      ...(row.imageInput ? { imagenUrl: row.imageInput.value } : {}),
     }));
   }
   async loadCases(page) {
@@ -355,7 +396,10 @@ export class QuestionEditor {
   }
   async save() {
     if (!this.hasForm || (this.record && !this.record.editable)) return;
-    try { this.imageUpload.ensureReady(); }
+    try {
+      this.imageUpload.ensureReady();
+      for (const option of this.options) option.imageUpload?.ensureReady();
+    }
     catch (error) { this.message(error.message, true); return; }
     const creating = !this.record;
     await this.run(async (version) => {
@@ -408,9 +452,11 @@ export class QuestionEditor {
       this.$(id).disabled = locked;
     this.imageUpload?.lock(locked);
     this.$("bank-order").disabled = locked || !this.selectedCase;
-    for (const row of this.options)
+    for (const row of this.options) {
       for (const key of ["texto", "correcta", "explicacion"])
         row[key].disabled = locked;
+      row.imageUpload?.lock(locked || this.record?.imagenesEnOpcionesHabilitadas === false);
+    }
     this.$("option-add").disabled = locked || this.options.length >= 6;
     this.$("option-remove").disabled = locked || this.options.length <= 2;
     this.$("bank-close").disabled = busy;
@@ -444,11 +490,12 @@ export class QuestionEditor {
     append(this.$("bank-title").value);
     append(this.$("bank-text").value);
     if (this.kind === "preguntas") {
-      this.readOptions().forEach((row, i) =>
+      this.readOptions().forEach((row, i) => {
         append(
           `${i + 1}. ${row.texto}${row.esCorrecta ? " [Correcta · solo editor]" : ""}${row.explicacion ? `\n${row.explicacion}` : ""}`,
-        ),
-      );
+        );
+        if (row.imagenUrl) append(`Imagen de opción ${"ABCDEF"[i]}: consulta la vista previa en su selector.`);
+      });
       append(`## Explicación\n${this.$("bank-explanation").value}`);
     }
     for (const value of [

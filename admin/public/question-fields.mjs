@@ -46,6 +46,7 @@ export function questionFields(value) {
     texto: field(row.texto, 4000),
     esCorrecta: row.esCorrecta,
     explicacion: field(row.explicacion, 4000, false),
+    ...(row.imagenUrl === undefined ? {} : { imagenUrl: imageReference(row.imagenUrl) }),
   }));
   if (
     new Set(respuestas.map((row) => key(row.texto))).size !== respuestas.length
@@ -83,7 +84,7 @@ export function questionCanonical(area, value) {
     key(value.enunciado),
     key(value.imagenUrl || ""),
     ...value.respuestas
-      .map((row) => [key(row.texto), ""].join("\u001e"))
+      .map((row) => [key(row.texto), key(row.imagenUrl || "")].join("\u001e"))
       .sort(),
   ].join("\u001f");
 }

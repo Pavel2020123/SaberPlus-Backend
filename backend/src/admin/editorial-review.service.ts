@@ -16,6 +16,7 @@ import {
 } from './academic-classification';
 import { lessonUrl } from './lesson-editor.service';
 import { managedEditorialImageId } from '../editorial-files/editorial-image-reference';
+import { optionImagesEnabled } from '../editorial-files/editorial-option-images';
 import { validateClozeActivity } from './cloze-activity';
 
 export const REVIEW_KINDS = [
@@ -212,6 +213,13 @@ export class EditorialReviewService {
     }
     if (data.tipo === 'preguntas') {
       const row = data.row;
+      if (row.respuestas.some((option) => option.imagenUrl))
+        check(
+          optionImagesEnabled(),
+          'Las imágenes en opciones aún están en preparación; no se puede publicar esta pregunta.',
+        );
+      for (const option of row.respuestas)
+        resource(option.imagenUrl, option.archivoImagenId);
       try {
         validateAcademicClassification(row.subtema);
       } catch {
@@ -307,7 +315,7 @@ export class EditorialReviewService {
           huellaContenido: true,
           enunciado: true,
           imagenUrl: true,
-          respuestas: { select: { texto: true } },
+          respuestas: { select: { texto: true, imagenUrl: true } },
         },
       });
       if (candidates.length > 2000)

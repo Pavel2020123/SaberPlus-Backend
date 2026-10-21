@@ -748,6 +748,216 @@ async function panelFixture() {
   return { app, admin, password, api, token: tokenFor(admin) };
 }
 
+async function withOptionImages(action) {
+  const previous = process.env.EDITORIAL_OPTION_IMAGES_LOCAL_ENABLED;
+  process.env.EDITORIAL_OPTION_IMAGES_LOCAL_ENABLED = 'true';
+  try {
+    return await action();
+  } finally {
+    if (previous === undefined)
+      delete process.env.EDITORIAL_OPTION_IMAGES_LOCAL_ENABLED;
+    else process.env.EDITORIAL_OPTION_IMAGES_LOCAL_ENABLED = previous;
+  }
+}
+
+async function imageQuestionFixture() {
+  const f = await panelFixture(),
+    s = await structure();
+  const first = await f.api.uploadEditorialFile(
+    new Blob([image]),
+    fields(),
+    randomUUID(),
+  );
+  const second = await f.api.uploadEditorialFile(
+    new Blob([image]),
+    fields(),
+    randomUUID(),
+  );
+  const paths = [first, second].map(
+    (file) => `/recursos/editoriales/${file.id}`,
+  );
+  const body = questionBody(s.sub, '');
+  body.respuestas = body.respuestas.map((option, i) => ({
+    ...option,
+    imagenUrl: paths[i],
+  }));
+  return { ...f, ...s, first, second, paths, body };
+}
+
+test('C5-C2-B API y cliente editorial guardan imágenes distintas y las devuelven sin metadatos privados', () =>
+  withOptionImages(async () => {
+    const f = await imageQuestionFixture();
+    const list = await f.api.bankPage('preguntas', f.sub.id);
+    assert.equal(list.imagenesEnOpcionesHabilitadas, true);
+    const q = await f.api.bankRecord('preguntas', f.sub.id, undefined, f.body);
+    assert.equal(q.estadoContenido, 'PUBLICADO');
+    assert.equal(q.imagenesEnOpcionesHabilitadas, true);
+    const detail = await f.api.bankRecord('preguntas', f.sub.id, q.id);
+    assert.deepEqual(
+      detail.respuestas.map((option) => option.imagenUrl).sort(),
+      [...f.paths].sort(),
+    );
+    assert.doesNotMatch(
+      JSON.stringify(detail.respuestas),
+      /archivoImagenId|autorizacion|titular|operacionId/,
+    );
+    const saved = await db.pregunta.findUniqueOrThrow({
+      where: { id: q.id },
+      include: { respuestas: true },
+    });
+    const {
+      createQuestionFingerprint,
+    } = require('../src/common/question-fingerprint');
+    assert.equal(
+      saved.huellaContenido,
+      createQuestionFingerprint({
+        area: 'MATEMATICAS',
+        enunciado: saved.enunciado,
+        opciones: saved.respuestas,
+      }),
+    );
+    assert.deepEqual(
+      saved.respuestas.map((option) => option.archivoImagenId).sort(),
+      [f.first.id, f.second.id].sort(),
+    );
+  }));
+
+test('C5-C2-B una opción no disponible o una URL insegura no deja ninguna pregunta parcial', () =>
+  withOptionImages(async () => {
+    const f = await imageQuestionFixture();
+    for (const invalid of [
+      `/recursos/editoriales/${randomUUID()}`,
+      'javascript:alert(1)',
+      'https://user:pass@example.invalid/a.png',
+    ]) {
+      const input = structuredClone(f.body);
+      input.respuestas[1].imagenUrl = invalid;
+      await assert.rejects(
+        f.api.bankRecord('preguntas', f.sub.id, undefined, input),
+      );
+      assert.equal(
+        await db.pregunta.count({ where: { subtemaId: f.sub.id } }),
+        0,
+      );
+    }
+    assert.equal(
+      (await call(`${prefix}/${f.first.id}`, f.token, { method: 'DELETE' }))
+        .status,
+      200,
+    );
+    await assert.rejects(
+      f.api.bankRecord('preguntas', f.sub.id, undefined, f.body),
+      (e) => e.status === 409,
+    );
+    assert.equal(
+      await db.pregunta.count({ where: { subtemaId: f.sub.id } }),
+      0,
+    );
+  }));
+
+test('C5-C2-B editor anterior no puede borrar imágenes por omisión', () =>
+  withOptionImages(async () => {
+    const f = await imageQuestionFixture();
+    const q = await f.api.bankRecord('preguntas', f.sub.id, undefined, f.body);
+    const oldInput = questionBody(f.sub, '', {
+      enunciado: q.enunciado,
+      revision: q.revision,
+    });
+    await assert.rejects(
+      f.api.bankRecord('preguntas', f.sub.id, q.id, oldInput),
+      (e) => e.status === 409,
+    );
+    const current = await f.api.bankRecord('preguntas', f.sub.id, q.id);
+    assert.equal(current.revision, q.revision);
+    assert.deepEqual(current.respuestas, q.respuestas);
+    assert.equal(
+      await db.pregunta.count({ where: { subtemaId: f.sub.id } }),
+      1,
+    );
+  }));
+
+test('C5-C2-B quitar imágenes explícitamente crea versión nueva y conserva FKs históricas', () =>
+  withOptionImages(async () => {
+    const f = await imageQuestionFixture();
+    const q = await f.api.bankRecord('preguntas', f.sub.id, undefined, f.body);
+    const changed = await f.api.bankRecord('preguntas', f.sub.id, q.id, {
+      ...f.body,
+      revision: q.revision,
+      respuestas: f.body.respuestas.map((option) => ({
+        ...option,
+        imagenUrl: '',
+      })),
+    });
+    assert.notEqual(changed.id, q.id);
+    assert.equal(changed.reemplazaId, q.id);
+    assert.ok(changed.respuestas.every((option) => !option.imagenUrl));
+    const old = await db.pregunta.findUniqueOrThrow({
+      where: { id: q.id },
+      include: { respuestas: true },
+    });
+    assert.equal(old.estadoContenido, 'ARCHIVADO');
+    assert.ok(old.respuestas.every((option) => option.archivoImagenId));
+    assert.equal(
+      (await call(`${prefix}/${f.first.id}`, f.token, { method: 'DELETE' }))
+        .status,
+      409,
+    );
+    assert.equal(
+      (await call(f.paths[0], tokenFor(await user('ESTUDIANTE')))).status,
+      404,
+    );
+  }));
+
+test('C5-C2-B huella diferencia la imagen y detecta duplicados con opciones reordenadas', () =>
+  withOptionImages(async () => {
+    const f = await imageQuestionFixture();
+    const first = await f.api.bankRecord(
+      'preguntas',
+      f.sub.id,
+      undefined,
+      f.body,
+    );
+    await assert.rejects(
+      f.api.bankRecord('preguntas', f.sub.id, undefined, {
+        ...f.body,
+        respuestas: [...f.body.respuestas].reverse(),
+      }),
+      (e) => e.status === 409,
+    );
+    const swapped = await f.api.bankRecord('preguntas', f.sub.id, undefined, {
+      ...f.body,
+      respuestas: f.body.respuestas.map((option, i) => ({
+        ...option,
+        imagenUrl: f.paths[1 - i],
+      })),
+    });
+    assert.notEqual(first.id, swapped.id);
+    assert.equal(
+      await db.pregunta.count({ where: { subtemaId: f.sub.id } }),
+      2,
+    );
+  }));
+
+test('C5-C2-B al apagar la activación se conserva el detalle pero se bloquea editar imágenes', async () => {
+  let f, q;
+  await withOptionImages(async () => {
+    f = await imageQuestionFixture();
+    q = await f.api.bankRecord('preguntas', f.sub.id, undefined, f.body);
+  });
+  const current = await f.api.bankRecord('preguntas', f.sub.id, q.id);
+  assert.equal(current.editable, false);
+  assert.equal(current.imagenesEnOpcionesHabilitadas, false);
+  assert.deepEqual(current.respuestas, q.respuestas);
+  await assert.rejects(
+    f.api.bankRecord('preguntas', f.sub.id, q.id, {
+      ...f.body,
+      revision: q.revision,
+    }),
+    (e) => e.status === 503,
+  );
+  assert.equal(await db.pregunta.count({ where: { subtemaId: f.sub.id } }), 1);
+});
+
 // C2-A comprueba la base por transacciones propias del ensayo. El DTO del editor
 // sigue rechazando imágenes en opciones hasta preparar panel y consumidores.
 async function optionFixture() {
@@ -978,7 +1188,7 @@ test('C5-C2-A lotes simultáneos con archivos en orden inverso terminan sin inte
   }
 });
 
-test('C5-C2-A editor aún rechaza el campo de imagen en opciones; sin activación parcial', async () => {
+test('C5-C2 editor con activación apagada rechaza imágenes por opción sin guardar parcialmente', async () => {
   const f = await panelFixture(),
     s = await structure();
   const body = questionBody(s.sub, '');
@@ -993,7 +1203,7 @@ test('C5-C2-A editor aún rechaza el campo de imagen en opciones; sin activació
     },
     f.app.base,
   );
-  assert.equal(result.status, 400);
+  assert.equal(result.status, 503);
   assert.equal(await db.pregunta.count({ where: { subtemaId: s.sub.id } }), 0);
 });
 
@@ -1276,142 +1486,213 @@ test('C5-B lectura estudiantil exige publicación de todos los padres y no expon
   assert.equal((await call(path, token)).status, 404);
 });
 
-test('C5-B panel real en Chromium: seleccionar, previsualizar, subir y guardar con publicación inmediata', async (t) => {
-  let executable;
-  for (const candidate of [
-    'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
-    'C:/Program Files/Google/Chrome/Application/chrome.exe',
-    '/usr/bin/chromium',
-    '/usr/bin/google-chrome',
-  ]) {
-    try {
-      await access(candidate);
-      executable = candidate;
-      break;
-    } catch {
-      /* No descargar navegadores. */
+test('C5-B/C2-B panel real en Chromium: imagen de enunciado y de opción, publicación y recarga', async (t) =>
+  withOptionImages(async () => {
+    let executable;
+    for (const candidate of [
+      'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
+      'C:/Program Files/Google/Chrome/Application/chrome.exe',
+      '/usr/bin/chromium',
+      '/usr/bin/google-chrome',
+    ]) {
+      try {
+        await access(candidate);
+        executable = candidate;
+        break;
+      } catch {
+        /* No descargar navegadores. */
+      }
     }
-  }
-  if (!executable) {
-    t.skip('No hay Chromium instalado; recorrido visual pendiente.');
-    return;
-  }
-  const f = await panelFixture(),
-    s = await structure('AAA C5 navegador ' + randomUUID());
-  const { createAdminServer } = await import('../../admin/server.mjs');
-  const panel = createAdminServer({ apiBase: f.app.base });
-  await new Promise((ok) => panel.listen(0, '127.0.0.1', ok));
-  const origin = `http://127.0.0.1:${panel.address().port}`;
-  const fixture = join(dirname(root), 'imagen.png');
-  await writeFile(fixture, image);
-  const puppeteer = require('puppeteer');
-  let browser;
-  const runtimeErrors = [];
-  try {
-    browser = await puppeteer.launch({
-      executablePath: executable,
-      headless: true,
-      userDataDir: join(dirname(root), 'browser-profile'),
-      args: [
-        '--no-first-run',
-        '--disable-background-networking',
-        '--disable-sync',
-      ],
-    });
-    const page = await browser.newPage();
-    page.on('pageerror', (error) => runtimeErrors.push(error.message));
-    await page.setViewport({ width: 1280, height: 1000, deviceScaleFactor: 1 });
-    await page.goto(origin, { waitUntil: 'networkidle0' });
-    await page.type('#email', f.admin.correo);
-    await page.type('#password', f.password);
-    await page.click('#login-submit');
-    await page.waitForSelector('#select-area option[value="MATEMATICAS"]');
-    await page.click('#section-questions');
-    await page.select('#select-area', 'MATEMATICAS');
-    await page.waitForSelector(`#select-theme option[value="${s.theme.id}"]`);
-    await page.select('#select-theme', s.theme.id);
-    await page.waitForSelector(`#select-sub option[value="${s.sub.id}"]`);
-    await page.select('#select-sub', s.sub.id);
-    await page.waitForFunction(
-      () =>
-        !document.querySelector('#bank-text').disabled &&
-        !document.querySelector('#bank-form').hidden,
-    );
-    await page.type('#bank-text', 'Pregunta del navegador ' + randomUUID());
-    await page.type(
-      '#bank-explanation',
-      'La respuesta se obtiene sumando dos unidades.',
-    );
-    const choices = await page.$$('#bank-options .answer-text textarea');
-    for (let i = 0; i < choices.length; i++)
-      await choices[i].type(String(i + 2));
-    await page.click('#bank-options input[type="radio"]');
-    await (await page.$('#bank-image-upload-file')).uploadFile(fixture);
-    await page.waitForFunction(
-      () => !document.querySelector('#bank-image-upload fieldset').hidden,
-    );
-    for (const [key, value] of Object.entries({
-      titulo: 'Fracciones para el ensayo',
-      textoAlternativo: 'Rectángulo azul de proporción dos a uno',
-      fuente: 'Creación propia del ensayo',
-      titular: 'Equipo de ensayo C5',
-    }))
-      await page.type(`#bank-image-upload-${key}`, value);
-    await page.waitForFunction(
-      () => document.querySelector('#bank-image-upload img').naturalWidth > 0,
-    );
-    const screenshot = async (name) => {
+    if (!executable) {
+      t.skip('No hay Chromium instalado; recorrido visual pendiente.');
+      return;
+    }
+    const f = await panelFixture(),
+      s = await structure('AAA C5 navegador ' + randomUUID());
+    const { createAdminServer } = await import('../../admin/server.mjs');
+    const panel = createAdminServer({ apiBase: f.app.base });
+    await new Promise((ok) => panel.listen(0, '127.0.0.1', ok));
+    const origin = `http://127.0.0.1:${panel.address().port}`;
+    const fixture = join(dirname(root), 'imagen.png');
+    await writeFile(fixture, image);
+    const puppeteer = require('puppeteer');
+    let browser;
+    const runtimeErrors = [];
+    try {
+      browser = await puppeteer.launch({
+        executablePath: executable,
+        headless: true,
+        userDataDir: join(dirname(root), 'browser-profile'),
+        args: [
+          '--no-first-run',
+          '--disable-background-networking',
+          '--disable-sync',
+        ],
+      });
+      const page = await browser.newPage();
+      page.on('pageerror', (error) => runtimeErrors.push(error.message));
+      await page.setViewport({
+        width: 1280,
+        height: 1000,
+        deviceScaleFactor: 1,
+      });
+      await page.goto(origin, { waitUntil: 'networkidle0' });
+      await page.type('#email', f.admin.correo);
+      await page.type('#password', f.password);
+      await page.click('#login-submit');
+      await page.waitForSelector('#select-area option[value="MATEMATICAS"]');
+      await page.click('#section-questions');
+      await page.select('#select-area', 'MATEMATICAS');
+      await page.waitForSelector(`#select-theme option[value="${s.theme.id}"]`);
+      await page.select('#select-theme', s.theme.id);
+      await page.waitForSelector(`#select-sub option[value="${s.sub.id}"]`);
+      await page.select('#select-sub', s.sub.id);
+      await page.waitForFunction(
+        () =>
+          !document.querySelector('#bank-text').disabled &&
+          !document.querySelector('#bank-form').hidden,
+      );
+      await page.type('#bank-text', 'Pregunta del navegador ' + randomUUID());
+      await page.type(
+        '#bank-explanation',
+        'La respuesta se obtiene sumando dos unidades.',
+      );
+      const choices = await page.$$('#bank-options .answer-text textarea');
+      for (let i = 0; i < choices.length; i++)
+        await choices[i].type(String(i + 2));
+      await page.click('#bank-options input[type="radio"]');
+      await (await page.$('#bank-image-upload-file')).uploadFile(fixture);
+      await page.waitForFunction(
+        () => !document.querySelector('#bank-image-upload fieldset').hidden,
+      );
+      for (const [key, value] of Object.entries({
+        titulo: 'Fracciones para el ensayo',
+        textoAlternativo: 'Rectángulo azul de proporción dos a uno',
+        fuente: 'Creación propia del ensayo',
+        titular: 'Equipo de ensayo C5',
+      }))
+        await page.type(`#bank-image-upload-${key}`, value);
+      await page.waitForFunction(
+        () => document.querySelector('#bank-image-upload img').naturalWidth > 0,
+      );
+      const screenshot = async (name) => {
+        await (
+          await page.$('#bank-image-upload')
+        ).screenshot({ path: join(process.env.EDITORIAL_FILES_QA_DIR, name) });
+      };
+      await screenshot('c5b-desktop-antes.png');
+      await page.click(
+        '#bank-image-upload .editorial-image-actions button:first-child',
+      );
+      await page.waitForFunction(
+        () =>
+          document
+            .querySelector('#bank-image')
+            .value.startsWith('/recursos/editoriales/') &&
+          !document.querySelector('#bank-save').disabled,
+      );
+      await screenshot('c5b-desktop-lista.png');
+      const reference = await page.$eval('#bank-image', (node) => node.value);
+      await page.click('#bank-options .answer-image summary');
+      await (await page.$('#bank-option-1-upload-file')).uploadFile(fixture);
+      await page.waitForFunction(
+        () => !document.querySelector('#bank-option-1-upload fieldset').hidden,
+      );
+      for (const key of ['titulo', 'textoAlternativo', 'fuente', 'titular'])
+        await page.type(
+          `#bank-option-1-upload-${key}`,
+          'Rectángulo de ensayo autorizado',
+        );
+      await page.waitForFunction(
+        () =>
+          document.querySelector('#bank-option-1-upload img').naturalWidth > 0,
+      );
+      await page.click(
+        '#bank-option-1-upload .editorial-image-actions button:first-child',
+      );
+      await page.waitForFunction(
+        () =>
+          document
+            .querySelector('#bank-option-1-image')
+            .value.startsWith('/recursos/editoriales/') &&
+          !document.querySelector('#bank-save').disabled,
+      );
+      const optionReference = await page.$eval(
+        '#bank-option-1-image',
+        (node) => node.value,
+      );
+      // Agregar otra opción no debe descartar la imagen ya preparada en la primera.
+      await page.click('#option-add');
+      assert.equal(
+        await page.$eval('#bank-option-1-image', (node) => node.value),
+        optionReference,
+      );
+      await page.click('#option-remove');
+      await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1 });
+      await screenshot('c5b-responsive-lista.png');
       await (
-        await page.$('#bank-image-upload')
-      ).screenshot({ path: join(process.env.EDITORIAL_FILES_QA_DIR, name) });
-    };
-    await screenshot('c5b-desktop-antes.png');
-    await page.click(
-      '#bank-image-upload .editorial-image-actions button:first-child',
-    );
-    await page.waitForFunction(
-      () =>
+        await page.$('#bank-options .answer-image')
+      ).screenshot({
+        path: join(process.env.EDITORIAL_FILES_QA_DIR, 'c5c2b-opcion-390.png'),
+      });
+      const optionFits = await page.$eval(
+        '#bank-options .answer-image',
+        (node) => ({
+          width: node.getBoundingClientRect().width,
+          scroll: node.scrollWidth,
+          client: node.clientWidth,
+        }),
+      );
+      assert.ok(
+        optionFits.width <= 390 && optionFits.scroll <= optionFits.client + 1,
+      );
+      const fits = await page.$eval('#bank-image-upload', (node) => ({
+        width: node.getBoundingClientRect().width,
+        scroll: node.scrollWidth,
+        client: node.clientWidth,
+      }));
+      assert.ok(fits.width <= 390 && fits.scroll <= fits.client + 1);
+      await page.click('#bank-save');
+      await page.waitForFunction(() =>
         document
-          .querySelector('#bank-image')
-          .value.startsWith('/recursos/editoriales/') &&
-        !document.querySelector('#bank-save').disabled,
-    );
-    await screenshot('c5b-desktop-lista.png');
-    const reference = await page.$eval('#bank-image', (node) => node.value);
-    await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1 });
-    await screenshot('c5b-responsive-lista.png');
-    const fits = await page.$eval('#bank-image-upload', (node) => ({
-      width: node.getBoundingClientRect().width,
-      scroll: node.scrollWidth,
-      client: node.clientWidth,
-    }));
-    assert.ok(fits.width <= 390 && fits.scroll <= fits.client + 1);
-    await page.click('#bank-save');
-    await page.waitForFunction(() =>
-      document
-        .querySelector('#bank-message')
-        .textContent.includes('Guardado y publicado'),
-    );
-    const question = await db.pregunta.findFirstOrThrow({
-      where: { subtemaId: s.sub.id, imagenUrl: reference },
-    });
-    assert.equal(question.estadoContenido, 'PUBLICADO');
-    assert.ok(question.archivoImagenId);
-    assert.deepEqual(runtimeErrors, []);
-    console.log(
-      JSON.stringify({
-        phase: 'c5b-browser-verified',
-        desktop: true,
-        responsive390: true,
-        android: false,
-        screenshots: process.env.EDITORIAL_FILES_QA_DIR,
-      }),
-    );
-  } finally {
-    await browser?.close();
-    await new Promise((ok) => {
-      panel.close(ok);
-      panel.closeAllConnections();
-    });
-  }
-});
+          .querySelector('#bank-message')
+          .textContent.includes('Guardado y publicado'),
+      );
+      const question = await db.pregunta.findFirstOrThrow({
+        where: { subtemaId: s.sub.id, imagenUrl: reference },
+      });
+      assert.equal(question.estadoContenido, 'PUBLICADO');
+      assert.ok(question.archivoImagenId);
+      const savedOptions = await db.respuesta.findMany({
+        where: { preguntaId: question.id },
+      });
+      assert.equal(
+        savedOptions.filter((option) => option.imagenUrl === optionReference)
+          .length,
+        1,
+      );
+      const questionButton = await page.$('#bank-list button');
+      await questionButton.click();
+      await page.waitForFunction(() =>
+        [
+          ...document.querySelectorAll('#bank-options .answer-image input'),
+        ].some((input) => input.value.startsWith('/recursos/editoriales/')),
+      );
+      assert.deepEqual(runtimeErrors, []);
+      console.log(
+        JSON.stringify({
+          phase: 'c5b-browser-verified',
+          desktop: true,
+          responsive390: true,
+          android: false,
+          screenshots: process.env.EDITORIAL_FILES_QA_DIR,
+        }),
+      );
+    } finally {
+      await browser?.close();
+      await new Promise((ok) => {
+        panel.close(ok);
+        panel.closeAllConnections();
+      });
+    }
+  }));

@@ -1,13 +1,14 @@
 # SaberPlus Backend
 
-**21 de octubre — [C5-C2-A validada localmente](backend/docs/C5C2_OPCIONES.md):** base y permisos
-para imágenes en opciones;31/31 PostgreSQL/HTTP,70 migraciones temporales y
-126 suites/1.657 pruebas backend aprobadas. C5-C1 conserva su cierre Android5/5.
-Entrega A/B/C1 guardada: app `af73039`, backend `0bfaaba`, sin push funcional.
-Siguiente: C2-B contrato/editor/panel y C2-C consumidores/Flutter, con activación
-coordinada; todavía no se cargan imágenes en opciones desde el editor. C2-D,
-resto C5-C y C5-D abiertos. C2-A aún sin commit. Rama feat/c5-archivos-base,
-sin merge/despliegue ni cambios OV-1. El push52a3488 anterior era documental.
+**21 de octubre — [C5-C2-A/B validadas localmente](backend/docs/C5C2_OPCIONES.md):** base, contrato
+y selector por opción;37/37 PostgreSQL/HTTP,130/130 panel y127 suites/1.670 backend
+aprobadas.70 migraciones temporales; navegador escritorio/390px sin desbordes.
+La nueva carga está desactivada por defecto y solo se ensaya en desarrollo/test.
+**Sigue C2-C: contratos/snapshots y Flutter.** No activar para estudiantes antes
+de cerrar consumidores y C2-D. C1 conserva su cierre Android5/5.
+Push A/B/C1+C2-A confirmado: app `2ee714a`, backend `7995201`; C2-B es la
+entrega actual de esta rama, consultar git log para su commit. Sin merge a main,
+despliegue ni cambios OV-1. Rama `feat/c5-archivos-base`.
 
 **20 de octubre — C5-A/B validadas localmente:** [imágenes desde el panel](backend/docs/C5B_PANEL.md),
 23/23 PostgreSQL/HTTP, panel124/124 y backend126/1650 aprobados en `feat/c5-archivos-base`.

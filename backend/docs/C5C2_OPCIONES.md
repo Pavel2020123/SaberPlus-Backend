@@ -2,15 +2,17 @@
 
 ## Checkpoint — 21 de octubre de 2026
 
-**C2-A implementada y validada localmente: base de datos y permisos.**
-No es el cierre completo de C5-C2 ni habilita imágenes en opciones desde el panel.
-El editor todavía rechaza `respuestas[].imagenUrl`; la prueba HTTP comprueba ese
-rechazo. No cargar estas asociaciones manualmente en una base existente.
+**C2-A y C2-B implementadas y validadas localmente. Sigue C2-C, consumidores y Flutter.**
+C2-B incorpora DTO/guardado y selector por opción, pero su activación está apagada
+por defecto. Solo se habilitó dentro del ensayo desechable. No es el cierre completo
+de C5-C2 ni una autorización para publicar preguntas con imágenes a estudiantes.
+No cargar estas asociaciones manualmente en una base existente.
 
 Entrega anterior A/B/C1 guardada: app `af73039`, backend `0bfaaba`.
-No se hizo push funcional, PR, merge ni despliegue. El push documental anterior
-`52a3488` no publicaba el código funcional C5. Esta continuación C2-A queda
-en el árbol de trabajo, separada de esos commits. Rama: `feat/c5-archivos-base`.
+Push de A/B/C1 y C2-A confirmado en app `2ee714a` y backend `7995201`.
+El push documental anterior `52a3488` no incluía el código funcional C5.
+C2-B es la entrega actual de esta acta; consultar git log de la rama para su commit.
+No se creó PR ni se hizo merge o despliegue. Rama: `feat/c5-archivos-base`.
 OV-1 y su checkpoint siguen siendo responsabilidad del compañero.
 
 ## División y continuación
@@ -18,8 +20,8 @@ OV-1 y su checkpoint siguen siendo responsabilidad del compañero.
 | Paso | Alcance / estado |
 | --- | --- |
 | C2-A — Base y seguridad | Validada localmente. Modelo Respuesta, relaciones, consistencia SQL, lectura publicada, protección de retirada y resolución por lotes. |
-| C2-B — Contrato editorial y panel | **Siguiente.** DTO, detalle/guardado/versiones, huellas de duplicados y selector por opción con carga/recibo/reintento. Mantener texto obligatorio. No habilitar publicación con imágenes hasta tener listos todos los consumidores afectados de C2-C. |
-| C2-C — Contratos de consumo y Flutter | Pendiente. Transportar referencias por opción en práctica, diagnóstico, simulacro/repaso, juegos y snapshots. Compatibilidad con registros/intentos antiguos sin imagen. Renderizar con AcademicImage, proporción original y descripción accesible, sin filtrar la correcta. Puede prepararse antes de habilitar el editor. |
+| C2-B — Contrato editorial y panel | Validada localmente. DTO, detalle/guardado/versiones, huellas y selector por opción con carga/recibo/reintento. Texto obligatorio; protección de editores antiguos. Activación local apagada por defecto, no habilitar antes de C2-C/D. |
+| C2-C — Contratos de consumo y Flutter | **Siguiente.** Transportar referencias por opción en práctica, diagnóstico, simulacro/repaso, juegos y snapshots. Compatibilidad con registros/intentos antiguos sin imagen. Renderizar con AcademicImage, proporción original y descripción accesible, sin filtrar la correcta. |
 | C2-D — Ensayo del flujo completo | Pendiente. Panel → API/SQL → app Android, imágenes en opciones correctas e incorrectas, historial/versiones, sesión/conexión, texto grande y recuperación. Es validación de C2, no sustituye C5-D de operación global. |
 
 Después continúan PDF/offline, autorización de recursos históricos,
@@ -49,11 +51,73 @@ no se repitió ese guion Android en esta entrega.
 - Ambos ejecutores locales permiten explícitamente la nueva migración.
   No enumeran ni aplican migraciones ajenas no versionadas.
 
-Los fixtures de opciones de esta entrega se crean únicamente en transacciones del
-ensayo desechable. No hay nueva carga UI, DTO, serialización pública de opciones
-ni cambios de puntaje, XP, certificados, ranking o reglas de respuesta.
+En C2-A los fixtures se crearon únicamente mediante transacciones del ensayo.
+C2-B ya prueba el contrato editorial y la carga UI reales en ese entorno aislado,
+con activación temporal explícita. No añade aún referencias a los serializadores
+públicos ni snapshots de consumidores. Sin cambios de puntaje, XP, certificados,
+ranking o reglas de respuesta.
 
-## Evidencia realmente ejecutada
+## C2-B — Contrato y panel, validación del 21 de octubre
+
+- Campo opcional `respuestas[].imagenUrl`, hasta2000 caracteres, sin aceptar null
+  ni conversiones numéricas. El texto y su unicidad siguen siendo obligatorios.
+- Resolución conjunta de enunciado y opciones con locks ordenados, dentro de la
+  misma transacción. Una referencia inexistente/retirada o URL insegura revierte
+  el guardado completo; no se publican padres ni preguntas parcialmente.
+- El detalle ADMIN conserva referencias por opción. Las ediciones directas crean
+  nueva versión y conservan las respuestas/FK históricas. Un cliente que omita
+  los campos al editar una pregunta ilustrada recibe409, no borra imágenes.
+- Las huellas incorporan la imagen de cada opción, conservando huellas antiguas
+  sin imagen y la identidad `imagen` del importador. Se actualizaron editor,
+  revisión, índice heredado y comparación del importador; no cambió su formato.
+- Selector desplegable por opción: enlace HTTPS o carga privada con datos de
+  derechos, vista previa proporcional, recibo/reintento y retirada del formulario.
+  Agregar/quitar otras opciones conserva archivo, operación y vista previa.
+  Quitar una opción con carga pendiente/incierta pide confirmación y no borra bytes.
+  Guardar exige resolver todas las cargas. Cerrar/cambiar registro invalida callbacks
+  y libera las vistas previas. Sin HTML insertado ni tokens persistentes.
+- La capacidad se obtiene del listado/detalle ADMIN, no de una bandera del navegador.
+  Demo y backend sin capacidad no ofrecen la nueva carga.
+
+### Activación todavía restringida
+
+`EDITORIAL_OPTION_IMAGES_LOCAL_ENABLED=false` por defecto en .env.example.
+Para el ensayo exige, además, archivos locales habilitados y NODE_ENV development
+o test; production, staging o entorno ausente siguen bloqueados.
+No se activó en un servicio humano ni remoto. Los tests la encienden temporalmente
+dentro de su propio proceso y restauran el valor al terminar.
+
+Apagada: una nueva imagen por opción devuelve503 sin escribir. Las preguntas solo
+de texto siguen funcionando. Una pregunta ilustrada conserva su detalle pero queda
+de solo lectura; la revisión editorial también bloquea su publicación.
+Esto sustituye el rechazo del DTO de C2-A por un contrato válido con bloqueo
+explícito de capacidad. No cambiar la bandera en un servidor con estudiantes:
+antes faltan C2-C y C2-D. El adaptador privado de C5 también sigue sin proveedor
+productivo autorizado.
+
+### Evidencia C2-B realmente ejecutada
+
+- Build backend y ESLint dirigido aprobados.
+- Regresión backend: **127 suites /1.670 pruebas aprobadas** (13 nuevas sobre C2-A).
+- Seis suites dirigidas: **115/115**; incluidas en la regresión, no sumarlas.
+- Panel: **130/130** (seis nuevas); sintaxis de28 módulos correcta.
+- PostgreSQL/HTTP: **37/37, cero omitidas**,70 migraciones en Docker/PostgreSQL16
+  temporal propio (sin migración nueva en B). Seis casos nuevos y recorrido Chromium
+  ampliado: imágenes distintas, fallo atómico, cliente antiguo, versiones,
+  duplicados y bloqueo al desactivar.
+- Chromium real: carga de enunciado y opción, proporción2:1, agregar/quitar otra
+  opción sin perder la imagen y recarga del registro publicado. Escritorio1280
+  y viewport390. Captura de opción390 inspeccionada: textos/controles legibles,
+  proporción conservada y sin desbordes. Cero errores JS capturados.
+- Sin nueva compilación Android, ensayo físico C2, CI remoto o despliegue.
+  No confundir el navegador adaptable con un test Android de Flutter.
+
+Captura local excluida de Git:
+`backend/.tmp/c5b-qa/run-yHGyXJ/c5c2b-opcion-390.png`.
+El ejecutor retiró su propio contenedor y directorio temporal al terminar.
+Usó la imagen PostgreSQL16 ya existente y no tocó una base remota.
+
+## Antecedente — evidencia C2-A
 
 El 21 de octubre de 2026, en este PC:
 
@@ -82,9 +146,10 @@ Las ocho integradas nuevas cubren:
 7. Dos lotes simultáneos con orden inverso de archivos, sin interbloqueo.
 8. Rechazo HTTP del nuevo campo mientras el editor todavía no lo admite.
 
-La primera ejecución tuvo30/31: el test8 usaba el cliente del panel, que elimina
+La primera ejecución C2-A tuvo30/31: el test8 usaba el cliente del panel, que elimina
 campos desconocidos antes del envío. Se corrigió el test para usar HTTP directo
-y se repitió todo el recorrido:31/31. No se desactivó la validación del DTO.
+y se repitió todo el recorrido:31/31. C2-B amplió el DTO y ahora comprueba503
+con la activación apagada, sin perder la comprobación de ausencia de escrituras.
 Los dos avisos ESLint de una aserción nueva se corrigieron y se repitió el control.
 
 El ejecutor usa contenedor propio, puerto loopback aleatorio, tmpfs256MiB,
@@ -98,18 +163,18 @@ No se consultó ni modificó Supabase/Render ni una base persistente del propiet
 1. Revisar esta acta y C5_ARCHIVOS/C5C_FLUTTER, luego diff de ambos repositorios.
    No asumir que la API del ensayo anterior siga activa: se cerró para regenerar
    Prisma en Windows. Usar una sesión temporal nueva al retomar Android.
-2. Conservar texto obligatorio y único en cada opción; la imagen lo complementa.
+2. Mantener texto obligatorio y único en cada opción; la imagen lo complementa.
    El texto debe describir la opción sin revelar la correcta.
 3. Resolver enunciado y opciones juntos dentro de la misma transacción, con
    revisionado/versiones existentes. Si una imagen falla, no guardar ninguna parte.
-4. Incluir la identidad de cada imagen en huellas de duplicados, preservando las
-   huellas antiguas de opciones solo de texto y el formato del importador existente.
+4. Preservar las huellas de imágenes incorporadas en C2-B y la compatibilidad
+   antigua; no reinventar la detección de duplicados al añadir consumidores.
 5. Preparar serializadores y snapshots sin añadir `esCorrecta`, explicaciones de
    solución, FK privadas ni metadatos administrativos a respuestas no contestadas.
    Leer snapshots antiguos sin campos nuevos; no reescribir intentos guardados.
-6. El panel debe conservar asociaciones al recargar/editar y permitir quitar una
-   imagen sin eliminar físicamente el recurso. Mantener recuperación de cargas
-   inciertas y protección frente a cambio de cuenta/registro.
+6. Conservar el comportamiento del panel C2-B: asociaciones al recargar/editar,
+   quitar del formulario sin borrar bytes y recuperación de cargas inciertas.
+   Ampliar las pruebas, no rehacer ese selector al implementar Flutter.
 7. No habilitar el nuevo campo editorial hasta que consumidores y pruebas cubran
    todos los flujos afectados. Registrar la decisión de activación en C2-B/C.
 8. Celular requerido cuando exista la interfaz C2 completa para el ensayo C2-D;

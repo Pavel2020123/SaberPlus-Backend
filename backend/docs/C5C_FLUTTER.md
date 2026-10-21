@@ -36,17 +36,19 @@ Caso5 confirmado: con texto ampliado, salir y reabrir la lección conserva la fi
 horizontal y permite leer textos/botones sin recortes ni desbordes. Se indicó
 restaurar el tamaño habitual después; no se verificó un valor numérico de escala
 ni se afirma que el usuario haya restaurado ya su ajuste.
-Entrega A/B/C1 guardada en app `af73039` y backend `0bfaaba`, sin push funcional.
-Continuación posterior: [C5-C2-A base y permisos](C5C2_OPCIONES.md) validada;
-siguen C2-B contrato/editor/panel y C2-C consumidores. No se habilitó la carga
-de imágenes por opción ni se repitió el guion Android de C1.
+Entrega A/B/C1 guardada en app `af73039` y backend `0bfaaba`; push posterior
+confirmado hasta app `2ee714a` y backend `7995201`, incluyendo C2-A.
+Continuación: [C5-C2-A/B](C5C2_OPCIONES.md) validadas; sigue C2-C consumidores.
+La carga por opción está preparada pero apagada por defecto. No se repitió el
+guion Android de C1 ni se validó todavía C2 en el celular.
 La confirmación es humana, no otra prueba automática. Credenciales nuevas solo
 en el archivo privado temporal; no añadir claves a esta acta ni a los defines.
 
 La entrega A/B/C1 quedó guardada en esos commits funcionales locales de ambos repos.
 El commit documental móvil52a3488 anterior ya se publicó, pero no incluía el código
-funcional C5. No se hizo push funcional, merge a main ni despliegue. Las afirmaciones inferiores
-sobre ausencia de commit/push corresponden al cierre original del20.
+funcional C5; el push funcional posterior se registra arriba. No hubo merge a main
+ni despliegue. Las afirmaciones inferiores sobre ausencia de commit/push
+corresponden al cierre original del20.
 OV-1 sigue independiente. Conservar el límite de dos horas del ejecutor local.
 
 ## Corrección visual durante el caso3 — 21 de octubre
@@ -224,8 +226,8 @@ los certifica uno a uno en Android. Ampliar su recorrido en integración C5-D.
 
 ## Pendientes de C5
 
-- Imágenes en opciones: base/relaciones y permisos C2-A validados; siguen
-  DTO/panel, snapshots y todos los consumidores, sin revelar la correcta ni
+- Imágenes en opciones: base, permisos y contrato/panel C2-A/B validados; siguen
+  snapshots y todos los consumidores C2-C, sin revelar la correcta ni
   romper intentos guardados. [Checkpoint independiente C2](C5C2_OPCIONES.md).
 - PDF/offline, derechos/retención del archivo descargado y autorización de imágenes
   en intentos históricos. No guardar bytes privados globalmente por este bloque.

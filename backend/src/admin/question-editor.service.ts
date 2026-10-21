@@ -12,7 +12,14 @@ import { createQuestionFingerprint } from '../common/question-fingerprint';
 import { validateAcademicClassification } from './academic-classification';
 import { EditorialCaseDto, EditorialQuestionDto } from './question-editor.dto';
 import { publishParents, requireDirectPublication } from './direct-publication';
-import { editorialImageData } from '../editorial-files/editorial-file-association';
+import {
+  editorialImageData,
+  editorialImagesData,
+} from '../editorial-files/editorial-file-association';
+import {
+  optionImagesEnabled,
+  requireOptionImages,
+} from '../editorial-files/editorial-option-images';
 
 const questionInclude = {
   respuestas: { orderBy: { id: 'asc' } },
@@ -60,6 +67,8 @@ export class QuestionEditorService {
         ? row.estadoContenido !== 'ARCHIVADO'
         : row.estadoContenido === 'BORRADOR' && !row.fechaPublicacion) &&
       classified &&
+      (optionImagesEnabled() ||
+        !row.respuestas.some((option) => option.imagenUrl)) &&
       (direct ||
         Object.entries(row._count).every(
           ([relation, count]) => relation === 'respuestas' || count === 0,
@@ -79,9 +88,11 @@ export class QuestionEditorService {
         texto: option.texto,
         esCorrecta: option.esCorrecta,
         explicacion: option.explicacion ?? '',
+        ...(option.imagenUrl ? { imagenUrl: option.imagenUrl } : {}),
       })),
       estadoContenido: row.estadoContenido,
       editable,
+      imagenesEnOpcionesHabilitadas: optionImagesEnabled(),
       revision: revisionOf(row),
     };
   }
@@ -162,6 +173,7 @@ export class QuestionEditorService {
       limite,
       hayMas: rows.length > limite,
       items: rows.slice(0, limite),
+      imagenesEnOpcionesHabilitadas: optionImagesEnabled(),
       subtema: {
         id: subtema.id,
         nombre: subtema.nombre,
@@ -250,6 +262,10 @@ export class QuestionEditorService {
       esCorrecta: option.esCorrecta,
       explicacion: textField(option.explicacion, 4000, false) || null,
     }));
+    const optionUrls = body.respuestas.map((option) =>
+      textField(option.imagenUrl ?? '', 2000, false),
+    );
+    if (optionUrls.some(Boolean)) requireOptionImages();
     const optionKeys = respuestas.map((option) =>
       option.texto
         .normalize('NFKC')
@@ -285,12 +301,26 @@ export class QuestionEditorService {
       });
       if (!parent) throw new NotFoundException('El subtema no existe.');
       validateAcademicClassification(parent);
-      const image = await editorialImageData(tx, body.imagenUrl);
+      const [image, ...optionImages] = await editorialImagesData(tx, [
+        body.imagenUrl,
+        ...optionUrls,
+      ]);
+      const resolvedAnswers = respuestas.map((option, index) => ({
+        ...option,
+        ...optionImages[index],
+      }));
       const imagenUrl = image.imagenUrl;
       if (id) {
         await tx.$queryRaw`SELECT id FROM "Pregunta" WHERE id = ${id} FOR UPDATE`;
         const row = await this.question(tx, id);
         if (!body.revision || revisionOf(row) !== body.revision) throw stale();
+        if (
+          row.respuestas.some((option) => option.imagenUrl) &&
+          body.respuestas.some((option) => option.imagenUrl === undefined)
+        )
+          throw new ConflictException(
+            'El editor debe conservar las imágenes de todas las opciones. Actualiza el panel antes de guardar.',
+          );
         if (
           row.subtemaId !== body.subtemaId ||
           !this.questionView(row, direct).editable
@@ -333,7 +363,7 @@ export class QuestionEditorService {
         area,
         enunciado,
         imagen: imagenUrl,
-        opciones: respuestas,
+        opciones: resolvedAnswers,
       });
       // Legacy APIs include archived rows; direct editing excludes retired versions.
       // Legacy comparison is bounded and fail-closed;
@@ -355,7 +385,7 @@ export class QuestionEditorService {
           huellaContenido: true,
           enunciado: true,
           imagenUrl: true,
-          respuestas: { select: { texto: true } },
+          respuestas: { select: { texto: true, imagenUrl: true } },
         },
       });
       if (matches.length > 2000)
@@ -408,7 +438,7 @@ export class QuestionEditorService {
               where: { id },
               data: {
                 ...data,
-                respuestas: { deleteMany: {}, create: respuestas },
+                respuestas: { deleteMany: {}, create: resolvedAnswers },
               },
               include: questionInclude,
             })
@@ -418,7 +448,7 @@ export class QuestionEditorService {
                 subtemaId: body.subtemaId,
                 estadoContenido: direct ? 'PUBLICADO' : 'BORRADOR',
                 ...(direct ? { fechaPublicacion: new Date() } : {}),
-                respuestas: { create: respuestas },
+                respuestas: { create: resolvedAnswers },
               },
               include: questionInclude,
             });

@@ -411,7 +411,8 @@ export class CatalogApi {
             (option) =>
               typeof option?.texto !== "string" ||
               typeof option.esCorrecta !== "boolean" ||
-              typeof option.explicacion !== "string",
+              typeof option.explicacion !== "string" ||
+              (option.imagenUrl !== undefined && typeof option.imagenUrl !== "string"),
           )
         : typeof row.titulo !== "string" || typeof row.contexto !== "string")
     )
