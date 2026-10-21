@@ -59,6 +59,20 @@ async function server(options = {}) {
         verifyOptions: { algorithms: ['HS256'] },
       }),
       EditorialFileModule,
+      ...(options.consumers
+        ? [
+            require('../src/simulacro/simulacro.module').SimulacroModule,
+            require('../src/diagnostico/diagnostico.module').DiagnosticoModule,
+            require('../src/summit/summit.module').SummitModule,
+            require('../src/star-rescue/star-rescue.module').StarRescueModule,
+            require('../src/guardian/guardian.module').GuardianModule,
+            require('../src/trivia-rush/trivia-rush.module').TriviaRushModule,
+            require('../src/tira-afloja/tira-afloja.module').TiraAflojaModule,
+            require('../src/batallas/batallas.module').BatallasModule,
+            require('../src/cuaderno-errores/cuaderno-errores.module')
+              .CuadernoErroresModule,
+          ]
+        : []),
       ...(options.panel
         ? [
             require('../src/auth/auth.module').AuthModule,
@@ -783,6 +797,258 @@ async function imageQuestionFixture() {
   }));
   return { ...f, ...s, first, second, paths, body };
 }
+
+let c2Bank;
+async function consumerBank() {
+  if (c2Bank) return c2Bank;
+  const f = await imageQuestionFixture();
+  // Trivia exige cuatro opciones; no flexibilizar sus reglas por el ensayo C5.
+  f.body.respuestas.push(
+    { texto: '4', esCorrecta: false, explicacion: '', imagenUrl: f.paths[0] },
+    { texto: '5', esCorrecta: false, explicacion: '', imagenUrl: f.paths[1] },
+  );
+  await db.tema.update({ where: { id: f.theme.id }, data: { area: 'INGLES' } });
+  for (let i = 0; i < 12; i++)
+    await f.api.bankRecord('preguntas', f.sub.id, undefined, {
+      ...f.body,
+      enunciado: `C2-C option figures ${i} ${randomUUID()}`,
+    });
+  const app = await server({ panel: true, consumers: true });
+  return (c2Bank = { ...f, consumerBase: app.base });
+}
+function assertPublicOptions(q, requireImages = true) {
+  const options = q.respuestas ?? q.opciones;
+  assert.ok(options?.length >= 2);
+  assert.doesNotMatch(
+    JSON.stringify(options),
+    /esCorrecta|correctAnswerId|explicacion|archivoImagenId|autorizacion|operacionId/,
+  );
+  if (requireImages)
+    for (const option of options)
+      assert.match(option.imagenUrl, /^\/recursos\/editoriales\//);
+}
+const jsonPost = (path, token, data, origin) =>
+  call(
+    path,
+    token,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    },
+    origin,
+  );
+
+test('C5-C2-C práctica, simulacro, corrección, historial y cuaderno conservan imagen de opción', () =>
+  withOptionImages(async () => {
+    const f = await consumerBank(),
+      student = await user('ESTUDIANTE'),
+      token = tokenFor(student);
+    const practice = await call(
+      `/simulacros/preguntas/${f.sub.id}`,
+      token,
+      {},
+      f.consumerBase,
+    );
+    assert.equal(practice.status, 200);
+    for (const q of practice.data.preguntas) assertPublicOptions(q);
+    const custom = await call(
+      '/simulacros/generar-personalizado?areas=INGLES&cantidad=5',
+      token,
+      {},
+      f.consumerBase,
+    );
+    assert.equal(custom.status, 200);
+    for (const q of custom.data.preguntas) assertPublicOptions(q);
+    const answers = [];
+    for (const q of practice.data.preguntas) {
+      const incorrect = await db.respuesta.findFirstOrThrow({
+        where: { preguntaId: q.id, esCorrecta: false },
+      });
+      answers.push({ preguntaId: q.id, respuestaId: incorrect.id });
+    }
+    const graded = await jsonPost(
+      '/simulacros/calificar',
+      token,
+      {
+        intentoId: practice.data.intentoId,
+        area: 'INGLES',
+        origen: 'PRACTICA',
+        respuestas: answers,
+      },
+      f.consumerBase,
+    );
+    assert.equal(graded.status, 201);
+    assert.ok(
+      graded.data.detalle.every((q) => q.respuestas.every((a) => a.imagenUrl)),
+    );
+    const history = await call(
+      '/simulacros/historial-respuestas',
+      token,
+      {},
+      f.consumerBase,
+    );
+    assert.equal(history.status, 200);
+    assert.ok(history.data.respuestas.length > 0);
+    assert.ok(
+      history.data.respuestas.every(
+        (r) =>
+          r.respuestaSeleccionada.imagenUrl && r.respuestaCorrecta.imagenUrl,
+      ),
+    );
+    const notebook = await call('/cuaderno-errores', token, {}, f.consumerBase);
+    assert.equal(notebook.status, 200);
+    const rows = notebook.data.errores ?? notebook.data.items;
+    assert.ok(rows?.length > 0);
+    assert.ok(
+      rows.every(
+        (r) =>
+          r.respuestaSeleccionada.imagenUrl && r.respuestaCorrecta.imagenUrl,
+      ),
+    );
+    // Todo es de un usuario ficticio y se respondió mal: no se fabricó XP competitivo.
+    assert.equal(
+      await db.eventoXpCompetitivo.count({ where: { usuarioId: student.id } }),
+      0,
+    );
+  }));
+
+for (const route of ['/salto-cima', '/rescate-estrellas', '/guardian'])
+  test(`C5-C2-C ${route}: imagen actual, recuperación y snapshot estable sin solución`, () =>
+    withOptionImages(async () => {
+      const f = await consumerBank(),
+        token = tokenFor(await user('ESTUDIANTE'));
+      const start = await jsonPost(
+        `${route}/intentos`,
+        token,
+        { area: 'INGLES', dificultad: 'BASICO', subtemaId: f.sub.id },
+        f.consumerBase,
+      );
+      assert.equal(start.status, 201);
+      assertPublicOptions(start.data.pregunta);
+      assert.doesNotMatch(
+        JSON.stringify(start.data.pregunta),
+        /correctAnswerId|esCorrecta|explicacion/,
+      );
+      const previous = await db.respuesta.findMany({
+        where: { preguntaId: start.data.pregunta.id },
+      });
+      try {
+        // Perturbación propia para verificar que el intento ya admitido no relee el banco.
+        await db.respuesta.updateMany({
+          where: { preguntaId: start.data.pregunta.id },
+          data: { imagenUrl: null, archivoImagenId: null },
+        });
+        const recovered = await call(
+          `${route}/intentos/${start.data.id}`,
+          token,
+          {},
+          f.consumerBase,
+        );
+        assert.equal(recovered.status, 200);
+        assert.deepEqual(recovered.data.pregunta, start.data.pregunta);
+      } finally {
+        for (const row of previous)
+          await db.respuesta.update({
+            where: { id: row.id },
+            data: {
+              imagenUrl: row.imagenUrl,
+              archivoImagenId: row.archivoImagenId,
+            },
+          });
+      }
+    }));
+
+test('C5-C2-C Trivia y Fantasma comparten proyección pública de imágenes sin claves', () =>
+  withOptionImages(async () => {
+    const f = await consumerBank(),
+      token = tokenFor(await user('ESTUDIANTE'));
+    const started = await jsonPost(
+      '/trivia-rush/intentos',
+      token,
+      { areas: ['INGLES'], duracionSegundos: 60 },
+      f.consumerBase,
+    );
+    assert.equal(started.status, 201);
+    assertPublicOptions(started.data.intento.pregunta);
+    assert.doesNotMatch(
+      JSON.stringify(started.data.intento.pregunta),
+      /correctAnswerId|esCorrecta|explicacion/,
+    );
+  }));
+
+test('C5-C2-C Batallas entrega imágenes al iniciar, no soluciones ni datos de autoría', () =>
+  withOptionImages(async () => {
+    const f = await consumerBank();
+    const token = tokenFor(await user('ESTUDIANTE')),
+      rival = tokenFor(await user('ESTUDIANTE'));
+    const first = await jsonPost(
+      '/batallas',
+      token,
+      { area: 'INGLES', modo: 'DUELO_RELAMPAGO' },
+      f.consumerBase,
+    );
+    assert.equal(first.status, 201);
+    const second = await jsonPost(
+      '/batallas',
+      rival,
+      { area: 'INGLES', modo: 'DUELO_RELAMPAGO' },
+      f.consumerBase,
+    );
+    assert.equal(second.status, 201);
+    const started = await jsonPost(
+      `/batallas/${first.data.id}/iniciar`,
+      token,
+      {},
+      f.consumerBase,
+    );
+    assert.equal(started.status, 201);
+    assert.ok(started.data.preguntas.length > 0);
+    for (const q of started.data.preguntas) assertPublicOptions(q);
+  }));
+
+test('C5-C2-C diagnóstico y repaso mantienen referencias sin exponer corrección', () =>
+  withOptionImages(async () => {
+    const f = await consumerBank(),
+      token = tokenFor(await user('ESTUDIANTE'));
+    for (const area of [
+      'MATEMATICAS',
+      'LECTURA_CRITICA',
+      'SOCIALES_CIUDADANAS',
+      'CIENCIAS_NATURALES',
+    ]) {
+      const s = await structure();
+      await db.tema.update({ where: { id: s.theme.id }, data: { area } });
+      for (let i = 0; i < 3; i++)
+        await f.api.bankRecord('preguntas', s.sub.id, undefined, {
+          ...f.body,
+          subtemaId: s.sub.id,
+          enunciado: `C2-C diagnóstico ${area} ${i} ${randomUUID()}`,
+        });
+    }
+    const diagnostic = await jsonPost(
+      '/diagnostico-inicial/iniciar',
+      token,
+      {},
+      f.consumerBase,
+    );
+    assert.equal(diagnostic.status, 201);
+    assert.equal(diagnostic.data.preguntas.length, 15);
+    for (const q of diagnostic.data.preguntas) assertPublicOptions(q, false);
+    assert.ok(
+      diagnostic.data.preguntas.some((q) =>
+        q.respuestas.some((a) => a.imagenUrl),
+      ),
+    );
+    const review = await jsonPost(
+      '/repaso-adaptativo/generar?cantidad=5',
+      token,
+      {},
+      f.consumerBase,
+    );
+    assert.equal(review.status, 201);
+    for (const q of review.data.preguntas) assertPublicOptions(q, false);
+  }));
 
 test('C5-C2-B API y cliente editorial guardan imágenes distintas y las devuelven sin metadatos privados', () =>
   withOptionImages(async () => {

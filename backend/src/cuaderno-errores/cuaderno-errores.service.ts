@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { AreaIcfes, EstadoCuadernoError, RolUsuario } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { publicAnswerOption } from '../common/public-answer-option';
 
 interface FiltrosCuaderno {
   area?: AreaIcfes;
@@ -70,6 +71,7 @@ export class CuadernoErroresService {
                 select: {
                   id: true,
                   texto: true,
+                  imagenUrl: true,
                   explicacion: true,
                   esCorrecta: true,
                 },
@@ -114,12 +116,11 @@ export class CuadernoErroresService {
         vecesFallada: conteos.get(registro.preguntaId) ?? 1,
         ultimoErrorEn: registro.fechaRespuesta,
         respuestaSeleccionada: seleccionada
-          ? { id: seleccionada.id, texto: seleccionada.texto }
+          ? publicAnswerOption(seleccionada)
           : null,
         respuestaCorrecta: correcta
           ? {
-              id: correcta.id,
-              texto: correcta.texto,
+              ...publicAnswerOption(correcta),
               explicacion: correcta.explicacion,
             }
           : null,

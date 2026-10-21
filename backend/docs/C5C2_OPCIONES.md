@@ -2,16 +2,19 @@
 
 ## Checkpoint — 21 de octubre de 2026
 
-**C2-A y C2-B implementadas y validadas localmente. Sigue C2-C, consumidores y Flutter.**
+**C2-A/B/C implementadas y validadas automáticamente. Sigue C2-D, ensayo Android.**
+Preparación y confirmaciones humanas: [acta C2-D](C5C2D_VALIDACION_LOCAL.md),0/8.
+Ver [acta de consumidores C2-C](C5C2C_CONSUMIDORES.md):969 Flutter/16 omitidas,
+128 suites/1.675 backend y44 PostgreSQL/HTTP aprobadas. C2-C aún sin commit/push.
 C2-B incorpora DTO/guardado y selector por opción, pero su activación está apagada
 por defecto. Solo se habilitó dentro del ensayo desechable. No es el cierre completo
 de C5-C2 ni una autorización para publicar preguntas con imágenes a estudiantes.
 No cargar estas asociaciones manualmente en una base existente.
 
 Entrega anterior A/B/C1 guardada: app `af73039`, backend `0bfaaba`.
-Push de A/B/C1 y C2-A confirmado en app `2ee714a` y backend `7995201`.
+Push de A/B/C1 y C2-A/B confirmado hasta app `c69a5e9` y backend `e1c4d18`.
 El push documental anterior `52a3488` no incluía el código funcional C5.
-C2-B es la entrega actual de esta acta; consultar git log de la rama para su commit.
+C2-C está validada automáticamente; sigue C2-D Android. Su acta separa evidencia y pendientes.
 No se creó PR ni se hizo merge o despliegue. Rama: `feat/c5-archivos-base`.
 OV-1 y su checkpoint siguen siendo responsabilidad del compañero.
 
@@ -21,8 +24,8 @@ OV-1 y su checkpoint siguen siendo responsabilidad del compañero.
 | --- | --- |
 | C2-A — Base y seguridad | Validada localmente. Modelo Respuesta, relaciones, consistencia SQL, lectura publicada, protección de retirada y resolución por lotes. |
 | C2-B — Contrato editorial y panel | Validada localmente. DTO, detalle/guardado/versiones, huellas y selector por opción con carga/recibo/reintento. Texto obligatorio; protección de editores antiguos. Activación local apagada por defecto, no habilitar antes de C2-C/D. |
-| C2-C — Contratos de consumo y Flutter | **Siguiente.** Transportar referencias por opción en práctica, diagnóstico, simulacro/repaso, juegos y snapshots. Compatibilidad con registros/intentos antiguos sin imagen. Renderizar con AcademicImage, proporción original y descripción accesible, sin filtrar la correcta. |
-| C2-D — Ensayo del flujo completo | Pendiente. Panel → API/SQL → app Android, imágenes en opciones correctas e incorrectas, historial/versiones, sesión/conexión, texto grande y recuperación. Es validación de C2, no sustituye C5-D de operación global. |
+| C2-C — Contratos de consumo y Flutter | Implementada y validada automáticamente según su acta. Referencias en consultas/snapshots y consumidores, JSON antiguo compatible y componente proporcional sin recortar errores. Sigue apagada la carga por defecto. |
+| C2-D — Ensayo del flujo completo | **Siguiente:0/8 guiones humanos propuestos.** Panel → API/SQL → Android; imágenes en opciones, sesión/conexión, texto grande y juegos representativos. Requiere Docker/USB. No sustituye C5-D de operación global. |
 
 Después continúan PDF/offline, autorización de recursos históricos,
 fotos/evidencias y C5-D. C1 permanece cerrada dentro de sus cinco pruebas humanas;
@@ -53,8 +56,8 @@ no se repitió ese guion Android en esta entrega.
 
 En C2-A los fixtures se crearon únicamente mediante transacciones del ensayo.
 C2-B ya prueba el contrato editorial y la carga UI reales en ese entorno aislado,
-con activación temporal explícita. No añade aún referencias a los serializadores
-públicos ni snapshots de consumidores. Sin cambios de puntaje, XP, certificados,
+con activación temporal explícita. C2-C incorpora después esas referencias a los
+serializadores y snapshots de consumidores, según su acta. Sin cambios de puntaje, XP, certificados,
 ranking o reglas de respuesta.
 
 ## C2-B — Contrato y panel, validación del 21 de octubre
@@ -84,15 +87,16 @@ ranking o reglas de respuesta.
 `EDITORIAL_OPTION_IMAGES_LOCAL_ENABLED=false` por defecto en .env.example.
 Para el ensayo exige, además, archivos locales habilitados y NODE_ENV development
 o test; production, staging o entorno ausente siguen bloqueados.
-No se activó en un servicio humano ni remoto. Los tests la encienden temporalmente
-dentro de su propio proceso y restauran el valor al terminar.
+La evidencia automática se obtuvo con activación temporal dentro del ejecutor.
+Para preparar C2-D se admite opt-in explícito solo en la API desechable propia;
+esto no activa servicios remotos ni constituye una confirmación humana.
 
 Apagada: una nueva imagen por opción devuelve503 sin escribir. Las preguntas solo
 de texto siguen funcionando. Una pregunta ilustrada conserva su detalle pero queda
 de solo lectura; la revisión editorial también bloquea su publicación.
 Esto sustituye el rechazo del DTO de C2-A por un contrato válido con bloqueo
 explícito de capacidad. No cambiar la bandera en un servidor con estudiantes:
-antes faltan C2-C y C2-D. El adaptador privado de C5 también sigue sin proveedor
+antes falta validar C2-D. El adaptador privado de C5 también sigue sin proveedor
 productivo autorizado.
 
 ### Evidencia C2-B realmente ejecutada
@@ -158,7 +162,7 @@ Verificó propiedad y retiró su contenedor y directorio temporal al terminar.
 Las capturas del panel quedan fuera de Git, en `backend/.tmp/c5b-qa/`.
 No se consultó ni modificó Supabase/Render ni una base persistente del propietario.
 
-## Para continuar sin romper contenido
+## Conservación de contratos al continuar
 
 1. Revisar esta acta y C5_ARCHIVOS/C5C_FLUTTER, luego diff de ambos repositorios.
    No asumir que la API del ensayo anterior siga activa: se cerró para regenerar
@@ -175,8 +179,9 @@ No se consultó ni modificó Supabase/Render ni una base persistente del propiet
 6. Conservar el comportamiento del panel C2-B: asociaciones al recargar/editar,
    quitar del formulario sin borrar bytes y recuperación de cargas inciertas.
    Ampliar las pruebas, no rehacer ese selector al implementar Flutter.
-7. No habilitar el nuevo campo editorial hasta que consumidores y pruebas cubran
-   todos los flujos afectados. Registrar la decisión de activación en C2-B/C.
+7. Aunque los consumidores ya están implementados, falta C2-D físico. No habilitar
+   para estudiantes por cerrar las pruebas automáticas. Registrar la activación
+   solo dentro del entorno sintético autorizado de C2-D.
 8. Celular requerido cuando exista la interfaz C2 completa para el ensayo C2-D;
    Docker se usa para pruebas PostgreSQL, no para justificar controles sin ejecutarlos.
    No publicar, migrar remotamente ni integrar main sin autorización.

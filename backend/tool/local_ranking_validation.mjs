@@ -11,6 +11,11 @@ import { validateCompetitiveDatabase } from './test_competitive_postgres.mjs';
 import { readLocalControl } from './local_control_file.mjs';
 
 if (process.argv.length !== 2) throw new Error('No external arguments accepted.');
+// Explicit opt-in for C2-D only. Never inherit a production/editorial runtime flag.
+const optionImagesLocal = process.env.SABERPLUS_C5_OPTION_IMAGES_LOCAL;
+if (optionImagesLocal !== undefined && !['true', 'false'].includes(optionImagesLocal)) {
+  throw new Error('SABERPLUS_C5_OPTION_IMAGES_LOCAL must be true or false.');
+}
 const backend = fileURLToPath(new URL('../', import.meta.url));
 const require = createRequire(join(backend, 'package.json'));
 const execute = promisify(execFile);
@@ -29,6 +34,7 @@ Object.assign(env, { POSTGRES_USER: user, POSTGRES_PASSWORD: password, POSTGRES_
   NODE_ENV: 'test', SMTP_HOST: '127.0.0.1', SMTP_PORT: '1',
   EDITORIAL_PUBLICATION_ENABLED: 'true', // Only this freshly owned local API.
   EDITORIAL_FILES_LOCAL_ENABLED: 'true', // C5: private files only in this owned test environment.
+  EDITORIAL_OPTION_IMAGES_LOCAL_ENABLED: String(optionImagesLocal === 'true'),
   JWT_SECRET: randomBytes(32).toString('hex'), RANKING_ALIAS_SECRET: randomBytes(32).toString('hex') });
 let db, child, context, url = '', created = false;
 const run = (command, args, cwd = backend) => execute(command, args, {
@@ -151,7 +157,8 @@ try {
     pendingStudentRequestsMigration: !paths.includes(studentRequestsMigration),
     pendingStudentCodesMigration: !paths.includes(studentCodesMigration),
     pendingQuestionReportsMigration: !paths.includes(questionReportsMigration),
-    api: config.API_BASE_URL, syntheticFixtures: true, ownPosition: 51, totalParticipants: 61 }));
+    api: config.API_BASE_URL, syntheticFixtures: true, optionImagesLocal: optionImagesLocal === 'true',
+    ownPosition: 51, totalParticipants: 61 }));
   console.log('Local control.json actions: correct, solo-on, solo-off, stop. No HTTP mutation route.');
   let corrected = false;
   let soloEnabled = false;

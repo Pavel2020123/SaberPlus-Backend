@@ -4,9 +4,11 @@
 
 **Actualización posterior:** [C5-C1 Flutter](C5C_FLUTTER.md) ya implementa lectura
 online autenticada, validada automáticamente y después en Android5/5 el21.
-Continuación vigente: [C5-C2-A/B](C5C2_OPCIONES.md) base y selector por opción
-validados localmente, con activación apagada por defecto. Sigue C2-C consumidores.
-Push A/B/C1+C2-A confirmado en app2ee714a/backend7995201; sin merge ni despliegue.
+Continuación vigente: [C5-C2-C](C5C2C_CONSUMIDORES.md) contratos y consumidores
+validados automáticamente; sigue C2-D Android, todavía sin confirmaciones humanas.
+Activación apagada por defecto; opt-in solo en la API desechable propia.
+Push C2-B confirmado en app `c69a5e9`/backend `e1c4d18`; C2-C sin commit/push.
+Sin merge ni despliegue.
 El resto de C5-C/D permanece abierto.
 Las afirmaciones inferiores sobre Flutter pendiente describen el cierre de B,
 no sustituyen el checkpoint C1 más reciente.

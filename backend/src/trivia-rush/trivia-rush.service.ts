@@ -18,6 +18,7 @@ import {
   TipoPotenciadorTriviaRush,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { publicAnswerOption } from '../common/public-answer-option';
 import { assertTriviaCompetitiveCreationAllowed } from '../competitive/competitive.activation';
 import { preguntaPublicadaWhere } from '../common/contenido-publicado';
 import {
@@ -1081,7 +1082,7 @@ export class TriviaRushService {
       opciones: this.leerIds(asignada.opcionesOrden)
         .map((id) => mapa.get(id))
         .filter(Boolean)
-        .map((respuesta) => ({ id: respuesta.id, texto: respuesta.texto })),
+        .map(publicAnswerOption),
     };
   }
 

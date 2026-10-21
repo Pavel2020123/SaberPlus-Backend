@@ -86,7 +86,7 @@ export class RepasoAdaptativoService {
               area: true,
             },
           },
-          respuestas: { select: { id: true, texto: true } },
+          respuestas: { select: { id: true, texto: true, imagenUrl: true } },
           subtema: {
             select: {
               id: true,

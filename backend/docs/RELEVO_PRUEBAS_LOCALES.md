@@ -1,5 +1,11 @@
 # Relevo de pruebas locales para compañeros
 
+**Entrada vigente del21:** nuevo compañero para terminar C5-C2, distinto del
+responsable de OV-1. Leer [relevo completo](RELEVO_C5_C2.md) y
+[acta C2-D](C5C2D_VALIDACION_LOCAL.md),0/8 humanos con D8a–e pendientes.
+Incluye cuentas/clave temporal, Docker, USB, panel, pruebas y cambios de ambos repos.
+Las instrucciones anteriores de reportes/juegos/instituciones no reinician esas etapas.
+
 **19 de octubre, propietario en MA-1R/R4:** [acta vigente](MA1R_R4_VALIDACION_LOCAL.md),
 12/12 humanos,45/45 HTTP/PostgreSQL y corrección de carrera ADMIN P2010/40001
 probados. `npm run test:question-reports:postgres` crea su propia base, no requiere

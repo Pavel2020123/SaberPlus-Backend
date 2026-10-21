@@ -1,4 +1,7 @@
-import { BadRequestException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { EstadoContenido } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { ContentLifecycleService } from './content-lifecycle.service';
@@ -23,6 +26,29 @@ describe('ContentLifecycleService', () => {
   beforeEach(() => {
     jest.resetAllMocks();
     pregunta.findFirst.mockResolvedValue(null);
+  });
+
+  it('la publicación heredada tampoco elude la activación de imágenes por opción', async () => {
+    const previous = process.env.EDITORIAL_OPTION_IMAGES_LOCAL_ENABLED;
+    process.env.EDITORIAL_OPTION_IMAGES_LOCAL_ENABLED = 'false';
+    try {
+      pregunta.findUnique.mockResolvedValue({
+        id: 'question',
+        estadoContenido: EstadoContenido.EN_REVISION,
+        huellaContenido: null,
+        respuestas: [
+          { texto: 'Figura', imagenUrl: 'https://example.invalid/figura.png' },
+        ],
+      });
+      await expect(
+        service.cambiarEstadoPregunta('question', EstadoContenido.PUBLICADO),
+      ).rejects.toBeInstanceOf(ServiceUnavailableException);
+      expect(pregunta.update).not.toHaveBeenCalled();
+    } finally {
+      if (previous === undefined)
+        delete process.env.EDITORIAL_OPTION_IMAGES_LOCAL_ENABLED;
+      else process.env.EDITORIAL_OPTION_IMAGES_LOCAL_ENABLED = previous;
+    }
   });
 
   it('envía un tema borrador a revisión sin publicarlo', async () => {

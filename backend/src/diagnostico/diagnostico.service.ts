@@ -47,7 +47,7 @@ const preguntaPublicaSelect = Prisma.validator<Prisma.PreguntaSelect>()({
     },
   },
   respuestas: {
-    select: { id: true, texto: true },
+    select: { id: true, texto: true, imagenUrl: true },
   },
   subtema: {
     select: {
