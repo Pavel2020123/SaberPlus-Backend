@@ -36,12 +36,14 @@ Caso5 confirmado: con texto ampliado, salir y reabrir la lección conserva la fi
 horizontal y permite leer textos/botones sin recortes ni desbordes. Se indicó
 restaurar el tamaño habitual después; no se verificó un valor numérico de escala
 ni se afirma que el usuario haya restaurado ya su ajuste.
-Siguiente: consolidar los commits funcionales A/B/C1 de ambos repositorios y
-preparar C5-C2, imágenes en opciones de respuesta. Sin commit/push/merge automático.
+Entrega A/B/C1 guardada en app `af73039` y backend `0bfaaba`, sin push funcional.
+Continuación posterior: [C5-C2-A base y permisos](C5C2_OPCIONES.md) validada;
+siguen C2-B contrato/editor/panel y C2-C consumidores. No se habilitó la carga
+de imágenes por opción ni se repitió el guion Android de C1.
 La confirmación es humana, no otra prueba automática. Credenciales nuevas solo
 en el archivo privado temporal; no añadir claves a esta acta ni a los defines.
 
-La entrega A/B/C1 se guarda ahora en commits funcionales locales de ambos repos.
+La entrega A/B/C1 quedó guardada en esos commits funcionales locales de ambos repos.
 El commit documental móvil52a3488 anterior ya se publicó, pero no incluía el código
 funcional C5. No se hizo push funcional, merge a main ni despliegue. Las afirmaciones inferiores
 sobre ausencia de commit/push corresponden al cierre original del20.
@@ -222,8 +224,9 @@ los certifica uno a uno en Android. Ampliar su recorrido en integración C5-D.
 
 ## Pendientes de C5
 
-- Imágenes en opciones: modelo Respuesta, relaciones, DTO/panel, snapshots y todos
-  los consumidores sin revelar la correcta ni romper intentos guardados.
+- Imágenes en opciones: base/relaciones y permisos C2-A validados; siguen
+  DTO/panel, snapshots y todos los consumidores, sin revelar la correcta ni
+  romper intentos guardados. [Checkpoint independiente C2](C5C2_OPCIONES.md).
 - PDF/offline, derechos/retención del archivo descargado y autorización de imágenes
   en intentos históricos. No guardar bytes privados globalmente por este bloque.
 - Fotos de perfil y evidencias institucionales privadas, con límites y permisos

@@ -34,6 +34,9 @@ const {
   EditorialFileRuntime,
 } = require('../src/editorial-files/editorial-file-runtime');
 const {
+  editorialImagesData,
+} = require('../src/editorial-files/editorial-file-association');
+const {
   EDITORIAL_FILE_ROOT,
   EditorialFileStore,
   LocalEditorialFileStore,
@@ -744,6 +747,255 @@ async function panelFixture() {
   await api.login(admin.correo, password);
   return { app, admin, password, api, token: tokenFor(admin) };
 }
+
+// C2-A comprueba la base por transacciones propias del ensayo. El DTO del editor
+// sigue rechazando imágenes en opciones hasta preparar panel y consumidores.
+async function optionFixture() {
+  const f = await resource();
+  const s = await structure();
+  const question = await db.pregunta.create({
+    data: {
+      subtemaId: s.sub.id,
+      enunciado: `Opciones C2 ${randomUUID()}`,
+      dificultad: 'BASICO',
+      estadoContenido: 'PUBLICADO',
+      explicacion: 'Compara las proporciones.',
+      respuestas: {
+        create: [
+          { texto: 'Rectángulo de proporción dos a uno', esCorrecta: true },
+          { texto: 'Cuadrado de lados iguales', esCorrecta: false },
+        ],
+      },
+    },
+    include: { respuestas: { orderBy: { texto: 'asc' } } },
+  });
+  return { ...f, ...s, question, path: `/recursos/editoriales/${f.file.id}` };
+}
+
+async function attachOption(f, index = 0) {
+  return db.$transaction(async (tx) => {
+    const [image] = await editorialImagesData(tx, [f.path]);
+    return tx.respuesta.update({
+      where: { id: f.question.respuestas[index].id },
+      data: image,
+    });
+  });
+}
+
+test('C5-C2-A migración aditiva: texto, nulabilidad, FK y par ruta/identificador', async () => {
+  const f = await optionFixture();
+  const option = f.question.respuestas[0];
+  assert.equal(option.imagenUrl, null);
+  assert.equal(option.archivoImagenId, null);
+  assert.ok(option.texto);
+  const missing = randomUUID();
+  await assert.rejects(
+    db.respuesta.update({
+      where: { id: option.id },
+      data: {
+        imagenUrl: `/recursos/editoriales/${missing}`,
+        archivoImagenId: missing,
+      },
+    }),
+    (error) => error.code === 'P2003',
+  );
+  await assert.rejects(
+    db.respuesta.update({
+      where: { id: option.id },
+      data: {
+        imagenUrl: `/recursos/editoriales/${randomUUID()}`,
+        archivoImagenId: randomUUID(),
+      },
+    }),
+  );
+  for (const data of [
+    { imagenUrl: f.path },
+    { archivoImagenId: f.file.id },
+    { imagenUrl: 'javascript:alert(1)' },
+    { imagenUrl: 'https://example.invalid/a.png', archivoImagenId: f.file.id },
+  ]) {
+    await assert.rejects(
+      db.respuesta.update({ where: { id: option.id }, data }),
+    );
+  }
+  await attachOption(f);
+  await assert.rejects(
+    db.archivoEditorial.delete({ where: { id: f.file.id } }),
+  );
+  await assert.rejects(
+    db.$executeRaw`UPDATE "Respuesta" SET texto = NULL WHERE id = ${option.id}`,
+    sqlState('23502'),
+  );
+  assert.equal(
+    (await db.respuesta.findUniqueOrThrow({ where: { id: option.id } })).texto,
+    option.texto,
+  );
+});
+
+test('C5-C2-A imagen de opción: bytes privados y mismo acceso para correcta e incorrecta', async () => {
+  for (const index of [0, 1]) {
+    const f = await optionFixture();
+    const student = tokenFor(await user('ESTUDIANTE'));
+    assert.equal((await call(f.path, student)).status, 404);
+    await attachOption(f, index);
+    const response = await call(f.path, student);
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get('content-type'), 'image/webp');
+    assert.match(response.headers.get('cache-control'), /no-store/);
+    assert.ok(Buffer.isBuffer(response.data));
+    assert.equal(response.data.length, f.file.bytes);
+    assert.equal((await call(f.path)).status, 401);
+    assert.equal(
+      (await call(`/admin/archivos/${f.file.id}`, student)).status,
+      403,
+    );
+  }
+});
+
+test('C5-C2-A archivar pregunta o cualquiera de sus padres revoca la lectura de la opción', async () => {
+  const f = await optionFixture();
+  await attachOption(f);
+  const student = tokenFor(await user('ESTUDIANTE'));
+  for (const [table, id] of [
+    [db.pregunta, f.question.id],
+    [db.subtema, f.sub.id],
+    [db.tema, f.theme.id],
+  ]) {
+    await table.update({
+      where: { id },
+      data: { estadoContenido: 'ARCHIVADO' },
+    });
+    assert.equal((await call(f.path, student)).status, 404);
+    await table.update({
+      where: { id },
+      data: { estadoContenido: 'PUBLICADO' },
+    });
+    assert.equal((await call(f.path, student)).status, 200);
+  }
+});
+
+test('C5-C2-A retirada protege también respuestas de versiones archivadas; desvincular no borra bytes', async () => {
+  const f = await optionFixture();
+  const option = await attachOption(f);
+  await db.pregunta.update({
+    where: { id: f.question.id },
+    data: { estadoContenido: 'ARCHIVADO' },
+  });
+  assert.equal(
+    (await call(`${prefix}/${f.file.id}`, f.token, { method: 'DELETE' }))
+      .status,
+    409,
+  );
+  assert.equal((await call(f.file.contenidoUrl, f.token)).status, 200);
+  await db.respuesta.update({
+    where: { id: option.id },
+    data: { imagenUrl: null, archivoImagenId: null },
+  });
+  assert.equal((await call(f.file.contenidoUrl, f.token)).status, 200);
+  assert.equal(
+    (await call(`${prefix}/${f.file.id}`, f.token, { method: 'DELETE' }))
+      .status,
+    200,
+  );
+  assert.equal((await call(f.file.contenidoUrl, f.token)).status, 404);
+});
+
+test('C5-C2-A un lote inválido revierte todas las opciones dentro de la transacción', async () => {
+  const f = await optionFixture();
+  await assert.rejects(
+    db.$transaction(async (tx) => {
+      const [image] = await editorialImagesData(tx, [f.path]);
+      await tx.respuesta.update({
+        where: { id: f.question.respuestas[0].id },
+        data: image,
+      });
+      await editorialImagesData(tx, [`/recursos/editoriales/${randomUUID()}`]);
+    }),
+  );
+  assert.equal(
+    await db.respuesta.count({
+      where: { preguntaId: f.question.id, archivoImagenId: { not: null } },
+    }),
+    0,
+  );
+});
+
+test('C5-C2-A asociación y retirada concurrentes no confirman una referencia a un archivo retirado', async () => {
+  const f = await optionFixture();
+  const outcomes = await Promise.allSettled([
+    attachOption(f),
+    call(`${prefix}/${f.file.id}`, f.token, { method: 'DELETE' }),
+  ]);
+  const file = await db.archivoEditorial.findUniqueOrThrow({
+    where: { id: f.file.id },
+  });
+  const option = await db.respuesta.findUniqueOrThrow({
+    where: { id: f.question.respuestas[0].id },
+  });
+  const removal = outcomes[1];
+  assert.equal(removal.status, 'fulfilled');
+  if (file.estado === 'RETIRADO') {
+    assert.equal(outcomes[0].status, 'rejected');
+    assert.equal(option.archivoImagenId, null);
+    assert.equal(removal.value.status, 200);
+  } else {
+    assert.equal(outcomes[0].status, 'fulfilled');
+    assert.equal(option.archivoImagenId, f.file.id);
+    assert.equal(removal.value.status, 409);
+  }
+});
+
+test('C5-C2-A lotes simultáneos con archivos en orden inverso terminan sin interbloqueo', async () => {
+  const first = await optionFixture(),
+    second = await optionFixture();
+  const paths = [first.path, second.path];
+  const save = (f, values) =>
+    db.$transaction(
+      async (tx) => {
+        const images = await editorialImagesData(tx, values);
+        for (let i = 0; i < images.length; i++) {
+          await tx.respuesta.update({
+            where: { id: f.question.respuestas[i].id },
+            data: images[i],
+          });
+        }
+      },
+      { timeout: 10000 },
+    );
+  await Promise.all([save(first, paths), save(second, [...paths].reverse())]);
+  for (const [f, expected] of [
+    [first, paths],
+    [second, [...paths].reverse()],
+  ]) {
+    const options = await db.respuesta.findMany({
+      where: { preguntaId: f.question.id },
+      orderBy: { texto: 'asc' },
+    });
+    assert.deepEqual(
+      options.map((option) => option.imagenUrl),
+      expected,
+    );
+  }
+});
+
+test('C5-C2-A editor aún rechaza el campo de imagen en opciones; sin activación parcial', async () => {
+  const f = await panelFixture(),
+    s = await structure();
+  const body = questionBody(s.sub, '');
+  body.respuestas[0].imagenUrl = 'https://example.invalid/opcion.png';
+  const result = await call(
+    '/admin/simple/editor/preguntas',
+    f.token,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    },
+    f.app.base,
+  );
+  assert.equal(result.status, 400);
+  assert.equal(await db.pregunta.count({ where: { subtemaId: s.sub.id } }), 0);
+});
 
 test('C5-B cliente real del panel inicia sesión, carga y asocia a lección, caso y pregunta', async () => {
   const f = await panelFixture(),

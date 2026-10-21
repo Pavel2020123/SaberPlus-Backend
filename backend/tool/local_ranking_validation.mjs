@@ -71,10 +71,11 @@ try {
   const studentCodesMigration = 'prisma/migrations/20261016180000_student_institution_codes/migration.sql';
   // R4: explicit academic-report migration, only in this newly owned tmpfs DB.
   const questionReportsMigration = 'prisma/migrations/20261017220000_academic_question_reports/migration.sql';
-  // C5-A/B are not committed yet: explicitly allow these two additive migrations only.
+  // C5: explicitly allow these additive migrations while working on this branch.
   const editorialFilesMigration = 'prisma/migrations/20261020120000_editorial_files_base/migration.sql';
   const editorialLinksMigration = 'prisma/migrations/20261020150000_editorial_image_links/migration.sql';
-  const actualPaths = [...new Set([...paths, territoryMigration, profileMigration, logoMigration, studentRequestsMigration, studentCodesMigration, questionReportsMigration, editorialFilesMigration, editorialLinksMigration])].sort();
+  const editorialOptionsMigration = 'prisma/migrations/20261021180000_editorial_option_image_links/migration.sql';
+  const actualPaths = [...new Set([...paths, territoryMigration, profileMigration, logoMigration, studentRequestsMigration, studentCodesMigration, questionReportsMigration, editorialFilesMigration, editorialLinksMigration, editorialOptionsMigration])].sort();
   for (const path of actualPaths) {
     const dest = join(directory, path.replace(/^prisma\//, ''));
     await mkdir(dirname(dest), { recursive: true });

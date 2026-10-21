@@ -298,6 +298,7 @@ enum AutorizacionArchivoEditorial {
 
 model ArchivoEditorial {
   preguntas             Pregunta[]
+  opciones              Respuesta[]
   casos                 CasoPregunta[]
   lecciones             Subtema[]
   id                    String                       @id @db.Uuid
@@ -977,6 +978,9 @@ model CasoPregunta {
 model Respuesta {
   id                    String                @id @default(uuid())
   texto                 String                @db.Text
+  imagenUrl             String?               @db.Text
+  archivoImagenId       String?               @db.Uuid
+  archivoImagen         ArchivoEditorial?     @relation(fields: [archivoImagenId], references: [id], onDelete: Restrict)
   explicacion           String?               @db.Text
   esCorrecta            Boolean               @default(false)
   preguntaId            String
@@ -984,6 +988,8 @@ model Respuesta {
   seleccionesBatalla    BatallaRespuesta[]
   seleccionesTiraAfloja TiraAflojaRespuesta[]
   seleccionesTriviaRush TriviaRushRespuesta[]
+
+  @@index([archivoImagenId])
 }
 
 // --- MODULO: BATALLAS ASINCRONAS ---

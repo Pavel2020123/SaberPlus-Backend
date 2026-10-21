@@ -4,7 +4,10 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { editorialImageData } from './editorial-file-association';
+import {
+  editorialImageData,
+  editorialImagesData,
+} from './editorial-file-association';
 import {
   editorialImagePath,
   managedEditorialImageId,
@@ -88,5 +91,50 @@ describe('asociación de imágenes a contenido', () => {
       BadRequestException,
     );
     expect(db.$queryRaw).not.toHaveBeenCalled();
+  });
+
+  it('ordena y deduplica los locks pero conserva el orden original y las repeticiones', async () => {
+    const other = '1df4f385-fec2-4cb1-89af-91f67a476b52';
+    const paths = [
+      editorialImagePath(id),
+      '',
+      editorialImagePath(other),
+      editorialImagePath(id.toUpperCase()),
+    ];
+    expect(await editorialImagesData(tx, paths)).toEqual([
+      { imagenUrl: paths[0], archivoImagenId: id },
+      { imagenUrl: null, archivoImagenId: null },
+      { imagenUrl: paths[2], archivoImagenId: other },
+      { imagenUrl: paths[0], archivoImagenId: id },
+    ]);
+    expect(db.$queryRaw).toHaveBeenCalledTimes(2);
+    expect(db.$queryRaw.mock.calls.map((args: unknown[]) => args[1])).toEqual([
+      other,
+      id,
+    ]);
+  });
+
+  it('valida toda la entrada antes de bloquear un recurso', async () => {
+    await expect(
+      editorialImagesData(tx, [editorialImagePath(id), 'javascript:alert(1)']),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(db.$queryRaw).not.toHaveBeenCalled();
+  });
+
+  it('un lote sin recursos privados no necesita activar el almacenamiento', async () => {
+    process.env.EDITORIAL_FILES_LOCAL_ENABLED = 'false';
+    expect(
+      await editorialImagesData(tx, ['', 'https://example.com/a.png']),
+    ).toHaveLength(2);
+    expect(await editorialImagesData(tx, [])).toEqual([]);
+    expect(db.$queryRaw).not.toHaveBeenCalled();
+  });
+
+  it('no permite el lote cuando una imagen no está disponible', async () => {
+    db.archivoEditorial.findUnique.mockResolvedValueOnce(null);
+    await expect(
+      editorialImagesData(tx, [editorialImagePath(id), editorialImagePath(id)]),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(db.$queryRaw).toHaveBeenCalledTimes(1);
   });
 });

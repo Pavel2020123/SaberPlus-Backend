@@ -37,6 +37,7 @@ describe('recibos, integridad y ciclo de archivos editoriales', () => {
     pregunta: { count: jest.fn() },
     casoPregunta: { count: jest.fn() },
     subtema: { count: jest.fn() },
+    respuesta: { count: jest.fn() },
     $queryRaw: jest.fn(),
     $transaction: jest.fn(),
   };
@@ -59,7 +60,12 @@ describe('recibos, integridad y ciclo de archivos editoriales', () => {
       (fn: (tx: Prisma.TransactionClient) => Promise<unknown>) =>
         fn(db as unknown as Prisma.TransactionClient),
     );
-    for (const model of [db.pregunta, db.casoPregunta, db.subtema])
+    for (const model of [
+      db.pregunta,
+      db.casoPregunta,
+      db.subtema,
+      db.respuesta,
+    ])
       model.count.mockResolvedValue(0);
     table.findUnique.mockImplementation(() => row && { ...row });
     table.findFirst.mockImplementation(
@@ -288,7 +294,7 @@ describe('recibos, integridad y ciclo de archivos editoriales', () => {
     expect(store.remove).not.toHaveBeenCalled();
   });
 
-  it.each(['pregunta', 'casoPregunta', 'subtema'] as const)(
+  it.each(['pregunta', 'casoPregunta', 'subtema', 'respuesta'] as const)(
     'protege una imagen usada por %s aunque sea una versión anterior',
     async (kind) => {
       const result = await service.upload(actor, dto, image);
@@ -300,4 +306,44 @@ describe('recibos, integridad y ciclo de archivos editoriales', () => {
       expect(store.remove).not.toHaveBeenCalled();
     },
   );
+
+  it('lectura por una opción exige pregunta y padres publicados, sin filtrar por si es correcta', async () => {
+    const uploaded = await service.upload(actor, dto, image);
+    table.findFirst.mockResolvedValueOnce({ id: uploaded.id });
+    await expect(service.publishedContent(uploaded.id)).resolves.toEqual(
+      await store.read(uploaded.id),
+    );
+    const calls = table.findFirst.mock.calls as unknown as [
+      Prisma.ArchivoEditorialFindFirstArgs,
+    ][];
+    const query = calls[0][0];
+    expect(query.where).toMatchObject({
+      id: uploaded.id,
+      estado: 'DISPONIBLE',
+    });
+    expect(query.where?.OR).toContainEqual({
+      opciones: {
+        some: {
+          pregunta: {
+            estadoContenido: 'PUBLICADO',
+            subtema: {
+              estadoContenido: 'PUBLICADO',
+              tema: { estadoContenido: 'PUBLICADO' },
+            },
+          },
+        },
+      },
+    });
+    expect(JSON.stringify(query)).not.toContain('esCorrecta');
+    expect(query.select).toEqual({ id: true });
+  });
+
+  it('un recurso sin uso publicado no alcanza el disco', async () => {
+    const uploaded = await service.upload(actor, dto, image);
+    table.findFirst.mockResolvedValueOnce(null);
+    await expect(service.publishedContent(uploaded.id)).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+    expect(store.read).not.toHaveBeenCalled();
+  });
 });

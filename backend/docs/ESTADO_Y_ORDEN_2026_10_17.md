@@ -1,11 +1,13 @@
 # Continuación después de instituciones — espejo backend
 
-**21 de octubre — C5-C1 cerrada localmente:** [acta5/5 Android](C5C_FLUTTER.md),
-3/3 Flutter VM/HTTP/PostgreSQL repetidas,57/57 dirigidas tras corregir el recorte,
-análisis limpio y APK instalada. La regresión global950/13 del20 no se repitió.
-Siguiente: consolidar código A/B/C1 y preparar C5-C2, imágenes en opciones.
-C5-C restante y C5-D abiertos. Rama feat/c5-archivos-base; solo la documentación
-móvil52a3488 está publicada. Sin merge/despliegue ni cambios OV-1.
+**21 de octubre — [C5-C2-A validada localmente](C5C2_OPCIONES.md):** base y permisos
+para imágenes en opciones;31/31 PostgreSQL/HTTP,70 migraciones temporales y
+126 suites/1.657 pruebas backend aprobadas. C5-C1 conserva su cierre Android5/5.
+Entrega A/B/C1 guardada: app `af73039`, backend `0bfaaba`, sin push funcional.
+Siguiente: C2-B contrato/editor/panel y C2-C consumidores/Flutter, con activación
+coordinada; todavía no se cargan imágenes en opciones desde el editor. C2-D,
+resto C5-C y C5-D abiertos. C2-A aún sin commit. Rama feat/c5-archivos-base,
+sin merge/despliegue ni cambios OV-1. El push52a3488 anterior era documental.
 
 **20 de octubre, continuación vigente:** [C5-A/B](C5_ARCHIVOS.md), imágenes del
 panel validadas23/23 PostgreSQL/HTTP y recorrido Chromium;69 migraciones

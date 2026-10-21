@@ -170,6 +170,7 @@ export class EditorialFileService {
         tx.pregunta.count({ where: { archivoImagenId: id } }),
         tx.casoPregunta.count({ where: { archivoImagenId: id } }),
         tx.subtema.count({ where: { archivoImagenId: id } }),
+        tx.respuesta.count({ where: { archivoImagenId: id } }),
       ]);
       if (counts.some((count) => count > 0))
         throw new ConflictException(
@@ -208,6 +209,7 @@ export class EditorialFileService {
             },
           },
           { preguntas: { some: publishedQuestion } },
+          { opciones: { some: { pregunta: publishedQuestion } } },
           {
             casos: {
               some: {

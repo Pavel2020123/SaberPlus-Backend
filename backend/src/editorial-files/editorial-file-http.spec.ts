@@ -41,6 +41,7 @@ describe('HTTP ADMIN de archivos: permisos, multipart y recibos', () => {
     pregunta: { count: jest.fn() },
     casoPregunta: { count: jest.fn() },
     subtema: { count: jest.fn() },
+    respuesta: { count: jest.fn() },
     $queryRaw: jest.fn(),
     $transaction: jest.fn(),
   };
@@ -126,7 +127,12 @@ describe('HTTP ADMIN de archivos: permisos, multipart y recibos', () => {
       (fn: (tx: Prisma.TransactionClient) => Promise<unknown>) =>
         fn(db as unknown as Prisma.TransactionClient),
     );
-    for (const model of [db.pregunta, db.casoPregunta, db.subtema])
+    for (const model of [
+      db.pregunta,
+      db.casoPregunta,
+      db.subtema,
+      db.respuesta,
+    ])
       model.count.mockResolvedValue(0);
     row = null;
     contents.clear();

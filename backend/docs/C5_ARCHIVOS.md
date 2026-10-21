@@ -8,9 +8,11 @@ dirigidas tras corregir el recorte del aviso. Análisis limpio y APK instalada.
 Estos contadores no se suman como una sola suite. Conservar la evidencia del20
 inferior; no atribuirle una nueva regresión global ni nuevo despliegue.
 
-Siguiente: consolidar commits funcionales en ambos repositorios y preparar
-**C5-C2, imágenes en opciones**: modelo/relaciones, DTO/panel y snapshots/clientes
-sin revelar respuestas correctas ni romper intentos guardados. Después siguen
+Entrega A/B/C1 guardada: app `af73039`, backend `0bfaaba`, sin push funcional.
+[C5-C2-A, base de opciones](C5C2_OPCIONES.md), validada localmente:31/31
+PostgreSQL/HTTP,70 migraciones temporales y126 suites/1.657 backend aprobadas.
+Sigue C2-B contrato/editor/panel y C2-C snapshots/clientes, sin habilitar todavía
+la carga por opción. C2-A aún sin commit. Después siguen
 PDF/offline, autorización histórica, fotos/evidencias y C5-D. C1 no cierra toda C5.
 OV-1 separado; sin merge/despliegue ni escrituras remotas.
 
@@ -44,7 +46,7 @@ ha ejecutado CI remoto ni integrado esta rama.
 |---|---|
 | C5-A — Base backend | Cerrado en su alcance local: contrato, validación, permisos, recibos y adaptador privado. 70 pruebas nuevas dentro de la regresión 1.637; ensayo posterior PostgreSQL/HTTP 15/15 y controles del ejecutor 8/8 aprobados. Sin despliegue ni almacenamiento externo. |
 | C5-B — Panel | [Validada localmente](C5B_PANEL.md): selector, vista previa, recibo y asociación segura a preguntas/casos/lecciones. Publicación inmediata, protección de usos y lectura autenticada de recursos publicados.23/23 integradas A+B y recorrido Chromium real. |
-| C5-C — Flutter y consumidores | C1 online validada5/5 Android. Sigue C2 imágenes en opciones; después PDF/offline, autorización histórica y fotos/evidencias con contratos propios. Ver acta C5-C1; no cerrar todo C5-C por ese ensayo. |
+| C5-C — Flutter y consumidores | C1 online validada5/5 Android; C2-A base/permisos de opciones validada, C2-B/C/D pendientes según su acta. Después PDF/offline, autorización histórica y fotos/evidencias con contratos propios. No cerrar todo C5-C por esos ensayos. |
 | C5-D — Integración y operación | Pruebas por flujo, recuperación, permisos, proveedor persistente autorizado, respaldo/limpieza y validación final. Las pruebas de seguridad se hacen también en A/B/C. |
 
 El cierre global de C5 incluye recursos académicos, fotos y evidencia privada.
@@ -225,7 +227,7 @@ gestos humanos ni cierran toda C5. El celular se necesitará al tener lista la A
 - Asociación y protección de retirada implementadas en B; ampliar consumidores
   móviles e históricos conservando publicación directa y protección de borradores.
 - Biblioteca/listado, sustitución/versiones y limpieza con política de conservación.
-- Metadatos y recursos dentro de opciones de respuesta, no solo del enunciado.
+- Opciones: base C2-A lista; faltan contrato editorial, panel y consumidores con imágenes, según [acta C2](C5C2_OPCIONES.md).
 - Incorporar recursos gestionados a PDFs/offline; no descargarlos desde URLs arbitrarias.
 - Fotos de perfil y documentos de evidencia con reglas de acceso propias.
 - Respaldos, cuotas operativas, huérfanos y comportamiento de archivos ya descargados.
