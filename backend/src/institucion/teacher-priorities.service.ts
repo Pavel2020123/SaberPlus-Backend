@@ -624,7 +624,7 @@ export class TeacherPrioritiesService {
               area: true,
             },
           },
-          respuestas: { select: { id: true, texto: true } },
+          respuestas: { select: { id: true, texto: true, imagenUrl: true } },
           subtema: {
             select: {
               id: true,

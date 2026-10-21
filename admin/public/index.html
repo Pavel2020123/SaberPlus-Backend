@@ -310,12 +310,13 @@
                 >
                 <input
                   id="lesson-image"
-                  type="url"
+                  type="text"
                   maxlength="2000"
                   placeholder="https://…"
                 />
+                <div id="lesson-image-upload"></div>
                 <p class="hint">
-                  Dejar un enlace vacío lo elimina. Por ahora las imágenes y videos se agregan mediante enlaces HTTPS.
+                  Deja el enlace vacío o quita la imagen y guarda para confirmar. Los videos se agregan mediante enlaces HTTPS.
                 </p>
                 <button id="lesson-save" class="primary" type="submit">
                   Guardar explicación
@@ -394,7 +395,8 @@
               ></textarea>
               <label for="bank-image"
                 >Referencia de imagen (HTTPS, opcional)</label
-              ><input id="bank-image" type="url" maxlength="2000" />
+              ><input id="bank-image" type="text" maxlength="2000" />
+              <div id="bank-image-upload"></div>
               <div id="question-fields">
                 <label for="bank-difficulty">Dificultad</label
                 ><select id="bank-difficulty">

@@ -1,5 +1,28 @@
 # SaberPlus Backend
 
+**Nuevo compañero de C2 (no OV-1):** comenzar por
+[relevo operativo completo](backend/docs/RELEVO_C5_C2.md) y
+[acta C2-D](backend/docs/C5C2D_VALIDACION_LOCAL.md). Incluye ambos repos,
+cuentas/clave temporal, Docker/USB y pruebas; puede corregir Flutter/API/panel
+de C2. Quedan0/8 bloques humanos y los subcasos D8a–e.
+
+**21 de octubre — [C5-C2-C validada automáticamente](backend/docs/C5C2C_CONSUMIDORES.md):**
+contratos/snapshots y Flutter incorporan imágenes opcionales sin cambiar XP ni
+romper JSON antiguo.969 Flutter aprobadas/16 opt-in omitidas,128 suites/1.675
+backend y44/44 PostgreSQL/HTTP;70 migraciones temporales, ninguna nueva de C2-C.
+**Sigue C2-D:0/8 guiones humanos propuestos**, con Docker/USB al preparar la sesión.
+Activación apagada por defecto; sin nuevo ensayo Android ni despliegue. C1 conserva5/5.
+Último push de C2-B: app `c69a5e9`, backend `e1c4d18`; C2-C aún sin commit/push.
+Deuda ESLint previa:27 incidencias verificadas en HEAD, descritas en el acta.
+Rama `feat/c5-archivos-base`; sin merge a main ni cambios OV-1.
+
+**20 de octubre — C5-A/B validadas localmente:** [imágenes desde el panel](backend/docs/C5B_PANEL.md),
+23/23 PostgreSQL/HTTP, panel124/124 y backend126/1650 aprobados en `feat/c5-archivos-base`.
+Recorrido Chromium aprobado; sigue C5-C Flutter.69 migraciones
+aplicadas solo en Docker temporal propio y limpiado. Rutas desactivadas por defecto,
+adaptador solo development/test. Sin merge, despliegue ni cambios OV-1.
+Esta entrada prevalece sobre el «siguiente C5» de las notas inferiores.
+
 **19 de octubre — checkpoint vigente MA-1R/R4:**12/12 humanos y45/45 pruebas
 HTTP/PostgreSQL aisladas repetidas tras fix de concurrencia aprobadas; backend121 suites/1567, ADMIN109, build/TS
 y Flutter920/13 opt-in omitidas/análisis correctos. [Acta técnica y límites](backend/docs/MA1R_R4_VALIDACION_LOCAL.md).

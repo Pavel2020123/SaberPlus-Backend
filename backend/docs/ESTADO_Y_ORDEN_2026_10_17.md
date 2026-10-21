@@ -1,5 +1,21 @@
 # Continuación después de instituciones — espejo backend
 
+**21 de octubre — [C5-C2-C validada automáticamente](C5C2C_CONSUMIDORES.md):**
+contratos/snapshots y Flutter incorporan imágenes opcionales sin cambiar XP ni
+romper JSON antiguo.969 Flutter aprobadas/16 opt-in omitidas,128 suites/1.675
+backend y44/44 PostgreSQL/HTTP;70 migraciones temporales, ninguna nueva de C2-C.
+**Sigue C2-D:0/8 guiones humanos propuestos**, con Docker/USB al preparar la sesión.
+Activación apagada por defecto; sin nuevo ensayo Android ni despliegue. C1 conserva5/5.
+Último push de C2-B: app `c69a5e9`, backend `e1c4d18`; C2-C aún sin commit/push.
+Deuda ESLint previa:27 incidencias verificadas en HEAD, descritas en el acta.
+Rama `feat/c5-archivos-base`; sin merge a main ni cambios OV-1.
+
+**20 de octubre, continuación vigente:** [C5-A/B](C5_ARCHIVOS.md), imágenes del
+panel validadas23/23 PostgreSQL/HTTP y recorrido Chromium;69 migraciones
+solo temporales. Sigue C Flutter y D integración.
+Rama feat/c5-archivos-base, sin merge/despliegue. Cambios aditivos de schema,
+migración y app.module.ts deben conciliarse con OV-1 al integrar ambas ramas.
+
 **19 de octubre, actualización que prevalece:** [MA-1R/R4](MA1R_R4_VALIDACION_LOCAL.md)
 con12/12 humanos y45/45 HTTP/PostgreSQL, carrera ADMIN P2010/40001 corregida y
 regresiones/remate visual según acta: R4 cerrada localmente e integrada en main

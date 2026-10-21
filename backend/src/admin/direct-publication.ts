@@ -5,6 +5,7 @@ import {
 import { Prisma } from '@prisma/client';
 import { validateCatalogName } from './academic-classification';
 import { validateClozeActivity } from './cloze-activity';
+import { managedEditorialImageId } from '../editorial-files/editorial-image-reference';
 
 export function requireDirectPublication() {
   if (process.env.EDITORIAL_PUBLICATION_ENABLED !== 'true')
@@ -59,7 +60,13 @@ export async function publishParents(
         'El subtema no está disponible en este tema.',
       );
     lessonUrl(sub.videoUrl ?? '');
-    lessonUrl(sub.imagenUrl ?? '');
+    const imageId = managedEditorialImageId(sub.imagenUrl);
+    if (imageId) {
+      if (sub.archivoImagenId !== imageId)
+        throw new BadRequestException(
+          'La imagen de la lección no tiene una asociación válida.',
+        );
+    } else lessonUrl(sub.imagenUrl ?? '');
     if (
       (sub.contenido?.length ?? 0) > 30000 ||
       sub.contenido?.includes('\u0000')

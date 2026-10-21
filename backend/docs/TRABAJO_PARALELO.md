@@ -1,5 +1,20 @@
 # Reparto paralelo — 12 de octubre de 2026
 
+**Relevo vigente del21:** otro compañero termina C5-C2 del propietario según
+[su guía](RELEVO_C5_C2.md) y [acta C2-D](C5C2D_VALIDACION_LOCAL.md),0/8 humanos.
+No es el compañero de OV-1. Puede corregir Flutter/API/panel dentro de C2;
+OV-1 conserva su responsable, rama y checkpoint. Ver README para estado Git.
+
+**21 de octubre — [C5-C2-C validada automáticamente](C5C2C_CONSUMIDORES.md):**
+contratos/snapshots y Flutter incorporan imágenes opcionales sin cambiar XP ni
+romper JSON antiguo.969 Flutter aprobadas/16 opt-in omitidas,128 suites/1.675
+backend y44/44 PostgreSQL/HTTP;70 migraciones temporales, ninguna nueva de C2-C.
+**Sigue C2-D:0/8 guiones humanos propuestos**, con Docker/USB al preparar la sesión.
+Activación apagada por defecto; sin nuevo ensayo Android ni despliegue. C1 conserva5/5.
+Último push de C2-B: app `c69a5e9`, backend `e1c4d18`; C2-C aún sin commit/push.
+Deuda ESLint previa:27 incidencias verificadas en HEAD, descritas en el acta.
+Rama `feat/c5-archivos-base`; sin merge a main ni cambios OV-1.
+
 Fuente del acuerdo: `docs/TRABAJO_PARALELO.md` del repo Flutter `saber_plus`.
 Leerlo completo antes de empezar; no es un archivo de este árbol backend.
 Incluye primera sesión paso a paso, archivos Flutter existentes, criterios de
@@ -17,14 +32,16 @@ un cambio local no está disponible automáticamente en el PC del compañero.
   [MA-1R/R1–R4](MA1R_R4_VALIDACION_LOCAL.md) cerrada localmente e integrada por
   PR API #9/app #6 (eef0d40/21757a1); CI backend del PR aprobado.12/12 humanos,
   45/45 HTTP/PostgreSQL y regresiones en acta. SQL solo temporal, sin despliegue.
-  Sigue preparación local C5 al autorizar implementación, sin tocar OV-1.
+  **20 de octubre: [C5-A/B](C5_ARCHIVOS.md)** validadas23/23 PostgreSQL/HTTP y recorrido Chromium;
+  sigue C5-C Flutter. Rama feat/c5-archivos-base,
+  sin tocar OV-1. Conciliar schema/migración y app.module.ts al integrar.
 - **Compañero:** OV-1, orientación vocacional, en curso según el propietario;
   sin entrega nueva verificada en estos clones. Retomar su checkpoint para A
   contenido/reglas → B persistencia → C cliente → D validación, no reiniciarlo.
 
 Ambos pueden trabajar ahora. Cada frente modifica Flutter/backend cuando lo
 necesite, sin dividir responsabilidades únicamente por tecnología.
-Ramas: `feat/instituciones-c2c` y `feat/orientacion-vocacional`; main recibe
+Ramas actuales: propietario `feat/c5-archivos-base` y compañero `feat/orientacion-vocacional`; main recibe
 entregas revisadas mediante PR. Sustituye el trabajo individual directo en main.
 Este documento no crea ramas ni autoriza push/merge/despliegue automáticos.
 

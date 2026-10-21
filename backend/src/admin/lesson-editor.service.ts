@@ -8,6 +8,7 @@ import { createHash } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { lockEditorialArea } from './editorial-lock';
+import { editorialImageData } from '../editorial-files/editorial-file-association';
 import {
   lessonUrl,
   publishParents,
@@ -277,13 +278,13 @@ export class LessonEditorService {
     const data = {
       contenido,
       videoUrl: lessonUrl(videoUrl),
-      imagenUrl: lessonUrl(imagenUrl),
     };
     return this.view(
       await this.modify('subtemas', id, revision, async (tx, row) => {
         if (!this.view(row, direct).editable)
           throw new BadRequestException('Esta lección es de solo lectura.');
-        await tx.subtema.update({ where: { id }, data });
+        const image = await editorialImageData(tx, imagenUrl);
+        await tx.subtema.update({ where: { id }, data: { ...data, ...image } });
         if (direct && 'temaId' in row) await publishParents(tx, row.temaId, id);
       }),
       direct,

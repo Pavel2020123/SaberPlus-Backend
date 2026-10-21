@@ -6,6 +6,7 @@ import {
 import { EstadoContenido } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { createQuestionFingerprint } from '../common/question-fingerprint';
+import { requireOptionImages } from '../editorial-files/editorial-option-images';
 import {
   validateAcademicClassification,
   validateCatalogName,
@@ -98,7 +99,9 @@ export class ContentLifecycleService {
         imagenUrl: true,
         huellaContenido: true,
         estadoContenido: true,
-        respuestas: { select: { texto: true, esCorrecta: true } },
+        respuestas: {
+          select: { texto: true, esCorrecta: true, imagenUrl: true },
+        },
         subtema: {
           select: {
             nombre: true,
@@ -115,6 +118,8 @@ export class ContentLifecycleService {
     this.validarTransicion(pregunta.estadoContenido, destino, 'pregunta');
     let huellaContenido = pregunta.huellaContenido;
     if (destino === EstadoContenido.PUBLICADO) {
+      if (pregunta.respuestas.some((option) => option.imagenUrl))
+        requireOptionImages();
       this.validarPreguntaPublicable(pregunta);
       huellaContenido ??= createQuestionFingerprint({
         area: pregunta.subtema.tema.area,
@@ -122,6 +127,7 @@ export class ContentLifecycleService {
         imagen: pregunta.imagenUrl,
         opciones: pregunta.respuestas.map((respuesta) => ({
           texto: respuesta.texto,
+          imagenUrl: respuesta.imagenUrl,
         })),
       });
       const duplicada = await this.prisma.pregunta.findFirst({

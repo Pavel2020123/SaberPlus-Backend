@@ -31,7 +31,10 @@ const indexSelect = {
   subtemaId: true,
   estadoContenido: true,
   subtema: { select: classification },
-  respuestas: { select: { id: true, texto: true }, orderBy: { id: 'asc' } },
+  respuestas: {
+    select: { id: true, texto: true, imagenUrl: true },
+    orderBy: { id: 'asc' },
+  },
 } satisfies Prisma.PreguntaSelect;
 type IndexRow = Prisma.PreguntaGetPayload<{ select: typeof indexSelect }>;
 const matchSelect = {

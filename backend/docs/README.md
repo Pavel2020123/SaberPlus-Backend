@@ -1,5 +1,23 @@
 # Documentación backend
 
+- **Nuevo compañero para terminar C2 (no OV-1):** [guía operativa](RELEVO_C5_C2.md)
+  y [acta C2-D](C5C2D_VALIDACION_LOCAL.md),0/8 humanos con D8a–e pendientes.
+
+**21 de octubre — [C5-C2-C validada automáticamente](C5C2C_CONSUMIDORES.md):**
+contratos/snapshots y Flutter incorporan imágenes opcionales sin cambiar XP ni
+romper JSON antiguo.969 Flutter aprobadas/16 opt-in omitidas,128 suites/1.675
+backend y44/44 PostgreSQL/HTTP;70 migraciones temporales, ninguna nueva de C2-C.
+**Sigue C2-D:0/8 guiones humanos propuestos**, con Docker/USB al preparar la sesión.
+Activación apagada por defecto; sin nuevo ensayo Android ni despliegue. C1 conserva5/5.
+Último push de C2-B: app `c69a5e9`, backend `e1c4d18`; C2-C aún sin commit/push.
+Deuda ESLint previa:27 incidencias verificadas en HEAD, descritas en el acta.
+Rama `feat/c5-archivos-base`; sin merge a main ni cambios OV-1.
+
+- **20 de octubre, continuación vigente:** [C5-A/B archivos](C5_ARCHIVOS.md).
+  [Panel validado](C5B_PANEL.md):23/23 PostgreSQL/HTTP y recorrido Chromium real.
+  Sigue C Flutter/consumidores y D integración/operación. Rama feat/c5-archivos-base,
+  rutas desactivadas por defecto, sin merge ni despliegue. OV-1 separado.
+
 - [Sincronización documental del19](AUDITORIA_DOCUMENTAL_2026_10_19.md): integración,
   correcciones, límites de la revisión y siguiente preparación local C5.
 

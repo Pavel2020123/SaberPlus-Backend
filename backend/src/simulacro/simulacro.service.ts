@@ -7,6 +7,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { AreaIcfes, Dificultad, OrigenRespuesta, Prisma } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
+import { publicAnswerOption } from '../common/public-answer-option';
 import {
   ESTADO_PUBLICADO,
   preguntaPublicadaWhere,
@@ -36,6 +37,7 @@ interface PreguntaCalificable {
   respuestas: {
     id: string;
     texto: string;
+    imagenUrl?: string | null;
     explicacion: string | null;
     esCorrecta: boolean;
   }[];
@@ -250,6 +252,7 @@ export class SimulacroService {
             id: true,
             texto: true,
             // ⚠️ SEGURIDAD: esCorrecta NUNCA viaja al cliente
+            imagenUrl: true,
           },
         },
         subtema: {
@@ -336,6 +339,7 @@ export class SimulacroService {
             id: true,
             texto: true,
             explicacion: true,
+            imagenUrl: true,
             esCorrecta: true,
           },
         },
@@ -485,6 +489,7 @@ export class SimulacroService {
             id: true,
             texto: true,
             // ⚠️ SEGURIDAD: esCorrecta NUNCA viaja al cliente
+            imagenUrl: true,
           },
         },
         subtema: {
@@ -596,6 +601,7 @@ export class SimulacroService {
             id: true,
             texto: true,
             explicacion: true,
+            imagenUrl: true,
             esCorrecta: true,
           },
         },
@@ -789,6 +795,7 @@ export class SimulacroService {
                   id: true,
                   texto: true,
                   explicacion: true,
+                  imagenUrl: true,
                   esCorrecta: true,
                 },
               },
@@ -830,12 +837,11 @@ export class SimulacroService {
           tiempoRespuestaSegundos: registro.tiempoRespuestaSegundos,
           fechaRespuesta: registro.fechaRespuesta,
           respuestaSeleccionada: seleccionada
-            ? { id: seleccionada.id, texto: seleccionada.texto }
+            ? publicAnswerOption(seleccionada)
             : null,
           respuestaCorrecta: correcta
             ? {
-                id: correcta.id,
-                texto: correcta.texto,
+                ...publicAnswerOption(correcta),
                 explicacion: correcta.explicacion,
               }
             : null,
@@ -866,7 +872,7 @@ export class SimulacroService {
           },
         },
         respuestas: {
-          select: { id: true, texto: true },
+          select: { id: true, texto: true, imagenUrl: true },
         },
         subtema: {
           select: {

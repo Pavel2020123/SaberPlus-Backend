@@ -1,5 +1,31 @@
 # API de SaberPlus
 
+**Nuevo compañero de C2 (no OV-1):** seguir [relevo completo](docs/RELEVO_C5_C2.md)
+y [acta C2-D](docs/C5C2D_VALIDACION_LOCAL.md): instalación, cuentas/clave temporal,
+Docker/USB, pruebas pendientes y correcciones permitidas en app/backend/panel.
+
+**21 de octubre — [C5-C2-C validada automáticamente](docs/C5C2C_CONSUMIDORES.md):**
+contratos/snapshots y Flutter incorporan imágenes opcionales sin cambiar XP ni
+romper JSON antiguo.969 Flutter aprobadas/16 opt-in omitidas,128 suites/1.675
+backend y44/44 PostgreSQL/HTTP;70 migraciones temporales, ninguna nueva de C2-C.
+**Sigue C2-D:0/8 guiones humanos propuestos**, con Docker/USB al preparar la sesión.
+Activación apagada por defecto; sin nuevo ensayo Android ni despliegue. C1 conserva5/5.
+Último push de C2-B: app `c69a5e9`, backend `e1c4d18`; C2-C aún sin commit/push.
+Deuda ESLint previa:27 incidencias verificadas en HEAD, descritas en el acta.
+Rama `feat/c5-archivos-base`; sin merge a main ni cambios OV-1.
+
+**20 de octubre — C5-A/B validadas localmente:23/23 PostgreSQL/HTTP.**
+[archivos editoriales privados](docs/C5_ARCHIVOS.md), recibos, metadatos y límites.
+Rama `feat/c5-archivos-base`;69 migraciones solo temporales. [Panel C5-B](docs/C5B_PANEL.md)
+comprobado en Chromium,124/124 pruebas ADMIN y126/1650 backend. Sigue C5-C, app
+y almacenamiento externo. La bandera EDITORIAL_FILES_LOCAL_ENABLED está apagada
+por defecto y bloqueada fuera de development/test. No activar ni aplicar la
+migración en servicios reales por seguir esta guía. OV-1 se mantiene separado.
+
+Ensayo automático repetible con Docker, sin celular:
+`npm run test:editorial-files:postgres`. No acepta URL externa y limpia solo
+su contenedor/directorio temporal. [Resultados y límites](docs/C5_ARCHIVOS.md).
+
 **19 de octubre — MA-1R/R4 técnico aprobado:**45/45 integradas PostgreSQL/HTTP,
 12/12 humanas, backend121 suites/1567 tras fix de concurrencia, ADMIN109, build/TypeScript y regresión
 Flutter920/13 opt-in omitidas/análisis correctos. [Comandos, incidencias y límites](docs/MA1R_R4_VALIDACION_LOCAL.md).

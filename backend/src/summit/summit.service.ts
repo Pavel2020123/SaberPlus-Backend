@@ -15,6 +15,7 @@ import {
 import { randomInt } from 'node:crypto';
 import { preguntaPublicadaWhere } from '../common/contenido-publicado';
 import { PrismaService } from '../prisma/prisma.service';
+import { publicAnswerOption } from '../common/public-answer-option';
 import { assertSoloCompetitiveCreationAllowed } from '../competitive/competitive.activation';
 import { SUMMIT_RULES, summitScore } from './summit.rules';
 
@@ -185,7 +186,7 @@ export class SummitService {
         imagenUrl: q.imagenUrl,
         dificultad: q.dificultad,
         ordenEnCaso: q.ordenEnCaso,
-        respuestas: q.respuestas.map((a) => ({ id: a.id, texto: a.texto })),
+        respuestas: q.respuestas.map(publicAnswerOption),
         subtema: {
           id: q.subtema.id,
           nombre: q.subtema.nombre,

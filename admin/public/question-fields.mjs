@@ -1,4 +1,4 @@
-import { referenceUrl } from "./lesson-fields.mjs";
+import { imageReference } from "./lesson-fields.mjs";
 const key = (text) =>
   text.normalize("NFKC").trim().toLocaleLowerCase("es-CO").replace(/\s+/g, " ");
 function field(value, limit, required = true) {
@@ -28,7 +28,7 @@ export function caseFields(value) {
     area: value.area,
     titulo: field(value.titulo, 200),
     contexto: field(value.contexto, 20000),
-    imagenUrl: referenceUrl(value.imagenUrl),
+    imagenUrl: imageReference(value.imagenUrl),
   };
 }
 export function questionFields(value) {
@@ -46,6 +46,7 @@ export function questionFields(value) {
     texto: field(row.texto, 4000),
     esCorrecta: row.esCorrecta,
     explicacion: field(row.explicacion, 4000, false),
+    ...(row.imagenUrl === undefined ? {} : { imagenUrl: imageReference(row.imagenUrl) }),
   }));
   if (
     new Set(respuestas.map((row) => key(row.texto))).size !== respuestas.length
@@ -68,7 +69,7 @@ export function questionFields(value) {
     subtemaId: field(value.subtemaId, 120),
     enunciado: field(value.enunciado, 12000),
     explicacion: field(value.explicacion, 12000),
-    imagenUrl: referenceUrl(value.imagenUrl),
+    imagenUrl: imageReference(value.imagenUrl),
     dificultad: value.dificultad,
     respuestas,
     casoId,
@@ -83,7 +84,7 @@ export function questionCanonical(area, value) {
     key(value.enunciado),
     key(value.imagenUrl || ""),
     ...value.respuestas
-      .map((row) => [key(row.texto), ""].join("\u001e"))
+      .map((row) => [key(row.texto), key(row.imagenUrl || "")].join("\u001e"))
       .sort(),
   ].join("\u001f");
 }

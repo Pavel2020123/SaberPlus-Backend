@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 export interface QuestionFingerprintOption {
   texto?: string | null;
   imagen?: string | null;
+  imagenUrl?: string | null;
 }
 
 export interface QuestionFingerprintInput {
@@ -19,9 +20,10 @@ export function createQuestionFingerprint(
 ): string {
   const options = input.opciones
     .map((option) =>
-      [normalize(option.texto ?? ''), normalize(option.imagen ?? '')].join(
-        '\u001e',
-      ),
+      [
+        normalize(option.texto ?? ''),
+        normalize(option.imagen ?? option.imagenUrl ?? ''),
+      ].join('\u001e'),
     )
     .sort();
 

@@ -27,7 +27,8 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "test:editorial:postgres": "node tool/test_editorial_postgres.mjs",
-    "test:question-reports:postgres": "node tool/test_question_reports_postgres.mjs"
+    "test:question-reports:postgres": "node tool/test_question_reports_postgres.mjs",
+    "test:editorial-files:postgres": "node tool/test_editorial_files_postgres.mjs"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

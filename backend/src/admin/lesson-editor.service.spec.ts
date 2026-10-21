@@ -370,6 +370,7 @@ describe('LessonEditorService', () => {
         contenido: '# Regla de tres\nExplicación',
         videoUrl: null,
         imagenUrl: null,
+        archivoImagenId: null,
       },
     });
   });

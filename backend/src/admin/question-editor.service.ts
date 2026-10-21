@@ -10,9 +10,16 @@ import { PrismaService } from '../prisma/prisma.service';
 import { lockEditorialArea } from './editorial-lock';
 import { createQuestionFingerprint } from '../common/question-fingerprint';
 import { validateAcademicClassification } from './academic-classification';
-import { lessonUrl } from './lesson-editor.service';
 import { EditorialCaseDto, EditorialQuestionDto } from './question-editor.dto';
 import { publishParents, requireDirectPublication } from './direct-publication';
+import {
+  editorialImageData,
+  editorialImagesData,
+} from '../editorial-files/editorial-file-association';
+import {
+  optionImagesEnabled,
+  requireOptionImages,
+} from '../editorial-files/editorial-option-images';
 
 const questionInclude = {
   respuestas: { orderBy: { id: 'asc' } },
@@ -60,6 +67,8 @@ export class QuestionEditorService {
         ? row.estadoContenido !== 'ARCHIVADO'
         : row.estadoContenido === 'BORRADOR' && !row.fechaPublicacion) &&
       classified &&
+      (optionImagesEnabled() ||
+        !row.respuestas.some((option) => option.imagenUrl)) &&
       (direct ||
         Object.entries(row._count).every(
           ([relation, count]) => relation === 'respuestas' || count === 0,
@@ -79,9 +88,11 @@ export class QuestionEditorService {
         texto: option.texto,
         esCorrecta: option.esCorrecta,
         explicacion: option.explicacion ?? '',
+        ...(option.imagenUrl ? { imagenUrl: option.imagenUrl } : {}),
       })),
       estadoContenido: row.estadoContenido,
       editable,
+      imagenesEnOpcionesHabilitadas: optionImagesEnabled(),
       revision: revisionOf(row),
     };
   }
@@ -162,6 +173,7 @@ export class QuestionEditorService {
       limite,
       hayMas: rows.length > limite,
       items: rows.slice(0, limite),
+      imagenesEnOpcionesHabilitadas: optionImagesEnabled(),
       subtema: {
         id: subtema.id,
         nombre: subtema.nombre,
@@ -190,12 +202,12 @@ export class QuestionEditorService {
     const data = {
       titulo: textField(body.titulo, 200),
       contexto: textField(body.contexto, 20000),
-      imagenUrl: lessonUrl(body.imagenUrl),
       ...(direct ? { estadoContenido: 'PUBLICADO' as const } : {}),
       ...(direct ? { fechaPublicacion: new Date() } : {}),
     };
     return this.prisma.$transaction(async (tx) => {
       await lockEditorialArea(tx, body.area);
+      const image = await editorialImageData(tx, body.imagenUrl);
       if (id) {
         await tx.$queryRaw`SELECT id FROM "CasoPregunta" WHERE id = ${id} FOR UPDATE`;
         const row = await this.case(tx, id);
@@ -208,12 +220,13 @@ export class QuestionEditorService {
       const row = id
         ? await tx.casoPregunta.update({
             where: { id },
-            data,
+            data: { ...data, ...image },
             include: caseInclude,
           })
         : await tx.casoPregunta.create({
             data: {
               ...data,
+              ...image,
               area: body.area,
               estadoContenido: direct ? 'PUBLICADO' : 'BORRADOR',
               ...(direct ? { fechaPublicacion: new Date() } : {}),
@@ -232,7 +245,6 @@ export class QuestionEditorService {
     if (direct) requireDirectPublication();
     const enunciado = textField(body.enunciado, 12000),
       explicacion = textField(body.explicacion, 12000);
-    const imagenUrl = lessonUrl(body.imagenUrl);
     if (
       !Array.isArray(body.respuestas) ||
       body.respuestas.length < 2 ||
@@ -250,6 +262,10 @@ export class QuestionEditorService {
       esCorrecta: option.esCorrecta,
       explicacion: textField(option.explicacion, 4000, false) || null,
     }));
+    const optionUrls = body.respuestas.map((option) =>
+      textField(option.imagenUrl ?? '', 2000, false),
+    );
+    if (optionUrls.some(Boolean)) requireOptionImages();
     const optionKeys = respuestas.map((option) =>
       option.texto
         .normalize('NFKC')
@@ -285,10 +301,26 @@ export class QuestionEditorService {
       });
       if (!parent) throw new NotFoundException('El subtema no existe.');
       validateAcademicClassification(parent);
+      const [image, ...optionImages] = await editorialImagesData(tx, [
+        body.imagenUrl,
+        ...optionUrls,
+      ]);
+      const resolvedAnswers = respuestas.map((option, index) => ({
+        ...option,
+        ...optionImages[index],
+      }));
+      const imagenUrl = image.imagenUrl;
       if (id) {
         await tx.$queryRaw`SELECT id FROM "Pregunta" WHERE id = ${id} FOR UPDATE`;
         const row = await this.question(tx, id);
         if (!body.revision || revisionOf(row) !== body.revision) throw stale();
+        if (
+          row.respuestas.some((option) => option.imagenUrl) &&
+          body.respuestas.some((option) => option.imagenUrl === undefined)
+        )
+          throw new ConflictException(
+            'El editor debe conservar las imágenes de todas las opciones. Actualiza el panel antes de guardar.',
+          );
         if (
           row.subtemaId !== body.subtemaId ||
           !this.questionView(row, direct).editable
@@ -331,7 +363,7 @@ export class QuestionEditorService {
         area,
         enunciado,
         imagen: imagenUrl,
-        opciones: respuestas,
+        opciones: resolvedAnswers,
       });
       // Legacy APIs include archived rows; direct editing excludes retired versions.
       // Legacy comparison is bounded and fail-closed;
@@ -353,7 +385,7 @@ export class QuestionEditorService {
           huellaContenido: true,
           enunciado: true,
           imagenUrl: true,
-          respuestas: { select: { texto: true } },
+          respuestas: { select: { texto: true, imagenUrl: true } },
         },
       });
       if (matches.length > 2000)
@@ -384,7 +416,7 @@ export class QuestionEditorService {
       const data = {
         enunciado,
         explicacion,
-        imagenUrl,
+        ...image,
         dificultad: body.dificultad,
         casoId,
         ordenEnCaso: casoId ? body.ordenEnCaso : null,
@@ -406,7 +438,7 @@ export class QuestionEditorService {
               where: { id },
               data: {
                 ...data,
-                respuestas: { deleteMany: {}, create: respuestas },
+                respuestas: { deleteMany: {}, create: resolvedAnswers },
               },
               include: questionInclude,
             })
@@ -416,7 +448,7 @@ export class QuestionEditorService {
                 subtemaId: body.subtemaId,
                 estadoContenido: direct ? 'PUBLICADO' : 'BORRADOR',
                 ...(direct ? { fechaPublicacion: new Date() } : {}),
-                respuestas: { create: respuestas },
+                respuestas: { create: resolvedAnswers },
               },
               include: questionInclude,
             });

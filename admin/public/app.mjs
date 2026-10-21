@@ -27,6 +27,7 @@ let themesVersion = 0,
   sessionVersion = 0;
 const api = new CatalogApi(config.apiBase, {
   simple: true,
+  demo: config.demo,
   onSessionExpired: () =>
     showLogin("La sesión terminó o tus permisos cambiaron. Ingresa de nuevo."),
 });

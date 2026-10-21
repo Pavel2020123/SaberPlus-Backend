@@ -5,6 +5,8 @@ import { resolve } from "node:path";
 import { createDemoApi } from "./demo-api.mjs";
 
 const assets = new Map([
+  ["/editorial-file-fields.mjs", ["editorial-file-fields.mjs", "text/javascript; charset=utf-8"]],
+  ["/editorial-image-upload.mjs", ["editorial-image-upload.mjs", "text/javascript; charset=utf-8"]],
   ['/question-report-fields.mjs', ['question-report-fields.mjs', 'text/javascript; charset=utf-8']],
   ['/question-reports.mjs', ['question-reports.mjs', 'text/javascript; charset=utf-8']],
   ["/institution-territory.mjs", ["institution-territory.mjs", "text/javascript; charset=utf-8"]],
@@ -83,7 +85,7 @@ export function createAdminServer({
     );
     res.setHeader(
       "Content-Security-Policy",
-      `default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self' ${demo ? "" : base}; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`,
+      `default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' blob:; connect-src 'self' ${demo ? "" : base}; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`,
     );
     try {
       const url = new URL(req.url, "http://localhost");

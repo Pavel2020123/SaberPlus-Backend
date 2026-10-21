@@ -1,5 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
 import { AreaIcfes, Prisma } from '@prisma/client';
+import { publicAnswerOption } from '../common/public-answer-option';
 
 export const TUG_QUESTION_INCLUDE = {
   respuestas: true,
@@ -45,6 +46,7 @@ export interface TugSnapshot {
       respuestas: Array<{
         id: string;
         texto: string;
+        imagenUrl?: string | null;
         esCorrecta: boolean;
         explicacion: string | null;
       }>;
@@ -122,8 +124,7 @@ export function buildTugSnapshot(
         respuestas: (order as string[]).map((id) => {
           const r = q.respuestas.find((r) => r.id === id)!;
           return {
-            id: r.id,
-            texto: r.texto,
+            ...publicAnswerOption(r),
             esCorrecta: r.esCorrecta,
             explicacion: r.explicacion,
           };
