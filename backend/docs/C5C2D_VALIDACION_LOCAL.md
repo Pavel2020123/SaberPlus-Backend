@@ -1,5 +1,45 @@
 # C5-C2-D — Ensayo local de imágenes en opciones
 
+## Reanudación de servicios — 22 de octubre de 2026, 10:37 America/Bogota
+
+**D1–D7 aprobados (7/8); D8a/c aprobados; D8b/d/e pendientes.** El humano pide
+remontar servicios antes de repetir Trivia. El ajuste de contorno de Trivia/
+Fantasma c19bd1a está instalado, pero todavía no tiene confirmación visual.
+La última ronda observada mostró texto fuera del botón; no se convierte ese
+fallo en aprobación por pasar pruebas automáticas.
+
+- Ramas fix/c5-c2-validacion, HEAD Flutter4d0de2c/backendc7b1f04. Solo permanece
+  ajeno analysis_options.yaml en Flutter; backend limpio. Sin fetch/push/merge,
+  despliegue ni intervención OV-1. Sesión y2k4pR ya no existe y API43187 no escucha;
+  su contenedor tampoco aparece. Evidencias anteriores conservadas en esta acta.
+- Docker responde; contenedor histórico5548e14c… conservado, sin operar su
+  limpieza rechazada anteriormente. Panel4173 sigue activo y config.js declara
+  demo:false/API43187. Android USB autorizado, escala1.0. No se borran datos.
+- npm run build backend aprobado; log ignorado
+  backend/output/c5-c2-reinicio-trivia-build.log. Se inicia el mismo runner propio
+  con SABERPLUS_C5_OPTION_IMAGES_LOCAL=true, sin alterar su límite de dos horas
+  ni heredar servicios productivos. local-ranking-ready:70 migraciones,
+  optionImagesLocal:true. Sesión propia nueva:
+  `C:\Users\modaf\AppData\Local\Temp\saberplus-i2-local-pZbcak`, nonce1282b217….
+  Contraseña nueva solo en flutter-private.json/AUTH_E2E_PASSWORD, sin imprimir
+  ni incorporar al APK. Fixture «Opciones C2-D - ensayo1282b217» creado,
+  guardado/recargado por API:12 preguntas/cuatro opciones/dos ilustradas.
+- Health ready OK/database UP. Baseline SQL: student/zero XP académico0, cero
+  intentos Trivia y único evento competitivo sintético del runner. Evidencia
+  ignorada: backend/output/c5-c2-reinicio-trivia-baseline.json. No se importan
+  resultados, XP o credenciales de la sesión anterior; su evidencia no se pierde.
+- El control automático rechazó el comando combinado de health, adb reverse y
+  am start: «blocked by policy». No se reintentan las mutaciones por otro medio.
+  Comprobaciones posteriores solo de lectura: health ready OK y adb reverse
+  --list vacío. **Túnel USB pendiente**, app no abierta por el agente. APK
+  c19bd1a ya instalada de la sesión anterior; no hay código nuevo que compilar.
+
+**Siguiente paso:** humano ejecuta adb -s NFWKHYIZKVLF8LKJ reverse tcp:43187
+tcp:43187 y abre la app; cerrar sesión anterior e ingresar como zero con la
+contraseña nueva. Repetir Trivia Matemáticas/60 s sin potenciadores, confirmar
+contención del texto/figuras al avanzar y registrar puntos/aciertos. D8d sigue
+pendiente, después recuperación y Fantasma; D8b requiere segundo cliente.
+
 ## Reanudación — 22 de octubre de 2026, America/Bogota
 
 **Se mantienen D1–D7 aprobados (7/8); D8a/c aprobados, D8b/d/e pendientes.** Al detener el ensayo,
