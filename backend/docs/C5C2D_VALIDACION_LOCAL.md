@@ -2,7 +2,7 @@
 
 ## Reanudación de servicios — 21 de octubre de 2026, 23:10–23:15 America/Bogota
 
-**D1–D4 aprobados (4/8). Sigue D5: logout y aislamiento entre cuentas.**
+**D1–D5 aprobados (5/8). Sigue D6: texto grande y accesibilidad.**
 Antes de pedir remontar servicios, el humano confirmó la primera pregunta
 «Ensayo red C2-D…» con ambas figuras y ninguna opción seleccionada. Esa preparación
 corresponde a la sesión anterior; no acredita todavía desconexión o reintento.
@@ -75,12 +75,41 @@ corresponde a la sesión anterior; no acredita todavía desconexión o reintento
   POST ya persistido ni se afirma haber cubierto ese subcaso.
   Baseline D5 zero: sin intentos, historial, resultados, XP ni eventos competitivos.
 
-**Siguiente paso exacto:** sin responder, volver a la lección, abrir Más →
-Cerrar sesión y pulsar Atrás una vez. Confirmar que no reaparecen la pregunta
-ni imágenes privadas. Después entrar como zero para verificar aislamiento y
-regresar a student para reanudar su borrador. D5–D7 pendientes; D8b requiere
-segundo cliente. Demo/logout sin token cuentan solo como evidencia automática
-de las pruebas ya ejecutadas; no se abrió una variante demo física.
+- D5 paso1 humano: confirma «Sí» a que, tras Más → Cerrar sesión y Atrás,
+  la pregunta y las imágenes privadas permanecen inaccesibles. Acredita la
+  salida de la sesión anterior; no acredita aún el aislamiento de zero ni
+  la reanudación de student. No se borraron datos de la app ni el borrador.
+
+- D5 paso2 humano: tras entrar como zero@example.invalid, confirma en Practicar
+  → Ver historial ambos avisos: «Aún no has completado simulacros» y «No hay
+  respuestas que coincidan con estos filtros». Vista de historial vacío confirmada;
+  no se atribuyen a esta base nueva los resultados de D3 de la sesión anterior.
+
+- D5 paso3 humano: como zero confirma «Aparecen las imagenes bien, sin ninguna
+  opcion seleccionada y no aparece el aviso de intento reanudado» al abrir
+  Practicar del mismo subtema. SQL confirma intento propio9c460388-6402-405a-9602-dc9bc7d9db28,
+  distinto del intento student249ae115…; ambos no consumidos y con cinco preguntas.
+  Student conserva exactamente su intento/orden/fechas; ambas cuentas XP0,
+  historial0 y resultados0, ledger student1 sintético y zero0. Evidencia ignorada:
+  backend/output/c5-c2-d5-zero-intento-propio.json. No se enviaron respuestas.
+
+- D5 cierre humano: tras volver a student y abrir la misma práctica confirma
+  «Aparece intento reanudado sin ninguna opcion seleccionada». SQL conserva
+  exactamente los intentos propios249ae115…/9c460388… y su orden/fechas,
+  sin intentos adicionales, respuestas, resultados, cambios de XP o eventos.
+  Evidencia ignorada: backend/output/c5-c2-d5-student-reanudado.json.
+  **D5 aprobado; total5/8.** Aislamiento demo/ausencia de token/retiro de bytes
+  privados: evidencia automática de editorial_image_test.dart ya ejecutada
+  (incluida en las49 dirigidas aprobadas), no observación demo física.
+- D6 preparación: CPH2577 Android15, resolución física1080×2400; escala inicial
+  consultada1.0 y cambiada mediante ADB a2.0, valor releído2.0. Accesibilidad
+  del sistema inicialmente desactivada (accessibility_enabled:0); no atribuir
+  lectura TalkBack aún. Se conservará/restaurará escala1.0 al terminar D6.
+
+**Siguiente paso exacto:** con texto grande, desplazar la pregunta actual por
+todas las opciones y controles. Confirmar textos completos, figuras proporcionales
+y controles alcanzables sin recortes/solapamientos. No responder todavía.
+D6 revisión/error/accesibilidad y D7 pendientes; D8b requiere segundo cliente.
 
 ## Continuación en otro PC — 21 de octubre de 2026, America/Bogota
 
@@ -228,7 +257,9 @@ Regresiones de esta continuación, completadas después de la preparación:
 | D4 preparación | Sin prueba humana nueva todavía. | Fixture por APIs ADMIN reales en la misma base: subtema f369468c… «Recuperacion de imagenes C2-D», mismo tema5548e14c, cinco preguntas «Ensayo red C2-D…», dos imágenes nuevas5d69f697… yb263d640… con descripciones/dimensiones veraces. Guardado/recarga API comprobados. Sin intento student ni respuestas/XP; no se cambiaron reglas ni preguntas anteriores. | Preparado para descarga nueva; falta iniciar práctica y preparar corte USB. |
 | D4 primera preparación | Confirma primera pregunta «Ensayo red C2-D…» con ambas figuras y ninguna opción seleccionada. Después solicita remontar servicios/clave nueva. | Sesión anterior con intento no consumido4c7f272a…; base nueva preparada en la entrada de reanudación superior. | Preparación confirmada; corte/recuperación pendientes. |
 | D4 corte y recuperación, sesión nueva | Confirma ambas figuras sin selección, vuelve a lección; sin reverse observa texto y avisos de reintento; restaurado el túnel, ambos reintentos recuperan figuras proporcionadas sin seleccionar respuesta. | Mismo intento249ae115… no consumido y cinco preguntas antes/después, XP0/historial0/resultados0/evento sintético1; sin nuevo intento. Ver evidencia superior. | **D4 aprobado. Total4/8.** Corte anterior al envío; sin ensayo de confirmación perdida después de POST. |
-| D5–D7 | Sin confirmaciones nuevas. | Regresiones anteriores no sustituyen pantallas físicas. | Pendientes. |
+| D5 logout y cuentas | Tras logout/Atrás no vuelve contenido privado; zero ve historial vacío y práctica sin reanudación; al volver a student aparece Intento reanudado sin selección. | Dos intentos propios distintos, sin cambios en historial/resultados/XP/eventos al alternar. Demo/sin token solo pruebas automáticas. | **D5 aprobado. Total5/8.** |
+| D6 texto grande | Sin confirmación visual nueva todavía. | Escala1.0→2.0 por ADB, Android15 CPH2577. Restaurar1.0 al terminar. | En curso; faltan pregunta/revisión/error/accesibilidad. |
+| D7 | Sin confirmaciones nuevas. | Regresiones anteriores no sustituyen pantallas físicas. | Pendiente. |
 | D8a, Tira local | Sin ejecución humana. | No atribuirle una prueba online. | Pendiente. |
 | D8b, Tira online | Humano confirma un único teléfono disponible. | No se simula segundo cliente ni presencia. | Pendiente: falta segundo cliente. |
 | D8c, Batallas | Sin ejecución humana; evaluar alternancia de cuentas en el único teléfono. | No sustituir por HTTP/mock. | Pendiente. |
@@ -371,7 +402,7 @@ idénticos. Sin push nuevo, CI remoto, instalación USB nueva ni despliegue.
 | 2 | Práctica: figuras distintas y proporcionales, texto legible y selección correcta. | Aprobado; evidencia humana D2 de esta continuación. |
 | 3 | Finalizar/revisar y reabrir: opción, explicación, figura y resultado conservados. | Aprobado; evidencia humana D3 de esta continuación. |
 | 4 | Corte/recuperación: aviso completo y reintento sin seleccionar ni duplicar respuesta. | Aprobado; D4 sesión5db53a0f, antes del envío; no se ensayó confirmación perdida tras POST. |
-| 5 | Logout/reingreso: no acceder a contenido privado con la sesión anterior; demo aislada. | Pendiente |
+| 5 | Logout/reingreso: no acceder a contenido privado con la sesión anterior; demo aislada. | Aprobado; cuentas/logout USB humanos, demo/sin token automáticos; sin demo física. |
 | 6 | Texto grande/pantalla estrecha: controles legibles sin recortes ni estiramiento. | Pendiente |
 | 7 | Cima o Rescate: recuperar intento/snapshot con figuras; sin XP duplicado. | Pendiente |
 | 8 | Tira/Batallas y Trivia/Fantasma: registrar cada subcaso y sus límites. | Pendiente |
