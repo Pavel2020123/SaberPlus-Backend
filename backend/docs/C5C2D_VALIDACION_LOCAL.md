@@ -1,5 +1,49 @@
 # C5-C2-D — Ensayo local de imágenes en opciones
 
+## Entrega parcial — 22 de octubre de 2026, 11:00 America/Bogota
+
+**7/8 bloques aprobados. D8a/c/d/e aprobados; D8b pendiente por falta de segundo
+cliente. C2 no está completamente terminada.** Ver [entrega y comandos](C5C2_ENTREGA_PARCIAL.md).
+Esta entrada prevalece sobre los checkpoints y contadores históricos inferiores.
+
+- D8e humano: desde la entrada propia Duelo fantasma, Matemáticas/60 s, informa
+  «Se ve bien»,3200 puntos/mejor combo12/12 correctas y «Venciste a tu fantasma».
+  Acredita presentación y avance de opciones en esta pantalla física; no se
+  infiere solo de que comparta código con Trivia. **D8e aprobado** en el flujo
+  legado disponible, sin certificar admisión/presencia competitiva de Ghost.
+- SQL posterior: intento6f1960ea-b98c-4a0e-a7a0-20405c0d0e22 FINALIZADO,12
+  preguntas ilustradas/dos imágenes por pregunta y12 respuestas correctas,
+  cero errores,3200 puntos/mejor combo12, asistido:false. Intento Trivia previo
+  62162133… conservado. Ambos modalidad:null/competitiveSettledAt:null;
+  student/zero XP académico0 y único evento competitivo sintético del runner.
+  Evidencia ignorada: backend/output/c5-c2-d8e-fantasma-confirmado.json.
+- El récord consultado por el flujo existente elige el intento nuevo ante
+  igualdad de puntos/aciertos/combo por fecha final más reciente. Por eso muestra
+  «Venciste a tu fantasma» aunque ambos tienen3200; no prueba una mejora de
+  puntaje. Es comportamiento previo ajeno al contrato de imágenes C2, documentado
+  para Pavel sin modificar reglas, rankings ni textos del juego en este encargo.
+- D8b no ejecutado: el humano solo tiene el teléfono USB. No se simuló un segundo
+  jugador ni se usó solo-on para acreditar Tira online. Siguiente prueba exacta:
+  segundo Android/emulador compatible, dos cuentas y misma ronda ilustrada;
+  selección propia y reanudación sin duplicación, según RELEVO_C5_C2.md.
+- Regresión Flutter final del código c19bd1a: **992 aprobadas/16 opt-in omitidas,
+  cero fallidas**,4min27s; output/c5-c2-entrega-regresion-flutter.log. Las omitidas
+  requieren credenciales/harness/fixtures o captura opt-in no habilitados en esa
+  orden; no son aprobadas. No sustituye lo observado
+  por el humano. La entrega conserva límites de red antes de POST, recuperación
+  desde segundo plano en Trivia, accesibilidad sin TalkBack y resto de C5 fuera.
+- Documentación: ocho espejos idénticos,263 enlaces locales en14 documentos
+  revisados sin destinos ausentes; git diff --check limpio en ambos repos.
+- Recursos al preparar entrega: tras validar ruta temporal, marcador de dueño,
+  contexto Docker local y etiqueta de1282b217…, se escribe action:stop en el
+  control.json permitido del runner. Este confirma «Owned local ranking API and
+  PostgreSQL removed»; carpeta pZbcak ausente, API43187 sin listener y contenedor
+  propio ausente. No se operó el contenedor histórico5548e14c… ni su directorio.
+  Panel4173 heredado/PID7108 permanece activo, sin API; túnel USB43187 queda
+  registrado para retirada manual por el rechazo previo de mutación adb.
+  No quedan credenciales activas de esta sesión; siguiente ensayo requiere
+  nueva sesión/clave y recurso segundo cliente, según relevo.
+
 ## Reanudación de servicios — 22 de octubre de 2026, 10:37 America/Bogota
 
 **D1–D7 aprobados (7/8); D8a/c/d aprobados; D8b/e pendientes.** El humano pide
@@ -899,7 +943,7 @@ idénticos. Sin push nuevo, CI remoto, instalación USB nueva ni despliegue.
 | 5 | Logout/reingreso: no acceder a contenido privado con la sesión anterior; demo aislada. | Aprobado; cuentas/logout USB humanos, demo/sin token automáticos; sin demo física. |
 | 6 | Texto grande/pantalla estrecha: controles legibles sin recortes ni estiramiento. | Aprobado a escala2.0; semántica Android automática; sin TalkBack humano. Escala restaurada1.0. |
 | 7 | Cima o Rescate: recuperar intento/snapshot con figuras; sin XP duplicado. | Aprobado en Cima; snapshot/reinicio/resultado y liquidación única comprobados. |
-| 8 | Tira/Batallas y Trivia/Fantasma: registrar cada subcaso y sus límites. | Pendiente |
+| 8 | Tira/Batallas y Trivia/Fantasma: registrar cada subcaso y sus límites. | Parcial: D8a/c/d/e aprobados; solo D8b pendiente por segundo cliente. |
 
 Son ocho bloques con varios pasos, no ocho toques. Registrar confirmaciones reales
 y subcasos pendientes; no cerrar8/8 por probar un solo juego. Antes de juegos,
