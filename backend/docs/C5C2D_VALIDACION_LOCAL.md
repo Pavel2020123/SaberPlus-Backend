@@ -3,7 +3,7 @@
 ## Continuación en otro PC — 21 de octubre de 2026, America/Bogota
 
 Responsable: asistente de C5-C2 en sustitución de Pavel, con confirmación visual
-del compañero humano. **1/8 bloques humanos aprobados: D1 panel.**
+del compañero humano. **2/8 bloques humanos aprobados: D1 panel y D2 práctica.**
 Rama en ambos repositorios: `fix/c5-c2-validacion`.
 HEAD inicial actualizado: Flutter `3513b44`, backend `8444b9a`; `fetch` no encontró
 commits posteriores en `origin/main`. `pull --ff-only` completado en ambos.
@@ -132,7 +132,12 @@ Regresiones de esta continuación, completadas después de la preparación:
 | D1 paso6d, descripción azul | Tras cargar opcion-azul.png con descripción completa confirma: «Listo, se ve bien». | Nueva carga azul DISPONIBLE160×80 con descripción que incluye160 de ancho y80 de alto; naranja corregida sigue disponible y conserva su descripción. IDs definitivos registrados en los archivos privados de esta sesión. | Ambas cargas corregidas disponibles; falta guardar asociaciones y recargar. |
 | D1 paso6e, guardado y recarga final | Informa primero naranja en una opción distinta y después confirma que, tras volver a subirla donde corresponde, guardar y recargar, «se ven bien y donde es». No se atribuye la causa al humano ni al software sin reproducción. | SQL confirma intermedia dcf4e128… con naranja asociada a «Ambas figuras…»; actual e2826d61-c150-4f91-aef9-533f3821aa26 PUBLICADO, naranja eee6dd70…80×160 en su texto y azul003f5a00…160×80 en el suyo, única correcta azul. Ambas descripciones completas, cuatro textos, dos imágenes y ADMIN coincide. | Restauración y recarga aprobadas; incidencia de asociación corregida en los datos, causa sin confirmar. |
 | D1 cierre | Acceso, figuras, carga, guardado/recarga, cancelación, texto obligatorio, quitar/restaurar y feedback confirmados en pasos anteriores. | API/SQL, descripción/dimensiones, bytes conservados y regresiones documentadas. Baseline final privado c2d-final-d1.json; revisión e9ca3b45…. | **D1 aprobado. Total1/8.** |
-| D2–D7 | Sin confirmaciones nuevas. | Regresiones anteriores no sustituyen pantallas físicas. | Pendientes. |
+| D2 paso1, ingreso Android | Tras indicar student@example.invalid y clave temporal confirma: «Listo, estoy en inicio». | API/SQL UP y reverse43187 restaurado antes del ingreso; APK de esta sesión instalada. | Acceso confirmado; imágenes/selección en práctica pendientes. |
+| D2 paso2, sesión aleatoria | Configura Matemáticas/Básico/5 y confirma primera pregunta «Ensayo cima». | Intento07c66604-25c7-420d-a335-726282998055: posiciones1/2 sumas11+1 y8+1; posición3 «Ensayo C2-D 5» con dos imágenes; posiciones4/5 sumas9+1 y4+1. Solo una pregunta C2-D en esta muestra: no atribuir dos envíos ilustrados distintos a este intento. | Sesión identificada; falta observar la pregunta3 y su selección. |
+| D2 paso3, imágenes Android | En pregunta3 «Ensayo C2-D 5», tras avanzar las dos sumas confirma: «Se ven bien», referido a azul horizontal/naranja vertical, textos, proporción y ausencia de recortes. | HTTP real con absent:5 preguntas/20 opciones; solo id/imagenUrl/texto, sin explicación/solución/FK/autoría. Descarga WEBP autenticada de ambas figuras:160×80 y80×160,110 bytes cada una. No se tocó el intento de student; se creó un intento de lectura separado para absent, sin enviar respuestas ni XP. | Vista y proyección aprobadas; falta toque/selección antes de cerrar D2. |
+| D2 paso4 y cierre | Tras tocar directamente el rectángulo azul, confirma que solo «Rectángulo azul horizontal» queda seleccionada. | Proyección HTTP/bytes y pregunta asignada cotejados por separado; envío/resultado se comprobarán en D3. | **D2 aprobado. Total2/8.** |
+| D3 preparación | Sin confirmación del resultado todavía. | Antes de enviar intento07c66604…: no consumido, XP académico0, historial0, resultados0; ledger competitivo1 evento sintético/Trivia100, sin eventos nuevos. | Baseline registrado; resultado humano pendiente. |
+| D4–D7 | Sin confirmaciones nuevas. | Regresiones anteriores no sustituyen pantallas físicas. | Pendientes. |
 | D8a, Tira local | Sin ejecución humana. | No atribuirle una prueba online. | Pendiente. |
 | D8b, Tira online | Humano confirma un único teléfono disponible. | No se simula segundo cliente ni presencia. | Pendiente: falta segundo cliente. |
 | D8c, Batallas | Sin ejecución humana; evaluar alternancia de cuentas en el único teléfono. | No sustituir por HTTP/mock. | Pendiente. |
@@ -141,6 +146,9 @@ Regresiones de esta continuación, completadas después de la preparación:
 
 **Estado operativo:** API/panel/base humana y reverse43187 activos, sin solo-on,
 sin corte de red, sin cambio de escala y sin credenciales dentro de la APK.
+Al comenzar D2, ADB seguía autorizado pero el túnel no aparecía en reverse --list;
+se restauró únicamente tcp:43187 y se abrió com.example.saber_plus. No se atribuye
+ese hallazgo a una desconexión D4 ensayada ni se afirma login humano todavía.
 La sesión humana caduca dos horas después de local-ranking-ready; si caduca,
 crear otra sesión y volver a entrar con su clave propia. No reutilizar la anterior.
 
@@ -191,9 +199,12 @@ No requiere repetir el bloque de carga/guardado ya observado ni las pruebas API/
 por una corrección exclusiva de texto; el aviso exacto nuevo queda pendiente de
 observar cuando el panel cargue esa versión.
 
-**Siguiente paso:** D2 Android: verificar USB/reverse y entrar manualmente como
-student@example.invalid con la clave propia de esta sesión. Confirmar inicio de
-sesión antes de guiar Practicar → Preguntas aleatorias, Matemáticas/Básico/5.
+**Siguiente paso:** D3: conservar azul en pregunta3, responder10 y5 en las sumas4/5,
+Finalizar y confirmar envío. Observar corrección de la pregunta ilustrada, figura
+y explicación; cotejar intento/historial/XP antes/después por API/SQL.
+Para D3 harán falta al menos dos preguntas ilustradas enviadas (una azul
+correcta y una naranja incorrecta); este intento contiene solo una, así que quedará
+una segunda sesión necesaria si se mantiene el guion. No cambiar selección del juego.
 No repetir D1 aprobado salvo regresión concreta. D2–D7 y D8a–e siguen pendientes;
 D8b requiere segundo cliente. Las cargas previas permanecen solo en la sesión
 desechable; no borrar archivos con usos históricos. Coletilla demo corregida;
