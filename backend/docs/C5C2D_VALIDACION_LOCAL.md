@@ -4,9 +4,9 @@
 
 **D1–D7 aprobados (7/8); D8a/c aprobados; D8b/d/e pendientes.** El humano pide
 remontar servicios antes de repetir Trivia. El ajuste de contorno de Trivia/
-Fantasma c19bd1a está instalado, pero todavía no tiene confirmación visual.
-La última ronda observada mostró texto fuera del botón; no se convierte ese
-fallo en aprobación por pasar pruebas automáticas.
+Fantasma c19bd1a está instalado. Al remontar faltaba confirmación visual;
+la repetición humana posterior confirma el contorno corregido de Trivia.
+Falta su comprobación de recuperación para aprobar D8d completo.
 
 - Ramas fix/c5-c2-validacion, HEAD Flutter4d0de2c/backendc7b1f04. Solo permanece
   ajeno analysis_options.yaml en Flutter; backend limpio. Sin fetch/push/merge,
@@ -34,11 +34,25 @@ fallo en aprobación por pasar pruebas automáticas.
   --list vacío. **Túnel USB pendiente**, app no abierta por el agente. APK
   c19bd1a ya instalada de la sesión anterior; no hay código nuevo que compilar.
 
-**Siguiente paso:** humano ejecuta adb -s NFWKHYIZKVLF8LKJ reverse tcp:43187
-tcp:43187 y abre la app; cerrar sesión anterior e ingresar como zero con la
-contraseña nueva. Repetir Trivia Matemáticas/60 s sin potenciadores, confirmar
-contención del texto/figuras al avanzar y registrar puntos/aciertos. D8d sigue
-pendiente, después recuperación y Fantasma; D8b requiere segundo cliente.
+- D8d repetición humana22/10 a10:54 America/Bogota: informa «12 correctas, y
+  el texto y las imagenes salen bien». Confirma avance de la ronda y presentación
+  corregida en USB; no se atribuye esa observación todavía a Fantasma.
+  SQL: intento62162133-8d76-4195-9ba5-27d7d292dba8 FINALIZADO, Matemáticas/60 s,
+  doce preguntas/respuestas correctas, cero errores,3200 puntos/mejor combo12,
+  asistido:false; fin15:53:20.095Z al agotar banco, no al consumir60 segundos.
+  Puntaje respaldado por SQL, no informado expresamente por el humano. Student/
+  zero XP académico0 y único evento competitivo sintético conservados; sin
+  liquidación competitiva de esta ronda. Evidencia ignorada:
+  backend/output/c5-c2-d8d-contorno-confirmado.json. adb reverse --list confirma
+  ahora tcp:43187 activo; se resuelve el pendiente de túnel, sin que el agente
+  reintente la mutación rechazada. **Contorno corregido aprobado humanamente**;
+  recuperación D8d y entrada propia de Fantasma aún pendientes.
+
+**Siguiente paso:** en el resultado actual de Trivia, usar Inicio de Android
+para dejar la app en segundo plano, volver mediante Recientes (sin cerrarla ni
+Jugar otra ronda) y confirmar mismo resultado3200 puntos/12 correctas; comparar
+SQL sin nuevas respuestas/XP. Después Fantasma Matemáticas/60 s con el récord
+limpio permitido de esta cuenta. D8b requiere segundo cliente.
 
 ## Reanudación — 22 de octubre de 2026, America/Bogota
 
