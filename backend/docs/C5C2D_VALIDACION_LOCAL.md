@@ -2,7 +2,7 @@
 
 ## Reanudación — 22 de octubre de 2026, America/Bogota
 
-**Se mantienen D1–D7 aprobados (7/8); D8a no aprobado.** Al detener el ensayo,
+**Se mantienen D1–D7 aprobados (7/8); D8a aprobado, D8b/c/d/e pendientes.** Al detener el ensayo,
 el humano informó «Ganaste el duelo 3 rondas 3 aciertos 2 aciertos CPU» y que
 texto/imágenes quedaban desalineados y fuera del globo. Se detuvo toda operación
 por su petición expresa, sin actualizar archivos después de ella. Al retomar
@@ -53,12 +53,21 @@ Esto acredita avance de varias rondas tras69e48e5, pero falla la presentación.
   historial0/resultados0, ningún intento Trivia; evento sintético1/Trivia100.
   Evidencia ignorada backend/output/c5-c2-d8a-bordes-baseline.json.
 
-**Siguiente paso:** iniciar sesión student@example.invalid con la clave nueva de
-y2k4pR, abrir Practicar → Tira y afloja → Matemáticas/CPU Entrenamiento y comenzar
-partida local. Responder azul y avanzar; confirmar en dos preguntas que texto e
-imágenes están completos y dentro del borde. D8a sin aprobar hasta observarlo.
-D8b pendiente por falta
-de segundo cliente; D8c/d/e pendientes. No repetir D1–D7 sin regresión concreta.
+- D8a confirmación humana del arreglo: responde «Sí» a que texto y ambas figuras
+  quedan completos dentro de sus botones sin desbordarse, después de responder
+  y avanzar. SQL: intento4d85a4c4-c9cf-4944-a92d-302e839e79e4 no competitivo,
+ 12 preguntas y tres respuestas correctas; índice3, cero incorrectas. Historial3,
+  resultados0, XP académico0 y único evento competitivo sintético conservados.
+  No se atribuye a Tira local XP de ranking ni se afirma aislamiento offline total:
+  la CPU es local y preguntas/evaluaciones usan API. Evidencia ignorada:
+  backend/output/c5-c2-d8a-bordes-confirmado.json. **D8a aprobado.** D8 completo
+  sigue pendiente; el contador global permanece7/8.
+
+**Siguiente paso:** como student abrir Practicar → Batallas asíncronas → Crear
+código, Matemáticas y Duelo relámpago para D8c. Esperar código de invitación;
+alternar zero/student en el mismo teléfono para unirse y jugar ambas partes.
+D8b pendiente por falta de segundo cliente; D8c/d/e pendientes. No repetir
+D1–D7 ni D8a sin regresión concreta.
 
 ## Reanudación de servicios — 21 de octubre de 2026, 23:10–23:15 America/Bogota
 
@@ -492,7 +501,7 @@ Regresiones de esta continuación, completadas después de la preparación:
 | D5 logout y cuentas | Tras logout/Atrás no vuelve contenido privado; zero ve historial vacío y práctica sin reanudación; al volver a student aparece Intento reanudado sin selección. | Dos intentos propios distintos, sin cambios en historial/resultados/XP/eventos al alternar. Demo/sin token solo pruebas automáticas. | **D5 aprobado. Total5/8.** |
 | D6 texto grande | Confirma pregunta completa, error/reintentos alcanzables, recuperación sin selección y revisión completa; detecta espacios faltantes en explicación del fixture. | Escala2.0; etiquetas accesibles Android verificadas, sin TalkBack humano. SQL demuestra texto ya guardado sin espacios; corregidas cinco versiones por API, sin reescribir historial. Escala restaurada1.0. | **D6 aprobado. Total6/8.** Texto nuevo verificado automáticamente. |
 | D7 Cima | Figuras iniciales, acierto, reinicio COLD, misma pregunta2/figuras/progreso, cierre5/5 y resultado recuperado confirmados. | Mismo intento/snapshot SHA256, cinco respuestas; única liquidación Cima100 XP antes/después de recuperar. Admisión sintética apagada al finalizar. | **D7 aprobado. Total7/8.** Rescate no probado por USB. |
-| D8a, Tira local | Primera ejecución termina en una ronda; tras69e48e5 logra tres rondas/3 aciertos/CPU2, pero informa texto e imágenes desalineados dentro de botones. | Avance corregido; geometría reproducida0/4 y corregida en dfb05dc,85/85 pruebas dirigidas aprobadas. Falta repetir vista física. No acredita Tira online. | Pendiente por defecto visual; corrección en validación. |
+| D8a, Tira local | Tras corregir avance y borde, confirma texto/figuras completos dentro de los botones y avance entre preguntas. | SQL sesión nueva:12 preguntas/tres aciertos, historial3/XP0/evento sintético1;85/85 pruebas dirigidas. No acredita Tira online. | **Aprobado. D8 completo pendiente; total7/8.** |
 | D8b, Tira online | Humano confirma un único teléfono disponible. | No se simula segundo cliente ni presencia. | Pendiente: falta segundo cliente. |
 | D8c, Batallas | Sin ejecución humana; evaluar alternancia de cuentas en el único teléfono. | No sustituir por HTTP/mock. | Pendiente. |
 | D8d, Trivia Rush | Sin ejecución humana. | Contrato automatizado no acredita esta pantalla. | Pendiente. |
