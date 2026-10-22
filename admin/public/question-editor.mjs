@@ -95,6 +95,9 @@ export class QuestionEditor {
   message(text, error = false) {
     this.$("bank-message").textContent = text;
     this.$("bank-message").className = error ? "notice error" : "notice";
+    // Copia visual junto a Guardar; el estado superior mantiene el anuncio accesible.
+    this.$("bank-save-message").textContent = text;
+    this.$("bank-save-message").className = error ? "notice error" : "notice";
   }
   discard() {
     return (
@@ -414,14 +417,15 @@ export class QuestionEditor {
       );
       if (version !== this.version) return;
       this.fill(row);
-      this.message(this.api.simple ? "Guardado y publicado. En demostración, el cambio es solo local." : "Guardado en BORRADOR. No está publicado.");
+      const demoNotice = this.api.demo ? " En demostración, el cambio es solo local." : "";
+      this.message(this.api.simple ? `Guardado y publicado.${demoNotice}` : "Guardado en BORRADOR. No está publicado.");
       try {
         await this.loadPage(this.page);
         if (version !== this.version) return;
         if (creating && this.api.simple) {
           this.fill(null);
           if (this.kind === "preguntas") await this.loadCases(1);
-          if (version === this.version) this.message("Guardado y publicado. Ya puedes agregar el siguiente. En DEMO los cambios son solo locales.");
+          if (version === this.version) this.message(`Guardado y publicado. Ya puedes agregar el siguiente.${demoNotice}`);
         }
       } catch {
         if (version === this.version)

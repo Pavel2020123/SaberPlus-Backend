@@ -1924,6 +1924,25 @@ test('C5-B/C2-B panel real en Chromium: imagen de enunciado y de opción, public
           .querySelector('#bank-message')
           .textContent.includes('Guardado y publicado'),
       );
+      await page.waitForFunction(() =>
+        document
+          .querySelector('#bank-save-message')
+          .textContent.includes('Guardado y publicado'),
+      );
+      const saveFeedback = await page.$eval('#bank-save-message', (node) => {
+        const bounds = node.getBoundingClientRect();
+        return {
+          top: bounds.top,
+          bottom: bounds.bottom,
+          viewport: innerHeight,
+          duplicateAnnouncement: node.getAttribute('aria-hidden'),
+        };
+      });
+      assert.ok(
+        saveFeedback.top >= 0 && saveFeedback.bottom <= saveFeedback.viewport,
+        'La confirmación debe verse junto a Guardar sin buscarla sobre la lista.',
+      );
+      assert.equal(saveFeedback.duplicateAnnouncement, 'true');
       const question = await db.pregunta.findFirstOrThrow({
         where: { subtemaId: s.sub.id, imagenUrl: reference },
       });
@@ -1937,6 +1956,12 @@ test('C5-B/C2-B panel real en Chromium: imagen de enunciado y de opción, public
           .length,
         1,
       );
+      // Guardar confirma antes de terminar loadPage/loadCases. Esperar también
+      // la lista y el desbloqueo evita consultar/clicar un nodo aún inexistente.
+      await page.waitForFunction(() => {
+        const button = document.querySelector('#bank-list button');
+        return button && !button.disabled;
+      });
       const questionButton = await page.$('#bank-list button');
       await questionButton.click();
       await page.waitForFunction(() =>

@@ -4,11 +4,15 @@
 y [acta C2-D](docs/C5C2D_VALIDACION_LOCAL.md): instalación, cuentas/clave temporal,
 Docker/USB, pruebas pendientes y correcciones permitidas en app/backend/panel.
 
+**22 de octubre — ENTREGA PARCIAL C5-C2:** D1–D7 aprobados (7/8), D8a/c/d/e
+aprobados; falta D8b Tira online por segundo cliente. [Entrega y comandos](docs/C5C2_ENTREGA_PARCIAL.md).
+Ramas fix/c5-c2-validacion, sin push/merge/despliegue; esperar auditoría de Pavel.
+
 **21 de octubre — [C5-C2-C validada automáticamente](docs/C5C2C_CONSUMIDORES.md):**
 contratos/snapshots y Flutter incorporan imágenes opcionales sin cambiar XP ni
 romper JSON antiguo.969 Flutter aprobadas/16 opt-in omitidas,128 suites/1.675
 backend y44/44 PostgreSQL/HTTP;70 migraciones temporales, ninguna nueva de C2-C.
-**Sigue C2-D:0/8 guiones humanos propuestos**, con Docker/USB al preparar la sesión.
+**Estado histórico del21: C2-D tenía0/8**; prevalece la entrega parcial del22 superior.
 Activación apagada por defecto; sin nuevo ensayo Android ni despliegue. C1 conserva5/5.
 Entrega C2-C/relevo: app `e833d6b`, backend `cfba7cd`.
 Deuda ESLint previa:27 incidencias verificadas en HEAD, descritas en el acta.

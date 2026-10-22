@@ -406,9 +406,9 @@
                 </select>
                 <h3>Opciones de respuesta</h3>
                 <p class="hint">
-                  De 2 a 6 opciones de texto; marca una correcta. Las imágenes
-                  dentro de opciones requieren una ampliación del contrato y no
-                  están implementadas todavía.
+                  De 2 a 6 opciones con texto; marca una correcta. Cuando aparezca
+                  el selector, puedes añadir una imagen opcional sin reemplazar
+                  el texto de la respuesta.
                 </p>
                 <div id="bank-options" class="bank-options"></div>
                 <button id="option-add" class="secondary" type="button">
@@ -450,6 +450,7 @@
                 />
                 </details>
               </div>
+              <p id="bank-save-message" class="notice" aria-hidden="true"></p>
               <button id="bank-save" class="primary" type="submit">
                 Guardar pregunta
               </button>

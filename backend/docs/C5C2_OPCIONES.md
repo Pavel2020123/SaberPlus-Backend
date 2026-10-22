@@ -1,5 +1,14 @@
 # C5-C2 — Imágenes en opciones de respuesta
 
+## Checkpoint — 22 de octubre de 2026: ENTREGA PARCIAL
+
+D1–D7 aprobados (7/8); D8a Tira local, D8c Batallas, D8d Trivia y D8e Fantasma
+aprobados. **Falta D8b Tira online por segundo cliente; C2 no está cerrada**.
+Correcciones locales de panel y Flutter, pruebas, commits y límites en
+[entrega](C5C2_ENTREGA_PARCIAL.md) y [acta](C5C2D_VALIDACION_LOCAL.md).
+Ambos repos en fix/c5-c2-validacion, sin push/merge/despliegue; OV-1 separado.
+La preparación del21 inferior es histórica y no sustituye este resultado.
+
 ## Checkpoint — 21 de octubre de 2026
 
 **C2-A/B/C implementadas y validadas automáticamente. Sigue C2-D, ensayo Android.**

@@ -263,11 +263,14 @@ test("editor conserva texto y opciones ante error, confirma descarte y limpia al
   assert.equal(h.$("bank-text").value, "Mi texto pendiente");
   assert.equal(h.editor.readOptions()[0].texto, "Mi opción");
   assert.match(h.$("bank-message").textContent, /Duplicada/);
+  assert.match(h.$("bank-save-message").textContent, /Duplicada/);
+  assert.equal(h.$("bank-save-message").className, "notice error");
   assert.equal(h.editor.close(), false);
   assert.equal(h.busy(), false);
   h.editor.close(true);
   assert.equal(h.editor.dirty, false);
   assert.equal(h.$("bank-text").value, "");
+  assert.equal(h.$("bank-save-message").textContent, "");
 });
 
 test("editor guarda sin publicar, límites de opciones y solo lectura", async () => {
@@ -288,10 +291,36 @@ test("editor guarda sin publicar, límites de opciones y solo lectura", async ()
   await h.editor.save();
   assert.equal(saved.respuestas.length, 2);
   assert.equal(h.editor.dirty, false);
+  assert.match(h.$("bank-save-message").textContent, /Guardado en BORRADOR/);
   h.editor.fill({ ...record(), editable: false });
+  assert.doesNotMatch(h.$("bank-save-message").textContent, /Guardado/);
   assert.equal(h.$("bank-save").disabled, true);
   assert.equal(h.editor.options[0].texto.disabled, true);
 });
+
+for (const demo of [false, true]) {
+  test(`guardado directo ${demo ? "demo" : "real"}: aviso fiel al entorno`, async () => {
+    const h = harness({
+      simple: true,
+      demo,
+      bankPage: async (kind) => page(kind),
+      bankRecord: async (_kind, _parent, _id, input) => ({
+        ...record(),
+        ...input,
+        estadoContenido: "PUBLICADO",
+      }),
+    });
+    await h.editor.open("preguntas", parent);
+    await h.editor.select("q1");
+    await h.editor.save();
+    assert.equal(
+      h.$("bank-save-message").textContent,
+      demo
+        ? "Guardado y publicado. En demostración, el cambio es solo local."
+        : "Guardado y publicado.",
+    );
+  });
+}
 
 test("editor ignora detalles tardíos y la vista previa no ejecuta HTML", async () => {
   let finish;

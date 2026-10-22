@@ -1,6 +1,12 @@
 # Relevo operativo — terminar C5-C2, imágenes en las opciones
 
-Última preparación: **21 de octubre de 2026**. Este es el punto de entrada
+Actualización C2-D: **22 de octubre de 2026, ENTREGA PARCIAL**. D1–D7 aprobados
+(7/8); D8a/c/d/e aprobados, D8b pendiente por segundo cliente. Ver
+[entrega](C5C2_ENTREGA_PARCIAL.md) y [acta vigente](C5C2D_VALIDACION_LOCAL.md).
+No repetir los bloques aprobados sin una regresión concreta. Ramas
+fix/c5-c2-validacion en ambos repos; no publicar sin autorización de Pavel.
+
+Preparación original: **21 de octubre de 2026**. Este es el punto de entrada
 para el **nuevo compañero que sustituye al propietario en C2**. No es el compañero
 de orientación vocacional: **OV-1 continúa independiente y no se le reasigna**.
 
@@ -13,7 +19,7 @@ Terminar **C5-C2**, no toda C5 ni todas las etapas de SaberPlus:
 - C2-C: referencias públicas/snapshots y consumidores Flutter; implementada y
   validada automáticamente. No rehacer desde cero.
 - **C2-D: validación integrada Android/panel/API y correcciones que encuentre.
-  Ocho bloques humanos pendientes; ninguno aprobado todavía (0/8).**
+  Entrega parcial:7/8 bloques aprobados; falta D8b, Tira online con dos clientes.**
 
 La tabla de resultados humanos vive en `C5C2D_VALIDACION_LOCAL.md`, en docs/ de
 Flutter y backend/docs/ del backend. Actualizar ambas copias después de cada
@@ -349,7 +355,7 @@ en esta sesión con el mismo editor/contrato y documentarlo, no cambiar reglas
 del juego, falsificar eventos ni abrir otra base. Registrar si se probó Cima o
 Rescate; el otro conserva evidencia automática, no atribuirle otra prueba USB.
 
-### D8 — Otros contratos de juegos: cinco subcasos (todos pendientes)
+### D8 — Otros contratos de juegos: cinco subcasos (solo D8b pendiente)
 
 | Subcaso | Qué observar / recursos |
 | --- | --- |
@@ -453,9 +459,9 @@ de hoy no autoriza automáticamente futuros merges del compañero.
 
 Al terminar los trabajos y las pruebas de C2, decir explícitamente a Pavel:
 
-> Pavel, terminé la entrega de C5-C2. Por favor audita y verifica los cambios de
-> Flutter, backend y panel, la documentación y las evidencias antes de aceptar
-> el cierre y decidir la siguiente etapa.
+> Pavel, preparé la entrega de C5-C2. Por favor audita y verifica Flutter,
+> backend, panel, documentación y evidencias antes de aceptar el cierre
+> y decidir la siguiente etapa.
 
 Adjuntar ramas/commits de ambos repositorios, archivos cambiados, pruebas
 aprobadas/fallidas/omitidas, pendientes y pasos para reproducir. Si falta un

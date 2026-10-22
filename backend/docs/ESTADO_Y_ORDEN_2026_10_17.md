@@ -1,5 +1,11 @@
 # Continuación después de instituciones — espejo backend
 
+**22 de octubre — C5-C2: ENTREGA PARCIAL.** D1–D7 aprobados (7/8), D8a/c/d/e
+aprobados; D8b Tira online pendiente por segundo cliente. Ambos repos trabajan
+en fix/c5-c2-validacion, sin push/merge/despliegue ni intervención OV-1.
+[Entrega](C5C2_ENTREGA_PARCIAL.md) y [acta vigente](C5C2D_VALIDACION_LOCAL.md).
+Sigue auditoría de Pavel y preparación de D8b; los estados inferiores son antecedentes.
+
 **21 de octubre — [C5-C2-C validada automáticamente](C5C2C_CONSUMIDORES.md):**
 contratos/snapshots y Flutter incorporan imágenes opcionales sin cambiar XP ni
 romper JSON antiguo.969 Flutter aprobadas/16 opt-in omitidas,128 suites/1.675
