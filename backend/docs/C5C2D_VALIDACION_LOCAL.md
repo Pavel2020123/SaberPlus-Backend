@@ -2,11 +2,11 @@
 
 ## Reanudación de servicios — 22 de octubre de 2026, 10:37 America/Bogota
 
-**D1–D7 aprobados (7/8); D8a/c aprobados; D8b/d/e pendientes.** El humano pide
+**D1–D7 aprobados (7/8); D8a/c/d aprobados; D8b/e pendientes.** El humano pide
 remontar servicios antes de repetir Trivia. El ajuste de contorno de Trivia/
 Fantasma c19bd1a está instalado. Al remontar faltaba confirmación visual;
 la repetición humana posterior confirma el contorno corregido de Trivia.
-Falta su comprobación de recuperación para aprobar D8d completo.
+La recuperación desde segundo plano también quedó confirmada posteriormente.
 
 - Ramas fix/c5-c2-validacion, HEAD Flutter4d0de2c/backendc7b1f04. Solo permanece
   ajeno analysis_options.yaml en Flutter; backend limpio. Sin fetch/push/merge,
@@ -48,11 +48,19 @@ Falta su comprobación de recuperación para aprobar D8d completo.
   reintente la mutación rechazada. **Contorno corregido aprobado humanamente**;
   recuperación D8d y entrada propia de Fantasma aún pendientes.
 
-**Siguiente paso:** en el resultado actual de Trivia, usar Inicio de Android
-para dejar la app en segundo plano, volver mediante Recientes (sin cerrarla ni
-Jugar otra ronda) y confirmar mismo resultado3200 puntos/12 correctas; comparar
-SQL sin nuevas respuestas/XP. Después Fantasma Matemáticas/60 s con el récord
-limpio permitido de esta cuenta. D8b requiere segundo cliente.
+- D8d recuperación humana22/10 a10:55 America/Bogota: confirma el mismo
+  resultado3200 puntos/12 correctas después de Inicio → Recientes, sin cerrar
+  la app ni iniciar otra ronda. SQL compara exactamente el mismo intento,
+  fecha final, doce respuestas, puntaje y XP/ledger: sin cambios ni duplicación.
+  Evidencia ignorada: backend/output/c5-c2-d8d-recuperacion-segundo-plano.json.
+  **D8d aprobado con recuperación desde segundo plano**; no se ensayó cierre
+  de proceso ni se atribuye restauración en frío a esta pantalla. Compatible
+  con el alcance representativo C2; no se amplía el contrato de persistencia.
+
+**Siguiente paso:** Volver a practicar → Duelo fantasma (su entrada propia),
+Matemáticas/60 s; observar récord anterior3200 y progreso, opciones ilustradas,
+toque/avance y resultado. Registrar lo observado y comprobar SQL/API. D8b sigue
+pendiente por segundo cliente; no cerrar C2 completo.
 
 ## Reanudación — 22 de octubre de 2026, America/Bogota
 
