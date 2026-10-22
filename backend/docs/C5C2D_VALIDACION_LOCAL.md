@@ -63,9 +63,42 @@ Esto acredita avance de varias rondas tras69e48e5, pero falla la presentación.
   backend/output/c5-c2-d8a-bordes-confirmado.json. **D8a aprobado.** D8 completo
   sigue pendiente; el contador global permanece7/8.
 
-**Siguiente paso:** como student abrir Practicar → Batallas asíncronas → Crear
-código, Matemáticas y Duelo relámpago para D8c. Esperar código de invitación;
-alternar zero/student en el mismo teléfono para unirse y jugar ambas partes.
+- D8c paso1 humano: en Crear invitación observa «right overflowed by 0.850 pixels»;
+  después Crear código sí muestra código para compartir. Fallo visual registrado,
+  no se aprueba el diálogo ni las opciones ilustradas de Batallas todavía.
+  SQL: batalla3f19b9b3-0099-4659-8bea-07c45e64d707 DUELO_RELAMPAGO/Matemáticas,
+  PENDIENTE, ocho preguntas, cero respuestas, solo student LISTO y sin rival;
+  sin liquidación ni cambio de XP. Código no publicado en acta/chat.
+  Evidencia ignorada: backend/output/c5-c2-d8c-invitacion-overflow.json.
+  Android1080px/densidad480 equivale a360dp; escala1.0. Se conserva esta
+  invitación para usarla después de corregir; no crear otra por el mismo ensayo.
+
+- D8c reproducción automática: tres casos320/360/412 con SaberPlusTheme.light,
+  abrir invitación, seleccionar Duelo relámpago y área de etiqueta larga, cancelar
+  sin escribir en API. Antes del ajuste0/3 aprobados: selectores de modo/área
+  exceden su ancho y fila de racha/mejor también desborda en estos tamaños.
+  Log output/c5-c2-d8c-dialogo-reproducido.log. Primer ajuste solo de selectores
+  deja91 aprobadas/3 fallidas en regresión dirigida por la fila de estadísticas;
+  no se atribuye aprobación a esa ejecución (c5-c2-d8c-dialogo-regresion.log).
+- Corrección localizada en async_battles_page.dart: isExpanded:true en ambos
+  selectores y fila de racha/mejor adaptable con Wrap. Sin modificar campos
+  enviados, selección de modo/área, invitaciones, reglas o XP. Repetición focal
+  **9/9 aprobadas**, incluidos los tres anchos y pruebas existentes de privacidad,
+  repositorio y revisión: output/c5-c2-d8c-dialogo-focal.log. Las otras85 pruebas
+  de opciones/imágenes/Tira pasaron en la ejecución intermedia y su código no
+  cambió por el último ajuste de Wrap; no se repiten sin una razón nueva.
+  Análisis aprobado sin incidencias (c5-c2-d8c-dialogo-analyze.log).
+  Commit Flutterc94add3; build debug aprobado (assembleDebug46,7s), defines
+  públicos de dev/API local sin credenciales y avisos KGP/Java conocidos.
+  Log output/c5-c2-d8c-dialogo-build.log. adb install -r Success; am start -W
+  OK/COLD, reverse43187 restaurado, sin borrar datos ni claves en APK.
+  SQL confirma misma invitación PENDIENTE, ocho preguntas/cero respuestas y
+  mismos metadatos/participante: backend/output/c5-c2-d8c-invitacion-conservada.json.
+  Falta vista humana del ajuste.
+
+**Siguiente paso:** abrir Crear código/Crear invitación, seleccionar Duelo
+relámpago y Matemáticas; confirmar ausencia de overflow y pulsar Cancelar sin
+crear otro código. Después alternar zero/student con la invitación ya creada.
 D8b pendiente por falta de segundo cliente; D8c/d/e pendientes. No repetir
 D1–D7 ni D8a sin regresión concreta.
 
@@ -503,7 +536,7 @@ Regresiones de esta continuación, completadas después de la preparación:
 | D7 Cima | Figuras iniciales, acierto, reinicio COLD, misma pregunta2/figuras/progreso, cierre5/5 y resultado recuperado confirmados. | Mismo intento/snapshot SHA256, cinco respuestas; única liquidación Cima100 XP antes/después de recuperar. Admisión sintética apagada al finalizar. | **D7 aprobado. Total7/8.** Rescate no probado por USB. |
 | D8a, Tira local | Tras corregir avance y borde, confirma texto/figuras completos dentro de los botones y avance entre preguntas. | SQL sesión nueva:12 preguntas/tres aciertos, historial3/XP0/evento sintético1;85/85 pruebas dirigidas. No acredita Tira online. | **Aprobado. D8 completo pendiente; total7/8.** |
 | D8b, Tira online | Humano confirma un único teléfono disponible. | No se simula segundo cliente ni presencia. | Pendiente: falta segundo cliente. |
-| D8c, Batallas | Sin ejecución humana; evaluar alternancia de cuentas en el único teléfono. | No sustituir por HTTP/mock. | Pendiente. |
+| D8c, Batallas | Creó código pero observó overflow0,850px en Crear invitación. | Invitación3f19b9b3… conservada, ocho preguntas/cero respuestas. Layout corregido en c94add3;9/9 pruebas focales, análisis/build e instalación aprobados; falta repetir visualmente y jugar con ambas cuentas. | Pendiente. |
 | D8d, Trivia Rush | Sin ejecución humana. | Contrato automatizado no acredita esta pantalla. | Pendiente. |
 | D8e, Fantasma | Sin ejecución humana. | Compartir código con Trivia no acredita su pantalla. | Pendiente. |
 
