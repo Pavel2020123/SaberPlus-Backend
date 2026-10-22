@@ -117,7 +117,9 @@ Regresiones de esta continuación, completadas después de la preparación:
 | Entrada | Evidencia humana | Evidencia automática | Resultado |
 | --- | --- | --- | --- |
 | D1 paso1, acceso | Confirmó entrada ADMIN y API real. | Panel200/config demo:false y API/SQL disponibles. | Paso aprobado; bloque parcial. |
-| D1 paso2, figuras | Solicitada; falta confirmación. | Fixture12×4, dos imágenes y una correcta por pregunta; baseline de asociaciones guardado. | Pendiente. |
+| D1 paso2, figuras | Tras orientar hacia los desplegables de B/D, el humano confirma: «Si se ven los rectangulos». Acredita ambas vistas previas en el panel. | Detalle ADMIN releído: misma revisión, editable y capacidad activa. Orden real: A «Ninguna…» sin imagen; B naranja con imagen; C «Ambas…» sin imagen; D azul con imagen. | Paso aprobado; D1 todavía parcial. |
+| D1 paso3a, carga azul | Tras seleccionar opcion-azul.png, completar metadatos y Subir y usar imagen, confirma: «Listo, se sigue viendo el rectangulo correctamente». | Nuevo archivo fe6e3f16-ee39-4eeb-93c5-1929b6cd8d74 DISPONIBLE,160×80; tres archivos en total. La pregunta original sigue PUBLICADO y conserva su FK azul anterior: cargar no publica la asociación. | Carga/vista aprobadas; falta Guardar pregunta y recargar. |
+| D1 paso3b, guardar | Humano informa que no aparece el aviso; precisa «El botón se puede pulsar, pero no veo cambios» y, al subir, «No aparece ningún aviso». Se indica no repetir Guardar ni recargar mientras se comprueba. | SQL confirma guardado: original e08e947b… ARCHIVADO, intermedia 2ad3b450… ARCHIVADO y actual 3e64af95-d6c7-472a-a474-2bff033ddeae PUBLICADO. Ambas nuevas enlazan azul fe6e3f16… y naranja original; cuatro textos y correcta azul conservados. Dos versiones nuevas compatibles con dos pulsaciones, no con pérdida del archivo. | Persistencia comprobada automáticamente; fallo de visibilidad del feedback en corrección, falta repetir visualmente. |
 | D1 resto | Selección/cancelación, texto obligatorio, quitar/restaurar, guardado/recarga no ejecutados todavía. | Evidencia previa y regresión integrada separadas. | Pendiente. |
 | D2–D7 | Sin confirmaciones nuevas. | Regresiones anteriores no sustituyen pantallas físicas. | Pendientes. |
 | D8a, Tira local | Sin ejecución humana. | No atribuirle una prueba online. | Pendiente. |
@@ -131,8 +133,45 @@ sin corte de red, sin cambio de escala y sin credenciales dentro de la APK.
 La sesión humana caduca dos horas después de local-ranking-ready; si caduca,
 crear otra sesión y volver a entrar con su clave propia. No reutilizar la anterior.
 
-**Siguiente paso:** esperar la confirmación humana de las dos vistas previas (D1 paso2),
-después probar selección/guardado/recarga y cancelación, con comprobación API/SQL.
+Consultas auxiliares de solo lectura: se corrigió el nombre del campo temporal
+a creadoEn y se cotejaron referencias por UUID en vez de texto con tildes al pasar
+JavaScript por PowerShell. Los intentos iniciales no escribieron datos ni implican
+un fallo de la app. La comprobación final de archivo/FK quedó aprobada.
+
+### Corrección de feedback del panel durante D1
+
+Reproducción automática de solo lectura en Chromium1280×900, con el banco humano
+de12 preguntas: al desplazar hasta Guardar, el mensaje superior quedó entre
+y=−2101 e y=−2077, mientras el botón quedó en y=428. No se escribió en el formulario
+humano ni se declaró observación visual humana a partir de esta medida.
+La posición explica que el aviso no acompañe a la acción; no acredita por sí sola
+por qué el humano tampoco lo identificó al subir.
+
+Corrección localizada en `admin/public/question-editor.mjs` e `index.html`:
+copia visual del estado junto a Guardar, sincronizada también para errores,
+cambio de registro y cierre. La copia es aria-hidden; el role=status/aria-live
+superior sigue anunciando una sola vez. Se corrigió además la ayuda antigua que
+afirmaba que las imágenes en opciones no estaban implementadas: conserva texto
+obligatorio y explica la imagen opcional cuando aparece el selector.
+No se cambian permisos, guardado/versionado, API, XP, migraciones o dependencias.
+
+Regresión de `admin/test/question-editor.test.mjs` ampliada: confirmación y error
+junto al botón, limpieza al cerrar y ausencia de éxito obsoleto al cambiar registro.
+Antes del arreglo:12/14 aprobadas y2 fallidas por ausencia del estado cercano.
+Después del arreglo: panel completo130/130 aprobado; sintaxis28 módulos correcta.
+Chromium/PostgreSQL ampliado para exigir confirmación visible en viewport390 y
+evitar anuncios accesibles duplicados:44/44 aprobadas, cero fallidas/omitidas,
+70 migraciones temporales; limpieza de recursos propios confirmada.
+Capturas sintéticas ignoradas: `backend/.tmp/c5b-qa/run-10Bipk`; log ignorado
+`backend/output/c5-c2-postgres-feedback.log`. No hay confirmación humana del arreglo
+todavía ni nueva instalación Android necesaria por estos cambios del panel.
+No se repiten las regresiones Flutter/backend sin cambios de esos componentes.
+
+**Siguiente paso:** recargar el panel con Ctrl+F5/entrar de nuevo y reabrir la versión
+guardada de «Ensayo C2-D 1» (persistencia ya comprobada). Confirmar figuras y estado
+próximo al botón, sin guardar otra vez todavía.
+Después repetir guardado visualmente por esta corrección concreta y continuar
+cancelación, texto obligatorio y quitar/restaurar. D1 sigue parcial, total0/8.
 Sin push, merge, despliegue o SQL remoto. C2 continúa abierta; no preparar cierre8/8.
 
 ## Checkpoint — 21 de octubre de 2026

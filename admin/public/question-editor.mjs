@@ -95,6 +95,9 @@ export class QuestionEditor {
   message(text, error = false) {
     this.$("bank-message").textContent = text;
     this.$("bank-message").className = error ? "notice error" : "notice";
+    // Copia visual junto a Guardar; el estado superior mantiene el anuncio accesible.
+    this.$("bank-save-message").textContent = text;
+    this.$("bank-save-message").className = error ? "notice error" : "notice";
   }
   discard() {
     return (
