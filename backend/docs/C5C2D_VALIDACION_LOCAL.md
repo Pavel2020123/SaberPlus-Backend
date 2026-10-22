@@ -1,5 +1,65 @@
 # C5-C2-D — Ensayo local de imágenes en opciones
 
+## Reanudación — 22 de octubre de 2026, America/Bogota
+
+**Se mantienen D1–D7 aprobados (7/8); D8a no aprobado.** Al detener el ensayo,
+el humano informó «Ganaste el duelo 3 rondas 3 aciertos 2 aciertos CPU» y que
+texto/imágenes quedaban desalineados y fuera del globo. Se detuvo toda operación
+por su petición expresa, sin actualizar archivos después de ella. Al retomar
+precisa que el defecto está **en los botones de respuesta**, no en el enunciado.
+Esto acredita avance de varias rondas tras69e48e5, pero falla la presentación.
+
+- Repositorios en fix/c5-c2-validacion; Flutterd7ae366/backend146c28a. Cambio
+  ajeno analysis_options.yaml conservado. Sin push/merge/despliegue o cambios OV-1.
+- Regresión que quedó ejecutándose: **971 aprobadas/16 opt-in omitidas**, cero
+  fallidas, log Flutter output/c5-c2-d8a-regresion-flutter-completa.log. No acredita
+  corrección visual; esa prueba anterior comprobaba avance/referencias, no la
+  geometría del borde con píxeles decodificados.
+- API43187 ya no escucha; sesión Kb3AT3/owner.json ya no existe y su contenedor
+  no aparece. Panel4173 sigue escuchando. Android USB autorizado. No se reutilizan
+  claves anteriores. Contenedor histórico5548e14c… sigue presente y no se opera
+  su limpieza, que quedó rechazada/documentada en el checkpoint anterior.
+
+- Nueva sesión propia y servicios: API43187 ready/database UP,70 migraciones,
+  optionImagesLocal:true; panel4173 conserva demo:false/API43187. Sesión temporal
+  `C:\Users\modaf\AppData\Local\Temp\saberplus-i2-local-y2k4pR`, nonce41a7744d…;
+  contraseña nueva solo en flutter-private.json, AUTH_E2E_PASSWORD. No imprimir
+  ni compilar credenciales. Fixture estándar guardado/recargado por API:
+  «Opciones C2-D - ensayo41a7744d»,12 preguntas/cuatro opciones/dos figuras.
+  Android autorizado, reverse43187 restaurado, escala1.0. No se importa el
+  historial/XP de sesiones previas ni se repiten D1–D7 por recrear esta base.
+
+- Reproducción automática de presentación: cuatro casos a anchos320/412 y
+  escalas1.0/2.0, imágenes decodificadas160×80 y80×160. Se comprueba que las
+  esquinas del texto y los píxeles quedan dentro del contorno real del Material
+  del botón. **0/4 aprobados antes del arreglo**: forma predeterminada StadiumBorder
+  y contenido superior cerca del borde, fuera del contorno curvo. Log ignorado:
+  output/c5-c2-d8a-bordes-reproducido.log. La espera inicial del auxiliar contaba
+  además RawImage de la arena; se acotó a AcademicOptionContent para reproducir
+  el defecto real, sin cambiar runtime para acomodar el test.
+- Corrección localizada en Tira local: forma rectangular con esquinas de16 y
+  padding16 explícitos para cada opción. El contenido ilustrado conserva su
+  altura natural, proporciones y área de toque dentro del borde. Sin tocar
+  AcademicOptionContent compartido, reglas, sesión, CPU, XP, contratos o dependencias.
+  Regresión dirigida **85/85 aprobadas**, incluidos los cuatro casos geométricos;
+  output/c5-c2-d8a-bordes-regresion.log. Flutter analyze --no-pub sin incidencias
+  (output/c5-c2-d8a-bordes-analyze.log). La regresión completa971/16 anterior
+  corresponde al arreglo de avance69e48e5, no se atribuye al nuevo ajuste visual.
+  Commit Flutterdfb05dc. Build debug aprobado (assembleDebug201,1s), defines
+  públicos del relevo y ninguna credencial; mismos avisos conocidos de KGP/Java.
+  Log output/c5-c2-d8a-bordes-build.log. adb install -r: Success; am start -W
+  OK/WARM, reverse43187 activo, sin reinstalación destructiva ni borrado de datos.
+  Sin aprobación humana del ajuste. Baseline de la sesión nueva: XP académico0,
+  historial0/resultados0, ningún intento Trivia; evento sintético1/Trivia100.
+  Evidencia ignorada backend/output/c5-c2-d8a-bordes-baseline.json.
+
+**Siguiente paso:** iniciar sesión student@example.invalid con la clave nueva de
+y2k4pR, abrir Practicar → Tira y afloja → Matemáticas/CPU Entrenamiento y comenzar
+partida local. Responder azul y avanzar; confirmar en dos preguntas que texto e
+imágenes están completos y dentro del borde. D8a sin aprobar hasta observarlo.
+D8b pendiente por falta
+de segundo cliente; D8c/d/e pendientes. No repetir D1–D7 sin regresión concreta.
+
 ## Reanudación de servicios — 21 de octubre de 2026, 23:10–23:15 America/Bogota
 
 **D1–D7 aprobados (7/8). Sigue D8 por subcasos; Tira online pendiente de segundo cliente.**
@@ -432,7 +492,7 @@ Regresiones de esta continuación, completadas después de la preparación:
 | D5 logout y cuentas | Tras logout/Atrás no vuelve contenido privado; zero ve historial vacío y práctica sin reanudación; al volver a student aparece Intento reanudado sin selección. | Dos intentos propios distintos, sin cambios en historial/resultados/XP/eventos al alternar. Demo/sin token solo pruebas automáticas. | **D5 aprobado. Total5/8.** |
 | D6 texto grande | Confirma pregunta completa, error/reintentos alcanzables, recuperación sin selección y revisión completa; detecta espacios faltantes en explicación del fixture. | Escala2.0; etiquetas accesibles Android verificadas, sin TalkBack humano. SQL demuestra texto ya guardado sin espacios; corregidas cinco versiones por API, sin reescribir historial. Escala restaurada1.0. | **D6 aprobado. Total6/8.** Texto nuevo verificado automáticamente. |
 | D7 Cima | Figuras iniciales, acierto, reinicio COLD, misma pregunta2/figuras/progreso, cierre5/5 y resultado recuperado confirmados. | Mismo intento/snapshot SHA256, cinco respuestas; única liquidación Cima100 XP antes/después de recuperar. Admisión sintética apagada al finalizar. | **D7 aprobado. Total7/8.** Rescate no probado por USB. |
-| D8a, Tira local | Sin ejecución humana. | No atribuirle una prueba online. | Pendiente. |
+| D8a, Tira local | Primera ejecución termina en una ronda; tras69e48e5 logra tres rondas/3 aciertos/CPU2, pero informa texto e imágenes desalineados dentro de botones. | Avance corregido; geometría reproducida0/4 y corregida en dfb05dc,85/85 pruebas dirigidas aprobadas. Falta repetir vista física. No acredita Tira online. | Pendiente por defecto visual; corrección en validación. |
 | D8b, Tira online | Humano confirma un único teléfono disponible. | No se simula segundo cliente ni presencia. | Pendiente: falta segundo cliente. |
 | D8c, Batallas | Sin ejecución humana; evaluar alternancia de cuentas en el único teléfono. | No sustituir por HTTP/mock. | Pendiente. |
 | D8d, Trivia Rush | Sin ejecución humana. | Contrato automatizado no acredita esta pantalla. | Pendiente. |
