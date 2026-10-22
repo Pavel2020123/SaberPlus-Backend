@@ -2,7 +2,7 @@
 
 ## Reanudación — 22 de octubre de 2026, America/Bogota
 
-**Se mantienen D1–D7 aprobados (7/8); D8a aprobado, D8b/c/d/e pendientes.** Al detener el ensayo,
+**Se mantienen D1–D7 aprobados (7/8); D8a/c aprobados, D8b/d/e pendientes.** Al detener el ensayo,
 el humano informó «Ganaste el duelo 3 rondas 3 aciertos 2 aciertos CPU» y que
 texto/imágenes quedaban desalineados y fuera del globo. Se detuvo toda operación
 por su petición expresa, sin actualizar archivos después de ella. Al retomar
@@ -176,10 +176,10 @@ Esto acredita avance de varias rondas tras69e48e5, pero falla la presentación.
   y orden, ocho respuestas totales/sin liquidación. Evidencia ignorada:
   backend/output/c5-c2-d8c-student-primera-pregunta.json.
 
-**Siguiente paso:** student abre la misma batalla FINALIZADA y observa Victoria,
-+50 XP y Revisión → Pregunta1/Ensayo C2-D9 con azul/figura/explicación. Después
-cambiar a zero y recuperar Derrota/+25 XP y su revisión. Comparar SQL/XP/fecha
-de liquidación para descartar duplicación, sin jugar otra vez.
+**Siguiente paso:** conservar la cuenta zero, abrir Práctica → Trivia Rush,
+seleccionar Matemáticas/60 s y comenzar una ronda sin potenciadores. Observar
+figuras/proporciones, responder y avanzar, revisar resultado y recuperación.
+Después continuar por la entrada propia de Duelo fantasma.
 
 - Hallazgo de código C2 antes del cierre student: _CorrectionCard de Batallas
   usa Text para respuesta elegida/correcta aunque BattleAnswerOption ya conserva
@@ -208,11 +208,29 @@ de liquidación para descartar duplicación, sin jugar otra vez.
   logs c5-c2-d8c-revision-analyze.log/build.log. Defines dev/API local públicos,
   sin credenciales; avisos KGP/Java conocidos. adb install -r Success y am start
   ejecutado, reverse43187 activo, sin borrar datos ni recrear la batalla.
+  am start -W agotó su espera (Status:timeout, LaunchState:UNKNOWN); comprobación
+  posterior confirmó proceso vivo y MainActivity reanudada en primer plano,
+  API ready/database UP. No se presenta esa espera como pantalla aprobada.
   Falta observar la revisión nueva. La regresión
   global980/16 anterior corresponde a02c774c, no se atribuye al último cambio.
-  Se inicia repetición completa del código nuevo:
-  output/c5-c2-regresion-revision-batallas.log; resultado pendiente.
-D8b pendiente por falta de segundo cliente; D8c/d/e pendientes. No repetir
+  Regresión completa del código nuevo completada: **984 aprobadas/16 opt-in
+  omitidas, cero fallidas**, output/c5-c2-regresion-revision-batallas.log.
+  Las omitidas conservan sus requisitos de entorno; no cuentan aprobadas.
+- D8c revisión corregida student humana: confirma Victoria/+50 XP y primera9
+  con respuesta azul, su figura y explicación. SQL posterior: misma batalla
+  FINALIZADA,16 respuestas, xpLiquidadoEn/fecha final idénticas y XP50/25 sin
+  cambios; solo un evento competitivo sintético. Evidencia ignorada:
+  backend/output/c5-c2-d8c-student-revision-recuperada.json. Falta observar
+  resultado/revisión recuperados por zero y repetir comparación sin duplicación.
+- D8c revisión recuperada zero humana: confirma Derrota/+25 XP y primera9 con
+  figura azul, texto y explicación. SQL de22/10 a09:10 America/Bogota conserva
+  exactamente16 respuestas, estado FINALIZADA, fecha final/xpLiquidadoEn
+  13:51:29.633Z, student50/zero25 XP y único evento competitivo sintético.
+  Evidencia ignorada: backend/output/c5-c2-d8c-zero-revision-recuperada.json.
+  **D8c aprobado**: creación/unión real, ambas cuentas, resultado y recuperación
+  sin liquidación duplicada. Caso incorrecto de revisión cubierto automáticamente,
+  no humanamente; Unirme posterior al arreglo cubierto en widget, Cancelar en USB.
+D8b pendiente por falta de segundo cliente; D8d/e pendientes. No repetir
 D1–D7 ni D8a sin regresión concreta.
 
 ## Reanudación de servicios — 21 de octubre de 2026, 23:10–23:15 America/Bogota
