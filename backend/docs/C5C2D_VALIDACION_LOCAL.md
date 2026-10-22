@@ -1,5 +1,67 @@
 # C5-C2-D — Ensayo local de imágenes en opciones
 
+## Revisión de Pavel — continuación desde main integrado
+
+22 de octubre de2026. Pavel auditó la entrega parcial y pide reproducir/corregir
+el vencimiento de Tira local y completar D8b con dos clientes. **C2 sigue abierta**;
+se conservan D1–D7/D8c/d/e aprobados; D8a tiene una regresión concreta de timeout
+en revisión. No se repiten los demás bloques ni se toca OV-1.
+
+- git fetch origin en ambos repos: Flutter PR#9 integrado en b8253e2 y backend
+  PR#11 integrado en3eb3f59. Revisados commits/diff/checkpoint respecto de las
+  referencias publicadas anteriores; son los cambios entregados más sus merges.
+  main actualizado con pull --ff-only. Ramas nuevas fix/c5-c2-timeout-d8b desde
+  esos main; analysis_options.yaml ajeno preservado con stash y restaurado,
+  respaldo conservado. Sin push/merge/despliegue nuevo.
+- Lectura focal: acta/relevo/README actuales, TugOfWarPage, modelos/reglas/tests,
+  repositorio remoto y contrato Trivia, controlador/servicio de Trivia, admisión
+  y flujo Tira online. No AGENTS aplicables encontrados. Auditoría acotada al fallo.
+- Regresión nueva: banco remoto de dos preguntas, ninguna respuesta, CPU también
+  deja vencer10 s; después de Continuar aparece tug-result-view aunque servidor
+  permanece activo. **Reproducido,0/1 aprobada** por final prematuro. Log ignorado
+  Flutter/output/c5-c2-timeout-reproducido.log. Primer auxiliar tenía un int nulo;
+  corregido. La espera fake inicial no avanzaba DateTime.now; se espera el reloj
+  real usado por la pantalla y se reproduce el fallo específico, sin cambiar runtime.
+- Causa: solo se incorpora la próxima pregunta cuando answer devuelve serverState;
+  timeout no hace esa petición y Continuar incrementa el índice local hasta un
+  falso fin del banco. Contrato Trivia no avanza por timeout de pregunta; SALTAR
+  consume una concesión válida y el vencimiento global del intento es distinto.
+  **Decisión pedida a Pavel**, antes de implementar regla nueva: sincronizar y
+  repetir la pendiente conservando ronda vencida, o ampliar contrato con timeout
+  validado por servidor. No se fabrican respuestas/recompensas ni se quitan guards.
+- El humano está preparando emulador. ADB ya reconoce teléfono NFWKHYIZKVLF8LKJ
+  y emulator-5554/Pixel8 arrancado. D8b aún sin observación humana. Dos intentos
+  install streaming del emulador fallan sin detalle; instalando sin streaming
+  para obtener resultado, sin borrar sus datos ni cambiar dependencias.
+- Sesión propia nueva: backend build aprobado, log c5-c2-timeout-backend-build.log;
+  runner70 migraciones/optionImagesLocal:true, solo admission sin habilitar.
+  Directorio `C:\Users\modaf\AppData\Local\Temp\saberplus-i2-local-y2rj6c`,
+  nonce19f60066…, API43187. Clave nueva solo flutter-private.json/AUTH_E2E_PASSWORD.
+  Banco «Opciones C2-D - ensayo19f60066»12 preguntas/cuatro opciones/dos imágenes,
+  guardado/recargado por API. No se reutilizan claves/datos antiguos ni producción.
+- Reproducción de contrato con HTTP/SQL reales, cuenta ficticia absent separada
+  de los dos clientes: intento0ad375eb-2b5c-4534-9c7c-041fd1351846 con12 preguntas.
+  Tras10500ms sin respuesta y GET protegido de sincronización conserva ACTIVO,
+  misma pregunta/índice0, cero respuestas/aciertos/errores/saltos/potenciadores y
+  ninguna liquidación competitiva. Evidencia ignorada:
+  backend/output/c5-c2-timeout-http-sql.json. No es prueba humana ni se envió
+  respuesta ficticia. Confirma que el timeout local no avanza el contrato actual.
+- D8b preparación automática: install --no-streaming -r termina Success en
+  emulator-5554, conservando datos. APK previa c19bd1a coincide con el runtime
+  de main actualizado (solo documentación/test nuevos hasta decidir timeout),
+  define dev/API43187 y sin credenciales. App abierta en ambos: am start OK;
+  emulador UNKNOWN/Wait3271ms y teléfono HOT, sin atribuir aprobación de pantalla.
+  Health ready OK/database UP; panel4173 demo:false/API43187. Teléfono reverse
+  activo; emulador reconectó su transporte y perdió reverse, se restableció y
+  --list confirmó host-15 tcp:43187. Sin borrar datos ni cambiar SDK.
+- Se comunicó la ruta de la clave nueva y se pidió login manual: teléfono
+  student@example.invalid/emulador zero@example.invalid; no buscar rival aún.
+  Confirmación humana de ambos Inicio y decisión de timeout pendientes.
+
+**Siguiente paso:** esperar decisión de Pavel para transición de timeout;
+en paralelo terminar instalación/conexión de dos clientes y login de cuentas
+distintas para D8b. Registrar cada confirmación física y evidencia SQL por separado.
+
 ## Entrega parcial — 22 de octubre de 2026, 11:00 America/Bogota
 
 **7/8 bloques aprobados. D8a/c/d/e aprobados; D8b pendiente por falta de segundo

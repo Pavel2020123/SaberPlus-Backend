@@ -6,7 +6,10 @@
 cuentas/clave temporal, Docker/USB y pruebas; puede corregir Flutter/API/panel
 de C2. **22 de octubre: ENTREGA PARCIAL**, D1–D7 aprobados (7/8), D8a/c/d/e
 aprobados; falta D8b Tira online por segundo cliente. [Entrega y comandos](backend/docs/C5C2_ENTREGA_PARCIAL.md).
-Ramas fix/c5-c2-validacion, sin push/merge/despliegue. Esperar auditoría de Pavel.
+Pavel auditó la entrega parcial; PR Flutter#9/b8253e2 y backend#11/3eb3f59 ya
+integrados en main remoto (fetch verificado). Revisión en fix/c5-c2-timeout-d8b,
+desde main actualizado: timeout de Tira local y D8b con teléfono/emulador.
+C2 abierta, sin publicar cambios nuevos ni intervenir OV-1.
 
 **21 de octubre — [C5-C2-C validada automáticamente](backend/docs/C5C2C_CONSUMIDORES.md):**
 contratos/snapshots y Flutter incorporan imágenes opcionales sin cambiar XP ni

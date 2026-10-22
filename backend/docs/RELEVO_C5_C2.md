@@ -1,10 +1,13 @@
 # Relevo operativo — terminar C5-C2, imágenes en las opciones
 
-Actualización C2-D: **22 de octubre de 2026, ENTREGA PARCIAL**. D1–D7 aprobados
-(7/8); D8a/c/d/e aprobados, D8b pendiente por segundo cliente. Ver
+Actualización C2-D tras auditoría de Pavel: **22 de octubre de2026, C2 abierta**.
+Entrega parcial integrada en main remoto: Flutter PR#9/b8253e2 y backend
+PR#11/3eb3f59. D1–D7 y D8c/d/e conservan aprobación; D8a se revisa solo por la
+regresión de timeout y D8b se prepara con teléfono/emulador y cuentas distintas. Ver
 [entrega](C5C2_ENTREGA_PARCIAL.md) y [acta vigente](C5C2D_VALIDACION_LOCAL.md).
 No repetir los bloques aprobados sin una regresión concreta. Ramas
-fix/c5-c2-validacion en ambos repos; no publicar sin autorización de Pavel.
+fix/c5-c2-timeout-d8b en ambos repos, desde main actualizado; no publicar sin
+autorización de Pavel. Las evidencias de fix/c5-c2-validacion ya integradas se conservan.
 
 Preparación original: **21 de octubre de 2026**. Este es el punto de entrada
 para el **nuevo compañero que sustituye al propietario en C2**. No es el compañero
@@ -34,10 +37,12 @@ incidencias anteriores documentadas: no declarar lint global limpio ni usar
 `npm run lint` sin revisar que incluye `--fix`. No ejecutar todo de nuevo por cada
 toque, pero sí repetir las pruebas afectadas por una corrección y la regresión final.
 
-Código y relevo ya integrados en **main local** por autorización del propietario:
+La entrega parcial está integrada por PR en ambos main remotos (fetch verificado).
+No reabrir Flutter#4/backend#7 ni tratar la rama anterior como trabajo sin integrar.
+Esta revisión requiere commits/PR nuevos solo cuando Pavel autorice publicarlos.
+Antecedente de integración original anterior a los PR#9/#11:
 app entrega `e833d6b`, merge `f912880`; backend entrega `cfba7cd`, merge `09c763b`.
-**Sin push nuevo ni CI remoto en este cierre. Un commit/merge local no llega al
-otro PC: publicar/verificar ambos main antes de clonar/actualizar.**
+Ese cierre era local; los PR#9/#11 posteriores incorporaron la entrega parcial.
 Un push a main puede activar CI/despliegue si el repositorio tiene automatizaciones:
 la integración local no autoriza operar Render/Supabase ni migrar una base remota.
 
@@ -89,10 +94,10 @@ Con árbol limpio y main publicado, ejecutar por separado en cada repo:
 git fetch origin
 git switch main
 git pull --ff-only origin main
-git switch -c fix/c5-c2-validacion
+git switch -c fix/c5-c2-timeout-d8b
 ```
 
-Si esa rama ya existe, inspeccionarla y usar `git switch fix/c5-c2-validacion`,
+Si esa rama ya existe, inspeccionarla y usar `git switch fix/c5-c2-timeout-d8b`,
 no borrarla/recrearla. Si pull diverge, parar la operación Git y revisar; no forzar.
 Guardar HEAD inicial de los dos repos. No hacer merge de OV-1 para probar C2.
 Si hacen falta cambios en schema/migraciones/AppModule, sesión/navegación o locks,
@@ -432,7 +437,7 @@ toque. Cierre documental: `docs: cerrar validacion local de imagenes en opciones
 Publicar solo cuando el propietario lo autorice, por repo:
 
 ```powershell
-git push -u origin fix/c5-c2-validacion
+git push -u origin fix/c5-c2-timeout-d8b
 ```
 
 Abrir PR separado por repositorio si hubo cambios, indicando ambos commits/PR,

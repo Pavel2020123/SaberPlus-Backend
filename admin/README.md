@@ -6,7 +6,9 @@ aviso visible junto a Guardar y coletilla de demo condicionada al modo real.
 132/132 pruebas del panel y sintaxis28 módulos aprobadas;44/44 PostgreSQL/HTTP.
 Sin cambios de permisos, publicación inmediata o dependencias. Estado global
 7/8 bloques; falta D8b Tira online y auditoría de Pavel. [Entrega](../backend/docs/C5C2_ENTREGA_PARCIAL.md).
-Rama fix/c5-c2-validacion, sin push/merge/despliegue. Notas inferiores históricas.
+Entrega parcial integrada por PR Flutter#9/b8253e2 y backend#11/3eb3f59, auditada
+por Pavel. Revisión actual en fix/c5-c2-timeout-d8b: timeout local y D8b; no se
+repite D1 del panel sin regresión concreta. C2 abierta. Notas inferiores históricas.
 
 **20 de octubre — [C5-B implementada y validada localmente](../backend/docs/C5B_PANEL.md):**
 selector, vista previa, datos de autoría y carga recuperable en preguntas/casos/lecciones.
