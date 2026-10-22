@@ -2,7 +2,7 @@
 
 ## Reanudación de servicios — 21 de octubre de 2026, 23:10–23:15 America/Bogota
 
-**D1–D5 aprobados (5/8). Sigue D6: texto grande y accesibilidad.**
+**D1–D6 aprobados (6/8). Sigue D7: snapshot y reanudación en Cima.**
 Antes de pedir remontar servicios, el humano confirmó la primera pregunta
 «Ensayo red C2-D…» con ambas figuras y ninguna opción seleccionada. Esa preparación
 corresponde a la sesión anterior; no acredita todavía desconexión o reintento.
@@ -106,10 +106,75 @@ corresponde a la sesión anterior; no acredita todavía desconexión o reintento
   del sistema inicialmente desactivada (accessibility_enabled:0); no atribuir
   lectura TalkBack aún. Se conservará/restaurará escala1.0 al terminar D6.
 
-**Siguiente paso exacto:** con texto grande, desplazar la pregunta actual por
-todas las opciones y controles. Confirmar textos completos, figuras proporcionales
-y controles alcanzables sin recortes/solapamientos. No responder todavía.
-D6 revisión/error/accesibilidad y D7 pendientes; D8b requiere segundo cliente.
+- D6 paso1 humano: con escala2.0, tras recorrer la pregunta y todas sus opciones,
+  confirma «Sí a todo»: textos completos, ambas figuras proporcionadas y todos
+  los controles alcanzables sin recortes ni solapamientos. No acredita todavía
+  revisión, aviso de error ni lectura por TalkBack a esta escala.
+  Se obtuvo árbol de accesibilidad Android mediante uiautomator dump/pull en
+  backend/output/c5-c2-d6-semantica.xml (ignorado); TalkBack está instalado,
+  sin activar todavía. Es evidencia automática, no confirmación auditiva humana.
+  El árbol contiene «Imagen de la opción: Rectángulo naranja vertical» y
+  «Imagen de la opción: Rectángulo azul horizontal», unidas al texto respectivo;
+  ambas selected:false y Siguiente no pulsable mientras no hay respuesta.
+
+- D6 aclaración: a la petición de volver a la lección el humano responde
+  «La pregunta sigue viendose bien». Confirma legibilidad, pero no confirma
+  haber salido de la práctica. Se mantiene el túnel activo; no se cuenta un
+  segundo corte ni aviso de error observado a escala2.0.
+
+- D6 preparación de error: el humano confirma que ahora ve la lección con el
+  botón Practicar y no la pregunta. Se retira solo reverse tcp:43187; lista
+  de túneles vacía, escala releída2.0 y API sigue ready/database UP en el PC.
+  Pendiente observación del aviso a texto grande.
+
+- D6 aviso humano: confirma que aparecen los avisos de las imágenes y alcanza
+  ambos botones Reintentar imagen con texto grande. Los pulsó durante el corte
+  y las figuras no aparecieron: resultado esperado sin túnel, no fallo probado
+  de recuperación. Se explicó ese estado y se restauró reverse tcp:43187;
+  lista confirma el túnel y API ready/database UP. No se dio por recuperado aún.
+
+- D6 recuperación humana: confirma «Exacto» a que, restaurado el túnel, ambos
+  reintentos muestran las figuras proporcionadas sin seleccionar respuesta.
+  SQL posterior coincide con baseline D5 de ambas cuentas: mismo intento
+  student249ae115… no consumido, XP0/historial0/resultados0/evento sintético1.
+  Evidencia ignorada: backend/output/c5-c2-d6-reintento-texto-grande.json.
+  Pregunta y error/reintento grandes confirmados; descripción accesible expuesta
+  verificada automáticamente en Android, sin afirmar lectura TalkBack humana.
+
+- D6 revisión humana: tras completar el intento con naranja primero y azul en
+  las otras cuatro, informa que se ve todo bien, pero señala números pegados
+  en la explicación: «mide160», «y80», «naranja80», «y160».
+  SQL y árbol Android coinciden exactamente con ese texto ya almacenado por
+  el preparador auxiliar del fixture de recuperación; no se perdieron espacios
+  en Flutter. El preparador estándar prepare_editorial_options_local.mjs sí
+  contiene espacios correctos. No se cambia renderer, fuentes o arquitectura.
+  Evidencia ignorada: backend/output/c5-c2-d6-revision-y-texto.json y
+  backend/output/c5-c2-d6-revision.xml. La consulta SQL auxiliar inicial falló
+  por usar la relación opciones en vez de respuestas; corregida y repetida.
+  Intento consumido: cuatro correctas/una incorrecta, historial5, resultado1,
+  XP académico90 (4×10+50), evento competitivo sintético1 sin nuevas liquidaciones.
+- Corrección del contenido sintético local por las APIs ADMIN reales: cinco
+  nuevas versiones publicadas con «La azul mide 160 de ancho y 80 de alto;
+  la naranja mide 80 de ancho y 160 de alto.». Opciones, imágenes, clasificación
+  y correcta conservadas. Versiones previas archivadas conservan la explicación
+  original y las referencias históricas; no se reescribe la corrección ya vista.
+  Primera solicitud auxiliar de guardado rechazada409 por omitir imagenUrl en
+  opciones solo de texto. Se siguió el contrato con imagenUrl:'' en esas opciones,
+  sin debilitar el guard; guardado/recarga API aprobados5/5. Comparación SQL
+  antes/después: intentos, historial, resultados y eventos inalterados.
+  Evidencia: backend/output/c5-c2-d6-correccion-texto-fixture.json; manifest
+  temporal actualizado con IDs nuevos y archivedQuestionIds. Corrección de texto
+  comprobada automáticamente; no se afirma vista humana del texto nuevo.
+- **D6 aprobado; total6/8:** pregunta/revisión y error/reintento con texto grande
+  observados por el humano; etiquetas accesibles de ambas figuras comprobadas
+  en árbol Android. TalkBack no se activó y no se atribuye prueba auditiva humana.
+  Escala restaurada mediante ADB a1.0 y releída1.0.
+
+**Siguiente paso exacto:** volver a Practicar → Salto a la cima, sin comenzar
+todavía. Usar Matemáticas y el tema «Opciones C2-D - ensayo 5db53a0f» con el
+subtema estándar «Opciones con imágenes» (12 preguntas ilustradas); preparar
+admisión competitiva solo de esta sesión si se activa ranking. D7 y D8a/c/d/e
+pendientes; D8b requiere segundo cliente. C2 continúa abierta, sin cierre completo.
 
 ## Continuación en otro PC — 21 de octubre de 2026, America/Bogota
 
@@ -258,7 +323,7 @@ Regresiones de esta continuación, completadas después de la preparación:
 | D4 primera preparación | Confirma primera pregunta «Ensayo red C2-D…» con ambas figuras y ninguna opción seleccionada. Después solicita remontar servicios/clave nueva. | Sesión anterior con intento no consumido4c7f272a…; base nueva preparada en la entrada de reanudación superior. | Preparación confirmada; corte/recuperación pendientes. |
 | D4 corte y recuperación, sesión nueva | Confirma ambas figuras sin selección, vuelve a lección; sin reverse observa texto y avisos de reintento; restaurado el túnel, ambos reintentos recuperan figuras proporcionadas sin seleccionar respuesta. | Mismo intento249ae115… no consumido y cinco preguntas antes/después, XP0/historial0/resultados0/evento sintético1; sin nuevo intento. Ver evidencia superior. | **D4 aprobado. Total4/8.** Corte anterior al envío; sin ensayo de confirmación perdida después de POST. |
 | D5 logout y cuentas | Tras logout/Atrás no vuelve contenido privado; zero ve historial vacío y práctica sin reanudación; al volver a student aparece Intento reanudado sin selección. | Dos intentos propios distintos, sin cambios en historial/resultados/XP/eventos al alternar. Demo/sin token solo pruebas automáticas. | **D5 aprobado. Total5/8.** |
-| D6 texto grande | Sin confirmación visual nueva todavía. | Escala1.0→2.0 por ADB, Android15 CPH2577. Restaurar1.0 al terminar. | En curso; faltan pregunta/revisión/error/accesibilidad. |
+| D6 texto grande | Confirma pregunta completa, error/reintentos alcanzables, recuperación sin selección y revisión completa; detecta espacios faltantes en explicación del fixture. | Escala2.0; etiquetas accesibles Android verificadas, sin TalkBack humano. SQL demuestra texto ya guardado sin espacios; corregidas cinco versiones por API, sin reescribir historial. Escala restaurada1.0. | **D6 aprobado. Total6/8.** Texto nuevo verificado automáticamente. |
 | D7 | Sin confirmaciones nuevas. | Regresiones anteriores no sustituyen pantallas físicas. | Pendiente. |
 | D8a, Tira local | Sin ejecución humana. | No atribuirle una prueba online. | Pendiente. |
 | D8b, Tira online | Humano confirma un único teléfono disponible. | No se simula segundo cliente ni presencia. | Pendiente: falta segundo cliente. |
@@ -403,7 +468,7 @@ idénticos. Sin push nuevo, CI remoto, instalación USB nueva ni despliegue.
 | 3 | Finalizar/revisar y reabrir: opción, explicación, figura y resultado conservados. | Aprobado; evidencia humana D3 de esta continuación. |
 | 4 | Corte/recuperación: aviso completo y reintento sin seleccionar ni duplicar respuesta. | Aprobado; D4 sesión5db53a0f, antes del envío; no se ensayó confirmación perdida tras POST. |
 | 5 | Logout/reingreso: no acceder a contenido privado con la sesión anterior; demo aislada. | Aprobado; cuentas/logout USB humanos, demo/sin token automáticos; sin demo física. |
-| 6 | Texto grande/pantalla estrecha: controles legibles sin recortes ni estiramiento. | Pendiente |
+| 6 | Texto grande/pantalla estrecha: controles legibles sin recortes ni estiramiento. | Aprobado a escala2.0; semántica Android automática; sin TalkBack humano. Escala restaurada1.0. |
 | 7 | Cima o Rescate: recuperar intento/snapshot con figuras; sin XP duplicado. | Pendiente |
 | 8 | Tira/Batallas y Trivia/Fantasma: registrar cada subcaso y sus límites. | Pendiente |
 
