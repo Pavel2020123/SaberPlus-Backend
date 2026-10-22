@@ -144,10 +144,74 @@ Esto acredita avance de varias rondas tras69e48e5, pero falla la presentación.
   SQL confirma misma batalla ACTIVA, ambos participantes LISTO/no iniciados,
   cero respuestas y sin liquidación: c5-c2-d8c-transicion-batalla-conservada.json.
 
-**Siguiente paso:** completar pruebas/análisis/build e instalar. Conservar la
-batalla ACTIVA y comprobar cierre del campo en el teléfono sin crear otra:
-abrir Tengo un código, escribir PRUEBA22 y Cancelar, sin enviarlo. Después
-abrir batalla existente como zero y comprobar imágenes/resultados con ambas cuentas.
+- D8c cierre físico del campo corregido: como zero, tras abrir Tengo un código,
+  escribir PRUEBA22 y Cancelar sin enviar, confirma «Sí» a que se cierra sin
+  pantalla roja. No se creó otra batalla ni se atribuye una segunda unión válida
+  por USB; Unirme correcto quedó cubierto automáticamente en el test con router.
+  La unión real original sigue vigente en la batalla3f19b9b3….
+- Regresión completa Flutter del código actual, tras ajustes de layout y ciclo
+  de vida: **980 aprobadas/16 opt-in omitidas, cero fallidas**, completada.
+  Log output/c5-c2-regresion-tras-batallas.log. Las omitidas requieren entornos
+  particulares no habilitados; no sustituyen pruebas humanas ni se cuentan aprobadas.
+
+- D8c primera pregunta zero humana: confirma ambas figuras junto a sus textos
+  correctos, buenas proporciones y ninguna opción seleccionada tras Comenzar.
+  SQL confirma batalla ACTIVA, zero EN_JUEGO/iniciado, ocho preguntas: cinco
+  ilustradas con dos imágenes cada una y tres sumas heredadas solo de texto;
+  cero respuestas y sin liquidación, zero XP0. El primer auxiliar asumía que
+  todas eran ilustradas y falló esa aserción; se inspeccionó la muestra real y
+  se corrigió la expectativa, sin modificar el banco ni las reglas. Evidencia
+  ignorada: backend/output/c5-c2-d8c-zero-primera-pregunta.json.
+
+- D8c parte de zero completada: el humano confirma «Terminaste tu parte» y el
+  aviso de resultado/explicaciones cuando termine el rival. SQL: ocho respuestas
+  correctas, zero FINALIZADO; student LISTO/no iniciado. Batalla sigue ACTIVA,
+  resultados PENDIENTE, xpLiquidadoEn:null y XP0 para ambos, sin adelantar premio.
+  Evidencia ignorada: backend/output/c5-c2-d8c-zero-finalizado.json.
+  Primera pregunta común del banco: «Ensayo C2-D 9», ba7e6a09….
+
+- D8c primera pregunta student humana: tras cambiar de cuenta y Comenzar confirma
+  «Ensayo C2-D 9» con ambas figuras bien asociadas y ninguna selección. SQL
+  confirma student EN_JUEGO, zero FINALIZADO/8 aciertos, mismas ocho preguntas
+  y orden, ocho respuestas totales/sin liquidación. Evidencia ignorada:
+  backend/output/c5-c2-d8c-student-primera-pregunta.json.
+
+**Siguiente paso:** student abre la misma batalla FINALIZADA y observa Victoria,
++50 XP y Revisión → Pregunta1/Ensayo C2-D9 con azul/figura/explicación. Después
+cambiar a zero y recuperar Derrota/+25 XP y su revisión. Comparar SQL/XP/fecha
+de liquidación para descartar duplicación, sin jugar otra vez.
+
+- Hallazgo de código C2 antes del cierre student: _CorrectionCard de Batallas
+  usa Text para respuesta elegida/correcta aunque BattleAnswerOption ya conserva
+  imageUrl. Las imágenes sí se dibujan en _QuestionCard, no en esta revisión.
+  No se presenta como fallo observado por el humano todavía; se pide observar
+  el resultado/revisión mientras se prepara corrección localizada y regresión.
+  Se conservará la batalla y no se repetirán respuestas por modificar la revisión.
+- D8c cierre real: el humano informa texto «Tu respuesta: Rectángulo azul
+  horizontal» y explicación de dimensiones. No informa expresamente el título
+  del resultado ni presencia/ausencia de figuras; no se inventa esa observación.
+  SQL: FINALIZADA,16 respuestas; **ambos8/8** y primera9 azul correcta para ambos.
+  Student GANADA/50 XP (167s), zero PERDIDA/25 XP (214s), según desempate de tiempo
+  existente. No se registró el error naranja propuesto; no atribuir caso incorrecto
+  humano a D8c. xpLiquidadoEn fijado una vez, ledger competitivo conserva solo
+  el evento sintético inicial. Evidencia: c5-c2-d8c-finalizada-sin-imagen-revision.json.
+- Revisión de imágenes reproducida automáticamente en cuatro casos:
+  correcta/incorrecta y antigua/ilustrada. Antes del arreglo pasan2 antiguas y
+  fallan2 ilustradas (sin referencias renderizadas); log
+  output/c5-c2-d8c-revision-reproducido.log. Corrección localizada de _CorrectionCard:
+  reutilizar AcademicOptionContent para elegida/correcta, manteniendo textos,
+  fallbacks y explicación. La correcta solo se añade si procede según la misma
+  regla anterior; sin soluciones anticipadas, cambios de API/XP o nuevas cargas.
+  Regresión del archivo **15/15 aprobadas**, incluidos los cuatro casos de revisión
+  y las correcciones previas (output/c5-c2-d8c-revision-regresion.log). Análisis/
+  build aprobados sin incidencias (assembleDebug44,1s), commit Flutter1716e21;
+  logs c5-c2-d8c-revision-analyze.log/build.log. Defines dev/API local públicos,
+  sin credenciales; avisos KGP/Java conocidos. adb install -r Success y am start
+  ejecutado, reverse43187 activo, sin borrar datos ni recrear la batalla.
+  Falta observar la revisión nueva. La regresión
+  global980/16 anterior corresponde a02c774c, no se atribuye al último cambio.
+  Se inicia repetición completa del código nuevo:
+  output/c5-c2-regresion-revision-batallas.log; resultado pendiente.
 D8b pendiente por falta de segundo cliente; D8c/d/e pendientes. No repetir
 D1–D7 ni D8a sin regresión concreta.
 
@@ -585,7 +649,7 @@ Regresiones de esta continuación, completadas después de la preparación:
 | D7 Cima | Figuras iniciales, acierto, reinicio COLD, misma pregunta2/figuras/progreso, cierre5/5 y resultado recuperado confirmados. | Mismo intento/snapshot SHA256, cinco respuestas; única liquidación Cima100 XP antes/después de recuperar. Admisión sintética apagada al finalizar. | **D7 aprobado. Total7/8.** Rescate no probado por USB. |
 | D8a, Tira local | Tras corregir avance y borde, confirma texto/figuras completos dentro de los botones y avance entre preguntas. | SQL sesión nueva:12 preguntas/tres aciertos, historial3/XP0/evento sintético1;85/85 pruebas dirigidas. No acredita Tira online. | **Aprobado. D8 completo pendiente; total7/8.** |
 | D8b, Tira online | Humano confirma un único teléfono disponible. | No se simula segundo cliente ni presencia. | Pendiente: falta segundo cliente. |
-| D8c, Batallas | Overflow corregido y confirmado sin aviso. Zero se une y ve rival listo, pero informa pantalla roja transitoria al cerrar el ingreso del código. | Misma batalla3f19b9b3… ACTIVA con dos participantes/ocho preguntas/cero respuestas. Error de controlador reproducido; corregido en02c774c,11/11 pruebas de Batallas/análisis/build/instalación aprobados. Falta cierre USB e imágenes/resultados de ambas cuentas. | Pendiente. |
+| D8c, Batallas | Diálogo sin overflow/cierre Cancelar sin pantalla roja confirmados tras correcciones. Ambas cuentas observan figuras al jugar; zero observa espera sin corrección anticipada. Al terminar student informa respuesta azul y explicación. | Misma batalla FINALIZADA,16 respuestas/ambos8 aciertos; student gana por tiempo, XP50/25. Revisión carecía de imágenes: corregida en1716e21,15/15 pruebas/análisis/build/instalación aprobados. Falta observar resultado/revisión corregida de ambas cuentas y deduplicación. | Pendiente. |
 | D8d, Trivia Rush | Sin ejecución humana. | Contrato automatizado no acredita esta pantalla. | Pendiente. |
 | D8e, Fantasma | Sin ejecución humana. | Compartir código con Trivia no acredita su pantalla. | Pendiente. |
 
