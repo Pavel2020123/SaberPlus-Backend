@@ -417,14 +417,15 @@ export class QuestionEditor {
       );
       if (version !== this.version) return;
       this.fill(row);
-      this.message(this.api.simple ? "Guardado y publicado. En demostración, el cambio es solo local." : "Guardado en BORRADOR. No está publicado.");
+      const demoNotice = this.api.demo ? " En demostración, el cambio es solo local." : "";
+      this.message(this.api.simple ? `Guardado y publicado.${demoNotice}` : "Guardado en BORRADOR. No está publicado.");
       try {
         await this.loadPage(this.page);
         if (version !== this.version) return;
         if (creating && this.api.simple) {
           this.fill(null);
           if (this.kind === "preguntas") await this.loadCases(1);
-          if (version === this.version) this.message("Guardado y publicado. Ya puedes agregar el siguiente. En DEMO los cambios son solo locales.");
+          if (version === this.version) this.message(`Guardado y publicado. Ya puedes agregar el siguiente.${demoNotice}`);
         }
       } catch {
         if (version === this.version)

@@ -120,7 +120,9 @@ Regresiones de esta continuación, completadas después de la preparación:
 | D1 paso2, figuras | Tras orientar hacia los desplegables de B/D, el humano confirma: «Si se ven los rectangulos». Acredita ambas vistas previas en el panel. | Detalle ADMIN releído: misma revisión, editable y capacidad activa. Orden real: A «Ninguna…» sin imagen; B naranja con imagen; C «Ambas…» sin imagen; D azul con imagen. | Paso aprobado; D1 todavía parcial. |
 | D1 paso3a, carga azul | Tras seleccionar opcion-azul.png, completar metadatos y Subir y usar imagen, confirma: «Listo, se sigue viendo el rectangulo correctamente». | Nuevo archivo fe6e3f16-ee39-4eeb-93c5-1929b6cd8d74 DISPONIBLE,160×80; tres archivos en total. La pregunta original sigue PUBLICADO y conserva su FK azul anterior: cargar no publica la asociación. | Carga/vista aprobadas; falta Guardar pregunta y recargar. |
 | D1 paso3b, guardar | Humano informa que no aparece el aviso; precisa «El botón se puede pulsar, pero no veo cambios» y, al subir, «No aparece ningún aviso». Se indica no repetir Guardar ni recargar mientras se comprueba. | SQL confirma guardado: original e08e947b… ARCHIVADO, intermedia 2ad3b450… ARCHIVADO y actual 3e64af95-d6c7-472a-a474-2bff033ddeae PUBLICADO. Ambas nuevas enlazan azul fe6e3f16… y naranja original; cuatro textos y correcta azul conservados. Dos versiones nuevas compatibles con dos pulsaciones, no con pérdida del archivo. | Persistencia comprobada automáticamente; fallo de visibilidad del feedback en corrección, falta repetir visualmente. |
-| D1 resto | Selección/cancelación, texto obligatorio, quitar/restaurar, guardado/recarga no ejecutados todavía. | Evidencia previa y regresión integrada separadas. | Pendiente. |
+| D1 paso3c, panel corregido | Tras recargar/reingresar y reabrir, confirma el estado junto a Guardar: «Puedes editar y guardar los cambios directamente.». | Corrección backend53b88fb; acta espejo Flutter13101c5. Regresiones130 panel/44 integradas aprobadas. | Ubicación del estado confirmada; falta confirmar aviso tras una pulsación de Guardar. |
+| D1 paso3d, aviso de guardado | Tras una pulsación, confirma: «Guardado y publicado. En demostración, el cambio es solo local.». | SQL: cuatro versiones en total, solo c3250713-6d74-4332-8fb0-f779606ceba5 PUBLICADO; azul nuevo fe6e3f16… y naranja d0128fce… conservados, correcta azul. Config del panel demo:false. La coletilla demo era texto incondicional del editor, no un cambio de entorno. | Guardado y visibilidad del aviso aprobados; corregir frase demo y falta recarga visual de figuras. |
+| D1 resto | Cancelación, texto obligatorio, quitar/restaurar y confirmación visual de guardado/recarga de figuras no completados todavía. | Guardado SQL y regresión integrada separados de la confirmación humana. | Pendiente. |
 | D2–D7 | Sin confirmaciones nuevas. | Regresiones anteriores no sustituyen pantallas físicas. | Pendientes. |
 | D8a, Tira local | Sin ejecución humana. | No atribuirle una prueba online. | Pendiente. |
 | D8b, Tira online | Humano confirma un único teléfono disponible. | No se simula segundo cliente ni presencia. | Pendiente: falta segundo cliente. |
@@ -167,10 +169,23 @@ Capturas sintéticas ignoradas: `backend/.tmp/c5b-qa/run-10Bipk`; log ignorado
 todavía ni nueva instalación Android necesaria por estos cambios del panel.
 No se repiten las regresiones Flutter/backend sin cambios de esos componentes.
 
-**Siguiente paso:** recargar el panel con Ctrl+F5/entrar de nuevo y reabrir la versión
-guardada de «Ensayo C2-D 1» (persistencia ya comprobada). Confirmar figuras y estado
-próximo al botón, sin guardar otra vez todavía.
-Después repetir guardado visualmente por esta corrección concreta y continuar
+El humano confirmó posteriormente el aviso de éxito junto a Guardar. Detectó
+también la coletilla «En demostración…» en una sesión real. Se verificó
+`/config.js` con demo:false y persistencia PostgreSQL de la nueva versión.
+La causa es texto incondicional en las dos ramas del guardado directo (crear/editar),
+no una conexión accidental a demo. Corrección: la coletilla se añade solo si api.demo
+es true. Dos casos de regresión del editor distinguen aviso real y demo; antes del
+arreglo15/16 aprobadas y1 fallida en modo real. Regresión panel posterior:
+132/132 aprobadas, cero fallidas/omitidas; sintaxis28 módulos correcta. Log ignorado:
+`backend/output/c5-c2-panel-modo-feedback.log`.
+No requiere repetir el bloque de carga/guardado ya observado ni las pruebas API/SQL
+por una corrección exclusiva de texto; el aviso exacto nuevo queda pendiente de
+observar cuando el panel cargue esa versión.
+
+**Siguiente paso:** D1 paso3e: Recargar registro seleccionado (sin otro Guardar),
+desplegar las dos respuestas ilustradas y Ver imagen cargada; confirmar azul y
+naranja conservados. Identificar por texto: el orden actual es C naranja/D azul.
+Corregir la coletilla demo para que aparezca solo en modo demo; después continuar
 cancelación, texto obligatorio y quitar/restaurar. D1 sigue parcial, total0/8.
 Sin push, merge, despliegue o SQL remoto. C2 continúa abierta; no preparar cierre8/8.
 
