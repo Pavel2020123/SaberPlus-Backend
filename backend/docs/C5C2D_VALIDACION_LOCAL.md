@@ -1,5 +1,53 @@
 # C5-C2-D — Ensayo local de imágenes en opciones
 
+## Reanudación de servicios — 21 de octubre de 2026, 23:10–23:15 America/Bogota
+
+**Se conservan D1–D3 aprobados (3/8). Sigue D4, sin corte/recuperación aprobados.**
+Antes de pedir remontar servicios, el humano confirmó la primera pregunta
+«Ensayo red C2-D…» con ambas figuras y ninguna opción seleccionada. Esa preparación
+corresponde a la sesión anterior; no acredita todavía desconexión o reintento.
+
+- Repositorios conservados en `fix/c5-c2-validacion`, HEAD Flutter27afc9c y
+  backendda2a2b0. Cambios documentales pendientes y analysis_options.yaml ajeno
+  preservados. Sin cambios funcionales nuevos, fetch/push, merge o intervención OV-1.
+- API/panel anteriores ya no escuchaban y no había procesos Node vivos.
+  Quedaba el contenedor anterior5548e14cf1e3fcd9 y su directorio temporal.
+  Se validaron marcador, URL loopback y etiqueta de propiedad; resumen SQL antes
+  del cambio: XP académico190, historial10, resultados2, un evento sintético y
+  un intento D4 no consumido4c7f272a-8d87-4b69-84f6-5ca117b7f80e (cinco preguntas).
+  Resumen técnico ignorado: backend/output/c5-c2-sesion-anterior-resumen.json.
+- Se solicitó parada mediante control.json. El control automático rechazó el
+  comando de retirar ese contenedor y borrar su directorio: «blocked by policy».
+  **Ambos recursos anteriores quedan conservados, limpieza pendiente**; no se
+  eludió el rechazo ni se reutilizaron sus credenciales. La propiedad anterior
+  está identificada; no operar contenedores ajenos.
+- Nueva sesión propia: `saberplus-i2-local-Kb3AT3`, nonce5db53a0f07d51a09;
+  PostgreSQL16 tmpfs propio y70 migraciones. local-ranking-ready con
+  optionImagesLocal:true. Límite original de dos horas conservado.
+- Contraseña nueva únicamente en el campo AUTH_E2E_PASSWORD de
+  `C:\Users\modaf\AppData\Local\Temp\saberplus-i2-local-Kb3AT3\flutter-private.json`.
+  Ruta comunicada al humano, sin imprimir la clave, tokens o URL de base.
+  Cuentas ficticias admin@example.invalid y student@example.invalid; cerrar
+  sesiones anteriores e introducir manualmente la clave nueva. No recompilarla.
+- API43187: health/live y health/ready OK/database UP; panel4173 real, demo:false.
+  ADB reconoce CPH2577 autorizado y reverse tcp:43187 restaurado.
+  Se conserva la APK ya instalada: mismo endpoint/código, sin reinstalación.
+- Fixture estándar nuevo: «Opciones C2-D - ensayo 5db53a0f»,12 preguntas.
+  Fixture D4 reconstruido por las APIs ADMIN reales: mismo tema, subtema
+  «Recuperacion de imagenes C2-D»1aefae91…, cinco preguntas con cuatro opciones,
+  dos figuras nuevas36f1a6b8…/5fdd5b48… y descripciones veraces. Guardado y recarga
+  API comprobados. No se crearon intentos student ni respuestas para esta preparación.
+  Los resultados anteriores permanecen como evidencia del ensayo anterior;
+  esta base nueva no importa sus usuarios/IDs, historial o XP.
+
+**Siguiente paso exacto:** cerrar sesión anterior en Android, entrar como student
+con la clave nueva y abrir Matemáticas → «Opciones C2-D - ensayo 5db53a0f» →
+«Recuperacion de imagenes C2-D» → Practicar. Confirmar primera pregunta sin
+responder; esta preparación se repite porque cambió la base desechable, no D1–D3.
+Después volver a la lección sin responder, retirar solo reverse43187 y reabrir
+el mismo borrador para observar el error de imagen. No cortar el túnel antes
+de tener el borrador nuevo listo. D8b continúa pendiente por falta de segundo cliente.
+
 ## Continuación en otro PC — 21 de octubre de 2026, America/Bogota
 
 Responsable: asistente de C5-C2 en sustitución de Pavel, con confirmación visual
@@ -143,7 +191,9 @@ Regresiones de esta continuación, completadas después de la preparación:
 | D3 paso4, segunda práctica | Desde práctica del subtema confirma: «Aparece Ensayo C2-D 7 con ambas figuras». | Nueva sesión PRACTICA de cinco preguntas, todas con dos imágenes; primera pregunta7. Baseline XP académico100 y sesión previa cerrada, sin cambiar selección productiva. | Segunda sesión preparada; falta enviar naranja en7 y observar resultado. |
 | D3 paso5, corrección incorrecta | Tras naranja en7 y azul en las restantes confirma: «Aparece la correcta, la incorrecta y la explicacion de la pregunta donde indica de donde sale la respuesta». | Intento3ff7096d… consumido, sesión historial3a793c44…:4 correctas/1 incorrecta; seleccionada naranja976e3250… con imagend0128fce…, correcta azul8e6f4f62… con imagen515c660d…. Historial10, resultados2, XP académico190 (incremento90 según regla existente4×10+50); ledger competitivo sigue un evento sintético/Trivia100. | Corrección/explicación confirmadas; falta comprobar vista del cuaderno con ambas figuras. |
 | D3 paso6 y cierre | En Progreso → Cuaderno confirma pregunta7, naranja seleccionada con figura, azul correcta con figura y explicación. | Tras consulta se conservan historial10/resultados2/XP académico190, un evento sintético y saldoTrivia100; sin duplicaciones. Cuaderno derivado del historial: un pendiente. Corrección correcta/incorrecta, historial y reinicio COLD cubiertos en pasos anteriores. | **D3 aprobado. Total3/8.** |
-| D4–D7 | Sin confirmaciones nuevas. | Regresiones anteriores no sustituyen pantallas físicas. | Pendientes. |
+| D4 preparación | Sin prueba humana nueva todavía. | Fixture por APIs ADMIN reales en la misma base: subtema f369468c… «Recuperacion de imagenes C2-D», mismo tema5548e14c, cinco preguntas «Ensayo red C2-D…», dos imágenes nuevas5d69f697… yb263d640… con descripciones/dimensiones veraces. Guardado/recarga API comprobados. Sin intento student ni respuestas/XP; no se cambiaron reglas ni preguntas anteriores. | Preparado para descarga nueva; falta iniciar práctica y preparar corte USB. |
+| D4 primera preparación | Confirma primera pregunta «Ensayo red C2-D…» con ambas figuras y ninguna opción seleccionada. Después solicita remontar servicios/clave nueva. | Sesión anterior con intento no consumido4c7f272a…; base nueva preparada en la entrada de reanudación superior. | Preparación confirmada; corte/recuperación pendientes. |
+| D5–D7 | Sin confirmaciones nuevas. | Regresiones anteriores no sustituyen pantallas físicas. | Pendientes. |
 | D8a, Tira local | Sin ejecución humana. | No atribuirle una prueba online. | Pendiente. |
 | D8b, Tira online | Humano confirma un único teléfono disponible. | No se simula segundo cliente ni presencia. | Pendiente: falta segundo cliente. |
 | D8c, Batallas | Sin ejecución humana; evaluar alternancia de cuentas en el único teléfono. | No sustituir por HTTP/mock. | Pendiente. |
@@ -211,16 +261,14 @@ historial y usa CuadernoError para notas/estado. Listar con el servicio existent
 confirma un error pendiente de pregunta7 con las dos referencias correctas;
 no se creó una fila artificial ni se cambió el comportamiento de la app.
 
-**Siguiente paso:** D4: preparar subtema sintético con archivos nuevos en la misma
-base propia. StatefulShellRoute mantiene el cuaderno y sus imágenes en memoria;
-usar esas referencias no garantiza descarga fallida. No alterar el banco ya validado
-ni reglas de selección: crear fixture aislado por APIs reales, iniciar práctica,
-salir a la lección sin responder, retirar solo reverse43187 y reabrir el borrador.
-Confirmar aviso de imagen y recuperación sin seleccionar/envíar respuestas.
-Para D3 harán falta al menos dos preguntas ilustradas enviadas (una azul
-correcta y una naranja incorrecta); este intento contiene solo una, así que quedará
-una segunda sesión necesaria si se mantiene el guion. No cambiar selección del juego.
-No repetir D1 aprobado salvo regresión concreta. D2–D7 y D8a–e siguen pendientes;
+**Siguiente paso:** D4: abrir el nuevo subtema «Recuperacion de imagenes C2-D» y
+Practicar; confirmar primera pregunta sin responder. Después salir a la lección
+para disponer sus imágenes y retirar solo reverse43187; reabrir el borrador local
+(la carga de práctica restaura el borrador antes de consultar API). Confirmar aviso
+de imagen y recuperación sin seleccionar/enviar respuestas. StatefulShellRoute
+mantiene el cuaderno con referencias anteriores: el fixture nuevo evita ese caché.
+Las dos sesiones de D3 ya cubrieron azul correcta y naranja incorrecta.
+No repetir D1–D3 aprobados salvo regresión concreta. D4–D7 y D8a–e siguen pendientes;
 D8b requiere segundo cliente. Las cargas previas permanecen solo en la sesión
 desechable; no borrar archivos con usos históricos. Coletilla demo corregida;
 texto exacto nuevo aún sin observación humana tras cargar esa versión del panel.
