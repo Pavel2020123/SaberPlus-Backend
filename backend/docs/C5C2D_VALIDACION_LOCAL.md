@@ -2,7 +2,7 @@
 
 ## Reanudación de servicios — 21 de octubre de 2026, 23:10–23:15 America/Bogota
 
-**D1–D6 aprobados (6/8). Sigue D7: snapshot y reanudación en Cima.**
+**D1–D7 aprobados (7/8). Sigue D8 por subcasos; Tira online pendiente de segundo cliente.**
 Antes de pedir remontar servicios, el humano confirmó la primera pregunta
 «Ensayo red C2-D…» con ambas figuras y ninguna opción seleccionada. Esa preparación
 corresponde a la sesión anterior; no acredita todavía desconexión o reintento.
@@ -170,11 +170,73 @@ corresponde a la sesión anterior; no acredita todavía desconexión o reintento
   en árbol Android. TalkBack no se activó y no se atribuye prueba auditiva humana.
   Escala restaurada mediante ADB a1.0 y releída1.0.
 
-**Siguiente paso exacto:** volver a Practicar → Salto a la cima, sin comenzar
-todavía. Usar Matemáticas y el tema «Opciones C2-D - ensayo 5db53a0f» con el
-subtema estándar «Opciones con imágenes» (12 preguntas ilustradas); preparar
-admisión competitiva solo de esta sesión si se activa ranking. D7 y D8a/c/d/e
-pendientes; D8b requiere segundo cliente. C2 continúa abierta, sin cierre completo.
+- D7 configuración humana: observa «Partida en línea», «Llega al escalón5»,
+  filtros de área/dificultad/tema, ranking y Comenzar ascenso; se confirma que
+  es la configuración esperada, sin atribuir inicio ni imágenes observadas.
+  SQL verifica las12 preguntas estándar PUBLICADO/BASICO, cada una con cuatro
+  opciones, dos imágenes y una correcta; subtemae4d6f9dc… «Opciones con imágenes».
+  Baseline student: ningún intento Cima, XP académico90/historial5/resultados1,
+  un evento competitivo sintético. Evidencia: backend/output/c5-c2-d7-baseline.json.
+  Se escribió solo control.json de la sesión propia Kb3AT3 con action:solo-on;
+  runner confirmó local-solo-admission enabled:true. Sin cambios en guards,
+  configuración productiva ni presencia Tira online. Desactivar con solo-off
+  al terminar el ensayo de juegos o antes de detener esta sesión.
+
+- D7 paso1 humano: tras configurar y comenzar confirma ambas figuras junto a
+  sus textos correctos y ninguna opción seleccionada. SQL: intento Cima
+  c792ead8-4b21-46a2-8a52-0934cfe114dd ACTIVO, versión1, competitivo1,
+  Matemáticas/Básico y tema/subtema estándar esperados;12 snapshots y cero
+  respuestas, competitiveSettledAt:null. Hash SHA256 del snapshot completo
+  ff0f9eca61708a682b95510f93a464c20abf82416f91fa6b15eff55991ad7954.
+  XP académico90 y evento competitivo sintético1 conservados. Snapshot privado
+  guardado solo en evidencia ignorada backend/output/c5-c2-d7-snapshot-inicial.json;
+  no se publica la solución futura ni se entrega al cliente como evidencia pública.
+
+- D7 paso2 humano: confirma «¡Acierto! Subes un escalón» y progreso al escalón1
+  tras azul horizontal y una pulsación de Confirmar respuesta. SQL registra una
+  sola respuesta correcta, mismo intento ACTIVO/snapshot SHA256, sin liquidación
+  todavía; XP académico90 y único evento sintético conservados. Evidencia ignorada:
+  backend/output/c5-c2-d7-tras-primer-acierto.json. No se afirma reanudación aún.
+
+- D7 punto previo a reabrir humano: confirma «Ensayo C2-D 2» con ambas figuras
+  y ninguna opción seleccionada tras Siguiente pregunta. Corresponde a snapshot
+  pregunta1da4e035-faa0-4898-8bb3-55a2b373268e, respondidas1/escalón1.
+  Se ejecutó am force-stop y am start -W únicamente de com.example.saber_plus,
+  sin borrar datos, reinstalar, cerrar sesión ni mutar el intento por API.
+  Falta observar la partida tras este arranque.
+
+- D7 reanudación humana: tras arranque COLD (PID25821→4957), confirma una
+  respondida/escalón1 y «Ensayo C2-D 2» con ambas figuras y ninguna selección.
+  SQL compara mismo intento c792ead8…, snapshot completo con idéntico SHA256,
+  pregunta actual1da4e035… y opciones idénticas. Sigue una sola respuesta correcta,
+  ACTIVO/no liquidado, ningún intento nuevo, XP académico90 y evento sintético1.
+  Evidencia ignorada: backend/output/c5-c2-d7-reanudado.json. Reabrir no duplicó
+  ni perdió el acierto; todavía falta cierre y recuperación del resultado final.
+
+- D7 cierre de juego humano: informa «5/12 respondidad 5 aciertos 0 errores».
+  SQL confirma VICTORIA, cinco respuestas correctas y snapshot SHA256 idéntico;
+  finalizado/competitiveSettledAt presentes. Un único SETTLEMENT para esta fuente
+  Cima (además del evento sintético inicial); XP académico permanece90.
+  Evidencia ignorada: backend/output/c5-c2-d7-finalizado.json. Consulta auxiliar
+  inicial usó nominalDelta/appliedDelta en vez de deltaNominal/deltaAplicado;
+  se ajustó al esquema y se repitió sin modificar datos. Falta recuperar resultado
+  y confirmar visualmente que se conserva, con SQL sin liquidaciones duplicadas.
+
+- D7 recuperación final humana: tras Recuperar / sincronizar partida confirma
+  mismo resultado, escalón5/cinco respondidas/cinco aciertos/cero errores.
+  SQL compara mismo intento/snapshot/fechas terminales y cinco respuestas,
+  sin intento nuevo ni evento adicional: un único SETTLEMENT SUMMIT de100 XP,
+  saldo Cima100, más el sintético Trivia100 inicial; XP académico90 conservado.
+  Evidencia ignorada: backend/output/c5-c2-d7-resultado-recuperado.json.
+  Se escribió solo-off en control.json propio; runner confirmó
+  local-solo-admission enabled:false. **D7 aprobado; total7/8.** Se probó Cima
+  por USB; Rescate conserva solo su evidencia automática, no otra prueba humana.
+
+**Siguiente paso exacto:** volver a Practicar → Tira y afloja para preparar
+  D8a. Elegir Matemáticas y Rival CPU → Entrenamiento; aún no iniciar hasta
+  orientar la observación del reloj y las figuras. La configuración local no
+  tiene filtro de tema/subtema ni dificultad académica; no inventar esos controles.
+  D8a/c/d/e pendientes; D8b requiere segundo cliente. C2 sigue abierta.
 
 ## Continuación en otro PC — 21 de octubre de 2026, America/Bogota
 
@@ -324,7 +386,7 @@ Regresiones de esta continuación, completadas después de la preparación:
 | D4 corte y recuperación, sesión nueva | Confirma ambas figuras sin selección, vuelve a lección; sin reverse observa texto y avisos de reintento; restaurado el túnel, ambos reintentos recuperan figuras proporcionadas sin seleccionar respuesta. | Mismo intento249ae115… no consumido y cinco preguntas antes/después, XP0/historial0/resultados0/evento sintético1; sin nuevo intento. Ver evidencia superior. | **D4 aprobado. Total4/8.** Corte anterior al envío; sin ensayo de confirmación perdida después de POST. |
 | D5 logout y cuentas | Tras logout/Atrás no vuelve contenido privado; zero ve historial vacío y práctica sin reanudación; al volver a student aparece Intento reanudado sin selección. | Dos intentos propios distintos, sin cambios en historial/resultados/XP/eventos al alternar. Demo/sin token solo pruebas automáticas. | **D5 aprobado. Total5/8.** |
 | D6 texto grande | Confirma pregunta completa, error/reintentos alcanzables, recuperación sin selección y revisión completa; detecta espacios faltantes en explicación del fixture. | Escala2.0; etiquetas accesibles Android verificadas, sin TalkBack humano. SQL demuestra texto ya guardado sin espacios; corregidas cinco versiones por API, sin reescribir historial. Escala restaurada1.0. | **D6 aprobado. Total6/8.** Texto nuevo verificado automáticamente. |
-| D7 | Sin confirmaciones nuevas. | Regresiones anteriores no sustituyen pantallas físicas. | Pendiente. |
+| D7 Cima | Figuras iniciales, acierto, reinicio COLD, misma pregunta2/figuras/progreso, cierre5/5 y resultado recuperado confirmados. | Mismo intento/snapshot SHA256, cinco respuestas; única liquidación Cima100 XP antes/después de recuperar. Admisión sintética apagada al finalizar. | **D7 aprobado. Total7/8.** Rescate no probado por USB. |
 | D8a, Tira local | Sin ejecución humana. | No atribuirle una prueba online. | Pendiente. |
 | D8b, Tira online | Humano confirma un único teléfono disponible. | No se simula segundo cliente ni presencia. | Pendiente: falta segundo cliente. |
 | D8c, Batallas | Sin ejecución humana; evaluar alternancia de cuentas en el único teléfono. | No sustituir por HTTP/mock. | Pendiente. |
@@ -469,7 +531,7 @@ idénticos. Sin push nuevo, CI remoto, instalación USB nueva ni despliegue.
 | 4 | Corte/recuperación: aviso completo y reintento sin seleccionar ni duplicar respuesta. | Aprobado; D4 sesión5db53a0f, antes del envío; no se ensayó confirmación perdida tras POST. |
 | 5 | Logout/reingreso: no acceder a contenido privado con la sesión anterior; demo aislada. | Aprobado; cuentas/logout USB humanos, demo/sin token automáticos; sin demo física. |
 | 6 | Texto grande/pantalla estrecha: controles legibles sin recortes ni estiramiento. | Aprobado a escala2.0; semántica Android automática; sin TalkBack humano. Escala restaurada1.0. |
-| 7 | Cima o Rescate: recuperar intento/snapshot con figuras; sin XP duplicado. | Pendiente |
+| 7 | Cima o Rescate: recuperar intento/snapshot con figuras; sin XP duplicado. | Aprobado en Cima; snapshot/reinicio/resultado y liquidación única comprobados. |
 | 8 | Tira/Batallas y Trivia/Fantasma: registrar cada subcaso y sus límites. | Pendiente |
 
 Son ocho bloques con varios pasos, no ocho toques. Registrar confirmaciones reales
