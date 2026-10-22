@@ -3,7 +3,7 @@
 ## Continuación en otro PC — 21 de octubre de 2026, America/Bogota
 
 Responsable: asistente de C5-C2 en sustitución de Pavel, con confirmación visual
-del compañero humano. **2/8 bloques humanos aprobados: D1 panel y D2 práctica.**
+del compañero humano. **3/8 bloques humanos aprobados: D1 panel, D2 práctica y D3 corrección/persistencia.**
 Rama en ambos repositorios: `fix/c5-c2-validacion`.
 HEAD inicial actualizado: Flutter `3513b44`, backend `8444b9a`; `fetch` no encontró
 commits posteriores en `origin/main`. `pull --ff-only` completado en ambos.
@@ -137,6 +137,12 @@ Regresiones de esta continuación, completadas después de la preparación:
 | D2 paso3, imágenes Android | En pregunta3 «Ensayo C2-D 5», tras avanzar las dos sumas confirma: «Se ven bien», referido a azul horizontal/naranja vertical, textos, proporción y ausencia de recortes. | HTTP real con absent:5 preguntas/20 opciones; solo id/imagenUrl/texto, sin explicación/solución/FK/autoría. Descarga WEBP autenticada de ambas figuras:160×80 y80×160,110 bytes cada una. No se tocó el intento de student; se creó un intento de lectura separado para absent, sin enviar respuestas ni XP. | Vista y proyección aprobadas; falta toque/selección antes de cerrar D2. |
 | D2 paso4 y cierre | Tras tocar directamente el rectángulo azul, confirma que solo «Rectángulo azul horizontal» queda seleccionada. | Proyección HTTP/bytes y pregunta asignada cotejados por separado; envío/resultado se comprobarán en D3. | **D2 aprobado. Total2/8.** |
 | D3 preparación | Sin confirmación del resultado todavía. | Antes de enviar intento07c66604…: no consumido, XP académico0, historial0, resultados0; ledger competitivo1 evento sintético/Trivia100, sin eventos nuevos. | Baseline registrado; resultado humano pendiente. |
+| D3 paso1, corrección azul | Tras completar sumas4/5 y Finalizar → Enviar, confirma azul correcta con su figura y explicación en «Ensayo C2-D 5». | Intento07c66604… consumido; cinco filas de historial, un resultado y XP académico100. Fila ilustrada correcta, seleccionada=correcta5efc3589… con imagen515c660d…. Sesión historialcb1b878c…. Ledger competitivo conserva un evento sintético y saldoTrivia100, sin liquidación nueva. | Corrección correcta aprobada; falta historial/reapertura y caso naranja incorrecta. |
+| D3 paso2, historial | En Practicar → Ver historial → Historial de respuestas → Opciones con imágenes confirma «Si sale», referido a Ensayo C2-D 5, respuesta azul/figura y marca de correcta. | Fila persistida e IDs cotejados en el paso anterior. | Historial correcto confirmado; falta reapertura y caso incorrecto. |
+| D3 paso3, reapertura | Tras reinicio COLD, volver a Historial y desplegar la entrada confirma: «Sí, ahí sigue», referido a pregunta5, respuesta azul/figura y correcta. | am force-stop/am start -W solo de com.example.saber_plus, PID13813→6428; sin borrar datos/reinstalar. Tras reapertura: mismas cinco respuestas/un resultado/XP académico100, un evento competitivo sintético/Trivia100; sin duplicaciones. | Persistencia correcta aprobada; falta caso naranja incorrecta y su revisión. |
+| D3 paso4, segunda práctica | Desde práctica del subtema confirma: «Aparece Ensayo C2-D 7 con ambas figuras». | Nueva sesión PRACTICA de cinco preguntas, todas con dos imágenes; primera pregunta7. Baseline XP académico100 y sesión previa cerrada, sin cambiar selección productiva. | Segunda sesión preparada; falta enviar naranja en7 y observar resultado. |
+| D3 paso5, corrección incorrecta | Tras naranja en7 y azul en las restantes confirma: «Aparece la correcta, la incorrecta y la explicacion de la pregunta donde indica de donde sale la respuesta». | Intento3ff7096d… consumido, sesión historial3a793c44…:4 correctas/1 incorrecta; seleccionada naranja976e3250… con imagend0128fce…, correcta azul8e6f4f62… con imagen515c660d…. Historial10, resultados2, XP académico190 (incremento90 según regla existente4×10+50); ledger competitivo sigue un evento sintético/Trivia100. | Corrección/explicación confirmadas; falta comprobar vista del cuaderno con ambas figuras. |
+| D3 paso6 y cierre | En Progreso → Cuaderno confirma pregunta7, naranja seleccionada con figura, azul correcta con figura y explicación. | Tras consulta se conservan historial10/resultados2/XP académico190, un evento sintético y saldoTrivia100; sin duplicaciones. Cuaderno derivado del historial: un pendiente. Corrección correcta/incorrecta, historial y reinicio COLD cubiertos en pasos anteriores. | **D3 aprobado. Total3/8.** |
 | D4–D7 | Sin confirmaciones nuevas. | Regresiones anteriores no sustituyen pantallas físicas. | Pendientes. |
 | D8a, Tira local | Sin ejecución humana. | No atribuirle una prueba online. | Pendiente. |
 | D8b, Tira online | Humano confirma un único teléfono disponible. | No se simula segundo cliente ni presencia. | Pendiente: falta segundo cliente. |
@@ -199,9 +205,18 @@ No requiere repetir el bloque de carga/guardado ya observado ni las pruebas API/
 por una corrección exclusiva de texto; el aviso exacto nuevo queda pendiente de
 observar cuando el panel cargue esa versión.
 
-**Siguiente paso:** D3: conservar azul en pregunta3, responder10 y5 en las sumas4/5,
-Finalizar y confirmar envío. Observar corrección de la pregunta ilustrada, figura
-y explicación; cotejar intento/historial/XP antes/después por API/SQL.
+Comprobación de cuaderno: la consulta inicial asumía que calificar creaba una fila
+CuadernoError y se corrigió tras leer el servicio. El cuaderno deriva errores del
+historial y usa CuadernoError para notas/estado. Listar con el servicio existente
+confirma un error pendiente de pregunta7 con las dos referencias correctas;
+no se creó una fila artificial ni se cambió el comportamiento de la app.
+
+**Siguiente paso:** D4: preparar subtema sintético con archivos nuevos en la misma
+base propia. StatefulShellRoute mantiene el cuaderno y sus imágenes en memoria;
+usar esas referencias no garantiza descarga fallida. No alterar el banco ya validado
+ni reglas de selección: crear fixture aislado por APIs reales, iniciar práctica,
+salir a la lección sin responder, retirar solo reverse43187 y reabrir el borrador.
+Confirmar aviso de imagen y recuperación sin seleccionar/envíar respuestas.
 Para D3 harán falta al menos dos preguntas ilustradas enviadas (una azul
 correcta y una naranja incorrecta); este intento contiene solo una, así que quedará
 una segunda sesión necesaria si se mantiene el guion. No cambiar selección del juego.
