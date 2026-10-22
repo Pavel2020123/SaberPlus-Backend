@@ -176,10 +176,10 @@ Esto acredita avance de varias rondas tras69e48e5, pero falla la presentación.
   y orden, ocho respuestas totales/sin liquidación. Evidencia ignorada:
   backend/output/c5-c2-d8c-student-primera-pregunta.json.
 
-**Siguiente paso:** conservar la cuenta zero, abrir Práctica → Trivia Rush,
-seleccionar Matemáticas/60 s y comenzar una ronda sin potenciadores. Observar
-figuras/proporciones, responder y avanzar, revisar resultado y recuperación.
-Después continuar por la entrada propia de Duelo fantasma.
+**Siguiente paso:** terminar regresión/análisis/build del arreglo de contorno
+en Trivia/Fantasma, instalar conservando datos y repetir Trivia Matemáticas/60 s
+sin potenciadores. Confirmar botones, avance y resultado; después recuperación
+y entrada propia de Duelo fantasma.
 
 - Hallazgo de código C2 antes del cierre student: _CorrectionCard de Batallas
   usa Text para respuesta elegida/correcta aunque BattleAnswerOption ya conserva
@@ -230,6 +230,33 @@ Después continuar por la entrada propia de Duelo fantasma.
   **D8c aprobado**: creación/unión real, ambas cuentas, resultado y recuperación
   sin liquidación duplicada. Caso incorrecto de revisión cubierto automáticamente,
   no humanamente; Unirme posterior al arreglo cubierto en widget, Cancelar en USB.
+- D8d primer ensayo humano: Matemáticas/60 s, sin potenciadores. Informa que
+  las figuras mantienen su proporción, pero **el texto se sale del globo de
+  respuesta**; no aparecieron sumas. No se aprueba D8d. SQL de09:13 confirma
+  intento e22700f5-d007-4bf2-8564-b9f350ee5089 FINALIZADO por agotar sus12
+  preguntas ilustradas,12 correctas/cero errores,3200 puntos/mejor combo12,
+  asistido:false y sin liquidación competitiva. No se inventa lectura humana
+  del puntaje ni duración completa: terminó en18,7 s al agotar el banco.
+  Evidencia ignorada: backend/output/c5-c2-d8d-texto-fuera-boton.json.
+  Se reproduce el contorno del botón antes de una corrección localizada.
+- D8d reproducción automática del botón compartido Trivia/Fantasma: ocho casos
+  (dos modos ×320/412 px ×escala1.0/2.0), figuras decodificadas160×80/80×160,
+  esquinas del texto/píxeles dentro del contorno Material real. El primer dato
+  ficticio no era UUID válido: se mostraba error de dirección y fallaron8/8 por
+  esa preparación, no por el defecto investigado. Corregidas solo referencias
+  de test, **0/8 aprobadas** por contenido fuera de StadiumBorder; log ignorado
+  output/c5-c2-d8d-bordes-reproducido-valido.log. Ajuste localizado de _AnswerButton:
+  RoundedRectangleBorder de radio16, sin cambiar padding, carga de imagen,
+  toque, reglas, puntos, API, dependencias ni componente compartido de imágenes.
+  Regresión dirigida **36/36 aprobadas**, incluidos ocho casos geométricos y
+  pruebas existentes de preguntas, respuestas, sincronización, puntos, ghost y
+  presentación: output/c5-c2-d8d-bordes-regresion.log. Flutter analyze --no-pub
+  sin incidencias (c5-c2-d8d-bordes-analyze.log). Commit Flutterc19bd1a; build
+  debug aprobado (assembleDebug43,7s), defines públicos dev/API local sin claves,
+  mismos avisos KGP/Java conocidos; c5-c2-d8d-bordes-build.log. adb install -r
+  Success, am start -W OK/COLD y reverse43187 activo, datos conservados.
+  Falta vista humana del arreglo y Fantasma USB. La regresión completa984/16 anterior
+  corresponde a1716e21; no se atribuye al último cambio de contorno.
 D8b pendiente por falta de segundo cliente; D8d/e pendientes. No repetir
 D1–D7 ni D8a sin regresión concreta.
 
