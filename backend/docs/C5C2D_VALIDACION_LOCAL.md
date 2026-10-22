@@ -232,10 +232,55 @@ corresponde a la sesión anterior; no acredita todavía desconexión o reintento
   local-solo-admission enabled:false. **D7 aprobado; total7/8.** Se probó Cima
   por USB; Rescate conserva solo su evidencia automática, no otra prueba humana.
 
-**Siguiente paso exacto:** volver a Practicar → Tira y afloja para preparar
-  D8a. Elegir Matemáticas y Rival CPU → Entrenamiento; aún no iniciar hasta
-  orientar la observación del reloj y las figuras. La configuración local no
-  tiene filtro de tema/subtema ni dificultad académica; no inventar esos controles.
+- D8a preparación humana: confirma el botón «Comenzar partida local» tras
+  Matemáticas/Rival CPU → Entrenamiento. Sin inicio ni figuras acreditadas aún.
+  Dependencia revisada: Tira local utiliza triviaRushRepositoryProvider para
+  preguntas/evaluación; CPU/cuerda/reloj de diez segundos se calculan localmente.
+  La configuración no tiene filtro de tema/subtema ni dificultad académica.
+  Baseline API/SQL guardado en backend/output/c5-c2-d8a-baseline.json (ignorado).
+  La revisión está acotada al consumidor, no acredita juego por compartir repositorio.
+
+- D8a fallo humano: informa «ganaste el duelo 1 ronda 1 acierto 1 acierto cpu»
+  después de comenzar/responder. No confirma expresamente figuras/proporciones.
+  SQL: intento Trivia no competitivo c8590ab9-3055-44b5-8d1c-0808136346e9
+  aún ACTIVO,17 preguntas asignadas y solo una respuesta correcta; índice1 y
+  siguiente pregunta dff7d473… disponible. La UI terminó tras una sola ronda.
+  XP académico90 y eventos2 (sintético+Cima) conservados. Evidencia ignorada:
+  backend/output/c5-c2-d8a-termina-una-ronda.json.
+  Causa acotada identificada: RemoteTriviaRushRepository expone únicamente la
+  pregunta actual; Tira local ignora evaluation.serverState al responder e
+  incrementa el índice sobre la lista inicial de un elemento, interpretándolo
+  como fin del banco. No corregir reglas de CPU/cuerda ni proyección privada.
+
+- D8a reproducción/corrección automática: nueva prueba de pantalla con dos
+  preguntas/imágenes distintas, en variantes banco antiguo y remoto. Ajustado
+  el viewport del test para tocar controles visibles, el banco antiguo pasa
+  y el remoto falla al buscar la segunda opción: reproduce el fin prematuro.
+  Corrección localizada en tug_of_war_page.dart: aceptar la siguiente pregunta
+  de evaluation.serverState, conservar el contenido de la ronda actual hasta
+  acabar su feedback y añadir la siguiente pregunta solo una vez. Sin alterar
+  CPU/cuerda, selección, XP o contrato API; sesiones antiguas siguen su banco.
+  Regresión dirigida:81/81 aprobadas (Tira local/animación/online, repositorio
+  Trivia y opciones/imágenes académicas); log output/c5-c2-d8a-regresion.log.
+  Reproducción previa: output/c5-c2-d8a-reproducido.log,1 aprobada/1 fallida.
+  No acredita aún la corrección física; tampoco se atribuyen subcasos de
+  timeout o respuesta tardía no ejecutados a la prueba de avance aceptado.
+
+- D8a entrega local de corrección: commit Flutter69e48e5, análisis sin incidencias
+  y build debug aprobado (assembleDebug134,9s). Avisos KGP/flutter_timezone y
+  acceso nativo Java ya conocidos; sin cambios de dependencias o configuración.
+  Defines solo APP_ENV=dev, DEMO_MODE=false y API_BASE_URL/CONTENT_BASE_URL
+  loopback43187. Ningún archivo privado o contraseña compilados.
+  adb install -r: Success; am start ejecutado, reverse43187 restaurado, sin
+  desinstalar ni borrar datos. Regresión Flutter completa iniciada después
+  del arreglo: output/c5-c2-d8a-regresion-flutter-completa.log, todavía en curso;
+  no declarar971/971 ni omisiones antes de consultar su resultado.
+
+**Siguiente paso exacto:** repetir D8a humano en la APK corregida: Practicar →
+  Tira y afloja, Matemáticas, CPU Entrenamiento, Comenzar partida local.
+  Responder azul horizontal, pulsar Siguiente pregunta y comprobar segunda
+  pregunta con sus figuras/textos; responder antes de vencer el reloj si procede.
+  Confirmar proporciones/selección/avance; D8a sigue sin aprobar hasta observarlo.
   D8a/c/d/e pendientes; D8b requiere segundo cliente. C2 sigue abierta.
 
 ## Continuación en otro PC — 21 de octubre de 2026, America/Bogota
