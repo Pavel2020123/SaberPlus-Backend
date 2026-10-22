@@ -2,7 +2,7 @@
 
 ## Reanudación de servicios — 21 de octubre de 2026, 23:10–23:15 America/Bogota
 
-**Se conservan D1–D3 aprobados (3/8). Sigue D4, sin corte/recuperación aprobados.**
+**D1–D4 aprobados (4/8). Sigue D5: logout y aislamiento entre cuentas.**
 Antes de pedir remontar servicios, el humano confirmó la primera pregunta
 «Ensayo red C2-D…» con ambas figuras y ninguna opción seleccionada. Esa preparación
 corresponde a la sesión anterior; no acredita todavía desconexión o reintento.
@@ -40,13 +40,47 @@ corresponde a la sesión anterior; no acredita todavía desconexión o reintento
   Los resultados anteriores permanecen como evidencia del ensayo anterior;
   esta base nueva no importa sus usuarios/IDs, historial o XP.
 
-**Siguiente paso exacto:** cerrar sesión anterior en Android, entrar como student
-con la clave nueva y abrir Matemáticas → «Opciones C2-D - ensayo 5db53a0f» →
-«Recuperacion de imagenes C2-D» → Practicar. Confirmar primera pregunta sin
-responder; esta preparación se repite porque cambió la base desechable, no D1–D3.
-Después volver a la lección sin responder, retirar solo reverse43187 y reabrir
-el mismo borrador para observar el error de imagen. No cortar el túnel antes
-de tener el borrador nuevo listo. D8b continúa pendiente por falta de segundo cliente.
+- D4, 23:18 America/Bogota: el humano confirma «Sí» a la primera pregunta
+  de la sesión nueva con ambas figuras y ninguna opción seleccionada.
+  SQL independiente: intento249ae115-c6a5-48d4-b191-3fdf65245ec2 PRACTICA,
+  cinco preguntas, consumidoEn:null; XP académico0, historial0, resultados0,
+  un evento competitivo sintético inicial. Evidencia automática ignorada:
+  backend/output/c5-c2-d4-baseline-nueva-sesion.json. No acredita aún el corte.
+
+- D4: el humano confirma que volvió a la lección con Atrás y dejó de verse
+  la pregunta. Se retiró únicamente `adb reverse tcp:43187`; la lista de túneles
+  ya no contiene ese puerto. API local sigue ready/database UP. No se cerró
+  sesión ni se detuvo PostgreSQL/API/panel. Se prepara reabrir el borrador local;
+  todavía no hay observación humana del fallo de descarga o de su recuperación.
+
+- D4: tras reabrir Practicar sin túnel, el humano confirma que se conserva
+  el texto y aparecen los avisos con «Reintentar imagen» para ambas figuras,
+  sin opción seleccionada. Es observación humana del fallo de descarga.
+  Se restauró únicamente reverse tcp:43187. Comparación SQL con el baseline:
+  mismo intento249ae115… no consumido y mismas cinco preguntas; XP0,
+  historial0, resultados0, evento competitivo sintético1, sin intentos nuevos.
+  Evidencia automática ignorada: backend/output/c5-c2-d4-corte-sin-respuestas.json.
+  La primera comparación auxiliar falló al comparar Date de Prisma con cadenas
+  JSON del baseline; se normalizaron ambas representaciones y la repetición
+  confirmó cero diferencias. Sin fallo de producto ni modificación de datos.
+  El reintento y su ausencia de selección accidental aún requieren observación.
+
+- D4 cierre: el humano confirma «Sí» tras pulsar únicamente los reintentos:
+  vuelven ambas figuras con proporciones correctas y ninguna opción seleccionada.
+  SQL posterior normalizado confirma el mismo intento no consumido, cinco
+  preguntas, XP académico0, historial0, resultados0 y evento sintético1.
+  Evidencia automática: backend/output/c5-c2-d4-recuperacion-d5-baseline.json.
+  **D4 aprobado; total4/8.** Se ensayó fallo de descarga antes de enviar y
+  recuperación del mismo borrador; no se simuló pérdida de confirmación de un
+  POST ya persistido ni se afirma haber cubierto ese subcaso.
+  Baseline D5 zero: sin intentos, historial, resultados, XP ni eventos competitivos.
+
+**Siguiente paso exacto:** sin responder, volver a la lección, abrir Más →
+Cerrar sesión y pulsar Atrás una vez. Confirmar que no reaparecen la pregunta
+ni imágenes privadas. Después entrar como zero para verificar aislamiento y
+regresar a student para reanudar su borrador. D5–D7 pendientes; D8b requiere
+segundo cliente. Demo/logout sin token cuentan solo como evidencia automática
+de las pruebas ya ejecutadas; no se abrió una variante demo física.
 
 ## Continuación en otro PC — 21 de octubre de 2026, America/Bogota
 
@@ -193,6 +227,7 @@ Regresiones de esta continuación, completadas después de la preparación:
 | D3 paso6 y cierre | En Progreso → Cuaderno confirma pregunta7, naranja seleccionada con figura, azul correcta con figura y explicación. | Tras consulta se conservan historial10/resultados2/XP académico190, un evento sintético y saldoTrivia100; sin duplicaciones. Cuaderno derivado del historial: un pendiente. Corrección correcta/incorrecta, historial y reinicio COLD cubiertos en pasos anteriores. | **D3 aprobado. Total3/8.** |
 | D4 preparación | Sin prueba humana nueva todavía. | Fixture por APIs ADMIN reales en la misma base: subtema f369468c… «Recuperacion de imagenes C2-D», mismo tema5548e14c, cinco preguntas «Ensayo red C2-D…», dos imágenes nuevas5d69f697… yb263d640… con descripciones/dimensiones veraces. Guardado/recarga API comprobados. Sin intento student ni respuestas/XP; no se cambiaron reglas ni preguntas anteriores. | Preparado para descarga nueva; falta iniciar práctica y preparar corte USB. |
 | D4 primera preparación | Confirma primera pregunta «Ensayo red C2-D…» con ambas figuras y ninguna opción seleccionada. Después solicita remontar servicios/clave nueva. | Sesión anterior con intento no consumido4c7f272a…; base nueva preparada en la entrada de reanudación superior. | Preparación confirmada; corte/recuperación pendientes. |
+| D4 corte y recuperación, sesión nueva | Confirma ambas figuras sin selección, vuelve a lección; sin reverse observa texto y avisos de reintento; restaurado el túnel, ambos reintentos recuperan figuras proporcionadas sin seleccionar respuesta. | Mismo intento249ae115… no consumido y cinco preguntas antes/después, XP0/historial0/resultados0/evento sintético1; sin nuevo intento. Ver evidencia superior. | **D4 aprobado. Total4/8.** Corte anterior al envío; sin ensayo de confirmación perdida después de POST. |
 | D5–D7 | Sin confirmaciones nuevas. | Regresiones anteriores no sustituyen pantallas físicas. | Pendientes. |
 | D8a, Tira local | Sin ejecución humana. | No atribuirle una prueba online. | Pendiente. |
 | D8b, Tira online | Humano confirma un único teléfono disponible. | No se simula segundo cliente ni presencia. | Pendiente: falta segundo cliente. |
@@ -261,7 +296,7 @@ historial y usa CuadernoError para notas/estado. Listar con el servicio existent
 confirma un error pendiente de pregunta7 con las dos referencias correctas;
 no se creó una fila artificial ni se cambió el comportamiento de la app.
 
-**Siguiente paso:** D4: abrir el nuevo subtema «Recuperacion de imagenes C2-D» y
+**Siguiente paso histórico antes de la reanudación superior:** D4: abrir el nuevo subtema «Recuperacion de imagenes C2-D» y
 Practicar; confirmar primera pregunta sin responder. Después salir a la lección
 para disponer sus imágenes y retirar solo reverse43187; reabrir el borrador local
 (la carga de práctica restaura el borrador antes de consultar API). Confirmar aviso
@@ -332,10 +367,10 @@ idénticos. Sin push nuevo, CI remoto, instalación USB nueva ni despliegue.
 
 | Bloque | Comprobación | Estado |
 | --- | --- | --- |
-| 1 | Panel: editar/guardar/recargar las imágenes; cancelar selección no publica. | Pendiente |
-| 2 | Práctica: figuras distintas y proporcionales, texto legible y selección correcta. | Pendiente |
-| 3 | Finalizar/revisar y reabrir: opción, explicación, figura y resultado conservados. | Pendiente |
-| 4 | Corte/recuperación: aviso completo y reintento sin seleccionar ni duplicar respuesta. | Pendiente |
+| 1 | Panel: editar/guardar/recargar las imágenes; cancelar selección no publica. | Aprobado; evidencia humana D1 de esta continuación. |
+| 2 | Práctica: figuras distintas y proporcionales, texto legible y selección correcta. | Aprobado; evidencia humana D2 de esta continuación. |
+| 3 | Finalizar/revisar y reabrir: opción, explicación, figura y resultado conservados. | Aprobado; evidencia humana D3 de esta continuación. |
+| 4 | Corte/recuperación: aviso completo y reintento sin seleccionar ni duplicar respuesta. | Aprobado; D4 sesión5db53a0f, antes del envío; no se ensayó confirmación perdida tras POST. |
 | 5 | Logout/reingreso: no acceder a contenido privado con la sesión anterior; demo aislada. | Pendiente |
 | 6 | Texto grande/pantalla estrecha: controles legibles sin recortes ni estiramiento. | Pendiente |
 | 7 | Cima o Rescate: recuperar intento/snapshot con figuras; sin XP duplicado. | Pendiente |
