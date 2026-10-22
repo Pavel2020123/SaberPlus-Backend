@@ -3,7 +3,7 @@
 ## Continuación en otro PC — 21 de octubre de 2026, America/Bogota
 
 Responsable: asistente de C5-C2 en sustitución de Pavel, con confirmación visual
-del compañero humano. **0/8 bloques humanos aprobados en esta continuación.**
+del compañero humano. **1/8 bloques humanos aprobados: D1 panel.**
 Rama en ambos repositorios: `fix/c5-c2-validacion`.
 HEAD inicial actualizado: Flutter `3513b44`, backend `8444b9a`; `fetch` no encontró
 commits posteriores en `origin/main`. `pull --ff-only` completado en ambos.
@@ -122,7 +122,16 @@ Regresiones de esta continuación, completadas después de la preparación:
 | D1 paso3b, guardar | Humano informa que no aparece el aviso; precisa «El botón se puede pulsar, pero no veo cambios» y, al subir, «No aparece ningún aviso». Se indica no repetir Guardar ni recargar mientras se comprueba. | SQL confirma guardado: original e08e947b… ARCHIVADO, intermedia 2ad3b450… ARCHIVADO y actual 3e64af95-d6c7-472a-a474-2bff033ddeae PUBLICADO. Ambas nuevas enlazan azul fe6e3f16… y naranja original; cuatro textos y correcta azul conservados. Dos versiones nuevas compatibles con dos pulsaciones, no con pérdida del archivo. | Persistencia comprobada automáticamente; fallo de visibilidad del feedback en corrección, falta repetir visualmente. |
 | D1 paso3c, panel corregido | Tras recargar/reingresar y reabrir, confirma el estado junto a Guardar: «Puedes editar y guardar los cambios directamente.». | Corrección backend53b88fb; acta espejo Flutter13101c5. Regresiones130 panel/44 integradas aprobadas. | Ubicación del estado confirmada; falta confirmar aviso tras una pulsación de Guardar. |
 | D1 paso3d, aviso de guardado | Tras una pulsación, confirma: «Guardado y publicado. En demostración, el cambio es solo local.». | SQL: cuatro versiones en total, solo c3250713-6d74-4332-8fb0-f779606ceba5 PUBLICADO; azul nuevo fe6e3f16… y naranja d0128fce… conservados, correcta azul. Config del panel demo:false. La coletilla demo era texto incondicional del editor, no un cambio de entorno. | Guardado y visibilidad del aviso aprobados; corregir frase demo y falta recarga visual de figuras. |
-| D1 resto | Cancelación, texto obligatorio, quitar/restaurar y confirmación visual de guardado/recarga de figuras no completados todavía. | Guardado SQL y regresión integrada separados de la confirmación humana. | Pendiente. |
+| D1 paso3e, recarga | Tras Recargar registro seleccionado y Ver imagen cargada confirma: «Sí, se conservan ambas figuras y sus textos». | ADMIN conserva id c3250713…, revisión243cfe6c…; dos imágenes, cuatro textos y una correcta. Baseline previo a cancelación guardado en la sesión temporal. | Guardado/recarga de imágenes aprobados; D1 aún parcial. |
+| D1 paso4, cancelar selección | Tras abrir selector en «Ninguna de las dos figuras», Cancelar y recargar sin guardar, confirma que sigue sin imagen y la correcta sigue azul. | Detalle ADMIN cotejado contra c2d-before-cancel.json: misma revisión243cfe6c…, mismas cuatro opciones/asociaciones, dos imágenes y una correcta. | Cancelación aprobada. |
+| D1 paso5, texto obligatorio | Con imagen azul y correcta conservadas, al vaciar solo el texto y Guardar confirma: «Completa los textos requeridos y respeta el límite de 4000 caracteres. Si tienes texto pendiente, cópialo antes de recargar.». | SQL sigue con cuatro versiones y solo c3250713… PUBLICADO. ADMIN conserva revisión243cfe6c…, textos e imágenes originales. No se publicó la respuesta vacía. | Rechazo aprobado; falta restaurar el borrador local deliberadamente inválido. |
+| D1 paso5b, restaurar texto | Tras Recargar registro seleccionado confirma: «Vuelve y sigue marcado como respuesta», referido al texto azul y su marca de correcta. | La versión persistida no había sido alterada por el rechazo; se recuperó desde ella. | Restauración confirmada, sin nuevo Guardar. |
+| D1 paso6a, quitar naranja | Confirma aviso de guardado y respuesta naranja solo de texto tras Quitar imagen de este contenido y Guardar una vez. | Actual2d05d400… PUBLICADO, naranja sin referencia/FK; azul nuevo correcta. Archivo naranja d0128fce… DISPONIBLE, cuatro referencias en versiones archivadas de esta pregunta; descarga ADMIN110 bytes con SHA-256 coincidente. | Desvinculación y conservación de bytes aprobadas; restauración pendiente. |
+| D1 paso6b, carga naranja | Confirma vista vertical y aviso «Imagen lista: Rectángulo naranja vertical. Guarda el contenido para incorporarla.». Aclara que escribió guiones en Descripción para lectores, también en la carga azul anterior. | Nueva naranja28b7a50b… DISPONIBLE80×160, alt «-----»; azulfe6e3f16… alt «--». La versión publicada2d05d400… aún no asocia naranja. Los archivos originales del fixture sí tienen descripción veraz. | Vista/carga confirmadas; metadatos accesibles insuficientes, corregir antes del guardado final. |
+| D1 paso6c, descripción naranja | Tras repetir la carga con descripción completa confirma: «Listo, termina y se ve bien». | Archivobd25a43e-67a6-408c-8e92-f407baaf5c3a DISPONIBLE80×160; textoAlternativo exacto «Rectángulo naranja vertical, de 80 píxeles de ancho y 160 de alto.». | Carga y metadatos naranja corregidos; pendiente asociar al guardar. |
+| D1 paso6d, descripción azul | Tras cargar opcion-azul.png con descripción completa confirma: «Listo, se ve bien». | Nueva carga azul DISPONIBLE160×80 con descripción que incluye160 de ancho y80 de alto; naranja corregida sigue disponible y conserva su descripción. IDs definitivos registrados en los archivos privados de esta sesión. | Ambas cargas corregidas disponibles; falta guardar asociaciones y recargar. |
+| D1 paso6e, guardado y recarga final | Informa primero naranja en una opción distinta y después confirma que, tras volver a subirla donde corresponde, guardar y recargar, «se ven bien y donde es». No se atribuye la causa al humano ni al software sin reproducción. | SQL confirma intermedia dcf4e128… con naranja asociada a «Ambas figuras…»; actual e2826d61-c150-4f91-aef9-533f3821aa26 PUBLICADO, naranja eee6dd70…80×160 en su texto y azul003f5a00…160×80 en el suyo, única correcta azul. Ambas descripciones completas, cuatro textos, dos imágenes y ADMIN coincide. | Restauración y recarga aprobadas; incidencia de asociación corregida en los datos, causa sin confirmar. |
+| D1 cierre | Acceso, figuras, carga, guardado/recarga, cancelación, texto obligatorio, quitar/restaurar y feedback confirmados en pasos anteriores. | API/SQL, descripción/dimensiones, bytes conservados y regresiones documentadas. Baseline final privado c2d-final-d1.json; revisión e9ca3b45…. | **D1 aprobado. Total1/8.** |
 | D2–D7 | Sin confirmaciones nuevas. | Regresiones anteriores no sustituyen pantallas físicas. | Pendientes. |
 | D8a, Tira local | Sin ejecución humana. | No atribuirle una prueba online. | Pendiente. |
 | D8b, Tira online | Humano confirma un único teléfono disponible. | No se simula segundo cliente ni presencia. | Pendiente: falta segundo cliente. |
@@ -165,8 +174,8 @@ Chromium/PostgreSQL ampliado para exigir confirmación visible en viewport390 y
 evitar anuncios accesibles duplicados:44/44 aprobadas, cero fallidas/omitidas,
 70 migraciones temporales; limpieza de recursos propios confirmada.
 Capturas sintéticas ignoradas: `backend/.tmp/c5b-qa/run-10Bipk`; log ignorado
-`backend/output/c5-c2-postgres-feedback.log`. No hay confirmación humana del arreglo
-todavía ni nueva instalación Android necesaria por estos cambios del panel.
+`backend/output/c5-c2-postgres-feedback.log`. Confirmación humana posterior de
+estado y éxito junto al botón registrada en D1 paso3c/d; no se necesitó otra APK.
 No se repiten las regresiones Flutter/backend sin cambios de esos componentes.
 
 El humano confirmó posteriormente el aviso de éxito junto a Guardar. Detectó
@@ -182,11 +191,13 @@ No requiere repetir el bloque de carga/guardado ya observado ni las pruebas API/
 por una corrección exclusiva de texto; el aviso exacto nuevo queda pendiente de
 observar cuando el panel cargue esa versión.
 
-**Siguiente paso:** D1 paso3e: Recargar registro seleccionado (sin otro Guardar),
-desplegar las dos respuestas ilustradas y Ver imagen cargada; confirmar azul y
-naranja conservados. Identificar por texto: el orden actual es C naranja/D azul.
-Corregir la coletilla demo para que aparezca solo en modo demo; después continuar
-cancelación, texto obligatorio y quitar/restaurar. D1 sigue parcial, total0/8.
+**Siguiente paso:** D2 Android: verificar USB/reverse y entrar manualmente como
+student@example.invalid con la clave propia de esta sesión. Confirmar inicio de
+sesión antes de guiar Practicar → Preguntas aleatorias, Matemáticas/Básico/5.
+No repetir D1 aprobado salvo regresión concreta. D2–D7 y D8a–e siguen pendientes;
+D8b requiere segundo cliente. Las cargas previas permanecen solo en la sesión
+desechable; no borrar archivos con usos históricos. Coletilla demo corregida;
+texto exacto nuevo aún sin observación humana tras cargar esa versión del panel.
 Sin push, merge, despliegue o SQL remoto. C2 continúa abierta; no preparar cierre8/8.
 
 ## Checkpoint — 21 de octubre de 2026
