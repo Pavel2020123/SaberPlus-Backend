@@ -96,9 +96,58 @@ Esto acredita avance de varias rondas tras69e48e5, pero falla la presentación.
   mismos metadatos/participante: backend/output/c5-c2-d8c-invitacion-conservada.json.
   Falta vista humana del ajuste.
 
-**Siguiente paso:** abrir Crear código/Crear invitación, seleccionar Duelo
-relámpago y Matemáticas; confirmar ausencia de overflow y pulsar Cancelar sin
-crear otro código. Después alternar zero/student con la invitación ya creada.
+- D8c confirmación humana del diálogo corregido: informa «Sale sin el aviso»
+  después de abrir Crear invitación y seleccionar los filtros indicados. Confirma
+  ausencia del overflow observado, no el juego ni sus imágenes todavía. Se pide
+  cancelar esa ventana para conservar la invitación anterior, sin crear otra.
+
+- D8c paso2 humano: como zero usa el código y observa «Tu rival ya está listo»;
+  entre Unirme y esa pantalla vio unos segundos una pantalla roja con letras
+  amarillas y referencia a Flutter, sin alcanzar a leer el error. No se inventa
+  mensaje exacto ni se da por resuelto porque la siguiente pantalla cargó.
+  SQL confirma misma batalla3f19b9b3… ACTIVA, student/zero LISTO, ninguno iniciado,
+  ocho preguntas/cero respuestas y sin liquidación. Evidencia ignorada:
+  backend/output/c5-c2-d8c-zero-unido-pantalla-roja.json.
+  Se pide no comenzar mientras se investiga el fallo de transición del diálogo.
+
+- D8c investigación: logcat filtrado flutter vacío; registro del proceso propio
+  no conserva stack identificable del incidente. No se atribuye un texto exacto
+  al error que vio el humano. Archivos brutos ignorados y privados en output/;
+  no se publican logs del teléfono ni datos del campo.
+- Reproducción automática nueva, con GoRouter real y animación de cierre:
+  Unirme y Cancelar fallan2/2 con «A TextEditingController was used after being
+  disposed» en battle-invitation-code y errores posteriores del árbol de foco.
+  El controlador se destruía inmediatamente al devolver showDialog, antes de
+  desmontar el TextField. Log output/c5-c2-d8c-transicion-reproducido.log.
+- Corrección localizada: usar onChanged para leer el código; el TextField
+  conserva su controlador interno durante su ciclo de vida. Se elimina el
+  dispose prematuro, sin cambiar validación, formato o petición de Unirme.
+  Regresión en curso. La relación con la pantalla roja humana es consistente
+  con el flujo/código, pero no se recuperó su stack físico; repetir cierre USB.
+  Primer auxiliar de regresión dio10 aprobadas/1 fallida porque usaba SABER123:
+  el formato del campo elimina1 y queda un código de siete caracteres que no
+  debe enviarse. Se corrigió el dato ficticio a SABER234 con doble de repositorio,
+  sin modificar validación productiva ni datos reales del ensayo. Con dato válido
+  se repitió el código previo y ambos cierres reproducen el error del controlador
+  (0/2). La nueva repetición comprueba además qué código se envía o se cancela.
+  Regresión final del archivo de Batallas: **11/11 aprobadas**, incluidos ambos
+  cierres, layout estrecho y privacidad/revisión. Log ignorado:
+  output/c5-c2-d8c-transicion-regresion.log. Análisis/build iniciados; aún falta
+  instalar y confirmar cierre en Android, sin afirmar prueba física de Unirme otra vez.
+  Primer análisis detectó dos avisos por llaves faltantes en el if/else del test
+  nuevo; corregidos sin cambiar sus aserciones ni runtime. Se repite análisis
+  antes de compilar; no se etiqueta la primera ejecución como limpia.
+  Repetición de análisis sin incidencias; build debug aprobado (assembleDebug43,2s),
+  mismos defines públicos/sin claves y avisos KGP/Java conocidos. Commit Flutter
+  02c774c. Logs c5-c2-d8c-transicion-analyze.log/build.log. adb install -r
+  Success; am start -W OK/WARM y reverse43187 activo, sin borrar datos.
+  SQL confirma misma batalla ACTIVA, ambos participantes LISTO/no iniciados,
+  cero respuestas y sin liquidación: c5-c2-d8c-transicion-batalla-conservada.json.
+
+**Siguiente paso:** completar pruebas/análisis/build e instalar. Conservar la
+batalla ACTIVA y comprobar cierre del campo en el teléfono sin crear otra:
+abrir Tengo un código, escribir PRUEBA22 y Cancelar, sin enviarlo. Después
+abrir batalla existente como zero y comprobar imágenes/resultados con ambas cuentas.
 D8b pendiente por falta de segundo cliente; D8c/d/e pendientes. No repetir
 D1–D7 ni D8a sin regresión concreta.
 
@@ -536,7 +585,7 @@ Regresiones de esta continuación, completadas después de la preparación:
 | D7 Cima | Figuras iniciales, acierto, reinicio COLD, misma pregunta2/figuras/progreso, cierre5/5 y resultado recuperado confirmados. | Mismo intento/snapshot SHA256, cinco respuestas; única liquidación Cima100 XP antes/después de recuperar. Admisión sintética apagada al finalizar. | **D7 aprobado. Total7/8.** Rescate no probado por USB. |
 | D8a, Tira local | Tras corregir avance y borde, confirma texto/figuras completos dentro de los botones y avance entre preguntas. | SQL sesión nueva:12 preguntas/tres aciertos, historial3/XP0/evento sintético1;85/85 pruebas dirigidas. No acredita Tira online. | **Aprobado. D8 completo pendiente; total7/8.** |
 | D8b, Tira online | Humano confirma un único teléfono disponible. | No se simula segundo cliente ni presencia. | Pendiente: falta segundo cliente. |
-| D8c, Batallas | Creó código pero observó overflow0,850px en Crear invitación. | Invitación3f19b9b3… conservada, ocho preguntas/cero respuestas. Layout corregido en c94add3;9/9 pruebas focales, análisis/build e instalación aprobados; falta repetir visualmente y jugar con ambas cuentas. | Pendiente. |
+| D8c, Batallas | Overflow corregido y confirmado sin aviso. Zero se une y ve rival listo, pero informa pantalla roja transitoria al cerrar el ingreso del código. | Misma batalla3f19b9b3… ACTIVA con dos participantes/ocho preguntas/cero respuestas. Error de controlador reproducido; corregido en02c774c,11/11 pruebas de Batallas/análisis/build/instalación aprobados. Falta cierre USB e imágenes/resultados de ambas cuentas. | Pendiente. |
 | D8d, Trivia Rush | Sin ejecución humana. | Contrato automatizado no acredita esta pantalla. | Pendiente. |
 | D8e, Fantasma | Sin ejecución humana. | Compartir código con Trivia no acredita su pantalla. | Pendiente. |
 
