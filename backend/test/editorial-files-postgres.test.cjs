@@ -1937,6 +1937,12 @@ test('C5-B/C2-B panel real en Chromium: imagen de enunciado y de opción, public
           .length,
         1,
       );
+      // Guardar confirma antes de terminar loadPage/loadCases. Esperar también
+      // la lista y el desbloqueo evita consultar/clicar un nodo aún inexistente.
+      await page.waitForFunction(() => {
+        const button = document.querySelector('#bank-list button');
+        return button && !button.disabled;
+      });
       const questionButton = await page.$('#bank-list button');
       await questionButton.click();
       await page.waitForFunction(() =>
