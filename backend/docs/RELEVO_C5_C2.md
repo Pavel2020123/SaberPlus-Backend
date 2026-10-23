@@ -2,9 +2,10 @@
 
 Actualización C2-D tras auditoría de Pavel: **23 de octubre de2026, C2 abierta**.
 Entrega parcial integrada en main remoto: Flutter PR#9/b8253e2 y backend
-PR#11/3eb3f59. D1–D7 y D8c/d/e conservan aprobación; D8a se revisa solo por la
-regresión de timeout; D8b aprobado con teléfono/emulador y cuentas distintas. Ver
-[entrega](C5C2_ENTREGA_PARCIAL.md) y [acta vigente](C5C2D_VALIDACION_LOCAL.md).
+PR#11/3eb3f59. D1–D7 y D8c/d/e conservan aprobación; regresión de timeout D8a
+y D8b aprobadas dentro del alcance del acta. Ver
+[entrega actual](C5C2_REVISION_TIMEOUT_D8B.md), [entrega parcial histórica](C5C2_ENTREGA_PARCIAL.md)
+y [acta vigente](C5C2D_VALIDACION_LOCAL.md).
 No repetir los bloques aprobados sin una regresión concreta. Ramas
 fix/c5-c2-timeout-d8b en ambos repos, desde main actualizado; no publicar sin
 autorización de Pavel. Las evidencias de fix/c5-c2-validacion ya integradas se conservan.
@@ -17,7 +18,14 @@ respuesta al regresar. Se conserva evidencia previa de figuras/selección en
 Pixel_8_2, sin atribuir selecciones ilustradas al último duelo. No acredita
 cierre forzado, ACK perdido o competición. Integración Flutter/pausa del timeout
 local implementada:25 dirigidas y50 HTTP/SQL con73 migraciones aprobadas;
-falta build/observación Android de esa regresión D8a. No repetir D8b ni otros aprobados.
+build e instalación ARM64/4005 aprobados. Humano confirma avance a rondas2/3
+tras timeout, pausa activa8s, reanudación, figuras/textos contenidos y acierto.
+SQL:7d2d37b6… tres nulas sin historial/XP;70523e4a… tres nulas y dos azules
+correctas en cinco preguntas únicas, dos historiales y cero potenciadores/XP.
+Humano aclara que avanzó y pulsó azul dos veces; no hubo envío automático atribuido.
+Flutter1.016/16 opt-in omitidas; backend128/1.675; análisis dirigido y build aprobados.
+Recibos sanitizados enlazados en la entrega. **Siguiente paso: auditoría de Pavel,
+C2 permanece abierta**, sin repetir pruebas aprobadas o avanzar al resto de C5.
 Los párrafos siguientes conservan el historial de diagnóstico, no pendientes nuevos.
 
 Checkpoint posterior: ambos clientes disponibles. D8b encontró «estado inválido»:
@@ -74,7 +82,7 @@ Terminar **C5-C2**, no toda C5 ni todas las etapas de SaberPlus:
 - C2-C: referencias públicas/snapshots y consumidores Flutter; implementada y
   validada automáticamente. No rehacer desde cero.
 - **C2-D: validación integrada Android/panel/API y correcciones que encuentre.
-  Entrega parcial: D1–D7 y D8b/c/d/e aprobados; falta regresión de timeout D8a.**
+  Regresión D8a y D8b aprobadas; D1–D7 y D8c/d/e conservados. C2 abierta a auditoría.**
 
 La tabla de resultados humanos vive en `C5C2D_VALIDACION_LOCAL.md`, en docs/ de
 Flutter y backend/docs/ del backend. Actualizar ambas copias después de cada
@@ -412,7 +420,7 @@ en esta sesión con el mismo editor/contrato y documentarlo, no cambiar reglas
 del juego, falsificar eventos ni abrir otra base. Registrar si se probó Cima o
 Rescate; el otro conserva evidencia automática, no atribuirle otra prueba USB.
 
-### D8 — Otros contratos de juegos: cinco subcasos (regresión D8a pendiente)
+### D8 — Otros contratos de juegos: cinco subcasos (aprobados según alcance del acta)
 
 | Subcaso | Qué observar / recursos |
 | --- | --- |

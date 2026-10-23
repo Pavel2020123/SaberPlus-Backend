@@ -1,0 +1,358 @@
+{
+  "scope": "C5-C2; own disposable local fixtures only",
+  "date": "2026-10-23",
+  "purpose": "Sanitized read-only SQL evidence; human observations remain separate in C5C2D_VALIDACION_LOCAL.md",
+  "snapshots": [
+    {
+      "label": "online-final",
+      "checkedAt": "2026-10-23T19:45:33.279Z",
+      "sourceReceipt": {
+        "file": "c5-c2-d8b-readonly-1792784733282.json",
+        "sha256": "63715960771e96b51095baf429f1ebc69c79bf86e1e593a41a85ec550eaa78c1"
+      },
+      "data": {
+        "id": "23f89c68-12c5-4a69-b533-9e586489daa3",
+        "estado": "FINALIZADA",
+        "resultado": "JUGADOR_A",
+        "posicionCuerda": 4,
+        "listoA": true,
+        "listoB": true,
+        "rondaActual": 4,
+        "version": 10,
+        "competitiveRulesVersion": null,
+        "presenciaVersion": 1,
+        "fechaFinalizacion": "2026-10-23T19:44:07.077Z",
+        "jugadorA": {
+          "correo": "zero@example.invalid"
+        },
+        "jugadorB": {
+          "correo": "student@example.invalid"
+        },
+        "_count": {
+          "respuestas": 2,
+          "eventos": 11,
+          "preguntas": 20
+        },
+        "responsesByAccount": {
+          "zero@example.invalid": 2
+        },
+        "uniqueRoundUserCount": 2,
+        "illustratedSelections": 0,
+        "roundsWithTwoIllustratedSelections": 0,
+        "roundsWithDifferentIllustratedSelections": 0,
+        "matchXpEvents": 0
+      }
+    },
+    {
+      "label": "local-timeout-advance",
+      "checkedAt": "2026-10-23T20:33:32.700Z",
+      "sourceReceipt": {
+        "file": "c5-c2-local-readonly-1792787612703.json",
+        "sha256": "677da8be22c5ff33ecdf796a316ac025987a89d7a42c7632b7c731ffa9309f6e"
+      },
+      "data": {
+        "id": "7d2d37b6-a63e-4e1b-81bc-2a34f6507aa6",
+        "estado": "ABANDONADO",
+        "modalidad": "TUG_LOCAL",
+        "indiceActual": 3,
+        "preguntaActualId": null,
+        "preguntaIniciaEn": null,
+        "tiraLocalPausadaEn": null,
+        "tiraLocalRondaVersion": 6,
+        "iniciadoEn": "2026-10-23T20:32:19.640Z",
+        "venceEn": "2026-10-23T20:42:19.640Z",
+        "finalizadoEn": "2026-10-23T20:33:19.549Z",
+        "puntaje": 0,
+        "respuestasCorrectas": 0,
+        "respuestasIncorrectas": 0,
+        "preguntasSaltadas": 0,
+        "competitiveRulesVersion": null,
+        "usuario": {
+          "correo": "student@example.invalid",
+          "xpTotal": 0
+        },
+        "_count": {
+          "preguntas": 12,
+          "respuestas": 3,
+          "potenciadores": 0
+        },
+        "responses": [
+          {
+            "id": "304e4749-7411-4d83-880b-d489b07808b7",
+            "preguntaId": "54866557-507f-4586-ae07-bf1a566edd57",
+            "respuestaSeleccionadaId": null,
+            "esFinal": true,
+            "esCorrecta": false,
+            "puntosOtorgados": 0,
+            "tiempoRespuestaMs": 10148,
+            "respondidaEn": "2026-10-23T20:32:31.338Z",
+            "pregunta": {
+              "enunciado": "Ensayo C2-D 6: ¿qué figura tiene el ancho doble de su altura?"
+            },
+            "respuestaSeleccionada": null
+          },
+          {
+            "id": "d614d6a9-5e82-4845-9a55-41ebcf56dc2a",
+            "preguntaId": "77e645e9-9722-4b1a-b7b3-57988f558afb",
+            "respuestaSeleccionadaId": null,
+            "esFinal": true,
+            "esCorrecta": false,
+            "puntosOtorgados": 0,
+            "tiempoRespuestaMs": 10257,
+            "respondidaEn": "2026-10-23T20:32:46.406Z",
+            "pregunta": {
+              "enunciado": "Ensayo C2-D 4: ¿qué figura tiene el ancho doble de su altura?"
+            },
+            "respuestaSeleccionada": null
+          },
+          {
+            "id": "42946f5c-680a-48c0-be5a-bca4a7777e97",
+            "preguntaId": "932c0d3f-30d6-4b79-b782-751932daa738",
+            "respuestaSeleccionadaId": null,
+            "esFinal": true,
+            "esCorrecta": false,
+            "puntosOtorgados": 0,
+            "tiempoRespuestaMs": 10349,
+            "respondidaEn": "2026-10-23T20:33:03.211Z",
+            "pregunta": {
+              "enunciado": "Ensayo C2-D 1: ¿qué figura tiene el ancho doble de su altura?"
+            },
+            "respuestaSeleccionada": null
+          }
+        ],
+        "uniqueFinalQuestions": 3,
+        "historyRows": 0,
+        "attemptXpEvents": 0
+      }
+    },
+    {
+      "label": "local-paused",
+      "checkedAt": "2026-10-23T20:40:50.826Z",
+      "sourceReceipt": {
+        "file": "c5-c2-local-readonly-1792788050829.json",
+        "sha256": "82ed426b8c057424fbd61318a81805dd5311fd13e52156118f36977aed4c030a"
+      },
+      "data": {
+        "id": "70523e4a-ac16-4573-b71c-47d17f9f7a06",
+        "estado": "ACTIVO",
+        "modalidad": "TUG_LOCAL",
+        "indiceActual": 3,
+        "preguntaActualId": "54866557-507f-4586-ae07-bf1a566edd57",
+        "preguntaIniciaEn": "2026-10-23T20:40:05.372Z",
+        "tiraLocalPausadaEn": "2026-10-23T20:40:07.520Z",
+        "tiraLocalRondaVersion": 12,
+        "iniciadoEn": "2026-10-23T20:35:38.558Z",
+        "venceEn": "2026-10-23T20:45:38.558Z",
+        "finalizadoEn": null,
+        "puntaje": 0,
+        "respuestasCorrectas": 0,
+        "respuestasIncorrectas": 0,
+        "preguntasSaltadas": 0,
+        "competitiveRulesVersion": null,
+        "usuario": {
+          "correo": "student@example.invalid",
+          "xpTotal": 0
+        },
+        "_count": {
+          "preguntas": 12,
+          "respuestas": 3,
+          "potenciadores": 0
+        },
+        "responses": [
+          {
+            "id": "4eb4c5cb-3dbe-49ee-919f-b0bef360f4ff",
+            "preguntaId": "932c0d3f-30d6-4b79-b782-751932daa738",
+            "respuestaSeleccionadaId": null,
+            "esFinal": true,
+            "esCorrecta": false,
+            "puntosOtorgados": 0,
+            "tiempoRespuestaMs": 10162,
+            "respondidaEn": "2026-10-23T20:35:49.808Z",
+            "pregunta": {
+              "enunciado": "Ensayo C2-D 1: ¿qué figura tiene el ancho doble de su altura?"
+            },
+            "respuestaSeleccionada": null
+          },
+          {
+            "id": "3e3f240d-8718-4a36-bc33-697118e8fe51",
+            "preguntaId": "ee5db0e3-1a0e-472f-b5c3-b643e5e58fe5",
+            "respuestaSeleccionadaId": null,
+            "esFinal": true,
+            "esCorrecta": false,
+            "puntosOtorgados": 0,
+            "tiempoRespuestaMs": 10185,
+            "respondidaEn": "2026-10-23T20:39:46.425Z",
+            "pregunta": {
+              "enunciado": "Ensayo C2-D 8: ¿qué figura tiene el ancho doble de su altura?"
+            },
+            "respuestaSeleccionada": null
+          },
+          {
+            "id": "ae4cafd4-476b-4139-9325-fce8d5568714",
+            "preguntaId": "6c74130f-4493-4a87-97c2-511c91ec1f83",
+            "respuestaSeleccionadaId": null,
+            "esFinal": true,
+            "esCorrecta": false,
+            "puntosOtorgados": 0,
+            "tiempoRespuestaMs": 10205,
+            "respondidaEn": "2026-10-23T20:39:58.301Z",
+            "pregunta": {
+              "enunciado": "Ensayo C2-D 7: ¿qué figura tiene el ancho doble de su altura?"
+            },
+            "respuestaSeleccionada": null
+          }
+        ],
+        "uniqueFinalQuestions": 3,
+        "historyRows": 0,
+        "attemptXpEvents": 0
+      }
+    },
+    {
+      "label": "local-after-resume",
+      "checkedAt": "2026-10-23T20:44:04.825Z",
+      "sourceReceipt": {
+        "file": "c5-c2-local-readonly-1792788244828.json",
+        "sha256": "90ad438a5fb2e1cf3b103e0d5cd3f3b48eacf11dec04e009fc11228c0c63fde1"
+      },
+      "data": {
+        "id": "70523e4a-ac16-4573-b71c-47d17f9f7a06",
+        "estado": "ACTIVO",
+        "modalidad": "TUG_LOCAL",
+        "indiceActual": 5,
+        "preguntaActualId": "206ba068-b25d-4c12-9589-73120215fa72",
+        "preguntaIniciaEn": null,
+        "tiraLocalPausadaEn": null,
+        "tiraLocalRondaVersion": 18,
+        "iniciadoEn": "2026-10-23T20:35:38.558Z",
+        "venceEn": "2026-10-23T20:45:38.558Z",
+        "finalizadoEn": null,
+        "puntaje": 200,
+        "respuestasCorrectas": 2,
+        "respuestasIncorrectas": 0,
+        "preguntasSaltadas": 0,
+        "competitiveRulesVersion": null,
+        "usuario": {
+          "correo": "student@example.invalid",
+          "xpTotal": 0
+        },
+        "_count": {
+          "preguntas": 12,
+          "respuestas": 5,
+          "potenciadores": 0
+        },
+        "responses": [
+          {
+            "id": "4eb4c5cb-3dbe-49ee-919f-b0bef360f4ff",
+            "preguntaId": "932c0d3f-30d6-4b79-b782-751932daa738",
+            "respuestaSeleccionadaId": null,
+            "esFinal": true,
+            "esCorrecta": false,
+            "puntosOtorgados": 0,
+            "tiempoRespuestaMs": 10162,
+            "respondidaEn": "2026-10-23T20:35:49.808Z",
+            "pregunta": {
+              "enunciado": "Ensayo C2-D 1: ¿qué figura tiene el ancho doble de su altura?"
+            },
+            "respuestaSeleccionada": null
+          },
+          {
+            "id": "3e3f240d-8718-4a36-bc33-697118e8fe51",
+            "preguntaId": "ee5db0e3-1a0e-472f-b5c3-b643e5e58fe5",
+            "respuestaSeleccionadaId": null,
+            "esFinal": true,
+            "esCorrecta": false,
+            "puntosOtorgados": 0,
+            "tiempoRespuestaMs": 10185,
+            "respondidaEn": "2026-10-23T20:39:46.425Z",
+            "pregunta": {
+              "enunciado": "Ensayo C2-D 8: ¿qué figura tiene el ancho doble de su altura?"
+            },
+            "respuestaSeleccionada": null
+          },
+          {
+            "id": "ae4cafd4-476b-4139-9325-fce8d5568714",
+            "preguntaId": "6c74130f-4493-4a87-97c2-511c91ec1f83",
+            "respuestaSeleccionadaId": null,
+            "esFinal": true,
+            "esCorrecta": false,
+            "puntosOtorgados": 0,
+            "tiempoRespuestaMs": 10205,
+            "respondidaEn": "2026-10-23T20:39:58.301Z",
+            "pregunta": {
+              "enunciado": "Ensayo C2-D 7: ¿qué figura tiene el ancho doble de su altura?"
+            },
+            "respuestaSeleccionada": null
+          },
+          {
+            "id": "0d7396cd-2b50-463b-a062-1a9bd2747700",
+            "preguntaId": "54866557-507f-4586-ae07-bf1a566edd57",
+            "respuestaSeleccionadaId": "877ce51e-e147-4531-b508-fa251e63aa57",
+            "esFinal": true,
+            "esCorrecta": true,
+            "puntosOtorgados": 100,
+            "tiempoRespuestaMs": 3240,
+            "respondidaEn": "2026-10-23T20:42:44.306Z",
+            "pregunta": {
+              "enunciado": "Ensayo C2-D 6: ¿qué figura tiene el ancho doble de su altura?"
+            },
+            "respuestaSeleccionada": {
+              "texto": "Rectángulo azul horizontal"
+            }
+          },
+          {
+            "id": "81d32987-de95-4525-8579-c6b01129c51c",
+            "preguntaId": "0110982c-7402-45b0-b624-7970747d1d12",
+            "respuestaSeleccionadaId": "e50b020a-c7ca-46c8-95b1-30ad69823c06",
+            "esFinal": true,
+            "esCorrecta": true,
+            "puntosOtorgados": 100,
+            "tiempoRespuestaMs": 4444,
+            "respondidaEn": "2026-10-23T20:43:10.126Z",
+            "pregunta": {
+              "enunciado": "Ensayo C2-D 9: ¿qué figura tiene el ancho doble de su altura?"
+            },
+            "respuestaSeleccionada": {
+              "texto": "Rectángulo azul horizontal"
+            }
+          }
+        ],
+        "uniqueFinalQuestions": 5,
+        "historyRows": 2,
+        "attemptXpEvents": 0
+      }
+    }
+  ],
+  "limits": [
+    "No database URL, password, token or private file is included.",
+    "CPU decisions and animation are local; SQL is not their trace.",
+    "The last online match had no illustrated selections; prior human/SQL evidence covers images.",
+    "No forced-process termination, real lost ACK or competitive XP certification is claimed."
+  ],
+  "humanObservations": [
+    {
+      "case": "D8b terminal return",
+      "source": "human chat confirmation",
+      "report": "Emulator showed victory; phone returned from Recents after the end and showed player A (emulator) won."
+    },
+    {
+      "case": "D8a timeout advance",
+      "source": "human chat confirmation",
+      "report": "Advanced to rounds 2 and 3; CPU then won."
+    },
+    {
+      "case": "D8a active pause",
+      "source": "human chat confirmation",
+      "report": "Clock showed 8 seconds before opening the dialog and remained at 8 seconds after waiting."
+    },
+    {
+      "case": "D8a resume and answer",
+      "source": "human chat confirmation",
+      "report": "Confirmed clock resumed from 8 seconds, figures/text remained contained and blue answer was correct."
+    },
+    {
+      "case": "D8a second answer clarification",
+      "source": "human chat confirmation",
+      "report": "Tapped blue once, pressed Next question, and tapped blue again. Both selections were intentional human actions."
+    }
+  ]
+}

@@ -1,7 +1,7 @@
-# C5-C2 — Preparación para nueva revisión de Pavel
+# C5-C2 — Entrega para nueva revisión de Pavel
 
-23 de octubre de2026. **ENTREGA PARCIAL: falta regresión humana del timeout
-de Tira local (D8a). C2 no se declara terminada.** Este documento complementa,
+23 de octubre de2026. **ENTREGA PARCIAL para auditoría: regresión D8a y D8b aprobadas dentro del alcance del
+acta. C2 permanece abierta hasta la nueva auditoría de Pavel.** Este documento complementa,
 sin sustituir sus evidencias históricas, `C5C2_ENTREGA_PARCIAL.md` y el acta
 `C5C2D_VALIDACION_LOCAL.md`. No autoriza otra etapa ni publicación.
 
@@ -23,8 +23,9 @@ no reabrir los antiguos Flutter#4/backend#7. No se trabajó sobre main ni OV-1.
 | Backend | 3fe82d9 | Conservar pausa segura del contrato local, caducidad y regresiones HTTP/SQL. |
 
 La lista destaca cambios funcionales y checkpoints; los commits documentales
-intermedios se conservan en `git log --oneline main..HEAD`. Los commits de
-observación Android posterior se añadirán al acta cuando exista confirmación.
+intermedios se conservan en `git log --oneline main..HEAD`. Los commits
+documentales finales guardan la observación Android y los recibos sanitizados;
+los HEAD de ambos repositorios se proporcionan en la entrega al propietario.
 
 ## Qué cambia y dónde revisar
 
@@ -75,7 +76,7 @@ El panel no necesitó código nuevo en esta continuación. README/relevos/actas 
 | `npm run build` | Prisma generate + Nest build aprobados, exit0. |
 | APK ARM64/4005 | Build aprobado243.3s, solo APP_ENV/dev, DEMO_MODE/false y URLs loopback públicas. Instalación/observación se registran en acta. |
 | D8b humano | Aprobado dentro del alcance del acta; figuras/selección previas y retorno tras final confirmado el23. |
-| D8a humano | Reabierto solo por timeout; pendiente prueba con APK4005 y API nueva. |
+| D8a humano | Aprobado con APK4005: avance por timeout, pausa activa8s, reanudación, imágenes/textos contenidos y respuesta correcta. |
 | D1–D7 y D8c/d/e | Aprobaciones históricas conservadas, sin repetición humana por este cambio. |
 
 D8b final:23f89c68-12c5-4a69-b533-9e586489daa3, FINALIZADA/JUGADOR_A,
@@ -86,6 +87,22 @@ Este último duelo no registra selecciones ilustradas; las imágenes/selección
 se sustentan en la evidencia anterior documentada, sin atribuirlas al Pixel_7
 del último ensayo. No acredita cierre forzado, ACK perdido real ni competición.
 
+D8a:7d2d37b6… registra tres rondas sin selección dentro de12 preguntas, sin
+historial/XP; humano observa avance a rondas2/3 y victoria CPU. El intento se
+abandona al acabar el duelo antes del banco.70523e4a… muestra pausa activa
+con7852ms restantes y más de43s pausados al comprobarla; humano observa8s
+antes/después, luego reanudación, figuras/textos contenidos y acierto. SQL registra
+tres nulas y dos azules correctas en cinco preguntas únicas, dos historiales,
+sin potenciadores/XP. El humano aclara que avanzó y pulsó azul dos veces en dos
+preguntas; no atribuir el segundo acierto a un envío automático. CPU se resuelve
+localmente y SQL no es traza de sus decisiones.
+
+[Recibos sanitizados](evidencias/C5C2_TIMEOUT_D8B_2026_10_23.json): cuatro lecturas
+reales con fecha/hash de origen y aclaraciones humanas separadas; sin secretos.
+Última pregunta y reintentos concurrentes se prueban por HTTP/SQL; no se repitió
+humanamente todo el banco ni se provocó pérdida real de ACK. Son límites de las
+pruebas, no aprobaciones inventadas de variantes no ejecutadas.
+
 Se conservan fallos previos y correcciones en el acta: snapshot rechazado,
 formato Socket.IO, contorno, resultado atrasado, restricción inicial de modalidad,
 pausa aún ausente, errores de compilación del fake y rechazo síncrono del booster.
@@ -94,15 +111,10 @@ No se operó producción, Render/Supabase ni se publicó ninguna clave o token.
 
 ## Siguiente paso y publicación
 
-Con APK4005 instalada y nueva sesión propia, iniciar Tira local/Matemáticas en el
-teléfono. Dejar vencer la primera ronda sin tocar opciones; observar «Sin
-respuesta», continuar y comprobar segunda pregunta sin selección accidental.
-Comprobar pausa/reanudación en la ronda siguiente y respuesta. Cotejar SQL:
-una fila nula para timeout, ninguna repetida, respuestas reales separadas,
-sin potenciadores/XP de intento. Actualizar ambas actas después de cada observación.
-
-Después preparar la nueva revisión de Pavel, manteniendo C2 abierta hasta su
-auditoría. No iniciar el resto de C5. No se ha hecho push, merge o despliegue.
+Pavel audita Flutter/backend/panel, las tres migraciones específicas, documentación,
+pruebas y evidencias; decide si acepta el cierre. No repetir los bloques aprobados
+sin una regresión concreta. C2 permanece abierta hasta esa revisión; no iniciar
+el resto de C5. No se ha hecho push, merge o despliegue.
 Solo **cuando Pavel autorice** publicar, ejecutar desde las carpetas indicadas:
 
 ```powershell

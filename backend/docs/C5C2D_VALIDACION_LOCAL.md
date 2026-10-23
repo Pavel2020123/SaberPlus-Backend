@@ -1,5 +1,127 @@
 # C5-C2-D — Ensayo local de imágenes en opciones
 
+## Entrega a nueva revisión — D8a y D8b aprobados dentro del alcance; C2 abierta
+
+23/oct/2026. Aclaración humana final: pulsó azul una vez, avanzó con Siguiente
+pregunta y volvió a pulsar azul. Los dos aciertos de Ensayo C2-D6 y9 son acciones
+humanas declaradas; **no fueron un duplicado ni un envío espontáneo al reanudar**.
+Concuerda con las cinco filas únicas de70523e4a…: tres sin selección y dos
+azules correctas, dos historiales, cero potenciadores/XP, student xpTotal0.
+
+**Regresión D8a aprobada en el alcance ensayado**: avance tras vencer sin responder,
+pausa activa en8s, reanudación desde8s, figuras/textos contenidos y acierto.
+El intento local se abandona al acabar el duelo CPU antes del banco; los
+vencimientos no inventan respuestas, historial, salto, recompensa o XP.
+La CPU conserva reglas locales; no atribuir a SQL una simulación de sus turnos.
+D8b ya aprobado con dos clientes/cuentas distintas y recuperación del resultado.
+D1–D7 y D8c/d/e mantienen sus aprobaciones históricas, sin repetirlos manualmente.
+
+Evidencia sin secretos para revisión: `evidencias/C5C2_TIMEOUT_D8B_2026_10_23.json`
+en ambas carpetas docs. Incluye cuatro lecturas reales seleccionadas, sus hashes
+de recibos originales y las aclaraciones humanas separadas. Los originales de
+diagnóstico permanecen ignorados; ninguna URL de BD, clave o token se incorpora.
+Entrega nueva: `C5C2_REVISION_TIMEOUT_D8B.md`, más `C5C2_TIMEOUT_LOCAL.md`.
+
+Validación final ya ejecutada antes de observación: Flutter1.016 aprobadas/16
+opt-in omitidas;25 dirigidas locales y19 online; backend128 suites/1.675;
+HTTP/PostgreSQL50/50 con73 migraciones propias; análisis dirigido Flutter limpio;
+build backend exit0 y APK ARM64/4005 instalada. No repetir por cambios solo
+documentales. Fallos previos quedan en el historial inferior.
+
+Límites conservados: última pregunta y reintentos concurrentes tienen evidencia
+HTTP/SQL, no se exige al humano agotar12 preguntas; pérdida de ACK se cubre
+automáticamente, no se provocó físicamente. Segundo plano no acredita cierre
+forzado; último duelo online no tuvo selecciones ilustradas y se apoya en evidencia
+previa explícita. No hay certificación competitiva, TalkBack humano nuevo ni
+aprobación de las16 integraciones omitidas. ESLint global conserva deuda previa.
+
+**Siguiente paso exacto:** Pavel revisa Flutter/backend/panel, tres migraciones,
+documentación, pruebas y evidencias; decide si acepta el cierre. **No se declara
+C2 terminada ni se avanza al resto de C5.** Sin push/merge/despliegue hasta su
+autorización; publicación posterior mediante PR nuevo de cada repositorio.
+
+## D8a — reanudación/acierto observados; aclarar segundo envío registrado
+
+23/oct/2026,15:44 America/Bogota. El humano responde «Sí a todo» a reloj
+reanudado desde8s, figuras/textos contenidos y respuesta azul como acierto.
+**Reanudación y respuesta tras pausa aprobadas visualmente** dentro de ese alcance.
+
+SQL20:44:04 UTC, mismo intento70523e4a… ACTIVO/índice5/versión18: cinco filas
+finales de cinco preguntas únicas, tres nulas previas y dos selecciones azules
+correctas. Ensayo C2-D6 respondió20:42:44.306 UTC/3240ms; Ensayo C2-D9 respondió
+20:43:10.126 UTC/4444ms. Dos filas de historial, cero errores/saltos/potenciadores
+y XP de intento; student xpTotal0. Los200 puntos son marcador del intento,
+no XP. La pausa quedó limpia; siguiente pregunta sin iniciar.
+
+El guion pedía una sola respuesta y esperar feedback. Se registra además un
+segundo acierto en otra pregunta; **no atribuirlo al humano ni a un envío
+automático sin aclaración**. Preguntar si avanzó y respondió azul de nuevo.
+No hay duplicados de pregunta, pero eso por sí solo no demuestra el origen
+del segundo envío. C2 sigue abierta; falta esta conciliación antes de entrega.
+
+## D8a — pausa activa aprobada; falta reanudar y responder
+
+23/oct/2026,15:40 America/Bogota. El humano confirma que el reloj marcaba8s
+al abrir el diálogo y sigue en8s detenido tras esperar, con lo demás igual.
+**Pausa visual de una ronda activa aprobada**; no atribuir todavía aprobación
+de reanudación, evaluación de respuesta o resultado de este mismo duelo.
+
+SQL20:40:50 UTC: mismo intento70523e4a…, ACTIVO/índice3/versión12,
+pregunta actual Ensayo C2-D6. Inició20:40:05.372 y quedó pausada en servidor
+20:40:07.520 UTC; resta7852ms de su ventana10s, concordante con los8s visibles.
+La pausa lleva más de43s al comprobarla; venceEn global sigue20:45:38.558 UTC.
+Tres filas finales nulas previas y tres preguntas únicas, sin una cuarta fila,
+sin historial, potenciadores ni XP. Student xpTotal0. No hubo respuesta ni
+timeout de la pregunta actual durante la pausa.
+
+El SQL muestra dos vencimientos adicionales antes de llegar a esta pausa;
+la pregunta actual corresponde a la cuarta ronda. No describirla como ronda2
+por ser ese el guion anterior ni inferir acciones humanas intermedias exactas.
+Siguiente paso: Continuar, responder azul horizontal y observar reanudación y
+feedback, sin pulsar Siguiente pregunta hasta confirmar. C2 sigue abierta.
+
+## D8a — pausa no concluyente: diálogo abierto con reloj ya en0s
+
+23/oct/2026,15:36 America/Bogota. El humano informa reloj0s porque no pulsó
+Siguiente pregunta; abrió la X y todo siguió igual. **No aprueba ni demuestra
+un fallo de pausa durante una ronda activa**: falta iniciar la siguiente ronda
+y abrir el diálogo mientras queden segundos.
+
+SQL20:36:52 UTC: intento vigente70523e4a-ac16-4573-b71c-47d17f9f7a06,
+ACTIVO/índice1/versión2,12 preguntas y una fila final nula (Ensayo C2-D1,
+10162ms, cero puntos). La siguiente pregunta está asignada pero sin iniciar:
+preguntaIniciaEn:null y tiraLocalPausadaEn:null. Sin historial, potenciadores
+ni XP; student xpTotal0. Es compatible con feedback de la ronda vencida; no
+convertirlo en prueba de congelación de un reloj activo. Consta además intento
+9e2a4bd3… abandonado con una fila nula, sin historial/XP, durante esta preparación.
+
+Retomar el mismo duelo: cerrar el diálogo con Continuar, pulsar Siguiente
+pregunta y abrir la X al ver9u8s. Observar12s sin tocar respuesta y dejar el
+diálogo abierto para cotejar pausa del servidor. C2 sigue abierta.
+
+## D8a — avance tras timeout aprobado; pausa/respuesta pendientes
+
+23/oct/2026,15:33 America/Bogota. Humano observa «aparece una ronda2», después
+avanza a ronda3 y gana la CPU. **Regresión original de avance aprobada**: la
+primera ronda sin respuesta no terminó el duelo teniendo preguntas restantes.
+No atribuir a esta frase una confirmación independiente del rótulo «Sin respuesta»,
+la ausencia de selección visual o las proporciones; no las describió expresamente.
+
+SQL20:33:32 UTC en IRImJ5: intento7d2d37b6-a63e-4e1b-81bc-2a34f6507aa6,
+TUG_LOCAL/ABANDONADO al cerrar el duelo CPU antes de agotar12 preguntas,
+índice3/versión6. Tres filas finales, tres preguntas únicas, selección nula en
+las tres; tiempos10148/10257/10349ms, cero puntos, errores y saltos. Preguntas
+Ensayo C2-D6,4,1. Sin historial de respuestas, potenciadores ni XP de intento;
+student conserva xpTotal0. Inicio20:32:19.640/final20:33:19.549 UTC.
+No se inventaron respuestas ni se agotó el banco para permitir el avance.
+
+La victoria CPU es compatible con la regla existente de alcanzar cuatro marcas;
+su resolución es local y SQL no constituye evidencia de su posición o animación.
+Se conserva la observación humana del ganador sin inventar una traza CPU remota.
+Como el duelo acabó, comprobar pausa/reanudación y respuesta requiere una partida
+nueva de esta misma regresión D8a. D8b y los otros bloques no se repiten.
+**Pendiente** esa comprobación y nueva revisión de Pavel; C2 sigue abierta.
+
 ## D8a — APK4005 instalada; espera de confirmación humana
 
 23/oct/2026,15:16 America/Bogota. Flutter9b115c7/backend3fe82d9 guardan la
@@ -20,6 +142,14 @@ con Matemáticas/Básico y dejar vencer la primera ronda sin tocar opciones.
 Observar feedback y continuar a otra pregunta si duelo abierto; después comprobar
 pausa/reanudación y respuesta. Conciliar con SQL propio tras cada confirmación.
 Todavía **sin aprobación visual del timeout corregido**, C2 abierta.
+
+23/oct,15:22 America/Bogota: humano confirma Inicio en el teléfono como student
+con la sesión nueva. API ready OK/database UP; lectura SQL20:22:13 UTC sin
+intentos TUG_LOCAL todavía. El selector CPU dice **Entrenamiento**; «Básico» en
+el guion anterior era una referencia imprecisa a esa dificultad. Usar el rótulo
+real y no cambiar la dificultad ni el código por esa diferencia documental.
+Se pide dejar vencer solo la primera ronda, observar «Sin respuesta» y avanzar;
+la confirmación de Inicio no aprueba el timeout ni las pantallas siguientes.
 
 ## Timeout local — integración en curso, sin aprobación humana todavía
 

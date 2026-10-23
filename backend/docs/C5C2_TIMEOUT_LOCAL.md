@@ -1,11 +1,12 @@
-# C5-C2 — Vencimiento de Tira local, validación Android pendiente
+# C5-C2 — Vencimiento de Tira local, entrega a revisión
 
 Regla autorizada por Pavel: una ronda sin respuesta conserva su resolución frente
 a CPU y continúa con la siguiente pregunta si el duelo sigue abierto. No consume
 comodines, anuncios ni recompensas; no crea una selección o XP ficticios.
 
 El cambio conecta backend y Flutter mediante un proveedor específico de Tira
-local. **No cierra C2**: falta observar la regresión D8a en Android. Los casos de
+local. **No cierra C2**: regresión D8a observada y aprobada, pendiente auditoría
+de Pavel. Los casos de
 respuesta en vuelo/reintentos y pausa cuentan con pruebas automáticas; no
 atribuirles evidencia humana de pérdida de ACK real.
 
@@ -83,13 +84,14 @@ caducidad pausada y restricciones SQL del ámbito. Flutter25/25 dirigidas incluy
 timeout, reintento, última pregunta, ACK perdido/en vuelo y lifecycle/pausa.
 Regresión general final: Flutter1.016 aprobadas/16 opt-in omitidas, backend128
 suites/1.675 aprobadas (Jest exit0 confirmado), análisis dirigido Flutter limpio
-y `npm run build` completo exit0. Falta observación Android; prevalece el acta.
+y `npm run build` completo exit0. Android/4005 aprobado en el alcance del acta:
+avance tras timeout, pausa activa8s, reanudación, contención y acierto.
 
 La primera ejecución original dio44/47 (restricción sin nueva modalidad); la
 primera ampliación de pausa48/50 (contrato/campos aún ausentes). Se conservan
 las evidencias fallidas en el acta. Ninguna base remota fue operada.
 
-## Archivos y siguiente paso humano
+## Archivos y siguiente paso
 
 Backend: `src/trivia-rush/tug-local.controller.ts`, `trivia-rush.service.ts`,
 `prisma/schema.prisma`, tres migraciones específicas y regresión integrada
@@ -98,9 +100,10 @@ migraciones expresamente. Flutter: `tug_local_repository.dart`,
 `remote_tug_local_repository.dart`, `tug_local_providers.dart`, `tug_of_war_page.dart`
 y pruebas `tug_of_war_test.dart`/`remote_tug_local_repository_test.dart`.
 
-Preparar nueva sesión propia e instalar APK sin claves. En Tira local/Matemáticas,
-dejar vencer la primera pregunta sin tocar opciones. Observar feedback «Sin
-respuesta», pulsar Continuar y comprobar una segunda pregunta sin selección,
-con figuras/textos correctos. En esa ronda comprobar pausa del diálogo o segundo
-plano, reanudación y respuesta. Conciliar filas/selecciones/ausencia de XP en SQL.
-No repetir D8b ni D1–D7. No declarar C2 terminada; entregar a revisión de Pavel.
+Ensayo humano completado con API propia y APK sin claves: avance a rondas2/3
+tras vencimiento, pausa activa en8s y reanudación/respuesta correcta. SQL concilia
+filas nulas, respuestas humanas independientes y ausencia de potenciadores/XP.
+Recibos sanitizados en `evidencias/C5C2_TIMEOUT_D8B_2026_10_23.json` y detalle en
+el acta. No se provocó pérdida física de ACK ni se agotó humanamente la última
+pregunta; esas variantes tienen evidencia automática. No repetir D8b ni D1–D7.
+Pavel audita la entrega y decide el cierre; C2 sigue abierta hasta su revisión.

@@ -4,9 +4,10 @@
 y [acta C2-D](docs/C5C2D_VALIDACION_LOCAL.md): instalación, cuentas/clave temporal,
 Docker/USB, pruebas pendientes y correcciones permitidas en app/backend/panel.
 
-**23 de octubre — ENTREGA PARCIAL C5-C2:** D1–D7 y D8b/c/d/e conservan aprobación;
-D8a reabierto solo por timeout. D8b aprobado dentro de los límites del acta.
-[Entrega histórica y comandos](docs/C5C2_ENTREGA_PARCIAL.md).
+**23 de octubre — entrega C5-C2 a nueva revisión:** regresión D8a y D8b aprobadas
+dentro del alcance del acta; D1–D7 y D8c/d/e conservados. **C2 abierta a auditoría
+de Pavel.** [Entrega actual y comandos](docs/C5C2_REVISION_TIMEOUT_D8B.md),
+[entrega parcial histórica](docs/C5C2_ENTREGA_PARCIAL.md).
 Pavel auditó la entrega parcial; PR Flutter#9/b8253e2 y backend#11/3eb3f59 ya
 integrados en main remoto. Nueva revisión en fix/c5-c2-timeout-d8b desde main
 actualizado: timeout de Tira local y D8b con dos clientes. C2 sigue abierta.
@@ -15,9 +16,11 @@ sala confirmada en ambos clientes. El segundo Listo detectó rechazo SQL de
 opciones con imágenes: migración corregida y48/48 HTTP/SQL con72 migraciones
 solo temporales. Contrato TUG_LOCAL backend validado: tiempo de servidor,
 autorización, reintento concurrente y última pregunta sin respuestas ni XP
-inventados; Jest5/62, TypeScript y build completo aprobados. Falta integrar
-observar D8a: Flutter/pausa ya integrados con25 dirigidas y50/50 HTTP/SQL,
-73 migraciones propias. C2 sigue abierta.
+inventados; Jest5/62, TypeScript y build completo aprobados. Falta la nueva
+revisión de Pavel: Android/4005 ya confirma avance tras timeout, pausa activa8s,
+reanudación, figuras/textos contenidos y acierto. Flutter/pausa integrados con25
+dirigidas y50/50 HTTP/SQL,73 migraciones propias. Regresión Flutter1.016/16
+opt-in omitidas y backend128/1.675; análisis dirigido/build aprobados. C2 abierta.
 D8b posterior ya inició y muestra preguntas/figuras coincidentes en ambos; el
 humano detecta contenido fuera del botón. Corrección Flutter localizada,13/13
 pruebas online/análisis aprobados; humano confirma contención correcta en ambos
@@ -26,7 +29,7 @@ falla: conserva última ronda. Flutter corrige recuperación HTTP/lifecycle (19/
 APK4004 observada el23: victoria en emulador y mismo ganador al volver en teléfono.
 SQL concuerda: dos respuestas únicas solo del emulador y ninguna del teléfono.
 D8b aprobado; no acredita cierre forzado, ACK perdido o competición. Timeout
-local integrado, pendiente regresión humana D8a; C2 abierta.
+local integrado y regresión D8a aprobada; C2 espera nueva revisión de Pavel.
 [Contrato del flujo local](docs/C5C2_TIMEOUT_LOCAL.md).
 
 **21 de octubre — [C5-C2-C validada automáticamente](docs/C5C2C_CONSUMIDORES.md):**
