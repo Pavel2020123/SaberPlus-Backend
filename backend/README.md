@@ -16,7 +16,8 @@ opciones con imágenes: migración corregida y48/48 HTTP/SQL con72 migraciones
 solo temporales. Contrato TUG_LOCAL backend validado: tiempo de servidor,
 autorización, reintento concurrente y última pregunta sin respuestas ni XP
 inventados; Jest5/62, TypeScript y build completo aprobados. Falta integrar
-Flutter/conservar pausa y observar D8b; C2 sigue abierta.
+observar D8a: Flutter/pausa ya integrados con25 dirigidas y50/50 HTTP/SQL,
+73 migraciones propias. C2 sigue abierta.
 D8b posterior ya inició y muestra preguntas/figuras coincidentes en ambos; el
 humano detecta contenido fuera del botón. Corrección Flutter localizada,13/13
 pruebas online/análisis aprobados; humano confirma contención correcta en ambos
@@ -25,7 +26,8 @@ falla: conserva última ronda. Flutter corrige recuperación HTTP/lifecycle (19/
 APK4004 observada el23: victoria en emulador y mismo ganador al volver en teléfono.
 SQL concuerda: dos respuestas únicas solo del emulador y ninguna del teléfono.
 D8b aprobado; no acredita cierre forzado, ACK perdido o competición. Timeout
-local Flutter/pausa y regresión humana D8a siguen pendientes; C2 abierta.
+local integrado, pendiente regresión humana D8a; C2 abierta.
+[Contrato del flujo local](docs/C5C2_TIMEOUT_LOCAL.md).
 
 **21 de octubre — [C5-C2-C validada automáticamente](docs/C5C2C_CONSUMIDORES.md):**
 contratos/snapshots y Flutter incorporan imágenes opcionales sin cambiar XP ni

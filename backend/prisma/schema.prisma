@@ -1451,6 +1451,8 @@ model IntentoTriviaRush {
   segundaOportunidadActiva Boolean                 @default(false)
   preguntaActualId         String?
   preguntaIniciaEn         DateTime?               @db.Timestamp(6)
+  tiraLocalPausadaEn        DateTime?               @db.Timestamp(6)
+  tiraLocalRondaVersion     Int                     @default(0)
   iniciadoEn               DateTime                @default(now()) @db.Timestamp(6)
   venceEn                  DateTime                @db.Timestamp(6)
   finalizadoEn             DateTime?               @db.Timestamp(6)

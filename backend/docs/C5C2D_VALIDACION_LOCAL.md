@@ -1,5 +1,56 @@
 # C5-C2-D — Ensayo local de imágenes en opciones
 
+## Timeout local — integración en curso, sin aprobación humana todavía
+
+23/oct/2026. Se conecta Tira local a su proveedor `/tira-local/intentos`,
+separado del proveedor de Trivia/Fantasma. La ronda comienza con confirmación
+del servidor; vencer sin respuesta espera un recibo antes de habilitar avance.
+Una respuesta en vuelo o con ACK desconocido reintenta la misma operación y no
+se transforma en timeout. CPU conserva su resolución; al acabar antes del banco
+se abandona el intento propio. Demo conserva su banco local anterior.
+
+Conservación de pausa: nueva migración específica
+20261023150000_tug_local_pause, dos campos en IntentoTriviaRush limitados por
+CHECK a TUG_LOCAL; pausa/reanudación autenticadas con reloj del servidor y
+versión. Repetir una petición no amplía dos veces la ventana ni cambia el TTL
+global600s. También se corrige EXPIRADO local para fijar finalizadoEn en venceEn
+y limpiar pausa; antes podía incumplir la restricción temporal al caducar.
+
+Evidencia automática: primera suite HTTP/SQL48/50, dos pruebas nuevas fallidas;
+faltaba versión/contrato de pausa y el segundo caso encontraba el campo Prisma
+aún inexistente. Tras implementación/regeneración: **50/50 aprobadas**,73
+migraciones en PostgreSQL16 propio; recursos del ejecutor retirados. Cubre pausa
+real de10.1s, reintento/versiones atrasadas, respuesta posterior, última pregunta,
+caducidad incluso pausada y exclusión de Trivia/Fantasma. TypeScript aprobado.
+
+Flutter: dos intentos iniciales no cargaron el test por referencias estáticas
+incorrectas en el fake; se calificaron con la clase propietaria. Suite posterior
+**19/19 aprobada**: incluye la reproducción original, timeout/reintento, última
+pregunta, respuesta en vuelo/ACK perdido y pausa. Es evidencia de widgets/fakes,
+no nueva observación Android ni garantía de ACK perdido real por red. Análisis
+inicial encontró cuatro avisos de estilo, corregidos; repetición pendiente.
+
+La sesión humana7olT5v se retiró ordenadamente después de guardar D8b, para
+regenerar Prisma/compilar sin bloquear su DLL. Su contraseña ya no es vigente.
+Comprobaciones ampliadas: cliente HTTP Flutter3/4 iniciales (el rechazo de
+potenciador lanzaba excepción síncrona); corregido para devolver Future con error.
+Después25/25 dirigidas aprobadas, incluidas recuperación de ACK de pausa y
+respuesta confirmada durante segundo plano. Análisis dirigido final limpio;
+dos avisos adicionales de estilo del fake se corrigieron antes de repetirlo.
+Regresión Flutter completa: **1.016 aprobadas,16 opt-in omitidas,0 fallidas**.
+No se ejecutaron las16 integraciones que requieren sus variables propias.
+
+Regresión HTTP/SQL final50/50,73 migraciones, añadiendo reintento de respuesta
+confirmada y restricciones SQL de pausa en Trivia. Backend128 suites/1.675
+aprobadas según resumen Jest; la envoltura PowerShell devolvió1 al capturar stderr,
+por lo que se confirma el código del proceso mediante captura estructurada antes
+de dar ese comando por resuelto. `npm run build` completo aprobado, exit0.
+Confirmación posterior del proceso Jest: **exit0, success:true,128 suites y
+1.675 pruebas aprobadas,0 fallidas**, recibo JSON local. La salida1 anterior
+correspondía a la captura PowerShell de stderr; no a una prueba fallida.
+Se prepara APK ARM64/4005 solo con URLs públicas; falta instalación y regresión
+humana D8a con nueva sesión. **C2 sigue abierta**; D8b no se reabre por esta corrección.
+
 ## D8b — retorno tras final aprobado; C2 sigue abierta por timeout local
 
 23/oct/2026,14:45 America/Bogota. Evidencia humana con APK4004: el emulador

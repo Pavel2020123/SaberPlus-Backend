@@ -15,8 +15,9 @@ Recientes y muestra el mismo ganador. SQL23f89c68… FINALIZADA/JUGADOR_A,
 zero=A/student=B, dos respuestas únicas solo de zero, cero XP; no se añadió
 respuesta al regresar. Se conserva evidencia previa de figuras/selección en
 Pixel_8_2, sin atribuir selecciones ilustradas al último duelo. No acredita
-cierre forzado, ACK perdido o competición. Falta integrar Flutter/pausa del
-timeout local y validar esa regresión D8a; no repetir D8b ni otros aprobados.
+cierre forzado, ACK perdido o competición. Integración Flutter/pausa del timeout
+local implementada:25 dirigidas y50 HTTP/SQL con73 migraciones aprobadas;
+falta build/observación Android de esa regresión D8a. No repetir D8b ni otros aprobados.
 Los párrafos siguientes conservan el historial de diagnóstico, no pendientes nuevos.
 
 Checkpoint posterior: ambos clientes disponibles. D8b encontró «estado inválido»:
@@ -73,7 +74,7 @@ Terminar **C5-C2**, no toda C5 ni todas las etapas de SaberPlus:
 - C2-C: referencias públicas/snapshots y consumidores Flutter; implementada y
   validada automáticamente. No rehacer desde cero.
 - **C2-D: validación integrada Android/panel/API y correcciones que encuentre.
-  Entrega parcial:7/8 bloques aprobados; falta D8b, Tira online con dos clientes.**
+  Entrega parcial: D1–D7 y D8b/c/d/e aprobados; falta regresión de timeout D8a.**
 
 La tabla de resultados humanos vive en `C5C2D_VALIDACION_LOCAL.md`, en docs/ de
 Flutter y backend/docs/ del backend. Actualizar ambas copias después de cada
@@ -411,7 +412,7 @@ en esta sesión con el mismo editor/contrato y documentarlo, no cambiar reglas
 del juego, falsificar eventos ni abrir otra base. Registrar si se probó Cima o
 Rescate; el otro conserva evidencia automática, no atribuirle otra prueba USB.
 
-### D8 — Otros contratos de juegos: cinco subcasos (solo D8b pendiente)
+### D8 — Otros contratos de juegos: cinco subcasos (regresión D8a pendiente)
 
 | Subcaso | Qué observar / recursos |
 | --- | --- |

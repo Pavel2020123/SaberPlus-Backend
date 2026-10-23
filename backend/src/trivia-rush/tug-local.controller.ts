@@ -13,10 +13,13 @@ import {
   ArrayMaxSize,
   ArrayMinSize,
   IsArray,
+  IsBoolean,
   IsEnum,
+  IsInt,
   IsString,
   IsUUID,
   MaxLength,
+  Min,
 } from 'class-validator';
 import { AuthenticatedRequest } from '../auth/auth.types';
 import { EmailVerificadoGuard } from '../auth/email-verificado.guard';
@@ -40,6 +43,15 @@ class RondaTugLocalDto {
 class TimeoutTugLocalDto extends RondaTugLocalDto {
   @IsUUID()
   idempotencyKey!: string;
+}
+
+class PausaTugLocalDto extends RondaTugLocalDto {
+  @IsInt()
+  @Min(0)
+  version!: number;
+
+  @IsBoolean()
+  pausada!: boolean;
 }
 
 class RespuestaTugLocalDto extends TimeoutTugLocalDto {
@@ -85,6 +97,15 @@ export class TugLocalController {
       id,
       body.preguntaId,
     );
+  }
+
+  @Post(':id/pausa')
+  pausa(
+    @Request() request: AuthenticatedRequest,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() body: PausaTugLocalDto,
+  ) {
+    return this.service.pausarRondaLocal(request.usuario.sub, id, body);
   }
 
   @Post(':id/sin-respuesta')

@@ -83,7 +83,8 @@ try {
   const editorialOptionsMigration = 'prisma/migrations/20261021180000_editorial_option_image_links/migration.sql';
   const tugLocalMigration = 'prisma/migrations/20261022203000_tug_local_timeout_scope/migration.sql';
   const tugImagesMigration = 'prisma/migrations/20261022213000_tug_option_image_snapshot/migration.sql';
-  const actualPaths = [...new Set([...paths, territoryMigration, profileMigration, logoMigration, studentRequestsMigration, studentCodesMigration, questionReportsMigration, editorialFilesMigration, editorialLinksMigration, editorialOptionsMigration, tugLocalMigration, tugImagesMigration])].sort();
+  const tugPauseMigration = 'prisma/migrations/20261023150000_tug_local_pause/migration.sql';
+  const actualPaths = [...new Set([...paths, territoryMigration, profileMigration, logoMigration, studentRequestsMigration, studentCodesMigration, questionReportsMigration, editorialFilesMigration, editorialLinksMigration, editorialOptionsMigration, tugLocalMigration, tugImagesMigration, tugPauseMigration])].sort();
   for (const path of actualPaths) {
     const dest = join(directory, path.replace(/^prisma\//, ''));
     await mkdir(dirname(dest), { recursive: true });

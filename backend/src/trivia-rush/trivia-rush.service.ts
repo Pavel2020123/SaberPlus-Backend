@@ -184,8 +184,67 @@ export class TriviaRushService {
       if (!intento.preguntaIniciaEn)
         await tx.intentoTriviaRush.update({
           where: { id: intentoId },
-          data: { preguntaIniciaEn: ahora },
+          data: {
+            preguntaIniciaEn: ahora,
+            tiraLocalRondaVersion: { increment: 1 },
+          },
         });
+    });
+    return this.obtener(usuarioId, intentoId);
+  }
+
+  async pausarRondaLocal(
+    usuarioId: string,
+    intentoId: string,
+    entrada: { preguntaId: string; version: number; pausada: boolean },
+  ) {
+    intentoId = intentoId.toLowerCase();
+    await this.verificarFlujo(usuarioId, intentoId, true);
+    await this.prisma.$transaction(async (tx) => {
+      await this.bloquearIntento(tx, intentoId, usuarioId);
+      const intento = await tx.intentoTriviaRush.findUniqueOrThrow({
+        where: { id: intentoId },
+      });
+      this.validarLocal(intento);
+      this.validarActivo(intento);
+      const ahora = new Date();
+      if (intentoTriviaRushVencido(intento.venceEn, ahora)) {
+        await this.marcarExpirado(tx, intentoId, ahora);
+        return;
+      }
+      if (intento.preguntaActualId !== entrada.preguntaId)
+        throw new ConflictException('La pregunta ya no es la ronda actual.');
+      // A lost acknowledgement or a delayed request cannot apply a pause twice.
+      if (intento.tiraLocalRondaVersion !== entrada.version) return;
+      const inicio = intento.preguntaIniciaEn;
+      if (!inicio)
+        throw new BadRequestException('La ronda local no esta iniciada.');
+      if (entrada.pausada === (intento.tiraLocalPausadaEn !== null)) return;
+      if (entrada.pausada) {
+        if (ahora.getTime() >= inicio.getTime() + TIRA_LOCAL_RONDA_MS)
+          throw new BadRequestException({
+            code: 'TUG_LOCAL_ROUND_EXPIRED',
+            message: 'La ronda local ya vencio.',
+          });
+        await tx.intentoTriviaRush.update({
+          where: { id: intentoId },
+          data: {
+            tiraLocalPausadaEn: ahora,
+            tiraLocalRondaVersion: { increment: 1 },
+          },
+        });
+      } else {
+        const duracionPausa =
+          ahora.getTime() - intento.tiraLocalPausadaEn!.getTime();
+        await tx.intentoTriviaRush.update({
+          where: { id: intentoId },
+          data: {
+            preguntaIniciaEn: new Date(inicio.getTime() + duracionPausa),
+            tiraLocalPausadaEn: null,
+            tiraLocalRondaVersion: { increment: 1 },
+          },
+        });
+      }
     });
     return this.obtener(usuarioId, intentoId);
   }
@@ -226,6 +285,11 @@ export class TriviaRushService {
       }
       if (intento.preguntaActualId !== entrada.preguntaId)
         throw new ConflictException('La pregunta ya no es la ronda actual.');
+      if (intento.tiraLocalPausadaEn)
+        throw new BadRequestException({
+          code: 'TUG_LOCAL_PAUSED',
+          message: 'La ronda local esta pausada.',
+        });
       if (
         !intento.preguntaIniciaEn ||
         ahora.getTime() <
@@ -326,9 +390,15 @@ export class TriviaRushService {
           data: {
             estado: EstadoIntentoTriviaRush.EXPIRADO,
             finalizadoEn:
-              activa.evidenciaVersion === 1 ? activa.venceEn : ahora,
+              activa.evidenciaVersion === 1 ||
+              activa.modalidad === ModalidadTriviaRush.TUG_LOCAL
+                ? activa.venceEn
+                : ahora,
             preguntaActualId: null,
             preguntaIniciaEn: null,
+            ...(activa.modalidad === ModalidadTriviaRush.TUG_LOCAL
+              ? { tiraLocalPausadaEn: null }
+              : {}),
           },
         });
       } else if (activa) {
@@ -614,14 +684,20 @@ export class TriviaRushService {
       if (local) {
         if (intento.modalidad !== ModalidadTriviaRush.TUG_LOCAL)
           throw new ForbiddenException('El intento no pertenece a Tira local.');
+        if (intento.tiraLocalPausadaEn)
+          throw new BadRequestException({
+            code: 'TUG_LOCAL_PAUSED',
+            message: 'La ronda local esta pausada.',
+          });
         if (
           !intento.preguntaIniciaEn ||
           ahora.getTime() >=
             intento.preguntaIniciaEn.getTime() + TIRA_LOCAL_RONDA_MS
         )
-          throw new BadRequestException(
-            'La ronda local no esta iniciada o ya vencio.',
-          );
+          throw new BadRequestException({
+            code: 'TUG_LOCAL_ROUND_EXPIRED',
+            message: 'La ronda local no esta iniciada o ya vencio.',
+          });
       }
       if (intentoTriviaRushVencido(intento.venceEn, ahora)) {
         await this.marcarExpirado(tx, intento.id, ahora);
@@ -890,7 +966,8 @@ export class TriviaRushService {
             )[0].ahora
           : new Date();
       if (
-        intento.evidenciaVersion === 1 &&
+        (intento.evidenciaVersion === 1 ||
+          intento.modalidad === ModalidadTriviaRush.TUG_LOCAL) &&
         intentoTriviaRushVencido(intento.venceEn, ahora)
       ) {
         await this.marcarExpirado(tx, intentoId, ahora);
@@ -903,6 +980,9 @@ export class TriviaRushService {
           finalizadoEn: ahora,
           preguntaActualId: null,
           preguntaIniciaEn: null,
+          ...(intento.modalidad === ModalidadTriviaRush.TUG_LOCAL
+            ? { tiraLocalPausadaEn: null }
+            : {}),
           escudoComboActivo: false,
           segundaOportunidadActiva: false,
         },
@@ -941,6 +1021,12 @@ export class TriviaRushService {
           ? false
           : intento.escudoComboActivo,
         segundaOportunidadActiva: false,
+        ...(intento.modalidad === ModalidadTriviaRush.TUG_LOCAL
+          ? {
+              tiraLocalPausadaEn: null,
+              tiraLocalRondaVersion: { increment: 1 },
+            }
+          : {}),
         ...(siguiente
           ? {
               preguntaActualId: siguiente.preguntaId,
@@ -1145,9 +1231,15 @@ export class TriviaRushService {
       data: {
         estado: EstadoIntentoTriviaRush.EXPIRADO,
         finalizadoEn:
-          original.evidenciaVersion === 1 ? original.venceEn : ahora,
+          original.evidenciaVersion === 1 ||
+          original.modalidad === ModalidadTriviaRush.TUG_LOCAL
+            ? original.venceEn
+            : ahora,
         preguntaActualId: null,
         preguntaIniciaEn: null,
+        ...(original.modalidad === ModalidadTriviaRush.TUG_LOCAL
+          ? { tiraLocalPausadaEn: null }
+          : {}),
         escudoComboActivo: false,
         segundaOportunidadActiva: false,
       },
@@ -1212,6 +1304,8 @@ export class TriviaRushService {
               modalidad: ModalidadTriviaRush.TUG_LOCAL,
               rondaLocal: {
                 preguntaId: intento.preguntaActualId,
+                version: intento.tiraLocalRondaVersion,
+                pausada: intento.tiraLocalPausadaEn !== null,
                 iniciaEn: intento.preguntaIniciaEn,
                 venceEn: intento.preguntaIniciaEn
                   ? new Date(
@@ -1224,7 +1318,9 @@ export class TriviaRushService {
                         0,
                         intento.preguntaIniciaEn.getTime() +
                           TIRA_LOCAL_RONDA_MS -
-                          servidorAhora.getTime(),
+                          (
+                            intento.tiraLocalPausadaEn ?? servidorAhora
+                          ).getTime(),
                       )
                     : 0,
               },

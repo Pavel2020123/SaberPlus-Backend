@@ -1299,6 +1299,233 @@ test('C5-C2 Tira local valida diez segundos reales e idempotencia sin respuestas
     );
   }));
 
+test('C5-C2 Tira local pausa con reloj servidor, versión e idempotencia sin ampliar Trivia', () =>
+  withOptionImages(async () => {
+    const f = await consumerBank(),
+      student = await user('ESTUDIANTE');
+    const token = tokenFor(student),
+      origin = f.consumerBase;
+    const created = await jsonPost(
+      '/tira-local/intentos',
+      token,
+      { areas: ['INGLES'] },
+      origin,
+    );
+    const id = created.data.intento.id,
+      question = created.data.intento.pregunta.id;
+    const path = `/tira-local/intentos/${id}`;
+    const started = await jsonPost(
+      `${path}/ronda`,
+      token,
+      { preguntaId: question },
+      origin,
+    );
+    assert.equal(started.status, 201);
+    assert.equal(started.data.intento.rondaLocal.version, 1);
+    const operation = { preguntaId: question, version: 1, pausada: true };
+    assert.equal(
+      (
+        await jsonPost(
+          `${path}/pausa`,
+          tokenFor(await user('ESTUDIANTE')),
+          operation,
+          origin,
+        )
+      ).status,
+      403,
+    );
+    const paused = await jsonPost(`${path}/pausa`, token, operation, origin);
+    assert.equal(paused.status, 201);
+    const round = paused.data.intento.rondaLocal;
+    assert.equal(round.pausada, true);
+    assert.equal(round.version, 2);
+    assert.ok(round.tiempoRestanteMs > 0 && round.tiempoRestanteMs <= 10000);
+    const retry = await jsonPost(`${path}/pausa`, token, operation, origin);
+    assert.equal(retry.data.intento.rondaLocal.version, 2);
+    assert.equal(
+      retry.data.intento.rondaLocal.tiempoRestanteMs,
+      round.tiempoRestanteMs,
+    );
+    await new Promise((resolve) => setTimeout(resolve, 10100));
+    const stillPaused = await call(path, token, {}, origin);
+    assert.equal(
+      stillPaused.data.intento.rondaLocal.tiempoRestanteMs,
+      round.tiempoRestanteMs,
+    );
+    assert.equal(
+      (
+        await jsonPost(
+          `${path}/sin-respuesta`,
+          token,
+          { preguntaId: question, idempotencyKey: randomUUID() },
+          origin,
+        )
+      ).status,
+      400,
+    );
+    assert.equal(
+      (
+        await jsonPost(
+          `${path}/respuestas`,
+          token,
+          {
+            preguntaId: question,
+            respuestaId: created.data.intento.pregunta.opciones[0].id,
+            idempotencyKey: randomUUID(),
+          },
+          origin,
+        )
+      ).status,
+      400,
+    );
+    const resumed = await jsonPost(
+      `${path}/pausa`,
+      token,
+      { preguntaId: question, version: 2, pausada: false },
+      origin,
+    );
+    assert.equal(resumed.status, 201);
+    assert.equal(resumed.data.intento.rondaLocal.pausada, false);
+    assert.equal(resumed.data.intento.rondaLocal.version, 3);
+    assert.equal(resumed.data.intento.venceEn, created.data.intento.venceEn);
+    assert.ok(resumed.data.intento.rondaLocal.tiempoRestanteMs > 0);
+    // Late repeats cannot pause again or add the same paused duration twice.
+    const late = await jsonPost(`${path}/pausa`, token, operation, origin);
+    assert.equal(late.data.intento.rondaLocal.version, 3);
+    assert.equal(
+      late.data.intento.rondaLocal.iniciaEn,
+      resumed.data.intento.rondaLocal.iniciaEn,
+    );
+    assert.equal(late.data.intento.rondaLocal.pausada, false);
+    const answerOperation = {
+      preguntaId: question,
+      respuestaId: created.data.intento.pregunta.opciones[0].id,
+      idempotencyKey: randomUUID(),
+    };
+    const answer = await jsonPost(
+      `${path}/respuestas`,
+      token,
+      answerOperation,
+      origin,
+    );
+    assert.equal(answer.status, 201);
+    assert.equal(answer.data.intento.rondaLocal.iniciaEn, null);
+    assert.equal(answer.data.intento.rondaLocal.pausada, false);
+    assert.equal(answer.data.intento.progreso.indiceActual, 1);
+    const answerRetry = await jsonPost(
+      `${path}/respuestas`,
+      token,
+      answerOperation,
+      origin,
+    );
+    assert.equal(answerRetry.status, 201);
+    assert.deepEqual(answerRetry.data.evaluacion, answer.data.evaluacion);
+    assert.equal(
+      await db.triviaRushRespuesta.count({ where: { intentoId: id } }),
+      1,
+    );
+    assert.equal(
+      await db.historialRespuesta.count({ where: { usuarioId: student.id } }),
+      1,
+    );
+    const normal = await jsonPost(
+      '/trivia-rush/intentos',
+      tokenFor(await user('ESTUDIANTE')),
+      { areas: ['INGLES'], duracionSegundos: 60 },
+      origin,
+    );
+    const normalRow = await db.intentoTriviaRush.findUniqueOrThrow({
+      where: { id: normal.data.intento.id },
+    });
+    await assert.rejects(
+      db.$executeRaw`UPDATE "IntentoTriviaRush" SET "tiraLocalRondaVersion" = 1 WHERE id = ${normalRow.id}::uuid`,
+      sqlState('23514'),
+    );
+    await assert.rejects(
+      db.$executeRaw`UPDATE "IntentoTriviaRush" SET "tiraLocalPausadaEn" = "preguntaIniciaEn" WHERE id = ${normalRow.id}::uuid`,
+      sqlState('23514'),
+    );
+    assert.equal(
+      (
+        await jsonPost(
+          `/tira-local/intentos/${normalRow.id}/pausa`,
+          tokenFor(
+            await db.usuario.findUniqueOrThrow({
+              where: { id: normalRow.usuarioId },
+            }),
+          ),
+          {
+            preguntaId: normal.data.intento.pregunta.id,
+            version: 0,
+            pausada: true,
+          },
+          origin,
+        )
+      ).status,
+      403,
+    );
+    assert.equal(
+      await db.triviaRushPotenciador.count({ where: { intentoId: id } }),
+      0,
+    );
+    assert.equal(
+      await db.eventoXpCompetitivo.count({ where: { usuarioId: student.id } }),
+      0,
+    );
+  }));
+
+test('C5-C2 Tira local expira aun pausada y conserva la vigencia global', () =>
+  withOptionImages(async () => {
+    const f = await consumerBank(),
+      token = tokenFor(await user('ESTUDIANTE')),
+      origin = f.consumerBase;
+    const created = await jsonPost(
+      '/tira-local/intentos',
+      token,
+      { areas: ['INGLES'] },
+      origin,
+    );
+    const id = created.data.intento.id,
+      question = created.data.intento.pregunta.id;
+    const path = `/tira-local/intentos/${id}`;
+    const started = await jsonPost(
+      `${path}/ronda`,
+      token,
+      { preguntaId: question },
+      origin,
+    );
+    await jsonPost(
+      `${path}/pausa`,
+      token,
+      {
+        preguntaId: question,
+        version: started.data.intento.rondaLocal.version,
+        pausada: true,
+      },
+      origin,
+    );
+    const inicio = new Date(Date.now() - 601000),
+      vence = new Date(inicio.getTime() + 600000);
+    await db.intentoTriviaRush.update({
+      where: { id },
+      data: {
+        iniciadoEn: inicio,
+        venceEn: vence,
+        preguntaIniciaEn: new Date(inicio.getTime() + 1000),
+        tiraLocalPausadaEn: new Date(inicio.getTime() + 2000),
+      },
+    });
+    const expired = await call(path, token, {}, origin);
+    assert.equal(expired.status, 200);
+    assert.equal(expired.data.intento.estado, 'EXPIRADO');
+    assert.equal(expired.data.intento.finalizadoEn, vence.toISOString());
+    assert.equal(expired.data.intento.rondaLocal.pausada, false);
+    assert.equal(
+      await db.triviaRushRespuesta.count({ where: { intentoId: id } }),
+      0,
+    );
+  }));
+
 test('C5-C2 Tira local conserva la última pregunta y no duplica al reintentar su cierre', () =>
   withOptionImages(async () => {
     const f = await consumerBank(),
