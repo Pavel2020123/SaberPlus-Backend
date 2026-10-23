@@ -1,5 +1,26 @@
 # C5-C2-D — Ensayo local de imágenes en opciones
 
+## D8a — APK4005 instalada; espera de confirmación humana
+
+23/oct/2026,15:16 America/Bogota. Flutter9b115c7/backend3fe82d9 guardan la
+integración local y pausa; no publicados. Build ARM64/4005 aprobado243.3s,
+exit0; instalación en CPH2577 Success y versionCode4005 comprobado. Solo
+configuración pública API/contenido127.0.0.1:43187; no claves compiladas.
+Emulador conserva4004, suficiente para la evidencia D8b ya aprobada.
+
+Nueva sesión desechable **IRImJ5**, fixture05e7ba3a:73 migraciones,12 preguntas,
+cuatro opciones/dos ilustradas, guardado y recarga automáticos. API ready
+OK/database UP; login HTTP de student201/token presente, sin imprimirlo.
+Panel4173 sigue demo:false/API43187; reverse del teléfono restablecido.
+Clave nueva solo en flutter-private.json temporal de IRImJ5. SQL de preparación
+20:12:45 UTC no tenía intentos TUG_LOCAL. No usar la clave de7olT5v retirada.
+
+Próximo paso humano: confirmar Inicio como student en teléfono, abrir Tira local
+con Matemáticas/Básico y dejar vencer la primera ronda sin tocar opciones.
+Observar feedback y continuar a otra pregunta si duelo abierto; después comprobar
+pausa/reanudación y respuesta. Conciliar con SQL propio tras cada confirmación.
+Todavía **sin aprobación visual del timeout corregido**, C2 abierta.
+
 ## Timeout local — integración en curso, sin aprobación humana todavía
 
 23/oct/2026. Se conecta Tira local a su proveedor `/tira-local/intentos`,
