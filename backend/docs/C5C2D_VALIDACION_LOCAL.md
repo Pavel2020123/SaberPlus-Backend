@@ -1,5 +1,28 @@
 # C5-C2-D — Ensayo local de imágenes en opciones
 
+## D8b — sustitución del emulador e instalación en Pixel_8_2
+
+22 de octubre de2026,21:57 America/Bogota. El humano aclara «cambié el emulador,
+entonces tienes que instalarle el apk». La instalación anterior correspondía al
+AVD previo; no demuestra instalación o acceso en el emulador nuevo. Se conserva
+la evidencia histórica sin atribuir al código los cambios de dispositivo.
+
+- ADB: nuevo AVD Pixel_8_2, serial emulator-5554/transport26, ABI x86_64,
+  boot_completed1. Teléfono NFWKHYIZKVLF8LKJ/transport27 sigue autorizado.
+- APK pública de desarrollo x64/build4002, acceso directo a10.0.2.2:43187:
+  adb -s emulator-5554 install --streaming --no-incremental -r
+  build/app/outputs/flutter-apk/app-debug.apk termina Success. No se recompila,
+  desinstala o borra datos; sin secretos compilados ni operación productiva.
+- Ready de API propia OK/database UP, sesión zFyDcK y su clave actual presentes.
+  Teléfono había perdido reverse tras reconexión; se restablece43187. El emulador
+  usa acceso directo del host, sin depender de reverse. Contraseña sin renovar.
+- Se pide apertura manual y login zero en nuevo emulador, student en teléfono;
+  confirmar ambos Inicio antes de buscar rival. Esta preparación automática no
+  aprueba Inicio, sala ni D8b en el nuevo dispositivo. No se reabre ningún otro bloque.
+
+**Siguiente paso:** esperar confirmación visual de ambos Inicio; luego D8b con
+ambas cuentas: emparejar, Listo, opciones ilustradas, selección independiente y
+reanudación. Timeout local Flutter/pausa continúa pendiente; C2 sigue abierta.
 ## D8b — APK del emulador con acceso directo instalada; falta confirmar Inicio
 
 22 de octubre de2026,21:42 America/Bogota. Teléfono: el humano confirma que
