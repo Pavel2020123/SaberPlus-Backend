@@ -1,5 +1,33 @@
 # C5-C2-D — Ensayo local de imágenes en opciones
 
+## D8b — borde corregido, APK4003 instalada en ambos; falta observación humana
+
+22 de octubre de2026. Corrección Flutter9234a57: padding16 y rectángulo de
+radio16 solo en botones de Tira online. Regresión de contorno: antes0/4; después
+suite online completa13/13 y análisis dirigido de2 archivos sin incidencias.
+No cambia selección, permisos, tiempos, snapshots, XP o reglas del juego.
+
+- Build ARM64/4003/API127.0.0.1:43187: aprobado120.0s; instalación teléfono
+  Success y reverse43187 restablecido. Ready API OK/database UP.
+- Build x64/4003/API10.0.2.2:43187: aprobado95.1s; instalación nuevo emulador
+  Pixel_8_2 Success mediante streaming/no-incremental. Se mantienen datos y clave
+  actual87a75d92/zFyDcK; no archivos privados compilados. APK copiadas a output
+  local ignorado c5-c2-d8b-borde-arm64-4003.apk y c5-c2-d8b-borde-x64-4003.apk.
+- Nueva partida solicitada solo para observar el borde tras fix: la anterior
+  ya terminó y las instalaciones reinician procesos. No se repiten D1–D7/D8c/d/e.
+  Humano debe abrir, emparejar y Listo en ambos; observar texto y figuras dentro
+  de los botones. Todavía no hay aprobación visual del borde corregido.
+
+SQL de lectura posterior a instalaciones (03:15:34 UTC): partida anterior
+fb5034b9… conserva FINALIZADA/ronda5/versión12 y finalizado03:03:45.458. Ocho
+respuestas (cuatro por cuenta), ocho pares ronda/usuario únicos, tres selecciones
+ilustradas y cero eventos XP de esa partida. No hay partida nueva todavía.
+Recibo local ignorado c5-c2-d8b-readonly-<timestamp>.json. Esto no acredita una
+reanudación humana ni pérdida de ACK; solo registra el estado real sin mutarlo.
+
+**Siguiente paso:** confirmar contención visual en los dos clientes; después
+selección independiente y reanudación sin duplicación para completar D8b.
+Timeout local Flutter/pausa sigue pendiente. C2 abierta; no push/merge/despliegue.
 ## D8b — inicio con figuras confirmado; falla el borde de las respuestas
 
 22 de octubre de2026. Humano confirma sala en ambos y después: «Aparecen las
@@ -27,6 +55,12 @@ Corrección localizada aplicada: padding16 y RoundedRectangleBorder/radio16 en
 los botones online, igual que Tira local. Suite online completa13/13 aprobada;
 análisis dirigido de2 archivos sin incidencias. APK4003 por cliente en preparación;
 falta APK actualizada y nueva observación humana, no se aprueba aún la pantalla.
+
+Preparación posterior: build ARM64/4003 aprobado (assembleDebug120.0s),
+API y contenido127.0.0.1:43187, sin credenciales; copia local ignorada
+output/c5-c2-d8b-borde-arm64-4003.apk. Instalación en teléfono termina Success,
+reverse43187 restablecido y API ready OK/database UP. Build x64/4003 con
+10.0.2.2:43187 en curso. No atribuir todavía observación del borde corregido.
 
 **Siguiente paso:** validar borde de Tira online, instalar APK por
 cliente y repetir solo observación afectada antes de selección/reanudación D8b.
