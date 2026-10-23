@@ -1,5 +1,57 @@
 # C5-C2-D — Ensayo local de imágenes en opciones
 
+## Reanudación — 22 de octubre de2026, 20:29 America/Bogota
+
+El humano pidió detener todo y luego reanudar. Se respeta la pausa: no se
+implementó el contrato nuevo durante ella. La API/PostgreSQL propios de19f60066
+fueron retirados por el runner; su directorio ya no existe. Se conserva evidencia.
+
+**Decisión de Pavel ya recibida y autorizada:** al vencer Tira local, registrar
+«sin respuesta», conservar la resolución de la ronda frente a CPU y avanzar a
+la siguiente pregunta si quedan preguntas y el duelo no terminó. Sin consumir
+comodines/anuncios/recompensas. Ampliar contrato exclusivo de Tira local con
+tiempo validado por servidor, autorización e idempotencia; no crear salto gratuito
+para Trivia/Fantasma ni modificar sus reglas. Añadir regresiones de timeout,
+reintento y última pregunta. **Implementación pendiente, no pedir la decisión otra vez.**
+
+- Ramas fix/c5-c2-timeout-d8b conservadas, HEAD Flutterf8a606d/backend65b4190.
+  Flutter conserva analysis_options.yaml ajeno y el test de timeout que reproduce
+  el fallo; no está corregido ni se cuenta aprobado. Backend sin cambios runtime.
+  No push, merge, despliegue o cambios OV-1 nuevos.
+- Último acceso humano: «No pudimo conectar con SaberPlus. Revisa tu conexión».
+  API estaba sana; los túneles se habían perdido al reconectarse ADB. Se
+  restablecieron, pero el humano pidió pausa antes de confirmar acceso. D8b no
+  ejecutado ni aprobado. No se reutilizan credenciales de aquella sesión.
+- Al reanudar: teléfono NFWKHYIZKVLF8LKJ y emulador5554 autorizados/con APK ya
+  instalada; emulador boot_completed1 y teléfono escala1.0. Panel4173 heredado
+  activo, config demo:false/API43187. API43187 inicialmente sin listener. Docker
+  responde; contenedor histórico5548e14c… conservado sin operarlo.
+- Se inicia otra sesión propia con el runner y opt-in de imágenes, usando el
+  build backend ya validado (sin cambios de runtime desde esa compilación).
+- Sesión nueva lista:70 migraciones, optionImagesLocal:true y solo admission
+  sin habilitar. Directorio
+  `C:\Users\modaf\AppData\Local\Temp\saberplus-i2-local-hjVNQZ`, nonce6263e056….
+  Clave nueva únicamente en flutter-private.json/AUTH_E2E_PASSWORD. Fixture
+  «Opciones C2-D - ensayo6263e056»12 preguntas/cuatro opciones/dos ilustradas,
+  guardado/recargado por API. Límite original de dos horas conservado.
+- Reverse43187 configurado para ambos clientes. am start -W OK: teléfono COLD
+  y emulador UNKNOWN, sin atribuir vista humana. Pruebas de sondeo HTTP por nc
+  desde Android no dieron una respuesta ready válida (sin salida/HTTP400 por
+  solicitud de sondeo); no se cuentan como comprobación de login ni como fallo
+  observado de la app. Sigue pendiente comprobar acceso en ambas pantallas.
+- Host: health ready OK/database UP y login protegido de student/zero aprobado
+  con las credenciales nuevas, HTTP201. Primer auxiliar asumía200 y falló esa
+  aserción; corregido para aceptar éxito2xx y exigir token sin imprimirlo.
+  Evidencia ignorada: backend/output/c5-c2-reanudacion-dos-clientes.json.
+- Ruta de clave comunicada al humano; cerrar sesiones anteriores y entrar como
+  student en teléfono/zero en emulador. No hay emparejamiento, respuesta ni
+  aprobación humana D8b por preparar estos servicios. Contrato de timeout aún
+  no implementado; regresión roja anterior conservada.
+
+**Siguiente paso:** confirmar login manual student en teléfono y zero en
+emulador, ambos Inicio antes de emparejar D8b. Continuar después con
+implementación y regresiones del timeout específico autorizado. C2 sigue abierta.
+
 ## Revisión de Pavel — continuación desde main integrado
 
 22 de octubre de2026. Pavel auditó la entrega parcial y pide reproducir/corregir
