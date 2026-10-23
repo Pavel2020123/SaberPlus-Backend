@@ -1,5 +1,19 @@
 # C5-C2-D — Ensayo local de imágenes en opciones
 
+## D8b — Inicio confirmado en teléfono y nuevo emulador
+
+22 de octubre de2026,22:01 America/Bogota. El humano confirma «Sí» a Inicio en
+ambos dispositivos: student@example.invalid/teléfono y zero@example.invalid/
+Pixel_8_2, sesión87a75d92. Se acredita únicamente acceso visual a Inicio, no
+emparejamiento, imágenes, respuestas o reanudación de la nueva partida.
+
+Se solicita en ambos Práctica → Tira y afloja → Matemáticas → Rival en línea →
+Buscar rival, sin pulsar Estoy listo; esperar confirmación de sala sin error.
+Se conservan aprobaciones históricas y correcciones previas; no se repiten
+bloques ajenos a D8b. C2 sigue abierta y timeout local Flutter/pausa pendiente.
+
+**Siguiente paso:** confirmar sala en ambos antes de Listo y de la observación
+integrada de figuras, selección independiente y reanudación.
 ## D8b — sustitución del emulador e instalación en Pixel_8_2
 
 22 de octubre de2026,21:57 America/Bogota. El humano aclara «cambié el emulador,

@@ -32,8 +32,9 @@ no instalarla en teléfono. Confirmación de acceso del emulador aún pendiente;
 abrir manualmente tras bloqueo automático del comando de lanzamiento/comprobación.
 El humano sustituyó luego el emulador: AVD vigente Pixel_8_2 (x64, serial5554).
 APK4002 instalada allí con Success el22/oct a21:57; conserva API directa y
-sesión zFyDcK. Túnel del teléfono restablecido. Falta confirmar ambos Inicio
-antes de retomar D8b; la sala observada en el AVD anterior no aprueba el nuevo.
+sesión zFyDcK. Túnel del teléfono restablecido. Humano confirma ambos Inicio a22:01;
+sigue emparejamiento sin Listo antes de observar sala. La sala observada en el
+AVD anterior no aprueba por sí sola el nuevo ensayo D8b.
 
 Preparación original: **21 de octubre de 2026**. Este es el punto de entrada
 para el **nuevo compañero que sustituye al propietario en C2**. No es el compañero
