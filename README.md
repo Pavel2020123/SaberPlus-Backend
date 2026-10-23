@@ -14,7 +14,10 @@ C2 abierta, sin publicar cambios nuevos ni intervenir OV-1.
 Flutter corrige eventos Socket.IO con offset de recuperación (9/9 pruebas);
 sala confirmada en ambos clientes. Corregido el rechazo SQL del snapshot con
 imágenes al iniciar:48/48 HTTP/SQL,72 migraciones solo temporales y build completo
-aprobados. Pendiente inicio humano D8b e integración Flutter/pausa del timeout local.
+aprobados. Pendiente completar D8b e integrar Flutter/pausa del timeout local.
+D8b posterior: inicio y preguntas/figuras coincidentes observados en teléfono y
+emulador. Falla contención de opciones; Flutter corrige el borde con13/13 pruebas
+y análisis dirigidos aprobados. Falta nueva observación Android y reanudación.
 
 **21 de octubre — [C5-C2-C validada automáticamente](backend/docs/C5C2C_CONSUMIDORES.md):**
 contratos/snapshots y Flutter incorporan imágenes opcionales sin cambiar XP ni

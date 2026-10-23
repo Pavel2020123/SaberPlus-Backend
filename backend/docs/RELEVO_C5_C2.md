@@ -35,6 +35,11 @@ APK4002 instalada allí con Success el22/oct a21:57; conserva API directa y
 sesión zFyDcK. Túnel del teléfono restablecido. Humano confirma ambos Inicio a22:01;
 sigue emparejamiento sin Listo antes de observar sala. La sala observada en el
 AVD anterior no aprueba por sí sola el nuevo ensayo D8b.
+Nuevo ensayo D8b: sala e inicio con preguntas/figuras coincidentes confirmados
+en ambos, pero contenido fuera del globo de respuesta. Regresión de contorno0/4
+antes del fix; padding16/radio16 en TugOnlinePage deja13/13 online y análisis
+dirigidos sin incidencias. APK4003 por cliente en preparación; repetir observación
+afectada y luego selección/reanudación. No cambiar reglas por este fallo visual.
 
 Preparación original: **21 de octubre de 2026**. Este es el punto de entrada
 para el **nuevo compañero que sustituye al propietario en C2**. No es el compañero

@@ -1,5 +1,36 @@
 # C5-C2-D — Ensayo local de imágenes en opciones
 
+## D8b — inicio con figuras confirmado; falla el borde de las respuestas
+
+22 de octubre de2026. Humano confirma sala en ambos y después: «Aparecen las
+mismas preguntas en ambos, las mismas figuras con sus enunciados, pero están
+fuera del globo de texto en ambos dispositivos». Se acredita pregunta/figuras
+coincidentes; **contención visual fallida en teléfono y Pixel_8_2**. D8b no aprobado.
+
+- No se informa otro error de Listo. SQL de lectura,03:03:58 UTC: partida
+  fb5034b9-8f49-4f62-977f-ec75ab42db76 FINALIZADA, ambos Listo:true, ronda5/
+  versión12,20 preguntas y8 respuestas entre student A/zero B. Finalizado
+  03:03:45.458 UTC. competitiveRulesVersion:null/presenciaVersion1. El resultado
+  SQL no acredita observación humana de su pantalla ni recuperación.
+- Inspección localizada: TugOnlinePage usa OutlinedButton con altura mínima52,
+  sin padding/shape propios; hereda borde tipo cápsula al aumentar altura por
+  imágenes. Tira local ya fijó padding16 y radio16; no trasladó ese estilo a online.
+- Se añade regresión de contorno real (Material.shape.getOuterPath), texto y
+  píxeles160x80/80x160, anchos320/412 y texto1.0/2.0. Primero ejecutar sin fix
+  para reproducir; después corrección localizada del botón y regresión online.
+
+Regresión previa al fix:0/4 aprobadas; las cuatro fallan por contenido fuera de
+StadiumBorder a320/412 y texto1.0/2.0. El primer auxiliar contaba también imágenes
+de la arena y falló por exceso; se limitó a AcademicOptionContent antes de
+atribuir el fallo al contorno. Log local output/c5-c2-d8b-borde-reproducido.log.
+Corrección localizada aplicada: padding16 y RoundedRectangleBorder/radio16 en
+los botones online, igual que Tira local. Suite online completa13/13 aprobada;
+análisis dirigido de2 archivos sin incidencias. APK4003 por cliente en preparación;
+falta APK actualizada y nueva observación humana, no se aprueba aún la pantalla.
+
+**Siguiente paso:** validar borde de Tira online, instalar APK por
+cliente y repetir solo observación afectada antes de selección/reanudación D8b.
+No cambiar reglas, permisos, tiempos, XP ni snapshots por el fallo visual.
 ## D8b — Inicio confirmado en teléfono y nuevo emulador
 
 22 de octubre de2026,22:01 America/Bogota. El humano confirma «Sí» a Inicio en
@@ -12,7 +43,13 @@ Buscar rival, sin pulsar Estoy listo; esperar confirmación de sala sin error.
 Se conservan aprobaciones históricas y correcciones previas; no se repiten
 bloques ajenos a D8b. C2 sigue abierta y timeout local Flutter/pausa pendiente.
 
-**Siguiente paso:** confirmar sala en ambos antes de Listo y de la observación
+Confirmación humana posterior: «Sí» a sala con dos jugadores y botón Estoy listo
+sin error en ambos clientes de la sesión87a75d92/Pixel_8_2. **Sala aprobada
+visualmente en ambos**, sin dar D8b por terminado. Se solicita Listo en los dos y
+comparar enunciado/opciones ilustradas; si aparecen sumas, responder hasta figuras.
+Pendiente saber si reaparece el error y observar imágenes, selección y reanudación.
+
+**Siguiente paso:** comprobar inicio tras ambos Listo y la observación
 integrada de figuras, selección independiente y reanudación.
 ## D8b — sustitución del emulador e instalación en Pixel_8_2
 

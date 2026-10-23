@@ -17,6 +17,9 @@ solo temporales. Contrato TUG_LOCAL backend validado: tiempo de servidor,
 autorización, reintento concurrente y última pregunta sin respuestas ni XP
 inventados; Jest5/62, TypeScript y build completo aprobados. Falta integrar
 Flutter/conservar pausa y observar D8b; C2 sigue abierta.
+D8b posterior ya inició y muestra preguntas/figuras coincidentes en ambos; el
+humano detecta contenido fuera del botón. Corrección Flutter localizada,13/13
+pruebas online/análisis aprobados; falta observación tras actualizar las APK.
 
 **21 de octubre — [C5-C2-C validada automáticamente](docs/C5C2C_CONSUMIDORES.md):**
 contratos/snapshots y Flutter incorporan imágenes opcionales sin cambiar XP ni
