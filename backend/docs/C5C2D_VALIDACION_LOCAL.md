@@ -1,5 +1,61 @@
 # C5-C2-D — Ensayo local de imágenes en opciones
 
+## D8b — retorno tras final aprobado; C2 sigue abierta por timeout local
+
+23/oct/2026,14:45 America/Bogota. Evidencia humana con APK4004: el emulador
+muestra «ganaste el duelo» tras responder algunas preguntas; el teléfono vuelve
+desde Recientes después del final y muestra que ganó el jugador A (emulador).
+**La regresión de retorno tras final queda aprobada visualmente**, sin cerrar
+la app ni crear otra partida. Ya no permanece en la última ronda registrada.
+
+Conciliación automática19:45:33 UTC en la base desechable7olT5v:
+partida23f89c68-12c5-4a69-b533-9e586489daa3, FINALIZADA/JUGADOR_A,
+zero=A/emulador y student=B/teléfono, cuerda4, ronda4, versión10. Finalizó
+19:44:07.077 UTC. Dos respuestas, ambas de zero, dos pares ronda/usuario
+únicos,11 eventos y cero XP de partida. Student no tiene respuestas: no se
+registró una selección al regresar. competitiveRulesVersion:null;
+presenciaVersion:1. El resultado del servidor concuerda con ambas observaciones.
+
+**D8b aprobado dentro del alcance documentado**, combinando esta regresión con
+las observaciones anteriores de sala, figuras coincidentes, contención, selección
+independiente y retorno breve. No repetir los bloques aprobados. Límites:
+este último duelo no tuvo selecciones ilustradas registradas y no sustituye
+la evidencia visual anterior de imágenes en Pixel_8_2; el emulador vigente es
+Pixel_7. No acredita cierre forzado, ACK perdido, modo competitivo ni concesión
+de XP. No afirmar que se probaron esas variantes.
+
+**Siguiente paso:** terminar la integración Flutter del timeout exclusivo de
+Tira local, conservar pausa, probar reintentos/última pregunta y repetir solo la
+regresión D8a afectada con el humano. D1–D7 y D8b/c/d/e conservan aprobación;
+D8a permanece reabierto por timeout. C2 sigue abierta y no avanza el resto de C5.
+
+## Reanudación del ensayo — 23 de octubre de 2026
+
+Servicios montados de nuevo, solo locales. La sesión anterior zFyDcK ya no
+está disponible; se creó PostgreSQL/API desechable propio con72 migraciones,
+opciones ilustradas habilitadas y modo solo desactivado. Nueva sesión7olT5v,
+fixture c1aa3534:12 preguntas, cuatro opciones y dos imágenes por pregunta.
+No reutilizar la contraseña anterior. La clave nueva permanece únicamente en
+flutter-private.json de esa sesión temporal; no se copia al acta ni a la APK.
+
+Evidencia automática de preparación: /health/ready OK/database UP; login de
+student y zero HTTP201 con token presente (sin imprimirlo). Panel4173 sigue
+configurado con demo:false y API127.0.0.1:43187. Teléfono conserva APK4004 y
+reverse43187 restablecido. El emulador actual es **Pixel_7**, x86_64, serial5554,
+distinto del Pixel_8_2 de las observaciones históricas. Instalación x64/4004
+Success y versión comprobada; API/contenido mediante10.0.2.2:43187.
+Las dos APK usan solo configuración pública, sin credenciales compiladas.
+
+Pendiente humano: entrar con student en teléfono y zero en este emulador y
+repetir únicamente el retorno después del final que falló en D8b. La instalación,
+el login HTTP y las19 pruebas automáticas previas no aprueban ninguna pantalla.
+D8b y la integración Flutter/pausa del timeout local siguen pendientes; C2 abierta.
+
+23/oct,14:41 America/Bogota: el humano confirma «Sí» a Inicio en ambos,
+student en teléfono y zero en Pixel_7. API ready OK/database UP; lectura SQL
+19:41:50 UTC todavía sin partidas en esta sesión. Se inicia únicamente la
+regresión de retorno tras final; no repetir D1–D7 ni otros subcasos aprobados.
+
 ## D8b — fallo al volver al teléfono después del final; no aprobado
 
 22 de octubre de2026. Aclaración humana posterior: el empate aparece **solo en
@@ -30,6 +86,12 @@ final o buscar otro rival. Pruebas iniciales15/15; se añaden HTTP403, solo GET,
 reintento tras fallo y protección contra snapshot atrasado. Suite ampliada19/19 aprobada.
 Análisis dirigido de módulo y test sin incidencias; primera ejecución encontró
 solo llaves faltantes en un if del test, corregidas. APK4004 por cliente en preparación.
+
+Preparación posterior: commit Flutterbf5d363 (backend documental bfb2fc8).
+Build ARM64/4004 aprobado89.7s, API/contenido127.0.0.1:43187; instalación
+telefónica Success y reverse restablecido. API ready OK/database UP; clave sin
+renovar. Build x64/4004 con10.0.2.2:43187 en curso, sin claves compiladas.
+Todavía no se aprobó visualmente el retorno corregido tras final.
 
 **Siguiente paso:** validar sincronización al volver y regresión
 incluyendo snapshot terminal, instalar APK y repetir solo retorno tras final en

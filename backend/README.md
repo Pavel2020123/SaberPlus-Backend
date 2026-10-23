@@ -4,9 +4,9 @@
 y [acta C2-D](docs/C5C2D_VALIDACION_LOCAL.md): instalación, cuentas/clave temporal,
 Docker/USB, pruebas pendientes y correcciones permitidas en app/backend/panel.
 
-**22 de octubre — ENTREGA PARCIAL C5-C2:** D1–D7 y D8c/d/e conservan aprobación;
-D8a reabierto solo por timeout. D8b en curso con teléfono y emulador, sin
-aprobación todavía. [Entrega histórica y comandos](docs/C5C2_ENTREGA_PARCIAL.md).
+**23 de octubre — ENTREGA PARCIAL C5-C2:** D1–D7 y D8b/c/d/e conservan aprobación;
+D8a reabierto solo por timeout. D8b aprobado dentro de los límites del acta.
+[Entrega histórica y comandos](docs/C5C2_ENTREGA_PARCIAL.md).
 Pavel auditó la entrega parcial; PR Flutter#9/b8253e2 y backend#11/3eb3f59 ya
 integrados en main remoto. Nueva revisión en fix/c5-c2-timeout-d8b desde main
 actualizado: timeout de Tira local y D8b con dos clientes. C2 sigue abierta.
@@ -22,7 +22,10 @@ humano detecta contenido fuera del botón. Corrección Flutter localizada,13/13
 pruebas online/análisis aprobados; humano confirma contención correcta en ambos
 con APK4003 y selección propia. Retorno al teléfono tras final en segundo plano
 falla: conserva última ronda. Flutter corrige recuperación HTTP/lifecycle (19/19),
-pendiente APK/observación. D8b y timeout local Flutter/pausa siguen pendientes.
+APK4004 observada el23: victoria en emulador y mismo ganador al volver en teléfono.
+SQL concuerda: dos respuestas únicas solo del emulador y ninguna del teléfono.
+D8b aprobado; no acredita cierre forzado, ACK perdido o competición. Timeout
+local Flutter/pausa y regresión humana D8a siguen pendientes; C2 abierta.
 
 **21 de octubre — [C5-C2-C validada automáticamente](docs/C5C2C_CONSUMIDORES.md):**
 contratos/snapshots y Flutter incorporan imágenes opcionales sin cambiar XP ni

@@ -1,13 +1,23 @@
 # Relevo operativo — terminar C5-C2, imágenes en las opciones
 
-Actualización C2-D tras auditoría de Pavel: **22 de octubre de2026, C2 abierta**.
+Actualización C2-D tras auditoría de Pavel: **23 de octubre de2026, C2 abierta**.
 Entrega parcial integrada en main remoto: Flutter PR#9/b8253e2 y backend
 PR#11/3eb3f59. D1–D7 y D8c/d/e conservan aprobación; D8a se revisa solo por la
-regresión de timeout y D8b se prepara con teléfono/emulador y cuentas distintas. Ver
+regresión de timeout; D8b aprobado con teléfono/emulador y cuentas distintas. Ver
 [entrega](C5C2_ENTREGA_PARCIAL.md) y [acta vigente](C5C2D_VALIDACION_LOCAL.md).
 No repetir los bloques aprobados sin una regresión concreta. Ramas
 fix/c5-c2-timeout-d8b en ambos repos, desde main actualizado; no publicar sin
 autorización de Pavel. Las evidencias de fix/c5-c2-validacion ya integradas se conservan.
+
+**Checkpoint vigente23/oct:** D8b aprobado dentro del alcance del acta. APK4004:
+emulador Pixel_7 gana y el teléfono, que estaba en segundo plano, vuelve desde
+Recientes y muestra el mismo ganador. SQL23f89c68… FINALIZADA/JUGADOR_A,
+zero=A/student=B, dos respuestas únicas solo de zero, cero XP; no se añadió
+respuesta al regresar. Se conserva evidencia previa de figuras/selección en
+Pixel_8_2, sin atribuir selecciones ilustradas al último duelo. No acredita
+cierre forzado, ACK perdido o competición. Falta integrar Flutter/pausa del
+timeout local y validar esa regresión D8a; no repetir D8b ni otros aprobados.
+Los párrafos siguientes conservan el historial de diagnóstico, no pendientes nuevos.
 
 Checkpoint posterior: ambos clientes disponibles. D8b encontró «estado inválido»:
 Socket.IO entrega [payload, offset] al activar recuperación; Flutter descartaba
