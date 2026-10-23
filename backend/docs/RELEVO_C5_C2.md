@@ -25,6 +25,11 @@ PostgreSQL propio. No forzar inicio ni retirar controles de snapshot. Contrato
 local HTTP/SQL validado y npm run build completo aprobado; integración Flutter/
 pausa y observación humana D8b siguen pendientes. Sesión6263e056 retirada
 ordenadamente al acercarse su límite de dos horas; usar la nueva clave de sesión.
+Sesión posterior87a75d92: humano confirma Inicio en teléfono, emulador pierde
+reverse repetidamente al reconectarse ADB. Se instaló APK x64 (build4002) con API y contenido
+en http://10.0.2.2:43187 (alias del host en el emulador), sin clave compilada;
+no instalarla en teléfono. Confirmación de acceso del emulador aún pendiente;
+abrir manualmente tras bloqueo automático del comando de lanzamiento/comprobación.
 
 Preparación original: **21 de octubre de 2026**. Este es el punto de entrada
 para el **nuevo compañero que sustituye al propietario en C2**. No es el compañero

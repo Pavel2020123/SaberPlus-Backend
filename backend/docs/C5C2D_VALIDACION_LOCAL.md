@@ -1,5 +1,57 @@
 # C5-C2-D — Ensayo local de imágenes en opciones
 
+## D8b — APK del emulador con acceso directo instalada; falta confirmar Inicio
+
+22 de octubre de2026,21:42 America/Bogota. Teléfono: el humano confirma que
+permite entrar. Emulador: aún no permite entrar con la APK anterior; su reverse
+se pierde al reconectarse ADB. API/credenciales propias comprobadas y sin cambios.
+
+- Build solo x64 aprobado con --build-number=4002 (assembleDebug95.1s),
+  APP_ENV=dev/DEMO_MODE=false y API_BASE_URL/CONTENT_BASE_URL=http://10.0.2.2:43187.
+  Sin claves, tokens ni archivos privados compilados. No modifica pubspec.yaml
+  ni la APK instalada del teléfono. Se preservan datos y sesiones locales.
+- Instalación emulator-5554 con adb install --streaming --no-incremental -r:
+  Success. Corrige el bloqueo previo por versión1 frente a4001 instalada.
+- Revisión automática rechazó el comando posterior que combinaba dumpsys de
+  versión, am start y health («blocked by policy»). No se reintenta la apertura
+  mediante otra vía. No atribuir comprobación de versión ni lanzamiento a ese
+  comando. Se pide al humano abrir manualmente y confirmar Inicio como zero.
+- Clave actual sin renovar: AUTH_E2E_PASSWORD en flutter-private.json de zFyDcK.
+  Student permanece en teléfono. No buscar rival antes de confirmar ambos Inicio.
+
+**Siguiente paso:** confirmación visual del acceso en el emulador; después
+emparejar ambos y repetir Listo por la regresión concreta de snapshot, continuando
+figuras/selección/reanudación D8b. Timeout local Flutter/pausa sigue pendiente.
+C2 abierta, sin push, merge, despliegue o cambios OV-1.
+## Reanudación D8b — acceso fallido antes del emparejamiento
+
+22 de octubre de2026,21:32 America/Bogota. Tras comunicar la nueva sesión
+zFyDcK/fixture87a75d92, el humano informa «No pudimos conectar con SaberPlus»;
+aún no indica qué cliente. No se aprueba Inicio ni se inicia otra partida.
+
+- Comprobación automática: ready OK/database UP; directorio y clave de la sesión
+  actual presentes. ADB reconoce teléfono y emulador; teléfono conserva reverse
+ 43187, emulador lo perdió al reconectarse (transport_id19). Se restablecen ambos.
+- Host: login protegido student/zero HTTP201 y token presente, sin imprimirlo ni
+  publicar la clave. No demuestra acceso visual desde Android.
+- Humano tras reintento: teléfono permite entrar; emulador no. Se confirma nuevo
+  reverse vacío en emulador incluso sin otra instalación. No atribuirlo a contraseña.
+- Se prepara APK solo x64 con API_BASE_URL/CONTENT_BASE_URL públicos
+  http://10.0.2.2:43187 para evitar dependencia de reverse en emulador. Teléfono
+  conserva su APK/USB. Sondeos nc de Android devolvieron HTTP400 o sin respuesta;
+  no cuentan como ready aprobado ni demuestran fallo del login. El acceso real
+  de la nueva APK aún requiere confirmación humana.
+- Build x64 con acceso directo aprobado (assembleDebug118.8s). Primer intento
+  de instalación falló sin detalle; segundo informa INSTALL_FAILED_VERSION_DOWNGRADE:
+  emulador conserva versionCode4001 y APK nueva tenía1. No desinstalar ni borrar datos.
+  Se recompila solo emulador con --build-number=4002 y las mismas URLs públicas;
+  no hay cambio de versión del producto en Git ni credenciales en la APK.
+- Se solicita reintentar con la clave actual y confirmar resultado por dispositivo.
+  D8b sigue pendiente; no repetir bloques anteriores por este incidente.
+- Inspección dirigida: ApiError confirma que el mensaje corresponde a error de
+  conexión; auth/login real de ambas cuentas es correcto. Manifest debug permite
+  HTTP de desarrollo y mantiene permiso INTERNET. Emulador boot_completed1,
+  modo avión0 y proxy global null. No se audita toda la app por estas lecturas.
 ## D8b — validador corregido y regresión aprobada; sesión anterior retirada
 
 22 de octubre de2026. Segundo ensayo de snapshot:48/48 pruebas HTTP/PostgreSQL,
