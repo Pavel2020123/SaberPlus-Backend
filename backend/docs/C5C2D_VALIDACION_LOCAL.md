@@ -1,5 +1,103 @@
 # C5-C2-D — Ensayo local de imágenes en opciones
 
+## D8b — sala confirmada en ambos clientes tras la corrección
+
+22 de octubre de2026, posterior a la instalación corregida. El humano confirma:
+«Ya aparecen en la sala con el botón estoy listo». **Preparación de sala aprobada
+visualmente en ambos clientes**, student/teléfono y zero/emulador; aún faltan
+preguntas/figuras, selección propia, reanudación y resultado. Se pide Listo en
+ambos y comparar opciones ilustradas. No se aprueba D8b completo.
+
+Análisis dirigido de Flutter:2 archivos, sin incidencias. Regresión online9/9.
+
+## D8b — corrección del transporte, pendiente confirmación visual
+
+22 de octubre de2026,21:13 America/Bogota. Humano: ambos clientes vuelven a
+conectar; al reintentar Buscar rival los dos quedan cargando. D8b sigue pendiente.
+
+- Causa reproducida con el cliente Flutter real contra la API propia: Socket.IO
+  con recuperación entrega [Map del estado, String offset]. El adaptador aceptaba
+  únicamente Map, lo convertía en objeto vacío y fallaba al leer servidorAhora.
+  Diagnóstico de tipos sin valores; no falta el reloj en el contrato del servidor.
+- Corrección en tug_realtime_client.dart: extraer solo el objeto de la forma
+  exacta [Map,String]; conservar Map directo y las validaciones del decoder.
+  También sirve para conectado/actualizada/presencia/error con el mismo offset.
+  No desactivar recuperación, inventar reloj o cambiar permisos/contrato online.
+  Instrumentación temporal retirada del código entregable.
+- Regresión persistente: WebSocket local emite protocolo Socket.IO con offset y
+  pasa por la librería real, sin clientes/partidas humanos simulados. Comprueba
+  sala y rival; casos de forma inválida conservan rechazo. Suite online:9/9.
+- Sondeo de lectura de la partida humana anterior: EXPIRADA desde21:07:39,
+  listoA/listoB:false, ronda0/version2,20 preguntas/cero respuestas/tres eventos.
+  Intento diagnóstico de sincronizarla devuelve409 «Partida terminal o cierre
+  pendiente»; no se cuenta como validación integrada aprobada. Un primer sondeo
+  tras corrección quedó sin evento al no haber partida activa (timeout20s).
+- APK por arquitectura compilada: assembleDebug124.4s, ARM64/x86_64. Teléfono
+  instalado correctamente. Emulador: primer push falló EOF al reconectar ADB;
+  segundo intento streaming terminó Success. Reverse43187 restablecido y apps
+  abiertas por ADB. Preparación automática, sin atribuir observación humana.
+- Solicitado al humano Buscar rival en ambos, una sola vez y sin Estoy listo,
+  para observar la sala. Esta búsqueda nueva se justifica por expiración anterior.
+- Borrador de timeout local: TypeScript --noEmit aprobado tras explicitar la
+  allowlist competitiva existente. Jest5/62 aprobado; HTTP/SQL y build completo
+  pendientes. Falta integrar Flutter y conservar su comportamiento de pausa;
+  no instalar el borrador incompleto en la sesión D8b actual.
+
+**Siguiente paso:** esperar confirmación visual de sala en ambos clientes; después
+Listo, imágenes, selección independiente y reanudación siguiendo D8b. Completar
+contrato/Flutter y regresiones del timeout local antes de nueva revisión de Pavel.
+## D8b — diagnóstico de estado inválido y conexión del emulador
+
+22 de octubre de2026, continuación posterior al emparejamiento. Evidencia humana:
+el teléfono sigue mostrando «El servidor envió un estado de partida inválido»;
+el emulador vuelve a mostrar «No pudimos conectar con SaberPlus». No se aprueba
+sala, imágenes ni respuestas. Se conserva la observación de apariencia extraña
+del emulador sin atribuirle una causa ni aprobar su interfaz.
+
+- API propia sana; el emulador perdió reverse43187 tras reconectarse ADB durante
+  instalación. Se restablece el túnel. Instalación ARM64 de diagnóstico en teléfono
+  aprobada por ADB; pendiente confirmación visual del nuevo reintento.
+- HTTP y captura Socket.IO de lectura entregan estado PREPARANDO con reloj ISO,
+  referencias de jugadores A/B y cero respuestas. El decoder Flutter interpreta
+  esa captura:1/1. Esto no valida el transporte Android ni sustituye dos clientes.
+- Log del teléfono localiza TypeError al leer servidorAhora como String. Se agrega
+  diagnóstico temporal de tipos/claves, sin valores, credenciales ni payload.
+  Aún no se conoce el formato que ocasiona el fallo; no se inventa un reloj local.
+- Borrador backend del contrato exclusivo TUG_LOCAL y regresiones HTTP/SQL en
+  curso, todavía sin desplegar en esta sesión ni usarlo desde Flutter. No se
+  declara corregido el timeout. Jest afectado:5 suites/62 pruebas aprobadas.
+  Primera comprobación TypeScript detectó ampliación del enum en el verificador
+  competitivo; se mantiene su allowlist Trivia/Fantasma y se explicita el tipo.
+- npm run build bloqueado por EPERM al reemplazar DLL de Prisma utilizada por
+  nuestra API activa. No se borran dependencias ni se detienen procesos ajenos.
+  Falta repetir build y pruebas reales tras cerrar ordenadamente esta sesión.
+- Artefactos diagnósticos y capturas privados conservados en output local y
+  excluidos de staging; no incluir APK, logs crudos, tokens o secretos en commits.
+
+**Siguiente paso:** comprobar el reintento del teléfono con diagnóstico de formato
+y acceso del emulador; corregir el transporte con regresión si procede. Después
+completar D8b con observación humana y terminar timeout local autorizado. C2 abierta.
+## D8b — acceso confirmado y fallo durante emparejamiento
+
+22 de octubre de2026,20:38 America/Bogota. El humano confirma ambos Inicio:
+student en teléfono y zero en emulador, sesión6263e056. Se pide Matemáticas →
+Buscar rival en ambos, sin marcar Estoy listo. Informa **«Hay un error o no
+emparejan»**; se solicita texto exacto y cliente afectado antes de aprobar nada.
+
+- SQL real: partida a4bdc8f0-f353-4ac5-9a21-05970a7ce0c9 PREPARANDO,
+  Matemáticas, student A/zero B, listoA/listoB:false, ronda0/version1.20 preguntas,
+  cero respuestas y dos eventos. competitiveRulesVersion:null. El emparejamiento
+  ocurrió en servidor; no demuestra que ambas pantallas hayan mostrado la sala.
+  Evidencia ignorada: backend/output/c5-c2-d8b-emparejamiento-fallo.json.
+- ADB reconoce ambos clientes y confirma ambos túneles43187 activos. Sin
+  respuestas, flags solo, pasos de Listo automáticos ni simulación de presencia.
+  No crear otra partida ni pulsar repetidamente Buscar rival durante investigación.
+
+**Siguiente paso:** identificar aviso exacto/cliente, reproducir y corregir el
+fallo si procede; observar sala/figuras, selección propia y reanudación con dos
+clientes antes de aprobar D8b. Timeout local específico sigue autorizado y pendiente
+de implementar, sin alterar la partida online activa durante la investigación.
+
 ## Reanudación — 22 de octubre de2026, 20:29 America/Bogota
 
 El humano pidió detener todo y luego reanudar. Se respeta la pausa: no se

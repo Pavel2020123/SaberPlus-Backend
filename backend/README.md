@@ -4,11 +4,16 @@
 y [acta C2-D](docs/C5C2D_VALIDACION_LOCAL.md): instalación, cuentas/clave temporal,
 Docker/USB, pruebas pendientes y correcciones permitidas en app/backend/panel.
 
-**22 de octubre — ENTREGA PARCIAL C5-C2:** D1–D7 aprobados (7/8), D8a/c/d/e
-aprobados; falta D8b Tira online por segundo cliente. [Entrega y comandos](docs/C5C2_ENTREGA_PARCIAL.md).
+**22 de octubre — ENTREGA PARCIAL C5-C2:** D1–D7 y D8c/d/e conservan aprobación;
+D8a reabierto solo por timeout. D8b en curso con teléfono y emulador, sin
+aprobación todavía. [Entrega histórica y comandos](docs/C5C2_ENTREGA_PARCIAL.md).
 Pavel auditó la entrega parcial; PR Flutter#9/b8253e2 y backend#11/3eb3f59 ya
 integrados en main remoto. Nueva revisión en fix/c5-c2-timeout-d8b desde main
 actualizado: timeout de Tira local y D8b con dos clientes. C2 sigue abierta.
+Flutter corrige eventos Socket.IO con offset de recuperación (9/9 pruebas),
+pendiente confirmación humana. Contrato exclusivo TUG_LOCAL en desarrollo;
+Jest afectado 5 suites/62 pruebas y TypeScript aprobados. Build completo y
+regresiones HTTP/SQL del borrador pendientes; no está activo en la sesión humana.
 
 **21 de octubre — [C5-C2-C validada automáticamente](docs/C5C2C_CONSUMIDORES.md):**
 contratos/snapshots y Flutter incorporan imágenes opcionales sin cambiar XP ni

@@ -9,6 +9,15 @@ No repetir los bloques aprobados sin una regresión concreta. Ramas
 fix/c5-c2-timeout-d8b en ambos repos, desde main actualizado; no publicar sin
 autorización de Pavel. Las evidencias de fix/c5-c2-validacion ya integradas se conservan.
 
+Checkpoint posterior: ambos clientes disponibles. D8b encontró «estado inválido»:
+Socket.IO entrega [payload, offset] al activar recuperación; Flutter descartaba
+la lista. Corrección localizada y9/9 pruebas, incluida recepción por WebSocket
+local con la librería real; APK instalada en ambos, pendiente confirmación humana
+de sala. La búsqueda inicial expiró sin respuestas durante el diagnóstico.
+Timeout local: regla de Pavel ya autorizada en acta; borrador de contrato TUG_LOCAL
+aislado en backend, pendiente integración Flutter/build completo/HTTP-SQL y pausa.
+No declarar corregido el timeout ni aprobada D8b por preparar servicios o instalar.
+
 Preparación original: **21 de octubre de 2026**. Este es el punto de entrada
 para el **nuevo compañero que sustituye al propietario en C2**. No es el compañero
 de orientación vocacional: **OV-1 continúa independiente y no se le reasigna**.
