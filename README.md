@@ -4,9 +4,32 @@
 [relevo operativo completo](backend/docs/RELEVO_C5_C2.md) y
 [acta C2-D](backend/docs/C5C2D_VALIDACION_LOCAL.md). Incluye ambos repos,
 cuentas/clave temporal, Docker/USB y pruebas; puede corregir Flutter/API/panel
-de C2. **22 de octubre: ENTREGA PARCIAL**, D1–D7 aprobados (7/8), D8a/c/d/e
-aprobados; falta D8b Tira online por segundo cliente. [Entrega y comandos](backend/docs/C5C2_ENTREGA_PARCIAL.md).
-Ramas fix/c5-c2-validacion, sin push/merge/despliegue. Esperar auditoría de Pavel.
+de C2. **23 de octubre: entrega a nueva revisión**, regresión D8a y D8b aprobadas
+dentro del alcance del acta; D1–D7 y D8c/d/e conservados. **C2 abierta a auditoría
+de Pavel.** [Entrega actual y comandos](backend/docs/C5C2_REVISION_TIMEOUT_D8B.md),
+[entrega parcial histórica](backend/docs/C5C2_ENTREGA_PARCIAL.md).
+Pavel auditó la entrega parcial; PR Flutter#9/b8253e2 y backend#11/3eb3f59 ya
+integrados en main remoto (fetch verificado). Revisión en fix/c5-c2-timeout-d8b,
+desde main actualizado: timeout de Tira local y D8b con teléfono/emulador.
+C2 abierta, sin publicar cambios nuevos ni intervenir OV-1.
+Flutter corrige eventos Socket.IO con offset de recuperación (9/9 pruebas);
+sala confirmada en ambos clientes. Corregido el rechazo SQL del snapshot con
+imágenes al iniciar:48/48 HTTP/SQL,72 migraciones solo temporales y build completo
+aprobados. Flutter/pausa del timeout local ya integrados:25 dirigidas y50/50
+HTTP/SQL con73 migraciones. Android/4005 confirma avance tras timeout, pausa
+activa8s, reanudación, figuras/textos contenidos y acierto. Regresión final:
+Flutter1.016 aprobadas/16 opt-in omitidas, backend128/1.675; análisis dirigido y
+build aprobados. Recibos sanitizados enlazados en la entrega.
+D8b posterior: inicio y preguntas/figuras coincidentes observados en teléfono y
+emulador. Falla contención de opciones; Flutter corrige el borde con13/13 pruebas
+y análisis dirigidos aprobados. Contención aprobada por el humano en ambos con
+APK4003 y selección propia; después detecta retorno al teléfono sin resultado
+si terminó en segundo plano. Flutter corrige recuperación HTTP/lifecycle (19/19),
+APK4004 observada el23: victoria en emulador y mismo ganador al volver en teléfono.
+SQL concuerda: dos respuestas únicas solo del emulador y ninguna del teléfono.
+D8b aprobado; no acredita cierre forzado, ACK perdido o competición. Timeout
+local integrado y regresión D8a aprobada; C2 espera nueva revisión de Pavel.
+[Contrato del flujo local](backend/docs/C5C2_TIMEOUT_LOCAL.md).
 
 **21 de octubre — [C5-C2-C validada automáticamente](backend/docs/C5C2C_CONSUMIDORES.md):**
 contratos/snapshots y Flutter incorporan imágenes opcionales sin cambiar XP ni

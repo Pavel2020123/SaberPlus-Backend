@@ -977,6 +977,666 @@ test('C5-C2-C Trivia y Fantasma comparten proyección pública de imágenes sin 
     );
   }));
 
+test('C5-C2 Tira online inicia con imágenes y rechaza alterar su snapshot original', () =>
+  withOptionImages(async () => {
+    const f = await consumerBank(),
+      origin = f.consumerBase;
+    const first = tokenFor(await user('ESTUDIANTE'));
+    const second = tokenFor(await user('ESTUDIANTE'));
+    const waiting = await jsonPost(
+      '/tira-afloja/emparejamiento',
+      first,
+      { area: 'INGLES' },
+      origin,
+    );
+    assert.equal(waiting.status, 201);
+    const paired = await jsonPost(
+      '/tira-afloja/emparejamiento',
+      second,
+      { area: 'INGLES' },
+      origin,
+    );
+    assert.equal(paired.status, 201);
+    const id = waiting.data.partida.id;
+    assert.equal(paired.data.partida.id, id);
+    const path = `/tira-afloja/${id}`;
+    assert.equal(
+      (await jsonPost(`${path}/listo`, first, {}, origin)).status,
+      201,
+    );
+    const ready = await jsonPost(`${path}/listo`, second, {}, origin);
+    assert.equal(ready.status, 201);
+    assert.equal(ready.data.partida.estado, 'ACTIVA');
+    assertPublicOptions(ready.data.partida.pregunta);
+    const stored = await db.partidaTiraAfloja.findUniqueOrThrow({
+      where: { id },
+    });
+    const snapshot = structuredClone(stored.snapshotInicial);
+    const valid = async (value) =>
+      (
+        await db.$queryRaw`SELECT tug_snapshot_original_valid(${JSON.stringify(value)}::jsonb,m) AS valid FROM "PartidaTiraAfloja" m WHERE id=${id}::uuid`
+      )[0].valid;
+    assert.equal(await valid(snapshot), true);
+    const altered = structuredClone(snapshot);
+    altered.questions[0].pregunta.respuestas[0].imagenUrl =
+      '/recursos/editoriales/imagen-ajena';
+    assert.equal(await valid(altered), false);
+    const extra = structuredClone(snapshot);
+    extra.questions[0].pregunta.respuestas[0].datoPrivado = true;
+    assert.equal(await valid(extra), false);
+    for (const entry of snapshot.questions)
+      for (const option of entry.pregunta.respuestas) delete option.imagenUrl;
+    assert.equal(await valid(snapshot), true);
+    assert.equal(
+      (await call(path, tokenFor(await user('ESTUDIANTE')), {}, origin)).status,
+      403,
+    );
+  }));
+
+test('C5-C2 Tira local autoriza su flujo y no abre un salto en Trivia o Fantasma', () =>
+  withOptionImages(async () => {
+    const f = await consumerBank(),
+      student = await user('ESTUDIANTE');
+    const token = tokenFor(student),
+      other = tokenFor(await user('ESTUDIANTE'));
+    const origin = f.consumerBase;
+    assert.equal(
+      (
+        await jsonPost(
+          '/tira-local/intentos',
+          null,
+          { areas: ['INGLES'] },
+          origin,
+        )
+      ).status,
+      401,
+    );
+    assert.equal(
+      (
+        await jsonPost(
+          '/tira-local/intentos',
+          tokenFor(await user('PROFESOR')),
+          { areas: ['INGLES'] },
+          origin,
+        )
+      ).status,
+      403,
+    );
+    assert.equal(
+      (
+        await jsonPost(
+          '/tira-local/intentos',
+          token,
+          { areas: ['INGLES'], competitive: true },
+          origin,
+        )
+      ).status,
+      400,
+    );
+    assert.equal(
+      (
+        await jsonPost(
+          '/trivia-rush/intentos',
+          token,
+          { areas: ['INGLES'], duracionSegundos: 60, modalidad: 'TUG_LOCAL' },
+          origin,
+        )
+      ).status,
+      400,
+    );
+    const created = await jsonPost(
+      '/tira-local/intentos',
+      token,
+      { areas: ['INGLES'] },
+      origin,
+    );
+    assert.equal(created.status, 201);
+    const attempt = created.data.intento,
+      id = attempt.id,
+      question = attempt.pregunta.id;
+    assert.equal(attempt.modalidad, 'TUG_LOCAL');
+    assert.equal(attempt.rondaLocal.iniciaEn, null);
+    assertPublicOptions(attempt.pregunta);
+    const path = `/tira-local/intentos/${id}`;
+    assert.equal((await call(path, other, {}, origin)).status, 403);
+    assert.equal(
+      (await call(`/trivia-rush/intentos/${id}`, token, {}, origin)).status,
+      403,
+    );
+    assert.equal(
+      (
+        await jsonPost(
+          `${path}/sin-respuesta`,
+          token,
+          { preguntaId: question, idempotencyKey: randomUUID() },
+          origin,
+        )
+      ).status,
+      400,
+    );
+    assert.equal(
+      (
+        await jsonPost(
+          `/trivia-rush/intentos/${id}/potenciadores`,
+          token,
+          {
+            preguntaId: question,
+            potenciador: 'SALTAR',
+            concesionId: randomUUID(),
+            idempotencyKey: randomUUID(),
+          },
+          origin,
+        )
+      ).status,
+      403,
+    );
+    const normalUser = await user('ESTUDIANTE'),
+      normal = tokenFor(normalUser);
+    const trivia = await jsonPost(
+      '/trivia-rush/intentos',
+      normal,
+      { areas: ['INGLES'], duracionSegundos: 60 },
+      origin,
+    );
+    assert.equal(trivia.status, 201);
+    assert.equal(
+      (
+        await jsonPost(
+          `/tira-local/intentos/${trivia.data.intento.id}/sin-respuesta`,
+          normal,
+          {
+            preguntaId: trivia.data.intento.pregunta.id,
+            idempotencyKey: randomUUID(),
+          },
+          origin,
+        )
+      ).status,
+      403,
+    );
+    const ghost = await jsonPost(
+      '/trivia-rush/intentos',
+      tokenFor(await user('ESTUDIANTE')),
+      { areas: ['INGLES'], duracionSegundos: 60, modalidad: 'GHOST_DUEL' },
+      origin,
+    );
+    assert.equal(ghost.status, 201);
+    const ghostOwner = await db.intentoTriviaRush.findUniqueOrThrow({
+      where: { id: ghost.data.intento.id },
+    });
+    const ghostToken = tokenFor(
+      await db.usuario.findUniqueOrThrow({
+        where: { id: ghostOwner.usuarioId },
+      }),
+    );
+    assert.equal(
+      (
+        await jsonPost(
+          `/tira-local/intentos/${ghostOwner.id}/sin-respuesta`,
+          ghostToken,
+          {
+            preguntaId: ghost.data.intento.pregunta.id,
+            idempotencyKey: randomUUID(),
+          },
+          origin,
+        )
+      ).status,
+      403,
+    );
+  }));
+
+test('C5-C2 Tira local valida diez segundos reales e idempotencia sin respuestas inventadas', () =>
+  withOptionImages(async () => {
+    const f = await consumerBank(),
+      student = await user('ESTUDIANTE');
+    const token = tokenFor(student),
+      origin = f.consumerBase;
+    const created = await jsonPost(
+      '/tira-local/intentos',
+      token,
+      { areas: ['INGLES'] },
+      origin,
+    );
+    assert.equal(created.status, 201);
+    const id = created.data.intento.id,
+      question = created.data.intento.pregunta.id;
+    const path = `/tira-local/intentos/${id}`;
+    const started = await jsonPost(
+      `${path}/ronda`,
+      token,
+      { preguntaId: question },
+      origin,
+    );
+    assert.equal(started.status, 201);
+    const retryStart = await jsonPost(
+      `${path}/ronda`,
+      token,
+      { preguntaId: question },
+      origin,
+    );
+    assert.equal(
+      retryStart.data.intento.rondaLocal.iniciaEn,
+      started.data.intento.rondaLocal.iniciaEn,
+    );
+    const operation = { preguntaId: question, idempotencyKey: randomUUID() };
+    assert.equal(
+      (await jsonPost(`${path}/sin-respuesta`, token, operation, origin))
+        .status,
+      400,
+    );
+    assert.equal(
+      await db.triviaRushRespuesta.count({ where: { intentoId: id } }),
+      0,
+    );
+    await new Promise((resolve) => setTimeout(resolve, 10100));
+    const responses = await Promise.all(
+      Array.from({ length: 3 }, () =>
+        jsonPost(`${path}/sin-respuesta`, token, operation, origin),
+      ),
+    );
+    for (const response of responses) {
+      assert.equal(response.status, 201);
+      assert.equal(
+        response.data.sinRespuesta.id,
+        responses[0].data.sinRespuesta.id,
+      );
+      assert.equal(response.data.intento.progreso.indiceActual, 1);
+    }
+    const state = responses[0].data.intento;
+    assert.equal(state.estado, 'ACTIVO');
+    assert.notEqual(state.pregunta.id, question);
+    assertPublicOptions(state.pregunta);
+    assert.equal(state.rondaLocal.iniciaEn, null);
+    assert.equal(state.progreso.sinRespuesta, 1);
+    const row = await db.triviaRushRespuesta.findFirstOrThrow({
+      where: { intentoId: id },
+    });
+    assert.equal(row.respuestaSeleccionadaId, null);
+    assert.equal(row.puntosOtorgados, 0);
+    assert.equal(row.esFinal, true);
+    assert.ok(row.tiempoRespuestaMs >= 10000);
+    assert.equal(
+      await db.triviaRushRespuesta.count({ where: { intentoId: id } }),
+      1,
+    );
+    assert.equal(
+      await db.historialRespuesta.count({ where: { usuarioId: student.id } }),
+      0,
+    );
+    assert.equal(
+      await db.triviaRushPotenciador.count({ where: { intentoId: id } }),
+      0,
+    );
+    assert.equal(
+      await db.eventoXpCompetitivo.count({ where: { usuarioId: student.id } }),
+      0,
+    );
+    assert.equal(
+      (await db.usuario.findUniqueOrThrow({ where: { id: student.id } }))
+        .xpTotal,
+      0,
+    );
+    assert.equal(
+      (
+        await jsonPost(
+          `${path}/sin-respuesta`,
+          token,
+          { ...operation, idempotencyKey: randomUUID() },
+          origin,
+        )
+      ).status,
+      409,
+    );
+    assert.equal(
+      (
+        await jsonPost(
+          `${path}/sin-respuesta`,
+          token,
+          { ...operation, preguntaId: state.pregunta.id },
+          origin,
+        )
+      ).status,
+      403,
+    );
+  }));
+
+test('C5-C2 Tira local pausa con reloj servidor, versión e idempotencia sin ampliar Trivia', () =>
+  withOptionImages(async () => {
+    const f = await consumerBank(),
+      student = await user('ESTUDIANTE');
+    const token = tokenFor(student),
+      origin = f.consumerBase;
+    const created = await jsonPost(
+      '/tira-local/intentos',
+      token,
+      { areas: ['INGLES'] },
+      origin,
+    );
+    const id = created.data.intento.id,
+      question = created.data.intento.pregunta.id;
+    const path = `/tira-local/intentos/${id}`;
+    const started = await jsonPost(
+      `${path}/ronda`,
+      token,
+      { preguntaId: question },
+      origin,
+    );
+    assert.equal(started.status, 201);
+    assert.equal(started.data.intento.rondaLocal.version, 1);
+    const operation = { preguntaId: question, version: 1, pausada: true };
+    assert.equal(
+      (
+        await jsonPost(
+          `${path}/pausa`,
+          tokenFor(await user('ESTUDIANTE')),
+          operation,
+          origin,
+        )
+      ).status,
+      403,
+    );
+    const paused = await jsonPost(`${path}/pausa`, token, operation, origin);
+    assert.equal(paused.status, 201);
+    const round = paused.data.intento.rondaLocal;
+    assert.equal(round.pausada, true);
+    assert.equal(round.version, 2);
+    assert.ok(round.tiempoRestanteMs > 0 && round.tiempoRestanteMs <= 10000);
+    const retry = await jsonPost(`${path}/pausa`, token, operation, origin);
+    assert.equal(retry.data.intento.rondaLocal.version, 2);
+    assert.equal(
+      retry.data.intento.rondaLocal.tiempoRestanteMs,
+      round.tiempoRestanteMs,
+    );
+    await new Promise((resolve) => setTimeout(resolve, 10100));
+    const stillPaused = await call(path, token, {}, origin);
+    assert.equal(
+      stillPaused.data.intento.rondaLocal.tiempoRestanteMs,
+      round.tiempoRestanteMs,
+    );
+    assert.equal(
+      (
+        await jsonPost(
+          `${path}/sin-respuesta`,
+          token,
+          { preguntaId: question, idempotencyKey: randomUUID() },
+          origin,
+        )
+      ).status,
+      400,
+    );
+    assert.equal(
+      (
+        await jsonPost(
+          `${path}/respuestas`,
+          token,
+          {
+            preguntaId: question,
+            respuestaId: created.data.intento.pregunta.opciones[0].id,
+            idempotencyKey: randomUUID(),
+          },
+          origin,
+        )
+      ).status,
+      400,
+    );
+    const resumed = await jsonPost(
+      `${path}/pausa`,
+      token,
+      { preguntaId: question, version: 2, pausada: false },
+      origin,
+    );
+    assert.equal(resumed.status, 201);
+    assert.equal(resumed.data.intento.rondaLocal.pausada, false);
+    assert.equal(resumed.data.intento.rondaLocal.version, 3);
+    assert.equal(resumed.data.intento.venceEn, created.data.intento.venceEn);
+    assert.ok(resumed.data.intento.rondaLocal.tiempoRestanteMs > 0);
+    // Late repeats cannot pause again or add the same paused duration twice.
+    const late = await jsonPost(`${path}/pausa`, token, operation, origin);
+    assert.equal(late.data.intento.rondaLocal.version, 3);
+    assert.equal(
+      late.data.intento.rondaLocal.iniciaEn,
+      resumed.data.intento.rondaLocal.iniciaEn,
+    );
+    assert.equal(late.data.intento.rondaLocal.pausada, false);
+    const answerOperation = {
+      preguntaId: question,
+      respuestaId: created.data.intento.pregunta.opciones[0].id,
+      idempotencyKey: randomUUID(),
+    };
+    const answer = await jsonPost(
+      `${path}/respuestas`,
+      token,
+      answerOperation,
+      origin,
+    );
+    assert.equal(answer.status, 201);
+    assert.equal(answer.data.intento.rondaLocal.iniciaEn, null);
+    assert.equal(answer.data.intento.rondaLocal.pausada, false);
+    assert.equal(answer.data.intento.progreso.indiceActual, 1);
+    const answerRetry = await jsonPost(
+      `${path}/respuestas`,
+      token,
+      answerOperation,
+      origin,
+    );
+    assert.equal(answerRetry.status, 201);
+    assert.deepEqual(answerRetry.data.evaluacion, answer.data.evaluacion);
+    assert.equal(
+      await db.triviaRushRespuesta.count({ where: { intentoId: id } }),
+      1,
+    );
+    assert.equal(
+      await db.historialRespuesta.count({ where: { usuarioId: student.id } }),
+      1,
+    );
+    const normal = await jsonPost(
+      '/trivia-rush/intentos',
+      tokenFor(await user('ESTUDIANTE')),
+      { areas: ['INGLES'], duracionSegundos: 60 },
+      origin,
+    );
+    const normalRow = await db.intentoTriviaRush.findUniqueOrThrow({
+      where: { id: normal.data.intento.id },
+    });
+    await assert.rejects(
+      db.$executeRaw`UPDATE "IntentoTriviaRush" SET "tiraLocalRondaVersion" = 1 WHERE id = ${normalRow.id}::uuid`,
+      sqlState('23514'),
+    );
+    await assert.rejects(
+      db.$executeRaw`UPDATE "IntentoTriviaRush" SET "tiraLocalPausadaEn" = "preguntaIniciaEn" WHERE id = ${normalRow.id}::uuid`,
+      sqlState('23514'),
+    );
+    assert.equal(
+      (
+        await jsonPost(
+          `/tira-local/intentos/${normalRow.id}/pausa`,
+          tokenFor(
+            await db.usuario.findUniqueOrThrow({
+              where: { id: normalRow.usuarioId },
+            }),
+          ),
+          {
+            preguntaId: normal.data.intento.pregunta.id,
+            version: 0,
+            pausada: true,
+          },
+          origin,
+        )
+      ).status,
+      403,
+    );
+    assert.equal(
+      await db.triviaRushPotenciador.count({ where: { intentoId: id } }),
+      0,
+    );
+    assert.equal(
+      await db.eventoXpCompetitivo.count({ where: { usuarioId: student.id } }),
+      0,
+    );
+  }));
+
+test('C5-C2 Tira local expira aun pausada y conserva la vigencia global', () =>
+  withOptionImages(async () => {
+    const f = await consumerBank(),
+      token = tokenFor(await user('ESTUDIANTE')),
+      origin = f.consumerBase;
+    const created = await jsonPost(
+      '/tira-local/intentos',
+      token,
+      { areas: ['INGLES'] },
+      origin,
+    );
+    const id = created.data.intento.id,
+      question = created.data.intento.pregunta.id;
+    const path = `/tira-local/intentos/${id}`;
+    const started = await jsonPost(
+      `${path}/ronda`,
+      token,
+      { preguntaId: question },
+      origin,
+    );
+    await jsonPost(
+      `${path}/pausa`,
+      token,
+      {
+        preguntaId: question,
+        version: started.data.intento.rondaLocal.version,
+        pausada: true,
+      },
+      origin,
+    );
+    const inicio = new Date(Date.now() - 601000),
+      vence = new Date(inicio.getTime() + 600000);
+    await db.intentoTriviaRush.update({
+      where: { id },
+      data: {
+        iniciadoEn: inicio,
+        venceEn: vence,
+        preguntaIniciaEn: new Date(inicio.getTime() + 1000),
+        tiraLocalPausadaEn: new Date(inicio.getTime() + 2000),
+      },
+    });
+    const expired = await call(path, token, {}, origin);
+    assert.equal(expired.status, 200);
+    assert.equal(expired.data.intento.estado, 'EXPIRADO');
+    assert.equal(expired.data.intento.finalizadoEn, vence.toISOString());
+    assert.equal(expired.data.intento.rondaLocal.pausada, false);
+    assert.equal(
+      await db.triviaRushRespuesta.count({ where: { intentoId: id } }),
+      0,
+    );
+  }));
+
+test('C5-C2 Tira local conserva la última pregunta y no duplica al reintentar su cierre', () =>
+  withOptionImages(async () => {
+    const f = await consumerBank(),
+      student = await user('ESTUDIANTE');
+    const token = tokenFor(student),
+      origin = f.consumerBase;
+    const created = await jsonPost(
+      '/tira-local/intentos',
+      token,
+      { areas: ['INGLES'] },
+      origin,
+    );
+    assert.equal(created.status, 201);
+    const id = created.data.intento.id,
+      path = `/tira-local/intentos/${id}`;
+    let state = created.data.intento,
+      lastOperation;
+    const total = state.progreso.totalPreguntas;
+    for (let index = 0; index < total; index++) {
+      const question = state.pregunta.id;
+      assert.equal(
+        (
+          await jsonPost(
+            `${path}/ronda`,
+            token,
+            { preguntaId: question },
+            origin,
+          )
+        ).status,
+        201,
+      );
+      // Only this owned test fixture moves the stored window; real-clock test above is separate.
+      await db.intentoTriviaRush.update({
+        where: { id },
+        data: { preguntaIniciaEn: new Date(Date.now() - 10001) },
+      });
+      lastOperation = { preguntaId: question, idempotencyKey: randomUUID() };
+      if (index === 0) {
+        const answer = await jsonPost(
+          `${path}/respuestas`,
+          token,
+          {
+            preguntaId: question,
+            respuestaId: state.pregunta.opciones[0].id,
+            idempotencyKey: randomUUID(),
+          },
+          origin,
+        );
+        assert.equal(answer.status, 400);
+      }
+      const timeout = await jsonPost(
+        `${path}/sin-respuesta`,
+        token,
+        lastOperation,
+        origin,
+      );
+      assert.equal(timeout.status, 201);
+      state = timeout.data.intento;
+      assert.equal(state.progreso.indiceActual, index + 1);
+      assert.equal(state.estado, index + 1 === total ? 'FINALIZADO' : 'ACTIVO');
+    }
+    const retry = await jsonPost(
+      `${path}/sin-respuesta`,
+      token,
+      lastOperation,
+      origin,
+    );
+    assert.equal(retry.status, 201);
+    assert.equal(retry.data.intento.estado, 'FINALIZADO');
+    assert.equal(retry.data.intento.finalizadoEn, state.finalizadoEn);
+    assert.equal(state.progreso.sinRespuesta, total);
+    assert.equal(state.marcador.preguntasSaltadas, 0);
+    assert.equal(state.marcador.respuestasIncorrectas, 0);
+    assert.equal(state.pregunta, null);
+    assert.ok(
+      state.resultado.revision.every(
+        (item) =>
+          item.sinRespuesta &&
+          !item.saltada &&
+          item.respuestaSeleccionadaId === null &&
+          item.respuestaCorrectaId === null &&
+          item.explicacion === null,
+      ),
+    );
+    assert.equal(
+      await db.triviaRushRespuesta.count({ where: { intentoId: id } }),
+      total,
+    );
+    assert.equal(
+      await db.historialRespuesta.count({ where: { usuarioId: student.id } }),
+      0,
+    );
+    assert.equal(
+      await db.eventoXpCompetitivo.count({ where: { usuarioId: student.id } }),
+      0,
+    );
+    // Even an artificially high local score cannot become a Trivia/Fantasma record.
+    await db.intentoTriviaRush.update({
+      where: { id },
+      data: { puntaje: 99999 },
+    });
+    const ghost = await call(
+      '/trivia-rush/fantasma?areas=INGLES&duracionSegundos=60',
+      token,
+      {},
+      origin,
+    );
+    assert.equal(ghost.status, 200);
+    assert.equal(ghost.data.fantasma, null);
+  }));
+
 test('C5-C2-C Batallas entrega imágenes al iniciar, no soluciones ni datos de autoría', () =>
   withOptionImages(async () => {
     const f = await consumerBank();

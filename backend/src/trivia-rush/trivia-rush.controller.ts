@@ -41,7 +41,7 @@ class CrearTriviaRushDto {
   competitive?: boolean;
 
   @IsOptional()
-  @IsEnum(ModalidadTriviaRush)
+  @IsIn([ModalidadTriviaRush.TRIVIA_RUSH, ModalidadTriviaRush.GHOST_DUEL])
   modalidad?: ModalidadTriviaRush;
 
   @IsArray()
@@ -129,19 +129,29 @@ export class TriviaRushController {
   }
 
   @Get('intentos/:id')
-  obtener(
+  async obtener(
     @Request() request: AuthenticatedRequest,
     @Param('id', new ParseUUIDPipe()) intentoId: string,
   ) {
+    await this.triviaRushService.verificarFlujo(
+      request.usuario.sub,
+      intentoId,
+      false,
+    );
     return this.triviaRushService.obtener(request.usuario.sub, intentoId);
   }
 
   @Post('intentos/:id/respuestas')
-  responder(
+  async responder(
     @Request() request: AuthenticatedRequest,
     @Param('id', new ParseUUIDPipe()) intentoId: string,
     @Body() body: ResponderTriviaRushDto,
   ) {
+    await this.triviaRushService.verificarFlujo(
+      request.usuario.sub,
+      intentoId,
+      false,
+    );
     return this.triviaRushService.responder(
       request.usuario.sub,
       intentoId,
@@ -150,11 +160,16 @@ export class TriviaRushController {
   }
 
   @Post('intentos/:id/potenciadores')
-  activarPotenciador(
+  async activarPotenciador(
     @Request() request: AuthenticatedRequest,
     @Param('id', new ParseUUIDPipe()) intentoId: string,
     @Body() body: ActivarPotenciadorDto,
   ) {
+    await this.triviaRushService.verificarFlujo(
+      request.usuario.sub,
+      intentoId,
+      false,
+    );
     return this.triviaRushService.activarPotenciador(
       request.usuario.sub,
       intentoId,
@@ -163,18 +178,28 @@ export class TriviaRushController {
   }
 
   @Post('intentos/:id/finalizar')
-  finalizar(
+  async finalizar(
     @Request() request: AuthenticatedRequest,
     @Param('id', new ParseUUIDPipe()) intentoId: string,
   ) {
+    await this.triviaRushService.verificarFlujo(
+      request.usuario.sub,
+      intentoId,
+      false,
+    );
     return this.triviaRushService.finalizar(request.usuario.sub, intentoId);
   }
 
   @Post('intentos/:id/abandonar')
-  abandonar(
+  async abandonar(
     @Request() request: AuthenticatedRequest,
     @Param('id', new ParseUUIDPipe()) intentoId: string,
   ) {
+    await this.triviaRushService.verificarFlujo(
+      request.usuario.sub,
+      intentoId,
+      false,
+    );
     return this.triviaRushService.abandonar(request.usuario.sub, intentoId);
   }
 }

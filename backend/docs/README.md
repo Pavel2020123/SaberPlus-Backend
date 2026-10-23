@@ -1,7 +1,10 @@
 # Documentación backend
 
 - **Nuevo compañero para terminar C2 (no OV-1):** [guía operativa](RELEVO_C5_C2.md)
-  y [acta C2-D](C5C2D_VALIDACION_LOCAL.md),0/8 humanos con D8a–e pendientes.
+  y [acta C2-D](C5C2D_VALIDACION_LOCAL.md). Entrega parcial auditada por Pavel e
+  integrada: Flutter PR#9/b8253e2, backend PR#11/3eb3f59. Nueva rama
+  fix/c5-c2-timeout-d8b: timeout de Tira local y D8b con dos clientes. No repetir
+  los demás aprobados ni avanzar a otras etapas; C2 sigue abierta.
 
 **21 de octubre — [C5-C2-C validada automáticamente](C5C2C_CONSUMIDORES.md):**
 contratos/snapshots y Flutter incorporan imágenes opcionales sin cambiar XP ni

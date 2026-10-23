@@ -1,10 +1,73 @@
 # Relevo operativo — terminar C5-C2, imágenes en las opciones
 
-Actualización C2-D: **22 de octubre de 2026, ENTREGA PARCIAL**. D1–D7 aprobados
-(7/8); D8a/c/d/e aprobados, D8b pendiente por segundo cliente. Ver
-[entrega](C5C2_ENTREGA_PARCIAL.md) y [acta vigente](C5C2D_VALIDACION_LOCAL.md).
+Actualización C2-D tras auditoría de Pavel: **23 de octubre de2026, C2 abierta**.
+Entrega parcial integrada en main remoto: Flutter PR#9/b8253e2 y backend
+PR#11/3eb3f59. D1–D7 y D8c/d/e conservan aprobación; regresión de timeout D8a
+y D8b aprobadas dentro del alcance del acta. Ver
+[entrega actual](C5C2_REVISION_TIMEOUT_D8B.md), [entrega parcial histórica](C5C2_ENTREGA_PARCIAL.md)
+y [acta vigente](C5C2D_VALIDACION_LOCAL.md).
 No repetir los bloques aprobados sin una regresión concreta. Ramas
-fix/c5-c2-validacion en ambos repos; no publicar sin autorización de Pavel.
+fix/c5-c2-timeout-d8b en ambos repos, desde main actualizado; no publicar sin
+autorización de Pavel. Las evidencias de fix/c5-c2-validacion ya integradas se conservan.
+
+**Checkpoint vigente23/oct:** D8b aprobado dentro del alcance del acta. APK4004:
+emulador Pixel_7 gana y el teléfono, que estaba en segundo plano, vuelve desde
+Recientes y muestra el mismo ganador. SQL23f89c68… FINALIZADA/JUGADOR_A,
+zero=A/student=B, dos respuestas únicas solo de zero, cero XP; no se añadió
+respuesta al regresar. Se conserva evidencia previa de figuras/selección en
+Pixel_8_2, sin atribuir selecciones ilustradas al último duelo. No acredita
+cierre forzado, ACK perdido o competición. Integración Flutter/pausa del timeout
+local implementada:25 dirigidas y50 HTTP/SQL con73 migraciones aprobadas;
+build e instalación ARM64/4005 aprobados. Humano confirma avance a rondas2/3
+tras timeout, pausa activa8s, reanudación, figuras/textos contenidos y acierto.
+SQL:7d2d37b6… tres nulas sin historial/XP;70523e4a… tres nulas y dos azules
+correctas en cinco preguntas únicas, dos historiales y cero potenciadores/XP.
+Humano aclara que avanzó y pulsó azul dos veces; no hubo envío automático atribuido.
+Flutter1.016/16 opt-in omitidas; backend128/1.675; análisis dirigido y build aprobados.
+Recibos sanitizados enlazados en la entrega. **Siguiente paso: auditoría de Pavel,
+C2 permanece abierta**, sin repetir pruebas aprobadas o avanzar al resto de C5.
+Los párrafos siguientes conservan el historial de diagnóstico, no pendientes nuevos.
+
+Checkpoint posterior: ambos clientes disponibles. D8b encontró «estado inválido»:
+Socket.IO entrega [payload, offset] al activar recuperación; Flutter descartaba
+la lista. Corrección localizada y9/9 pruebas, incluida recepción por WebSocket
+local con la librería real; APK instalada en ambos, pendiente confirmación humana
+de sala. La búsqueda inicial expiró sin respuestas durante el diagnóstico.
+Timeout local: regla de Pavel ya autorizada en acta; borrador de contrato TUG_LOCAL
+aislado en backend, pendiente integración Flutter/build completo/HTTP-SQL y pausa.
+No declarar corregido el timeout ni aprobada D8b por preparar servicios o instalar.
+Actualización: sala confirmada visualmente en ambos tras el fix de transporte.
+Segundo Listo falla: la función SQL tug_snapshot_original_valid rechaza imagenUrl
+en opciones. Reproducción de solo lectura false/con imágenes, true/sin ellas;
+migración específica y regresión HTTP/SQL aprobada:48/48,72 migraciones solo en
+PostgreSQL propio. No forzar inicio ni retirar controles de snapshot. Contrato
+local HTTP/SQL validado y npm run build completo aprobado; integración Flutter/
+pausa y observación humana D8b siguen pendientes. Sesión6263e056 retirada
+ordenadamente al acercarse su límite de dos horas; usar la nueva clave de sesión.
+Sesión posterior87a75d92: humano confirma Inicio en teléfono, emulador pierde
+reverse repetidamente al reconectarse ADB. Se instaló APK x64 (build4002) con API y contenido
+en http://10.0.2.2:43187 (alias del host en el emulador), sin clave compilada;
+no instalarla en teléfono. Confirmación de acceso del emulador aún pendiente;
+abrir manualmente tras bloqueo automático del comando de lanzamiento/comprobación.
+El humano sustituyó luego el emulador: AVD vigente Pixel_8_2 (x64, serial5554).
+APK4002 instalada allí con Success el22/oct a21:57; conserva API directa y
+sesión zFyDcK. Túnel del teléfono restablecido. Humano confirma ambos Inicio a22:01;
+sigue emparejamiento sin Listo antes de observar sala. La sala observada en el
+AVD anterior no aprueba por sí sola el nuevo ensayo D8b.
+Nuevo ensayo D8b: sala e inicio con preguntas/figuras coincidentes confirmados
+en ambos, pero contenido fuera del globo de respuesta. Regresión de contorno0/4
+antes del fix; padding16/radio16 en TugOnlinePage deja13/13 online y análisis
+dirigidos sin incidencias. APK4003 instalada en ambos clientes; humano confirma
+contención visual correcta a22:21. Después confirma selección propia y retorno
+desde segundo plano breve (reloj continúa). Falta observar resultado en ambas
+pantallas y conciliar SQL de la misma partida; no acredita cierre forzado o ACK perdido.
+Aclaración posterior del humano: empate solo en uno; teléfono queda en última
+ronda si terminó mientras estaba fuera. El texto «cuerda en el centro» no era
+observación gráfica. D8b no aprobado. Regresión0/2 y corrección de recovery por
+GET al volver/lifecycle, sin esperar animaciones antiguas ni aceptar versiones
+atrasadas:19/19 online; falta instalar APK nueva y observar retorno tras final
+en ambos clientes. No forzar resultado local ni reenviar respuestas al recuperar.
+No cambiar reglas por este fallo visual.
 
 Preparación original: **21 de octubre de 2026**. Este es el punto de entrada
 para el **nuevo compañero que sustituye al propietario en C2**. No es el compañero
@@ -19,7 +82,7 @@ Terminar **C5-C2**, no toda C5 ni todas las etapas de SaberPlus:
 - C2-C: referencias públicas/snapshots y consumidores Flutter; implementada y
   validada automáticamente. No rehacer desde cero.
 - **C2-D: validación integrada Android/panel/API y correcciones que encuentre.
-  Entrega parcial:7/8 bloques aprobados; falta D8b, Tira online con dos clientes.**
+  Regresión D8a y D8b aprobadas; D1–D7 y D8c/d/e conservados. C2 abierta a auditoría.**
 
 La tabla de resultados humanos vive en `C5C2D_VALIDACION_LOCAL.md`, en docs/ de
 Flutter y backend/docs/ del backend. Actualizar ambas copias después de cada
@@ -34,10 +97,12 @@ incidencias anteriores documentadas: no declarar lint global limpio ni usar
 `npm run lint` sin revisar que incluye `--fix`. No ejecutar todo de nuevo por cada
 toque, pero sí repetir las pruebas afectadas por una corrección y la regresión final.
 
-Código y relevo ya integrados en **main local** por autorización del propietario:
+La entrega parcial está integrada por PR en ambos main remotos (fetch verificado).
+No reabrir Flutter#4/backend#7 ni tratar la rama anterior como trabajo sin integrar.
+Esta revisión requiere commits/PR nuevos solo cuando Pavel autorice publicarlos.
+Antecedente de integración original anterior a los PR#9/#11:
 app entrega `e833d6b`, merge `f912880`; backend entrega `cfba7cd`, merge `09c763b`.
-**Sin push nuevo ni CI remoto en este cierre. Un commit/merge local no llega al
-otro PC: publicar/verificar ambos main antes de clonar/actualizar.**
+Ese cierre era local; los PR#9/#11 posteriores incorporaron la entrega parcial.
 Un push a main puede activar CI/despliegue si el repositorio tiene automatizaciones:
 la integración local no autoriza operar Render/Supabase ni migrar una base remota.
 
@@ -89,10 +154,10 @@ Con árbol limpio y main publicado, ejecutar por separado en cada repo:
 git fetch origin
 git switch main
 git pull --ff-only origin main
-git switch -c fix/c5-c2-validacion
+git switch -c fix/c5-c2-timeout-d8b
 ```
 
-Si esa rama ya existe, inspeccionarla y usar `git switch fix/c5-c2-validacion`,
+Si esa rama ya existe, inspeccionarla y usar `git switch fix/c5-c2-timeout-d8b`,
 no borrarla/recrearla. Si pull diverge, parar la operación Git y revisar; no forzar.
 Guardar HEAD inicial de los dos repos. No hacer merge de OV-1 para probar C2.
 Si hacen falta cambios en schema/migraciones/AppModule, sesión/navegación o locks,
@@ -355,7 +420,7 @@ en esta sesión con el mismo editor/contrato y documentarlo, no cambiar reglas
 del juego, falsificar eventos ni abrir otra base. Registrar si se probó Cima o
 Rescate; el otro conserva evidencia automática, no atribuirle otra prueba USB.
 
-### D8 — Otros contratos de juegos: cinco subcasos (solo D8b pendiente)
+### D8 — Otros contratos de juegos: cinco subcasos (aprobados según alcance del acta)
 
 | Subcaso | Qué observar / recursos |
 | --- | --- |
@@ -432,7 +497,7 @@ toque. Cierre documental: `docs: cerrar validacion local de imagenes en opciones
 Publicar solo cuando el propietario lo autorice, por repo:
 
 ```powershell
-git push -u origin fix/c5-c2-validacion
+git push -u origin fix/c5-c2-timeout-d8b
 ```
 
 Abrir PR separado por repositorio si hubo cambios, indicando ambos commits/PR,

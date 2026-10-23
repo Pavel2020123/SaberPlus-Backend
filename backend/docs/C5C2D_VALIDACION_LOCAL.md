@@ -1,5 +1,816 @@
 # C5-C2-D — Ensayo local de imágenes en opciones
 
+## Entrega a nueva revisión — D8a y D8b aprobados dentro del alcance; C2 abierta
+
+23/oct/2026. Aclaración humana final: pulsó azul una vez, avanzó con Siguiente
+pregunta y volvió a pulsar azul. Los dos aciertos de Ensayo C2-D6 y9 son acciones
+humanas declaradas; **no fueron un duplicado ni un envío espontáneo al reanudar**.
+Concuerda con las cinco filas únicas de70523e4a…: tres sin selección y dos
+azules correctas, dos historiales, cero potenciadores/XP, student xpTotal0.
+
+**Regresión D8a aprobada en el alcance ensayado**: avance tras vencer sin responder,
+pausa activa en8s, reanudación desde8s, figuras/textos contenidos y acierto.
+El intento local se abandona al acabar el duelo CPU antes del banco; los
+vencimientos no inventan respuestas, historial, salto, recompensa o XP.
+La CPU conserva reglas locales; no atribuir a SQL una simulación de sus turnos.
+D8b ya aprobado con dos clientes/cuentas distintas y recuperación del resultado.
+D1–D7 y D8c/d/e mantienen sus aprobaciones históricas, sin repetirlos manualmente.
+
+Evidencia sin secretos para revisión: `evidencias/C5C2_TIMEOUT_D8B_2026_10_23.json`
+en ambas carpetas docs. Incluye cuatro lecturas reales seleccionadas, sus hashes
+de recibos originales y las aclaraciones humanas separadas. Los originales de
+diagnóstico permanecen ignorados; ninguna URL de BD, clave o token se incorpora.
+Entrega nueva: `C5C2_REVISION_TIMEOUT_D8B.md`, más `C5C2_TIMEOUT_LOCAL.md`.
+
+Validación final ya ejecutada antes de observación: Flutter1.016 aprobadas/16
+opt-in omitidas;25 dirigidas locales y19 online; backend128 suites/1.675;
+HTTP/PostgreSQL50/50 con73 migraciones propias; análisis dirigido Flutter limpio;
+build backend exit0 y APK ARM64/4005 instalada. No repetir por cambios solo
+documentales. Fallos previos quedan en el historial inferior.
+
+Límites conservados: última pregunta y reintentos concurrentes tienen evidencia
+HTTP/SQL, no se exige al humano agotar12 preguntas; pérdida de ACK se cubre
+automáticamente, no se provocó físicamente. Segundo plano no acredita cierre
+forzado; último duelo online no tuvo selecciones ilustradas y se apoya en evidencia
+previa explícita. No hay certificación competitiva, TalkBack humano nuevo ni
+aprobación de las16 integraciones omitidas. ESLint global conserva deuda previa.
+
+**Siguiente paso exacto:** Pavel revisa Flutter/backend/panel, tres migraciones,
+documentación, pruebas y evidencias; decide si acepta el cierre. **No se declara
+C2 terminada ni se avanza al resto de C5.** Sin push/merge/despliegue hasta su
+autorización; publicación posterior mediante PR nuevo de cada repositorio.
+
+## D8a — reanudación/acierto observados; aclarar segundo envío registrado
+
+23/oct/2026,15:44 America/Bogota. El humano responde «Sí a todo» a reloj
+reanudado desde8s, figuras/textos contenidos y respuesta azul como acierto.
+**Reanudación y respuesta tras pausa aprobadas visualmente** dentro de ese alcance.
+
+SQL20:44:04 UTC, mismo intento70523e4a… ACTIVO/índice5/versión18: cinco filas
+finales de cinco preguntas únicas, tres nulas previas y dos selecciones azules
+correctas. Ensayo C2-D6 respondió20:42:44.306 UTC/3240ms; Ensayo C2-D9 respondió
+20:43:10.126 UTC/4444ms. Dos filas de historial, cero errores/saltos/potenciadores
+y XP de intento; student xpTotal0. Los200 puntos son marcador del intento,
+no XP. La pausa quedó limpia; siguiente pregunta sin iniciar.
+
+El guion pedía una sola respuesta y esperar feedback. Se registra además un
+segundo acierto en otra pregunta; **no atribuirlo al humano ni a un envío
+automático sin aclaración**. Preguntar si avanzó y respondió azul de nuevo.
+No hay duplicados de pregunta, pero eso por sí solo no demuestra el origen
+del segundo envío. C2 sigue abierta; falta esta conciliación antes de entrega.
+
+## D8a — pausa activa aprobada; falta reanudar y responder
+
+23/oct/2026,15:40 America/Bogota. El humano confirma que el reloj marcaba8s
+al abrir el diálogo y sigue en8s detenido tras esperar, con lo demás igual.
+**Pausa visual de una ronda activa aprobada**; no atribuir todavía aprobación
+de reanudación, evaluación de respuesta o resultado de este mismo duelo.
+
+SQL20:40:50 UTC: mismo intento70523e4a…, ACTIVO/índice3/versión12,
+pregunta actual Ensayo C2-D6. Inició20:40:05.372 y quedó pausada en servidor
+20:40:07.520 UTC; resta7852ms de su ventana10s, concordante con los8s visibles.
+La pausa lleva más de43s al comprobarla; venceEn global sigue20:45:38.558 UTC.
+Tres filas finales nulas previas y tres preguntas únicas, sin una cuarta fila,
+sin historial, potenciadores ni XP. Student xpTotal0. No hubo respuesta ni
+timeout de la pregunta actual durante la pausa.
+
+El SQL muestra dos vencimientos adicionales antes de llegar a esta pausa;
+la pregunta actual corresponde a la cuarta ronda. No describirla como ronda2
+por ser ese el guion anterior ni inferir acciones humanas intermedias exactas.
+Siguiente paso: Continuar, responder azul horizontal y observar reanudación y
+feedback, sin pulsar Siguiente pregunta hasta confirmar. C2 sigue abierta.
+
+## D8a — pausa no concluyente: diálogo abierto con reloj ya en0s
+
+23/oct/2026,15:36 America/Bogota. El humano informa reloj0s porque no pulsó
+Siguiente pregunta; abrió la X y todo siguió igual. **No aprueba ni demuestra
+un fallo de pausa durante una ronda activa**: falta iniciar la siguiente ronda
+y abrir el diálogo mientras queden segundos.
+
+SQL20:36:52 UTC: intento vigente70523e4a-ac16-4573-b71c-47d17f9f7a06,
+ACTIVO/índice1/versión2,12 preguntas y una fila final nula (Ensayo C2-D1,
+10162ms, cero puntos). La siguiente pregunta está asignada pero sin iniciar:
+preguntaIniciaEn:null y tiraLocalPausadaEn:null. Sin historial, potenciadores
+ni XP; student xpTotal0. Es compatible con feedback de la ronda vencida; no
+convertirlo en prueba de congelación de un reloj activo. Consta además intento
+9e2a4bd3… abandonado con una fila nula, sin historial/XP, durante esta preparación.
+
+Retomar el mismo duelo: cerrar el diálogo con Continuar, pulsar Siguiente
+pregunta y abrir la X al ver9u8s. Observar12s sin tocar respuesta y dejar el
+diálogo abierto para cotejar pausa del servidor. C2 sigue abierta.
+
+## D8a — avance tras timeout aprobado; pausa/respuesta pendientes
+
+23/oct/2026,15:33 America/Bogota. Humano observa «aparece una ronda2», después
+avanza a ronda3 y gana la CPU. **Regresión original de avance aprobada**: la
+primera ronda sin respuesta no terminó el duelo teniendo preguntas restantes.
+No atribuir a esta frase una confirmación independiente del rótulo «Sin respuesta»,
+la ausencia de selección visual o las proporciones; no las describió expresamente.
+
+SQL20:33:32 UTC en IRImJ5: intento7d2d37b6-a63e-4e1b-81bc-2a34f6507aa6,
+TUG_LOCAL/ABANDONADO al cerrar el duelo CPU antes de agotar12 preguntas,
+índice3/versión6. Tres filas finales, tres preguntas únicas, selección nula en
+las tres; tiempos10148/10257/10349ms, cero puntos, errores y saltos. Preguntas
+Ensayo C2-D6,4,1. Sin historial de respuestas, potenciadores ni XP de intento;
+student conserva xpTotal0. Inicio20:32:19.640/final20:33:19.549 UTC.
+No se inventaron respuestas ni se agotó el banco para permitir el avance.
+
+La victoria CPU es compatible con la regla existente de alcanzar cuatro marcas;
+su resolución es local y SQL no constituye evidencia de su posición o animación.
+Se conserva la observación humana del ganador sin inventar una traza CPU remota.
+Como el duelo acabó, comprobar pausa/reanudación y respuesta requiere una partida
+nueva de esta misma regresión D8a. D8b y los otros bloques no se repiten.
+**Pendiente** esa comprobación y nueva revisión de Pavel; C2 sigue abierta.
+
+## D8a — APK4005 instalada; espera de confirmación humana
+
+23/oct/2026,15:16 America/Bogota. Flutter9b115c7/backend3fe82d9 guardan la
+integración local y pausa; no publicados. Build ARM64/4005 aprobado243.3s,
+exit0; instalación en CPH2577 Success y versionCode4005 comprobado. Solo
+configuración pública API/contenido127.0.0.1:43187; no claves compiladas.
+Emulador conserva4004, suficiente para la evidencia D8b ya aprobada.
+
+Nueva sesión desechable **IRImJ5**, fixture05e7ba3a:73 migraciones,12 preguntas,
+cuatro opciones/dos ilustradas, guardado y recarga automáticos. API ready
+OK/database UP; login HTTP de student201/token presente, sin imprimirlo.
+Panel4173 sigue demo:false/API43187; reverse del teléfono restablecido.
+Clave nueva solo en flutter-private.json temporal de IRImJ5. SQL de preparación
+20:12:45 UTC no tenía intentos TUG_LOCAL. No usar la clave de7olT5v retirada.
+
+Próximo paso humano: confirmar Inicio como student en teléfono, abrir Tira local
+con Matemáticas/Básico y dejar vencer la primera ronda sin tocar opciones.
+Observar feedback y continuar a otra pregunta si duelo abierto; después comprobar
+pausa/reanudación y respuesta. Conciliar con SQL propio tras cada confirmación.
+Todavía **sin aprobación visual del timeout corregido**, C2 abierta.
+
+23/oct,15:22 America/Bogota: humano confirma Inicio en el teléfono como student
+con la sesión nueva. API ready OK/database UP; lectura SQL20:22:13 UTC sin
+intentos TUG_LOCAL todavía. El selector CPU dice **Entrenamiento**; «Básico» en
+el guion anterior era una referencia imprecisa a esa dificultad. Usar el rótulo
+real y no cambiar la dificultad ni el código por esa diferencia documental.
+Se pide dejar vencer solo la primera ronda, observar «Sin respuesta» y avanzar;
+la confirmación de Inicio no aprueba el timeout ni las pantallas siguientes.
+
+## Timeout local — integración en curso, sin aprobación humana todavía
+
+23/oct/2026. Se conecta Tira local a su proveedor `/tira-local/intentos`,
+separado del proveedor de Trivia/Fantasma. La ronda comienza con confirmación
+del servidor; vencer sin respuesta espera un recibo antes de habilitar avance.
+Una respuesta en vuelo o con ACK desconocido reintenta la misma operación y no
+se transforma en timeout. CPU conserva su resolución; al acabar antes del banco
+se abandona el intento propio. Demo conserva su banco local anterior.
+
+Conservación de pausa: nueva migración específica
+20261023150000_tug_local_pause, dos campos en IntentoTriviaRush limitados por
+CHECK a TUG_LOCAL; pausa/reanudación autenticadas con reloj del servidor y
+versión. Repetir una petición no amplía dos veces la ventana ni cambia el TTL
+global600s. También se corrige EXPIRADO local para fijar finalizadoEn en venceEn
+y limpiar pausa; antes podía incumplir la restricción temporal al caducar.
+
+Evidencia automática: primera suite HTTP/SQL48/50, dos pruebas nuevas fallidas;
+faltaba versión/contrato de pausa y el segundo caso encontraba el campo Prisma
+aún inexistente. Tras implementación/regeneración: **50/50 aprobadas**,73
+migraciones en PostgreSQL16 propio; recursos del ejecutor retirados. Cubre pausa
+real de10.1s, reintento/versiones atrasadas, respuesta posterior, última pregunta,
+caducidad incluso pausada y exclusión de Trivia/Fantasma. TypeScript aprobado.
+
+Flutter: dos intentos iniciales no cargaron el test por referencias estáticas
+incorrectas en el fake; se calificaron con la clase propietaria. Suite posterior
+**19/19 aprobada**: incluye la reproducción original, timeout/reintento, última
+pregunta, respuesta en vuelo/ACK perdido y pausa. Es evidencia de widgets/fakes,
+no nueva observación Android ni garantía de ACK perdido real por red. Análisis
+inicial encontró cuatro avisos de estilo, corregidos; repetición pendiente.
+
+La sesión humana7olT5v se retiró ordenadamente después de guardar D8b, para
+regenerar Prisma/compilar sin bloquear su DLL. Su contraseña ya no es vigente.
+Comprobaciones ampliadas: cliente HTTP Flutter3/4 iniciales (el rechazo de
+potenciador lanzaba excepción síncrona); corregido para devolver Future con error.
+Después25/25 dirigidas aprobadas, incluidas recuperación de ACK de pausa y
+respuesta confirmada durante segundo plano. Análisis dirigido final limpio;
+dos avisos adicionales de estilo del fake se corrigieron antes de repetirlo.
+Regresión Flutter completa: **1.016 aprobadas,16 opt-in omitidas,0 fallidas**.
+No se ejecutaron las16 integraciones que requieren sus variables propias.
+
+Regresión HTTP/SQL final50/50,73 migraciones, añadiendo reintento de respuesta
+confirmada y restricciones SQL de pausa en Trivia. Backend128 suites/1.675
+aprobadas según resumen Jest; la envoltura PowerShell devolvió1 al capturar stderr,
+por lo que se confirma el código del proceso mediante captura estructurada antes
+de dar ese comando por resuelto. `npm run build` completo aprobado, exit0.
+Confirmación posterior del proceso Jest: **exit0, success:true,128 suites y
+1.675 pruebas aprobadas,0 fallidas**, recibo JSON local. La salida1 anterior
+correspondía a la captura PowerShell de stderr; no a una prueba fallida.
+Se prepara APK ARM64/4005 solo con URLs públicas; falta instalación y regresión
+humana D8a con nueva sesión. **C2 sigue abierta**; D8b no se reabre por esta corrección.
+
+## D8b — retorno tras final aprobado; C2 sigue abierta por timeout local
+
+23/oct/2026,14:45 America/Bogota. Evidencia humana con APK4004: el emulador
+muestra «ganaste el duelo» tras responder algunas preguntas; el teléfono vuelve
+desde Recientes después del final y muestra que ganó el jugador A (emulador).
+**La regresión de retorno tras final queda aprobada visualmente**, sin cerrar
+la app ni crear otra partida. Ya no permanece en la última ronda registrada.
+
+Conciliación automática19:45:33 UTC en la base desechable7olT5v:
+partida23f89c68-12c5-4a69-b533-9e586489daa3, FINALIZADA/JUGADOR_A,
+zero=A/emulador y student=B/teléfono, cuerda4, ronda4, versión10. Finalizó
+19:44:07.077 UTC. Dos respuestas, ambas de zero, dos pares ronda/usuario
+únicos,11 eventos y cero XP de partida. Student no tiene respuestas: no se
+registró una selección al regresar. competitiveRulesVersion:null;
+presenciaVersion:1. El resultado del servidor concuerda con ambas observaciones.
+
+**D8b aprobado dentro del alcance documentado**, combinando esta regresión con
+las observaciones anteriores de sala, figuras coincidentes, contención, selección
+independiente y retorno breve. No repetir los bloques aprobados. Límites:
+este último duelo no tuvo selecciones ilustradas registradas y no sustituye
+la evidencia visual anterior de imágenes en Pixel_8_2; el emulador vigente es
+Pixel_7. No acredita cierre forzado, ACK perdido, modo competitivo ni concesión
+de XP. No afirmar que se probaron esas variantes.
+
+**Siguiente paso:** terminar la integración Flutter del timeout exclusivo de
+Tira local, conservar pausa, probar reintentos/última pregunta y repetir solo la
+regresión D8a afectada con el humano. D1–D7 y D8b/c/d/e conservan aprobación;
+D8a permanece reabierto por timeout. C2 sigue abierta y no avanza el resto de C5.
+
+## Reanudación del ensayo — 23 de octubre de 2026
+
+Servicios montados de nuevo, solo locales. La sesión anterior zFyDcK ya no
+está disponible; se creó PostgreSQL/API desechable propio con72 migraciones,
+opciones ilustradas habilitadas y modo solo desactivado. Nueva sesión7olT5v,
+fixture c1aa3534:12 preguntas, cuatro opciones y dos imágenes por pregunta.
+No reutilizar la contraseña anterior. La clave nueva permanece únicamente en
+flutter-private.json de esa sesión temporal; no se copia al acta ni a la APK.
+
+Evidencia automática de preparación: /health/ready OK/database UP; login de
+student y zero HTTP201 con token presente (sin imprimirlo). Panel4173 sigue
+configurado con demo:false y API127.0.0.1:43187. Teléfono conserva APK4004 y
+reverse43187 restablecido. El emulador actual es **Pixel_7**, x86_64, serial5554,
+distinto del Pixel_8_2 de las observaciones históricas. Instalación x64/4004
+Success y versión comprobada; API/contenido mediante10.0.2.2:43187.
+Las dos APK usan solo configuración pública, sin credenciales compiladas.
+
+Pendiente humano: entrar con student en teléfono y zero en este emulador y
+repetir únicamente el retorno después del final que falló en D8b. La instalación,
+el login HTTP y las19 pruebas automáticas previas no aprueban ninguna pantalla.
+D8b y la integración Flutter/pausa del timeout local siguen pendientes; C2 abierta.
+
+23/oct,14:41 America/Bogota: el humano confirma «Sí» a Inicio en ambos,
+student en teléfono y zero en Pixel_7. API ready OK/database UP; lectura SQL
+19:41:50 UTC todavía sin partidas en esta sesión. Se inicia únicamente la
+regresión de retorno tras final; no repetir D1–D7 ni otros subcasos aprobados.
+
+## D8b — fallo al volver al teléfono después del final; no aprobado
+
+22 de octubre de2026. Aclaración humana posterior: el empate aparece **solo en
+uno**; si sale en el celular y la partida acaba, queda en la última ronda que
+registró, sin mostrar nada más. «La cuerda terminó exactamente en el centro»
+es **texto**, no observación de la posición gráfica. Esta aclaración prevalece
+sobre cualquier interpretación anterior de retorno correcto en ambos clientes.
+
+- Se conserva aprobación de contención y selección; reanudación completa y
+  resultado en ambos **fallidos/pendientes**. No cerrar D8b ni C2.
+- SQL partida23e4e1f7… finalizó EMPATE/cuerda0/ronda20/versión42 a03:28:01.142
+  UTC, cuatro respuestas únicas/dos por cuenta y cero XP de partida. Servidor
+  terminó; no demuestra actualización de la pantalla que quedó atrasada.
+- Inspección localizada: TugOnlinePage no observa lifecycle; el controlador solo
+  sincroniza por eventos socket o fallback tras desconexión. Una conexión que
+  parece activa no provoca lectura al volver. Además un terminal puede conservar
+  animación de ronda antes de mostrar resultado. No cambiar resolución del juego.
+- Regresión nueva: pausar desde ACTIVA, finalizar servidor sin nueva conexión y
+  volver; variantes con evento terminal recibido o perdido durante el fondo.
+  Debe mostrar resultado confirmado, sin responder ni buscar otro rival por sí solo.
+
+Regresión previa:0/2 aprobadas; ambas variantes permanecen sin tug-online-result.
+Corrección en curso: observer de lifecycle llama recover al volver; cliente hace
+GET autenticado al estado de la partida, independiente del socket. El controlador
+omite animación histórica en recuperación y rechaza versiones atrasadas del mismo
+id. Si falla la lectura, muestra aviso y reintenta lectura, sin responder, inventar
+final o buscar otro rival. Pruebas iniciales15/15; se añaden HTTP403, solo GET,
+reintento tras fallo y protección contra snapshot atrasado. Suite ampliada19/19 aprobada.
+Análisis dirigido de módulo y test sin incidencias; primera ejecución encontró
+solo llaves faltantes en un if del test, corregidas. APK4004 por cliente en preparación.
+
+Preparación posterior: commit Flutterbf5d363 (backend documental bfb2fc8).
+Build ARM64/4004 aprobado89.7s, API/contenido127.0.0.1:43187; instalación
+telefónica Success y reverse restablecido. API ready OK/database UP; clave sin
+renovar. Build x64/4004 con10.0.2.2:43187 en curso, sin claves compiladas.
+Todavía no se aprobó visualmente el retorno corregido tras final.
+
+**Siguiente paso:** validar sincronización al volver y regresión
+incluyendo snapshot terminal, instalar APK y repetir solo retorno tras final en
+los dos clientes. Timeout local Flutter/pausa continúa pendiente.
+## D8b — selección independiente aprobada; reanudación en curso
+
+22 de octubre de2026,22:24 America/Bogota. Humano confirma «Sí» a teléfono
+azul, emulador sin marca heredada y luego elección propia naranja, conservando
+figuras junto a sus textos. **Selección independiente aprobada visualmente**;
+falta reanudación y conciliación SQL, no cerrar D8b todavía.
+
+- Lectura SQL03:24:31 UTC: partida23e4e1f7-9d13-4f57-9907-41c08459b834 ACTIVA,
+  ambos Listo, student A/zero B, ronda2/versión4,20 preguntas/dos respuestas
+  (una por cuenta), dos pares ronda/usuario únicos, una selección ilustrada y
+  cero eventos XP de partida. No convertir una selección ilustrada registrada
+  en prueba automática de dos respuestas ilustradas. competitiveRulesVersion:null.
+- Se pide Inicio Android del emulador2–3s y Recientes sin cerrar ni volver a
+  responder. Observar misma partida/ronda vigente o resultado, imágenes correctas
+  y ausencia de respuesta automática. Reloj del servidor continúa, no prometer
+  congelación de ronda. Teléfono permanece en la misma partida.
+- Esta prueba cubre segundo plano breve; no acredita cierre forzado, pérdida
+  de ACK, desconexión larga ni modo competitivo. Esperar observación humana.
+
+Confirmación humana de reanudación: «Sale bien, me muestra que se pasó a la otra
+ronda por el tiempo». **Retorno a ronda vigente aprobado**, con reloj continuo;
+solo segundo plano breve, no cierre forzado ni recuperación de pérdida de ACK.
+Se pide esperar resultado de esta misma partida y describir ambas perspectivas,
+sin crear otra ni jugar de nuevo, antes de cerrar la entrada D8b.
+
+Lectura detallada03:25:40 UTC: misma partida ACTIVA/ronda8/versión16, tres
+respuestas y tres pares únicos, una selección ilustrada registrada como
+azul de student en ronda1. Zero respondió sumas en rondas2 y7. El guion humano
+azul/naranja se confirmó visualmente, pero SQL **no corrobora dos selecciones
+ilustradas en la misma ronda**; conservar este límite y no inventar esa evidencia.
+Cero eventos XP de partida. No atribuir la tercera respuesta a la reanudación:
+no se capturó el instante exacto de cada acción humana. No hay pares duplicados.
+
+Conciliación adicional03:28:01 UTC: la partida de contención b9d44a87… tiene
+seis rondas con selecciones ilustradas en ambos clientes, tres con imágenes
+seleccionadas distintas;40 pares únicos/40 respuestas. Complementa la evidencia
+de selección, sin inventar un par azul/naranja en la ronda1 de23e4e1f7….
+La partida vigente23e4e1f7… llegó a ronda20/versión40 con cuatro respuestas,
+cuatro pares únicos (dos por cuenta) y cero eventos XP. Se espera resultado.
+
+Resultado humano descrito: «Solo dice partida empatada con las manos; la cuerda
+terminó exactamente en el centro», seguido de Buscar otro rival/Jugar contra PC.
+No informa cifras en esa pantalla; no atribuirle los conteos SQL. Se pregunta si
+lo vio en ambos dispositivos, porque su respuesta no especifica cada cliente.
+
+SQL03:29:11 UTC:23e4e1f7… FINALIZADA/EMPATE/cuerda0, ronda20/versión42,
+finalizado03:28:01.142 UTC. Cuatro respuestas (dos por cuenta), cuatro pares
+ronda/usuario únicos,43 eventos y cero XP de partida. Concuerda con el empate
+informado; falta confirmación visual explícita de ambos clientes para cerrar D8b.
+
+**Siguiente paso:** confirmar resultado en ambos clientes y cotejar respuestas
+sin duplicados y resultado en ambas perspectivas. Timeout local Flutter/pausa
+continúa pendiente. C2 abierta; no avanzar al resto de C5.
+## D8b — borde corregido aprobado visualmente en ambos clientes
+
+22 de octubre de2026,22:21 America/Bogota. Tras APK4003, el humano responde
+«Listo, todo bien» a texto/figuras completos dentro de sus botones en teléfono y
+Pixel_8_2. **Contención visual aprobada en ambos**. No ampliar esa confirmación
+a selección independiente o reanudación; D8b todavía pendiente de esos pasos.
+
+- SQL propio de lectura03:21:26 UTC: partida b9d44a87-34e9-449b-8d51-ea6297978671
+  FINALIZADA/ronda20/versión42,20 preguntas,40 respuestas (20 por cuenta),40
+  pares ronda/usuario únicos,13 selecciones ilustradas,43 eventos y cero eventos
+  XP de esa partida. Finalizado03:20:47.310 UTC. Student A/zero B, ambos Listo;
+  competitiveRulesVersion:null/presenciaVersion1. No certifica modo competitivo.
+- Búsqueda64705f2e… CANCELADA antes de Listo, sin respuestas; partida anterior
+  fb5034b9… conserva8 respuestas/versión12/finalizado03:03:45.458. No atribuir
+  esas filas a una prueba humana de reanudación. Recibos timestamped locales
+  c5-c2-d8b-readonly-<timestamp>.json preservan las lecturas.
+- Se pide nueva partida solo para selección independiente, pues la anterior
+  terminó: teléfono azul; verificar que el emulador no hereda marca, luego naranja
+  en emulador. Esperar confirmación antes de aprobar aislamiento de selección.
+
+**Siguiente paso:** observar selección independiente y después reanudación en
+segundo plano sin duplicación. No repetir otros bloques. Timeout local Flutter/
+pausa sigue pendiente, C2 abierta y sin publicación nueva.
+## D8b — borde corregido, APK4003 instalada en ambos; falta observación humana
+
+22 de octubre de2026. Corrección Flutter9234a57: padding16 y rectángulo de
+radio16 solo en botones de Tira online. Regresión de contorno: antes0/4; después
+suite online completa13/13 y análisis dirigido de2 archivos sin incidencias.
+No cambia selección, permisos, tiempos, snapshots, XP o reglas del juego.
+
+- Build ARM64/4003/API127.0.0.1:43187: aprobado120.0s; instalación teléfono
+  Success y reverse43187 restablecido. Ready API OK/database UP.
+- Build x64/4003/API10.0.2.2:43187: aprobado95.1s; instalación nuevo emulador
+  Pixel_8_2 Success mediante streaming/no-incremental. Se mantienen datos y clave
+  actual87a75d92/zFyDcK; no archivos privados compilados. APK copiadas a output
+  local ignorado c5-c2-d8b-borde-arm64-4003.apk y c5-c2-d8b-borde-x64-4003.apk.
+- Nueva partida solicitada solo para observar el borde tras fix: la anterior
+  ya terminó y las instalaciones reinician procesos. No se repiten D1–D7/D8c/d/e.
+  Humano debe abrir, emparejar y Listo en ambos; observar texto y figuras dentro
+  de los botones. Todavía no hay aprobación visual del borde corregido.
+
+SQL de lectura posterior a instalaciones (03:15:34 UTC): partida anterior
+fb5034b9… conserva FINALIZADA/ronda5/versión12 y finalizado03:03:45.458. Ocho
+respuestas (cuatro por cuenta), ocho pares ronda/usuario únicos, tres selecciones
+ilustradas y cero eventos XP de esa partida. No hay partida nueva todavía.
+Recibo local ignorado c5-c2-d8b-readonly-<timestamp>.json. Esto no acredita una
+reanudación humana ni pérdida de ACK; solo registra el estado real sin mutarlo.
+
+**Siguiente paso:** confirmar contención visual en los dos clientes; después
+selección independiente y reanudación sin duplicación para completar D8b.
+Timeout local Flutter/pausa sigue pendiente. C2 abierta; no push/merge/despliegue.
+## D8b — inicio con figuras confirmado; falla el borde de las respuestas
+
+22 de octubre de2026. Humano confirma sala en ambos y después: «Aparecen las
+mismas preguntas en ambos, las mismas figuras con sus enunciados, pero están
+fuera del globo de texto en ambos dispositivos». Se acredita pregunta/figuras
+coincidentes; **contención visual fallida en teléfono y Pixel_8_2**. D8b no aprobado.
+
+- No se informa otro error de Listo. SQL de lectura,03:03:58 UTC: partida
+  fb5034b9-8f49-4f62-977f-ec75ab42db76 FINALIZADA, ambos Listo:true, ronda5/
+  versión12,20 preguntas y8 respuestas entre student A/zero B. Finalizado
+  03:03:45.458 UTC. competitiveRulesVersion:null/presenciaVersion1. El resultado
+  SQL no acredita observación humana de su pantalla ni recuperación.
+- Inspección localizada: TugOnlinePage usa OutlinedButton con altura mínima52,
+  sin padding/shape propios; hereda borde tipo cápsula al aumentar altura por
+  imágenes. Tira local ya fijó padding16 y radio16; no trasladó ese estilo a online.
+- Se añade regresión de contorno real (Material.shape.getOuterPath), texto y
+  píxeles160x80/80x160, anchos320/412 y texto1.0/2.0. Primero ejecutar sin fix
+  para reproducir; después corrección localizada del botón y regresión online.
+
+Regresión previa al fix:0/4 aprobadas; las cuatro fallan por contenido fuera de
+StadiumBorder a320/412 y texto1.0/2.0. El primer auxiliar contaba también imágenes
+de la arena y falló por exceso; se limitó a AcademicOptionContent antes de
+atribuir el fallo al contorno. Log local output/c5-c2-d8b-borde-reproducido.log.
+Corrección localizada aplicada: padding16 y RoundedRectangleBorder/radio16 en
+los botones online, igual que Tira local. Suite online completa13/13 aprobada;
+análisis dirigido de2 archivos sin incidencias. APK4003 por cliente en preparación;
+falta APK actualizada y nueva observación humana, no se aprueba aún la pantalla.
+
+Preparación posterior: build ARM64/4003 aprobado (assembleDebug120.0s),
+API y contenido127.0.0.1:43187, sin credenciales; copia local ignorada
+output/c5-c2-d8b-borde-arm64-4003.apk. Instalación en teléfono termina Success,
+reverse43187 restablecido y API ready OK/database UP. Build x64/4003 con
+10.0.2.2:43187 en curso. No atribuir todavía observación del borde corregido.
+
+**Siguiente paso:** validar borde de Tira online, instalar APK por
+cliente y repetir solo observación afectada antes de selección/reanudación D8b.
+No cambiar reglas, permisos, tiempos, XP ni snapshots por el fallo visual.
+## D8b — Inicio confirmado en teléfono y nuevo emulador
+
+22 de octubre de2026,22:01 America/Bogota. El humano confirma «Sí» a Inicio en
+ambos dispositivos: student@example.invalid/teléfono y zero@example.invalid/
+Pixel_8_2, sesión87a75d92. Se acredita únicamente acceso visual a Inicio, no
+emparejamiento, imágenes, respuestas o reanudación de la nueva partida.
+
+Se solicita en ambos Práctica → Tira y afloja → Matemáticas → Rival en línea →
+Buscar rival, sin pulsar Estoy listo; esperar confirmación de sala sin error.
+Se conservan aprobaciones históricas y correcciones previas; no se repiten
+bloques ajenos a D8b. C2 sigue abierta y timeout local Flutter/pausa pendiente.
+
+Confirmación humana posterior: «Sí» a sala con dos jugadores y botón Estoy listo
+sin error en ambos clientes de la sesión87a75d92/Pixel_8_2. **Sala aprobada
+visualmente en ambos**, sin dar D8b por terminado. Se solicita Listo en los dos y
+comparar enunciado/opciones ilustradas; si aparecen sumas, responder hasta figuras.
+Pendiente saber si reaparece el error y observar imágenes, selección y reanudación.
+
+**Siguiente paso:** comprobar inicio tras ambos Listo y la observación
+integrada de figuras, selección independiente y reanudación.
+## D8b — sustitución del emulador e instalación en Pixel_8_2
+
+22 de octubre de2026,21:57 America/Bogota. El humano aclara «cambié el emulador,
+entonces tienes que instalarle el apk». La instalación anterior correspondía al
+AVD previo; no demuestra instalación o acceso en el emulador nuevo. Se conserva
+la evidencia histórica sin atribuir al código los cambios de dispositivo.
+
+- ADB: nuevo AVD Pixel_8_2, serial emulator-5554/transport26, ABI x86_64,
+  boot_completed1. Teléfono NFWKHYIZKVLF8LKJ/transport27 sigue autorizado.
+- APK pública de desarrollo x64/build4002, acceso directo a10.0.2.2:43187:
+  adb -s emulator-5554 install --streaming --no-incremental -r
+  build/app/outputs/flutter-apk/app-debug.apk termina Success. No se recompila,
+  desinstala o borra datos; sin secretos compilados ni operación productiva.
+- Ready de API propia OK/database UP, sesión zFyDcK y su clave actual presentes.
+  Teléfono había perdido reverse tras reconexión; se restablece43187. El emulador
+  usa acceso directo del host, sin depender de reverse. Contraseña sin renovar.
+- Se pide apertura manual y login zero en nuevo emulador, student en teléfono;
+  confirmar ambos Inicio antes de buscar rival. Esta preparación automática no
+  aprueba Inicio, sala ni D8b en el nuevo dispositivo. No se reabre ningún otro bloque.
+
+**Siguiente paso:** esperar confirmación visual de ambos Inicio; luego D8b con
+ambas cuentas: emparejar, Listo, opciones ilustradas, selección independiente y
+reanudación. Timeout local Flutter/pausa continúa pendiente; C2 sigue abierta.
+## D8b — APK del emulador con acceso directo instalada; falta confirmar Inicio
+
+22 de octubre de2026,21:42 America/Bogota. Teléfono: el humano confirma que
+permite entrar. Emulador: aún no permite entrar con la APK anterior; su reverse
+se pierde al reconectarse ADB. API/credenciales propias comprobadas y sin cambios.
+
+- Build solo x64 aprobado con --build-number=4002 (assembleDebug95.1s),
+  APP_ENV=dev/DEMO_MODE=false y API_BASE_URL/CONTENT_BASE_URL=http://10.0.2.2:43187.
+  Sin claves, tokens ni archivos privados compilados. No modifica pubspec.yaml
+  ni la APK instalada del teléfono. Se preservan datos y sesiones locales.
+- Instalación emulator-5554 con adb install --streaming --no-incremental -r:
+  Success. Corrige el bloqueo previo por versión1 frente a4001 instalada.
+- Revisión automática rechazó el comando posterior que combinaba dumpsys de
+  versión, am start y health («blocked by policy»). No se reintenta la apertura
+  mediante otra vía. No atribuir comprobación de versión ni lanzamiento a ese
+  comando. Se pide al humano abrir manualmente y confirmar Inicio como zero.
+- Clave actual sin renovar: AUTH_E2E_PASSWORD en flutter-private.json de zFyDcK.
+  Student permanece en teléfono. No buscar rival antes de confirmar ambos Inicio.
+
+**Siguiente paso:** confirmación visual del acceso en el emulador; después
+emparejar ambos y repetir Listo por la regresión concreta de snapshot, continuando
+figuras/selección/reanudación D8b. Timeout local Flutter/pausa sigue pendiente.
+C2 abierta, sin push, merge, despliegue o cambios OV-1.
+## Reanudación D8b — acceso fallido antes del emparejamiento
+
+22 de octubre de2026,21:32 America/Bogota. Tras comunicar la nueva sesión
+zFyDcK/fixture87a75d92, el humano informa «No pudimos conectar con SaberPlus»;
+aún no indica qué cliente. No se aprueba Inicio ni se inicia otra partida.
+
+- Comprobación automática: ready OK/database UP; directorio y clave de la sesión
+  actual presentes. ADB reconoce teléfono y emulador; teléfono conserva reverse
+ 43187, emulador lo perdió al reconectarse (transport_id19). Se restablecen ambos.
+- Host: login protegido student/zero HTTP201 y token presente, sin imprimirlo ni
+  publicar la clave. No demuestra acceso visual desde Android.
+- Humano tras reintento: teléfono permite entrar; emulador no. Se confirma nuevo
+  reverse vacío en emulador incluso sin otra instalación. No atribuirlo a contraseña.
+- Se prepara APK solo x64 con API_BASE_URL/CONTENT_BASE_URL públicos
+  http://10.0.2.2:43187 para evitar dependencia de reverse en emulador. Teléfono
+  conserva su APK/USB. Sondeos nc de Android devolvieron HTTP400 o sin respuesta;
+  no cuentan como ready aprobado ni demuestran fallo del login. El acceso real
+  de la nueva APK aún requiere confirmación humana.
+- Build x64 con acceso directo aprobado (assembleDebug118.8s). Primer intento
+  de instalación falló sin detalle; segundo informa INSTALL_FAILED_VERSION_DOWNGRADE:
+  emulador conserva versionCode4001 y APK nueva tenía1. No desinstalar ni borrar datos.
+  Se recompila solo emulador con --build-number=4002 y las mismas URLs públicas;
+  no hay cambio de versión del producto en Git ni credenciales en la APK.
+- Se solicita reintentar con la clave actual y confirmar resultado por dispositivo.
+  D8b sigue pendiente; no repetir bloques anteriores por este incidente.
+- Inspección dirigida: ApiError confirma que el mensaje corresponde a error de
+  conexión; auth/login real de ambas cuentas es correcto. Manifest debug permite
+  HTTP de desarrollo y mantiene permiso INTERNET. Emulador boot_completed1,
+  modo avión0 y proxy global null. No se audita toda la app por estas lecturas.
+## D8b — validador corregido y regresión aprobada; sesión anterior retirada
+
+22 de octubre de2026. Segundo ensayo de snapshot:48/48 pruebas HTTP/PostgreSQL,
+cero omitidas,72 migraciones aplicadas únicamente en base propia desechable.
+Incluye inicio con dos cuentas, imágenes en pregunta actual, imagen alterada y
+campo extra rechazados, formato antiguo aceptado y tercero sin autorización.
+También conserva las3 regresiones de timeout local y los demás44 casos C5.
+No equivale a dos pantallas Android observadas: falta repetir Listo y continuar
+D8b con el humano. Reproducción del fallo previo conserva sus evidencias abajo.
+
+Nueva sesión propia: directorio C:\Users\modaf\AppData\Local\Temp\saberplus-i2-local-zFyDcK,
+fixture «Opciones C2-D - ensayo87a75d92»,12 preguntas/cuatro opciones/dos imágenes,
+72 migraciones, API43187/ready OK y database UP. Reverse activo en ambos clientes;
+solo-on no habilitado. APK corregida conservada, sin credenciales compiladas.
+Se comunicó ruta de AUTH_E2E_PASSWORD nueva y se pidió login manual student en
+el teléfono/zero en el emulador, ambos Inicio antes de volver a buscar rival.
+Contrato backend documentado en backend/docs/C5C2_TIMEOUT_LOCAL.md; integración
+Flutter y pausa siguen pendientes. No dar D8b por aprobado por el ensayo automático.
+
+La sesión6263e056 se cerró ordenadamente mediante su control.json/stop tras
+verificar propietario; runner confirmó retirada de su API/PostgreSQL. Estaba
+cerca del límite original de dos horas; no se extiende ni se reutiliza su clave.
+npm run build completo aprobado (Prisma generate y Nest) al liberar su DLL. Preparar
+sesión nueva con fixture/clave nueva antes de pedir login manual en ambos clientes.
+
+## D8b — fallo al marcar segundo Listo; snapshot con imágenes rechazado
+
+22 de octubre de2026,21:22–21:25 America/Bogota. Humano: emulador muestra Listo
+con rival preparándose; teléfono muestra «No fue posible procesar la acción del
+juego» y luego timeout. No hay aprobación de figuras, respuestas o reanudación.
+
+- SQL real, partida4a35dc0d-b9c1-4873-a18d-fa517e95b502: PREPARANDO,
+  zero A listo:true/student B listo:false, ronda0/version1,20 preguntas/cero
+  respuestas. No se fuerza ACTIVA ni se suprimen controles para continuar.
+- Reproducción de solo lectura con buildTugSnapshot y función PostgreSQL real:
+ 20 opciones ilustradas; tug_snapshot_original_valid(snapshot,partida):false.
+  El mismo objeto sin imagenUrl en opciones da true. No se cambió la partida.
+  Evidencia local backend/output/c5-c2-d8b-snapshot-readonly.json.
+- Causa: validador SQL original compara cada opción con exactamente los campos
+  anteriores y rechaza imagenUrl. Necesita migración aditiva específica C2,
+  reemplazando la función y preservando todos sus controles originales. La nueva
+  comparación admite el campo opcional solo si coincide con la Respuesta original;
+  JSON antiguo sin campo sigue permitido; otros campos extra siguen rechazados.
+- Nueva regresión HTTP/SQL: dos cuentas, emparejamiento/Listo, snapshot con imágenes,
+  rechazo de imagen alterada/metadatos extra/tercer propietario y JSON antiguo.
+  Ensayo en otro PostgreSQL propio en curso, sin alterar la sesión humana.
+- Compilación Nest del contrato local aprobada. npm run build completo aún debe
+  repetir Prisma generate al cerrar la API que mantiene la DLL ocupada.
+
+**Siguiente paso:** terminar regresión de snapshot, preparar API/PostgreSQL propios
+con la migración comprobada y volver a observar Listo/figuras en ambos clientes.
+La sesión actual tiene límite original de dos horas; no extenderlo ni reutilizar
+su clave al crear otra. D8b y timeout Flutter pendientes; C2 abierta.
+## D8b — sala confirmada en ambos clientes tras la corrección
+
+22 de octubre de2026, posterior a la instalación corregida. El humano confirma:
+«Ya aparecen en la sala con el botón estoy listo». **Preparación de sala aprobada
+visualmente en ambos clientes**, student/teléfono y zero/emulador; aún faltan
+preguntas/figuras, selección propia, reanudación y resultado. Se pide Listo en
+ambos y comparar opciones ilustradas. No se aprueba D8b completo.
+
+Análisis dirigido de Flutter:2 archivos, sin incidencias. Regresión online9/9.
+
+Timeout local, evidencia automática posterior en otro PostgreSQL propio:
+primer ensayo con71 migraciones:44/47 aprobadas y3 nuevas fallidas al crear
+TUG_LOCAL (HTTP500). La restricción trivia_evidence_context solo admite modos
+anteriores. Se amplía la migración no publicada con una rama exclusiva local,
+sin retirar las condiciones existentes de Trivia/Fantasma; local exige ausencia
+de evidencia/competición/presencia, sin asistencias y vigencia600s. Segundo
+ensayo:47/47 aprobadas, cero omitidas,71 migraciones/PostgreSQL16 propio. Incluye
+10.1s de espera real, tres reintentos concurrentes con una sola fila, rechazo de
+otro propietario/Trivia/Fantasma y cierre de última pregunta sin duplicar ni XP.
+Recursos de ambos ensayos retirados por su runner propietario.
+No se modifica ni migra la sesión humana D8b por ejecutar esas pruebas.
+
+## D8b — corrección del transporte, pendiente confirmación visual
+
+22 de octubre de2026,21:13 America/Bogota. Humano: ambos clientes vuelven a
+conectar; al reintentar Buscar rival los dos quedan cargando. D8b sigue pendiente.
+
+- Causa reproducida con el cliente Flutter real contra la API propia: Socket.IO
+  con recuperación entrega [Map del estado, String offset]. El adaptador aceptaba
+  únicamente Map, lo convertía en objeto vacío y fallaba al leer servidorAhora.
+  Diagnóstico de tipos sin valores; no falta el reloj en el contrato del servidor.
+- Corrección en tug_realtime_client.dart: extraer solo el objeto de la forma
+  exacta [Map,String]; conservar Map directo y las validaciones del decoder.
+  También sirve para conectado/actualizada/presencia/error con el mismo offset.
+  No desactivar recuperación, inventar reloj o cambiar permisos/contrato online.
+  Instrumentación temporal retirada del código entregable.
+- Regresión persistente: WebSocket local emite protocolo Socket.IO con offset y
+  pasa por la librería real, sin clientes/partidas humanos simulados. Comprueba
+  sala y rival; casos de forma inválida conservan rechazo. Suite online:9/9.
+- Sondeo de lectura de la partida humana anterior: EXPIRADA desde21:07:39,
+  listoA/listoB:false, ronda0/version2,20 preguntas/cero respuestas/tres eventos.
+  Intento diagnóstico de sincronizarla devuelve409 «Partida terminal o cierre
+  pendiente»; no se cuenta como validación integrada aprobada. Un primer sondeo
+  tras corrección quedó sin evento al no haber partida activa (timeout20s).
+- APK por arquitectura compilada: assembleDebug124.4s, ARM64/x86_64. Teléfono
+  instalado correctamente. Emulador: primer push falló EOF al reconectar ADB;
+  segundo intento streaming terminó Success. Reverse43187 restablecido y apps
+  abiertas por ADB. Preparación automática, sin atribuir observación humana.
+- Solicitado al humano Buscar rival en ambos, una sola vez y sin Estoy listo,
+  para observar la sala. Esta búsqueda nueva se justifica por expiración anterior.
+- Borrador de timeout local: TypeScript --noEmit aprobado tras explicitar la
+  allowlist competitiva existente. Jest5/62 aprobado; HTTP/SQL y build completo
+  pendientes. Falta integrar Flutter y conservar su comportamiento de pausa;
+  no instalar el borrador incompleto en la sesión D8b actual.
+
+**Siguiente paso:** esperar confirmación visual de sala en ambos clientes; después
+Listo, imágenes, selección independiente y reanudación siguiendo D8b. Completar
+contrato/Flutter y regresiones del timeout local antes de nueva revisión de Pavel.
+## D8b — diagnóstico de estado inválido y conexión del emulador
+
+22 de octubre de2026, continuación posterior al emparejamiento. Evidencia humana:
+el teléfono sigue mostrando «El servidor envió un estado de partida inválido»;
+el emulador vuelve a mostrar «No pudimos conectar con SaberPlus». No se aprueba
+sala, imágenes ni respuestas. Se conserva la observación de apariencia extraña
+del emulador sin atribuirle una causa ni aprobar su interfaz.
+
+- API propia sana; el emulador perdió reverse43187 tras reconectarse ADB durante
+  instalación. Se restablece el túnel. Instalación ARM64 de diagnóstico en teléfono
+  aprobada por ADB; pendiente confirmación visual del nuevo reintento.
+- HTTP y captura Socket.IO de lectura entregan estado PREPARANDO con reloj ISO,
+  referencias de jugadores A/B y cero respuestas. El decoder Flutter interpreta
+  esa captura:1/1. Esto no valida el transporte Android ni sustituye dos clientes.
+- Log del teléfono localiza TypeError al leer servidorAhora como String. Se agrega
+  diagnóstico temporal de tipos/claves, sin valores, credenciales ni payload.
+  Aún no se conoce el formato que ocasiona el fallo; no se inventa un reloj local.
+- Borrador backend del contrato exclusivo TUG_LOCAL y regresiones HTTP/SQL en
+  curso, todavía sin desplegar en esta sesión ni usarlo desde Flutter. No se
+  declara corregido el timeout. Jest afectado:5 suites/62 pruebas aprobadas.
+  Primera comprobación TypeScript detectó ampliación del enum en el verificador
+  competitivo; se mantiene su allowlist Trivia/Fantasma y se explicita el tipo.
+- npm run build bloqueado por EPERM al reemplazar DLL de Prisma utilizada por
+  nuestra API activa. No se borran dependencias ni se detienen procesos ajenos.
+  Falta repetir build y pruebas reales tras cerrar ordenadamente esta sesión.
+- Artefactos diagnósticos y capturas privados conservados en output local y
+  excluidos de staging; no incluir APK, logs crudos, tokens o secretos en commits.
+
+**Siguiente paso:** comprobar el reintento del teléfono con diagnóstico de formato
+y acceso del emulador; corregir el transporte con regresión si procede. Después
+completar D8b con observación humana y terminar timeout local autorizado. C2 abierta.
+## D8b — acceso confirmado y fallo durante emparejamiento
+
+22 de octubre de2026,20:38 America/Bogota. El humano confirma ambos Inicio:
+student en teléfono y zero en emulador, sesión6263e056. Se pide Matemáticas →
+Buscar rival en ambos, sin marcar Estoy listo. Informa **«Hay un error o no
+emparejan»**; se solicita texto exacto y cliente afectado antes de aprobar nada.
+
+- SQL real: partida a4bdc8f0-f353-4ac5-9a21-05970a7ce0c9 PREPARANDO,
+  Matemáticas, student A/zero B, listoA/listoB:false, ronda0/version1.20 preguntas,
+  cero respuestas y dos eventos. competitiveRulesVersion:null. El emparejamiento
+  ocurrió en servidor; no demuestra que ambas pantallas hayan mostrado la sala.
+  Evidencia ignorada: backend/output/c5-c2-d8b-emparejamiento-fallo.json.
+- ADB reconoce ambos clientes y confirma ambos túneles43187 activos. Sin
+  respuestas, flags solo, pasos de Listo automáticos ni simulación de presencia.
+  No crear otra partida ni pulsar repetidamente Buscar rival durante investigación.
+
+**Siguiente paso:** identificar aviso exacto/cliente, reproducir y corregir el
+fallo si procede; observar sala/figuras, selección propia y reanudación con dos
+clientes antes de aprobar D8b. Timeout local específico sigue autorizado y pendiente
+de implementar, sin alterar la partida online activa durante la investigación.
+
+## Reanudación — 22 de octubre de2026, 20:29 America/Bogota
+
+El humano pidió detener todo y luego reanudar. Se respeta la pausa: no se
+implementó el contrato nuevo durante ella. La API/PostgreSQL propios de19f60066
+fueron retirados por el runner; su directorio ya no existe. Se conserva evidencia.
+
+**Decisión de Pavel ya recibida y autorizada:** al vencer Tira local, registrar
+«sin respuesta», conservar la resolución de la ronda frente a CPU y avanzar a
+la siguiente pregunta si quedan preguntas y el duelo no terminó. Sin consumir
+comodines/anuncios/recompensas. Ampliar contrato exclusivo de Tira local con
+tiempo validado por servidor, autorización e idempotencia; no crear salto gratuito
+para Trivia/Fantasma ni modificar sus reglas. Añadir regresiones de timeout,
+reintento y última pregunta. **Implementación pendiente, no pedir la decisión otra vez.**
+
+- Ramas fix/c5-c2-timeout-d8b conservadas, HEAD Flutterf8a606d/backend65b4190.
+  Flutter conserva analysis_options.yaml ajeno y el test de timeout que reproduce
+  el fallo; no está corregido ni se cuenta aprobado. Backend sin cambios runtime.
+  No push, merge, despliegue o cambios OV-1 nuevos.
+- Último acceso humano: «No pudimo conectar con SaberPlus. Revisa tu conexión».
+  API estaba sana; los túneles se habían perdido al reconectarse ADB. Se
+  restablecieron, pero el humano pidió pausa antes de confirmar acceso. D8b no
+  ejecutado ni aprobado. No se reutilizan credenciales de aquella sesión.
+- Al reanudar: teléfono NFWKHYIZKVLF8LKJ y emulador5554 autorizados/con APK ya
+  instalada; emulador boot_completed1 y teléfono escala1.0. Panel4173 heredado
+  activo, config demo:false/API43187. API43187 inicialmente sin listener. Docker
+  responde; contenedor histórico5548e14c… conservado sin operarlo.
+- Se inicia otra sesión propia con el runner y opt-in de imágenes, usando el
+  build backend ya validado (sin cambios de runtime desde esa compilación).
+- Sesión nueva lista:70 migraciones, optionImagesLocal:true y solo admission
+  sin habilitar. Directorio
+  `C:\Users\modaf\AppData\Local\Temp\saberplus-i2-local-hjVNQZ`, nonce6263e056….
+  Clave nueva únicamente en flutter-private.json/AUTH_E2E_PASSWORD. Fixture
+  «Opciones C2-D - ensayo6263e056»12 preguntas/cuatro opciones/dos ilustradas,
+  guardado/recargado por API. Límite original de dos horas conservado.
+- Reverse43187 configurado para ambos clientes. am start -W OK: teléfono COLD
+  y emulador UNKNOWN, sin atribuir vista humana. Pruebas de sondeo HTTP por nc
+  desde Android no dieron una respuesta ready válida (sin salida/HTTP400 por
+  solicitud de sondeo); no se cuentan como comprobación de login ni como fallo
+  observado de la app. Sigue pendiente comprobar acceso en ambas pantallas.
+- Host: health ready OK/database UP y login protegido de student/zero aprobado
+  con las credenciales nuevas, HTTP201. Primer auxiliar asumía200 y falló esa
+  aserción; corregido para aceptar éxito2xx y exigir token sin imprimirlo.
+  Evidencia ignorada: backend/output/c5-c2-reanudacion-dos-clientes.json.
+- Ruta de clave comunicada al humano; cerrar sesiones anteriores y entrar como
+  student en teléfono/zero en emulador. No hay emparejamiento, respuesta ni
+  aprobación humana D8b por preparar estos servicios. Contrato de timeout aún
+  no implementado; regresión roja anterior conservada.
+
+**Siguiente paso:** confirmar login manual student en teléfono y zero en
+emulador, ambos Inicio antes de emparejar D8b. Continuar después con
+implementación y regresiones del timeout específico autorizado. C2 sigue abierta.
+
+## Revisión de Pavel — continuación desde main integrado
+
+22 de octubre de2026. Pavel auditó la entrega parcial y pide reproducir/corregir
+el vencimiento de Tira local y completar D8b con dos clientes. **C2 sigue abierta**;
+se conservan D1–D7/D8c/d/e aprobados; D8a tiene una regresión concreta de timeout
+en revisión. No se repiten los demás bloques ni se toca OV-1.
+
+- git fetch origin en ambos repos: Flutter PR#9 integrado en b8253e2 y backend
+  PR#11 integrado en3eb3f59. Revisados commits/diff/checkpoint respecto de las
+  referencias publicadas anteriores; son los cambios entregados más sus merges.
+  main actualizado con pull --ff-only. Ramas nuevas fix/c5-c2-timeout-d8b desde
+  esos main; analysis_options.yaml ajeno preservado con stash y restaurado,
+  respaldo conservado. Sin push/merge/despliegue nuevo.
+- Lectura focal: acta/relevo/README actuales, TugOfWarPage, modelos/reglas/tests,
+  repositorio remoto y contrato Trivia, controlador/servicio de Trivia, admisión
+  y flujo Tira online. No AGENTS aplicables encontrados. Auditoría acotada al fallo.
+- Regresión nueva: banco remoto de dos preguntas, ninguna respuesta, CPU también
+  deja vencer10 s; después de Continuar aparece tug-result-view aunque servidor
+  permanece activo. **Reproducido,0/1 aprobada** por final prematuro. Log ignorado
+  Flutter/output/c5-c2-timeout-reproducido.log. Primer auxiliar tenía un int nulo;
+  corregido. La espera fake inicial no avanzaba DateTime.now; se espera el reloj
+  real usado por la pantalla y se reproduce el fallo específico, sin cambiar runtime.
+- Causa: solo se incorpora la próxima pregunta cuando answer devuelve serverState;
+  timeout no hace esa petición y Continuar incrementa el índice local hasta un
+  falso fin del banco. Contrato Trivia no avanza por timeout de pregunta; SALTAR
+  consume una concesión válida y el vencimiento global del intento es distinto.
+  **Decisión pedida a Pavel**, antes de implementar regla nueva: sincronizar y
+  repetir la pendiente conservando ronda vencida, o ampliar contrato con timeout
+  validado por servidor. No se fabrican respuestas/recompensas ni se quitan guards.
+- El humano está preparando emulador. ADB ya reconoce teléfono NFWKHYIZKVLF8LKJ
+  y emulator-5554/Pixel8 arrancado. D8b aún sin observación humana. Dos intentos
+  install streaming del emulador fallan sin detalle; instalando sin streaming
+  para obtener resultado, sin borrar sus datos ni cambiar dependencias.
+- Sesión propia nueva: backend build aprobado, log c5-c2-timeout-backend-build.log;
+  runner70 migraciones/optionImagesLocal:true, solo admission sin habilitar.
+  Directorio `C:\Users\modaf\AppData\Local\Temp\saberplus-i2-local-y2rj6c`,
+  nonce19f60066…, API43187. Clave nueva solo flutter-private.json/AUTH_E2E_PASSWORD.
+  Banco «Opciones C2-D - ensayo19f60066»12 preguntas/cuatro opciones/dos imágenes,
+  guardado/recargado por API. No se reutilizan claves/datos antiguos ni producción.
+- Reproducción de contrato con HTTP/SQL reales, cuenta ficticia absent separada
+  de los dos clientes: intento0ad375eb-2b5c-4534-9c7c-041fd1351846 con12 preguntas.
+  Tras10500ms sin respuesta y GET protegido de sincronización conserva ACTIVO,
+  misma pregunta/índice0, cero respuestas/aciertos/errores/saltos/potenciadores y
+  ninguna liquidación competitiva. Evidencia ignorada:
+  backend/output/c5-c2-timeout-http-sql.json. No es prueba humana ni se envió
+  respuesta ficticia. Confirma que el timeout local no avanza el contrato actual.
+- D8b preparación automática: install --no-streaming -r termina Success en
+  emulator-5554, conservando datos. APK previa c19bd1a coincide con el runtime
+  de main actualizado (solo documentación/test nuevos hasta decidir timeout),
+  define dev/API43187 y sin credenciales. App abierta en ambos: am start OK;
+  emulador UNKNOWN/Wait3271ms y teléfono HOT, sin atribuir aprobación de pantalla.
+  Health ready OK/database UP; panel4173 demo:false/API43187. Teléfono reverse
+  activo; emulador reconectó su transporte y perdió reverse, se restableció y
+  --list confirmó host-15 tcp:43187. Sin borrar datos ni cambiar SDK.
+- Se comunicó la ruta de la clave nueva y se pidió login manual: teléfono
+  student@example.invalid/emulador zero@example.invalid; no buscar rival aún.
+  Confirmación humana de ambos Inicio y decisión de timeout pendientes.
+
+**Siguiente paso:** esperar decisión de Pavel para transición de timeout;
+en paralelo terminar instalación/conexión de dos clientes y login de cuentas
+distintas para D8b. Registrar cada confirmación física y evidencia SQL por separado.
+
 ## Entrega parcial — 22 de octubre de 2026, 11:00 America/Bogota
 
 **7/8 bloques aprobados. D8a/c/d/e aprobados; D8b pendiente por falta de segundo
