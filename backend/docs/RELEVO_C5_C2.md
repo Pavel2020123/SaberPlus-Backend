@@ -39,8 +39,15 @@ Nuevo ensayo D8b: sala e inicio con preguntas/figuras coincidentes confirmados
 en ambos, pero contenido fuera del globo de respuesta. Regresión de contorno0/4
 antes del fix; padding16/radio16 en TugOnlinePage deja13/13 online y análisis
 dirigidos sin incidencias. APK4003 instalada en ambos clientes; humano confirma
-contención visual correcta a22:21. Faltan selección independiente/reanudación;
-se solicita nueva partida porque la anterior finalizó (40 respuestas únicas).
+contención visual correcta a22:21. Después confirma selección propia y retorno
+desde segundo plano breve (reloj continúa). Falta observar resultado en ambas
+pantallas y conciliar SQL de la misma partida; no acredita cierre forzado o ACK perdido.
+Aclaración posterior del humano: empate solo en uno; teléfono queda en última
+ronda si terminó mientras estaba fuera. El texto «cuerda en el centro» no era
+observación gráfica. D8b no aprobado. Regresión0/2 y corrección de recovery por
+GET al volver/lifecycle, sin esperar animaciones antiguas ni aceptar versiones
+atrasadas:19/19 online; falta instalar APK nueva y observar retorno tras final
+en ambos clientes. No forzar resultado local ni reenviar respuestas al recuperar.
 No cambiar reglas por este fallo visual.
 
 Preparación original: **21 de octubre de 2026**. Este es el punto de entrada

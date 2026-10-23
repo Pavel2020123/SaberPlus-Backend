@@ -18,7 +18,9 @@ aprobados. Pendiente completar D8b e integrar Flutter/pausa del timeout local.
 D8b posterior: inicio y preguntas/figuras coincidentes observados en teléfono y
 emulador. Falla contención de opciones; Flutter corrige el borde con13/13 pruebas
 y análisis dirigidos aprobados. Contención aprobada por el humano en ambos con
-APK4003; faltan selección independiente y reanudación D8b.
+APK4003 y selección propia; después detecta retorno al teléfono sin resultado
+si terminó en segundo plano. Flutter corrige recuperación HTTP/lifecycle (19/19),
+pendiente APK/observación. D8b y timeout local Flutter/pausa siguen pendientes.
 
 **21 de octubre — [C5-C2-C validada automáticamente](backend/docs/C5C2C_CONSUMIDORES.md):**
 contratos/snapshots y Flutter incorporan imágenes opcionales sin cambiar XP ni

@@ -20,7 +20,9 @@ Flutter/conservar pausa y observar D8b; C2 sigue abierta.
 D8b posterior ya inició y muestra preguntas/figuras coincidentes en ambos; el
 humano detecta contenido fuera del botón. Corrección Flutter localizada,13/13
 pruebas online/análisis aprobados; humano confirma contención correcta en ambos
-con APK4003. Faltan selección independiente y reanudación D8b.
+con APK4003 y selección propia. Retorno al teléfono tras final en segundo plano
+falla: conserva última ronda. Flutter corrige recuperación HTTP/lifecycle (19/19),
+pendiente APK/observación. D8b y timeout local Flutter/pausa siguen pendientes.
 
 **21 de octubre — [C5-C2-C validada automáticamente](docs/C5C2C_CONSUMIDORES.md):**
 contratos/snapshots y Flutter incorporan imágenes opcionales sin cambiar XP ni

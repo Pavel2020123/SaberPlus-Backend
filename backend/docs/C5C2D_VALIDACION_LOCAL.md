@@ -1,5 +1,92 @@
 # C5-C2-D — Ensayo local de imágenes en opciones
 
+## D8b — fallo al volver al teléfono después del final; no aprobado
+
+22 de octubre de2026. Aclaración humana posterior: el empate aparece **solo en
+uno**; si sale en el celular y la partida acaba, queda en la última ronda que
+registró, sin mostrar nada más. «La cuerda terminó exactamente en el centro»
+es **texto**, no observación de la posición gráfica. Esta aclaración prevalece
+sobre cualquier interpretación anterior de retorno correcto en ambos clientes.
+
+- Se conserva aprobación de contención y selección; reanudación completa y
+  resultado en ambos **fallidos/pendientes**. No cerrar D8b ni C2.
+- SQL partida23e4e1f7… finalizó EMPATE/cuerda0/ronda20/versión42 a03:28:01.142
+  UTC, cuatro respuestas únicas/dos por cuenta y cero XP de partida. Servidor
+  terminó; no demuestra actualización de la pantalla que quedó atrasada.
+- Inspección localizada: TugOnlinePage no observa lifecycle; el controlador solo
+  sincroniza por eventos socket o fallback tras desconexión. Una conexión que
+  parece activa no provoca lectura al volver. Además un terminal puede conservar
+  animación de ronda antes de mostrar resultado. No cambiar resolución del juego.
+- Regresión nueva: pausar desde ACTIVA, finalizar servidor sin nueva conexión y
+  volver; variantes con evento terminal recibido o perdido durante el fondo.
+  Debe mostrar resultado confirmado, sin responder ni buscar otro rival por sí solo.
+
+Regresión previa:0/2 aprobadas; ambas variantes permanecen sin tug-online-result.
+Corrección en curso: observer de lifecycle llama recover al volver; cliente hace
+GET autenticado al estado de la partida, independiente del socket. El controlador
+omite animación histórica en recuperación y rechaza versiones atrasadas del mismo
+id. Si falla la lectura, muestra aviso y reintenta lectura, sin responder, inventar
+final o buscar otro rival. Pruebas iniciales15/15; se añaden HTTP403, solo GET,
+reintento tras fallo y protección contra snapshot atrasado. Suite ampliada19/19 aprobada.
+Análisis dirigido de módulo y test sin incidencias; primera ejecución encontró
+solo llaves faltantes en un if del test, corregidas. APK4004 por cliente en preparación.
+
+**Siguiente paso:** validar sincronización al volver y regresión
+incluyendo snapshot terminal, instalar APK y repetir solo retorno tras final en
+los dos clientes. Timeout local Flutter/pausa continúa pendiente.
+## D8b — selección independiente aprobada; reanudación en curso
+
+22 de octubre de2026,22:24 America/Bogota. Humano confirma «Sí» a teléfono
+azul, emulador sin marca heredada y luego elección propia naranja, conservando
+figuras junto a sus textos. **Selección independiente aprobada visualmente**;
+falta reanudación y conciliación SQL, no cerrar D8b todavía.
+
+- Lectura SQL03:24:31 UTC: partida23e4e1f7-9d13-4f57-9907-41c08459b834 ACTIVA,
+  ambos Listo, student A/zero B, ronda2/versión4,20 preguntas/dos respuestas
+  (una por cuenta), dos pares ronda/usuario únicos, una selección ilustrada y
+  cero eventos XP de partida. No convertir una selección ilustrada registrada
+  en prueba automática de dos respuestas ilustradas. competitiveRulesVersion:null.
+- Se pide Inicio Android del emulador2–3s y Recientes sin cerrar ni volver a
+  responder. Observar misma partida/ronda vigente o resultado, imágenes correctas
+  y ausencia de respuesta automática. Reloj del servidor continúa, no prometer
+  congelación de ronda. Teléfono permanece en la misma partida.
+- Esta prueba cubre segundo plano breve; no acredita cierre forzado, pérdida
+  de ACK, desconexión larga ni modo competitivo. Esperar observación humana.
+
+Confirmación humana de reanudación: «Sale bien, me muestra que se pasó a la otra
+ronda por el tiempo». **Retorno a ronda vigente aprobado**, con reloj continuo;
+solo segundo plano breve, no cierre forzado ni recuperación de pérdida de ACK.
+Se pide esperar resultado de esta misma partida y describir ambas perspectivas,
+sin crear otra ni jugar de nuevo, antes de cerrar la entrada D8b.
+
+Lectura detallada03:25:40 UTC: misma partida ACTIVA/ronda8/versión16, tres
+respuestas y tres pares únicos, una selección ilustrada registrada como
+azul de student en ronda1. Zero respondió sumas en rondas2 y7. El guion humano
+azul/naranja se confirmó visualmente, pero SQL **no corrobora dos selecciones
+ilustradas en la misma ronda**; conservar este límite y no inventar esa evidencia.
+Cero eventos XP de partida. No atribuir la tercera respuesta a la reanudación:
+no se capturó el instante exacto de cada acción humana. No hay pares duplicados.
+
+Conciliación adicional03:28:01 UTC: la partida de contención b9d44a87… tiene
+seis rondas con selecciones ilustradas en ambos clientes, tres con imágenes
+seleccionadas distintas;40 pares únicos/40 respuestas. Complementa la evidencia
+de selección, sin inventar un par azul/naranja en la ronda1 de23e4e1f7….
+La partida vigente23e4e1f7… llegó a ronda20/versión40 con cuatro respuestas,
+cuatro pares únicos (dos por cuenta) y cero eventos XP. Se espera resultado.
+
+Resultado humano descrito: «Solo dice partida empatada con las manos; la cuerda
+terminó exactamente en el centro», seguido de Buscar otro rival/Jugar contra PC.
+No informa cifras en esa pantalla; no atribuirle los conteos SQL. Se pregunta si
+lo vio en ambos dispositivos, porque su respuesta no especifica cada cliente.
+
+SQL03:29:11 UTC:23e4e1f7… FINALIZADA/EMPATE/cuerda0, ronda20/versión42,
+finalizado03:28:01.142 UTC. Cuatro respuestas (dos por cuenta), cuatro pares
+ronda/usuario únicos,43 eventos y cero XP de partida. Concuerda con el empate
+informado; falta confirmación visual explícita de ambos clientes para cerrar D8b.
+
+**Siguiente paso:** confirmar resultado en ambos clientes y cotejar respuestas
+sin duplicados y resultado en ambas perspectivas. Timeout local Flutter/pausa
+continúa pendiente. C2 abierta; no avanzar al resto de C5.
 ## D8b — borde corregido aprobado visualmente en ambos clientes
 
 22 de octubre de2026,22:21 America/Bogota. Tras APK4003, el humano responde
