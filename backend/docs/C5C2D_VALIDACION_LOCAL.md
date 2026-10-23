@@ -1,5 +1,28 @@
 # C5-C2-D — Ensayo local de imágenes en opciones
 
+## D8b — borde corregido aprobado visualmente en ambos clientes
+
+22 de octubre de2026,22:21 America/Bogota. Tras APK4003, el humano responde
+«Listo, todo bien» a texto/figuras completos dentro de sus botones en teléfono y
+Pixel_8_2. **Contención visual aprobada en ambos**. No ampliar esa confirmación
+a selección independiente o reanudación; D8b todavía pendiente de esos pasos.
+
+- SQL propio de lectura03:21:26 UTC: partida b9d44a87-34e9-449b-8d51-ea6297978671
+  FINALIZADA/ronda20/versión42,20 preguntas,40 respuestas (20 por cuenta),40
+  pares ronda/usuario únicos,13 selecciones ilustradas,43 eventos y cero eventos
+  XP de esa partida. Finalizado03:20:47.310 UTC. Student A/zero B, ambos Listo;
+  competitiveRulesVersion:null/presenciaVersion1. No certifica modo competitivo.
+- Búsqueda64705f2e… CANCELADA antes de Listo, sin respuestas; partida anterior
+  fb5034b9… conserva8 respuestas/versión12/finalizado03:03:45.458. No atribuir
+  esas filas a una prueba humana de reanudación. Recibos timestamped locales
+  c5-c2-d8b-readonly-<timestamp>.json preservan las lecturas.
+- Se pide nueva partida solo para selección independiente, pues la anterior
+  terminó: teléfono azul; verificar que el emulador no hereda marca, luego naranja
+  en emulador. Esperar confirmación antes de aprobar aislamiento de selección.
+
+**Siguiente paso:** observar selección independiente y después reanudación en
+segundo plano sin duplicación. No repetir otros bloques. Timeout local Flutter/
+pausa sigue pendiente, C2 abierta y sin publicación nueva.
 ## D8b — borde corregido, APK4003 instalada en ambos; falta observación humana
 
 22 de octubre de2026. Corrección Flutter9234a57: padding16 y rectángulo de

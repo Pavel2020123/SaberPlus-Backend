@@ -38,8 +38,10 @@ AVD anterior no aprueba por sí sola el nuevo ensayo D8b.
 Nuevo ensayo D8b: sala e inicio con preguntas/figuras coincidentes confirmados
 en ambos, pero contenido fuera del globo de respuesta. Regresión de contorno0/4
 antes del fix; padding16/radio16 en TugOnlinePage deja13/13 online y análisis
-dirigidos sin incidencias. APK4003 instalada en ambos clientes; repetir observación
-afectada y luego selección/reanudación. No cambiar reglas por este fallo visual.
+dirigidos sin incidencias. APK4003 instalada en ambos clientes; humano confirma
+contención visual correcta a22:21. Faltan selección independiente/reanudación;
+se solicita nueva partida porque la anterior finalizó (40 respuestas únicas).
+No cambiar reglas por este fallo visual.
 
 Preparación original: **21 de octubre de 2026**. Este es el punto de entrada
 para el **nuevo compañero que sustituye al propietario en C2**. No es el compañero

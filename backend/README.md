@@ -19,7 +19,8 @@ inventados; Jest5/62, TypeScript y build completo aprobados. Falta integrar
 Flutter/conservar pausa y observar D8b; C2 sigue abierta.
 D8b posterior ya inició y muestra preguntas/figuras coincidentes en ambos; el
 humano detecta contenido fuera del botón. Corrección Flutter localizada,13/13
-pruebas online/análisis aprobados; falta observación tras actualizar las APK.
+pruebas online/análisis aprobados; humano confirma contención correcta en ambos
+con APK4003. Faltan selección independiente y reanudación D8b.
 
 **21 de octubre — [C5-C2-C validada automáticamente](docs/C5C2C_CONSUMIDORES.md):**
 contratos/snapshots y Flutter incorporan imágenes opcionales sin cambiar XP ni
