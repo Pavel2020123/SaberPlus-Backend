@@ -1,5 +1,58 @@
 # C5-C2-D — Ensayo local de imágenes en opciones
 
+## D8b — validador corregido y regresión aprobada; sesión anterior retirada
+
+22 de octubre de2026. Segundo ensayo de snapshot:48/48 pruebas HTTP/PostgreSQL,
+cero omitidas,72 migraciones aplicadas únicamente en base propia desechable.
+Incluye inicio con dos cuentas, imágenes en pregunta actual, imagen alterada y
+campo extra rechazados, formato antiguo aceptado y tercero sin autorización.
+También conserva las3 regresiones de timeout local y los demás44 casos C5.
+No equivale a dos pantallas Android observadas: falta repetir Listo y continuar
+D8b con el humano. Reproducción del fallo previo conserva sus evidencias abajo.
+
+Nueva sesión propia: directorio C:\Users\modaf\AppData\Local\Temp\saberplus-i2-local-zFyDcK,
+fixture «Opciones C2-D - ensayo87a75d92»,12 preguntas/cuatro opciones/dos imágenes,
+72 migraciones, API43187/ready OK y database UP. Reverse activo en ambos clientes;
+solo-on no habilitado. APK corregida conservada, sin credenciales compiladas.
+Se comunicó ruta de AUTH_E2E_PASSWORD nueva y se pidió login manual student en
+el teléfono/zero en el emulador, ambos Inicio antes de volver a buscar rival.
+Contrato backend documentado en backend/docs/C5C2_TIMEOUT_LOCAL.md; integración
+Flutter y pausa siguen pendientes. No dar D8b por aprobado por el ensayo automático.
+
+La sesión6263e056 se cerró ordenadamente mediante su control.json/stop tras
+verificar propietario; runner confirmó retirada de su API/PostgreSQL. Estaba
+cerca del límite original de dos horas; no se extiende ni se reutiliza su clave.
+npm run build completo aprobado (Prisma generate y Nest) al liberar su DLL. Preparar
+sesión nueva con fixture/clave nueva antes de pedir login manual en ambos clientes.
+
+## D8b — fallo al marcar segundo Listo; snapshot con imágenes rechazado
+
+22 de octubre de2026,21:22–21:25 America/Bogota. Humano: emulador muestra Listo
+con rival preparándose; teléfono muestra «No fue posible procesar la acción del
+juego» y luego timeout. No hay aprobación de figuras, respuestas o reanudación.
+
+- SQL real, partida4a35dc0d-b9c1-4873-a18d-fa517e95b502: PREPARANDO,
+  zero A listo:true/student B listo:false, ronda0/version1,20 preguntas/cero
+  respuestas. No se fuerza ACTIVA ni se suprimen controles para continuar.
+- Reproducción de solo lectura con buildTugSnapshot y función PostgreSQL real:
+ 20 opciones ilustradas; tug_snapshot_original_valid(snapshot,partida):false.
+  El mismo objeto sin imagenUrl en opciones da true. No se cambió la partida.
+  Evidencia local backend/output/c5-c2-d8b-snapshot-readonly.json.
+- Causa: validador SQL original compara cada opción con exactamente los campos
+  anteriores y rechaza imagenUrl. Necesita migración aditiva específica C2,
+  reemplazando la función y preservando todos sus controles originales. La nueva
+  comparación admite el campo opcional solo si coincide con la Respuesta original;
+  JSON antiguo sin campo sigue permitido; otros campos extra siguen rechazados.
+- Nueva regresión HTTP/SQL: dos cuentas, emparejamiento/Listo, snapshot con imágenes,
+  rechazo de imagen alterada/metadatos extra/tercer propietario y JSON antiguo.
+  Ensayo en otro PostgreSQL propio en curso, sin alterar la sesión humana.
+- Compilación Nest del contrato local aprobada. npm run build completo aún debe
+  repetir Prisma generate al cerrar la API que mantiene la DLL ocupada.
+
+**Siguiente paso:** terminar regresión de snapshot, preparar API/PostgreSQL propios
+con la migración comprobada y volver a observar Listo/figuras en ambos clientes.
+La sesión actual tiene límite original de dos horas; no extenderlo ni reutilizar
+su clave al crear otra. D8b y timeout Flutter pendientes; C2 abierta.
 ## D8b — sala confirmada en ambos clientes tras la corrección
 
 22 de octubre de2026, posterior a la instalación corregida. El humano confirma:
@@ -9,6 +62,18 @@ preguntas/figuras, selección propia, reanudación y resultado. Se pide Listo en
 ambos y comparar opciones ilustradas. No se aprueba D8b completo.
 
 Análisis dirigido de Flutter:2 archivos, sin incidencias. Regresión online9/9.
+
+Timeout local, evidencia automática posterior en otro PostgreSQL propio:
+primer ensayo con71 migraciones:44/47 aprobadas y3 nuevas fallidas al crear
+TUG_LOCAL (HTTP500). La restricción trivia_evidence_context solo admite modos
+anteriores. Se amplía la migración no publicada con una rama exclusiva local,
+sin retirar las condiciones existentes de Trivia/Fantasma; local exige ausencia
+de evidencia/competición/presencia, sin asistencias y vigencia600s. Segundo
+ensayo:47/47 aprobadas, cero omitidas,71 migraciones/PostgreSQL16 propio. Incluye
+10.1s de espera real, tres reintentos concurrentes con una sola fila, rechazo de
+otro propietario/Trivia/Fantasma y cierre de última pregunta sin duplicar ni XP.
+Recursos de ambos ensayos retirados por su runner propietario.
+No se modifica ni migra la sesión humana D8b por ejecutar esas pruebas.
 
 ## D8b — corrección del transporte, pendiente confirmación visual
 

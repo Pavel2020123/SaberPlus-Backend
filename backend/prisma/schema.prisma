@@ -1420,6 +1420,7 @@ enum EstadoConcesionRecompensa {
 enum ModalidadTriviaRush {
   TRIVIA_RUSH
   GHOST_DUEL
+  TUG_LOCAL
 }
 
 model IntentoTriviaRush {

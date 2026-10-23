@@ -11,9 +11,10 @@ Pavel auditó la entrega parcial; PR Flutter#9/b8253e2 y backend#11/3eb3f59 ya
 integrados en main remoto (fetch verificado). Revisión en fix/c5-c2-timeout-d8b,
 desde main actualizado: timeout de Tira local y D8b con teléfono/emulador.
 C2 abierta, sin publicar cambios nuevos ni intervenir OV-1.
-Flutter corrige eventos Socket.IO con offset de recuperación (9/9 pruebas),
-pendiente observación humana en ambos clientes. Contrato exclusivo de timeout
-local autorizado en desarrollo; no está activo en la sesión humana actual.
+Flutter corrige eventos Socket.IO con offset de recuperación (9/9 pruebas);
+sala confirmada en ambos clientes. Corregido el rechazo SQL del snapshot con
+imágenes al iniciar:48/48 HTTP/SQL,72 migraciones solo temporales y build completo
+aprobados. Pendiente inicio humano D8b e integración Flutter/pausa del timeout local.
 
 **21 de octubre — [C5-C2-C validada automáticamente](backend/docs/C5C2C_CONSUMIDORES.md):**
 contratos/snapshots y Flutter incorporan imágenes opcionales sin cambiar XP ni

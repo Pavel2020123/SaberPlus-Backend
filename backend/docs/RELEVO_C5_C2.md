@@ -17,6 +17,14 @@ de sala. La búsqueda inicial expiró sin respuestas durante el diagnóstico.
 Timeout local: regla de Pavel ya autorizada en acta; borrador de contrato TUG_LOCAL
 aislado en backend, pendiente integración Flutter/build completo/HTTP-SQL y pausa.
 No declarar corregido el timeout ni aprobada D8b por preparar servicios o instalar.
+Actualización: sala confirmada visualmente en ambos tras el fix de transporte.
+Segundo Listo falla: la función SQL tug_snapshot_original_valid rechaza imagenUrl
+en opciones. Reproducción de solo lectura false/con imágenes, true/sin ellas;
+migración específica y regresión HTTP/SQL aprobada:48/48,72 migraciones solo en
+PostgreSQL propio. No forzar inicio ni retirar controles de snapshot. Contrato
+local HTTP/SQL validado y npm run build completo aprobado; integración Flutter/
+pausa y observación humana D8b siguen pendientes. Sesión6263e056 retirada
+ordenadamente al acercarse su límite de dos horas; usar la nueva clave de sesión.
 
 Preparación original: **21 de octubre de 2026**. Este es el punto de entrada
 para el **nuevo compañero que sustituye al propietario en C2**. No es el compañero

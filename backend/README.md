@@ -10,10 +10,13 @@ aprobación todavía. [Entrega histórica y comandos](docs/C5C2_ENTREGA_PARCIAL.
 Pavel auditó la entrega parcial; PR Flutter#9/b8253e2 y backend#11/3eb3f59 ya
 integrados en main remoto. Nueva revisión en fix/c5-c2-timeout-d8b desde main
 actualizado: timeout de Tira local y D8b con dos clientes. C2 sigue abierta.
-Flutter corrige eventos Socket.IO con offset de recuperación (9/9 pruebas),
-pendiente confirmación humana. Contrato exclusivo TUG_LOCAL en desarrollo;
-Jest afectado 5 suites/62 pruebas y TypeScript aprobados. Build completo y
-regresiones HTTP/SQL del borrador pendientes; no está activo en la sesión humana.
+Flutter corrige eventos Socket.IO con offset de recuperación (9/9 pruebas);
+sala confirmada en ambos clientes. El segundo Listo detectó rechazo SQL de
+opciones con imágenes: migración corregida y48/48 HTTP/SQL con72 migraciones
+solo temporales. Contrato TUG_LOCAL backend validado: tiempo de servidor,
+autorización, reintento concurrente y última pregunta sin respuestas ni XP
+inventados; Jest5/62, TypeScript y build completo aprobados. Falta integrar
+Flutter/conservar pausa y observar D8b; C2 sigue abierta.
 
 **21 de octubre — [C5-C2-C validada automáticamente](docs/C5C2C_CONSUMIDORES.md):**
 contratos/snapshots y Flutter incorporan imágenes opcionales sin cambiar XP ni
