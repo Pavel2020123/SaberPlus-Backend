@@ -1,35 +1,55 @@
 # SaberPlus Backend
 
-**Nuevo compañero de C2 (no OV-1):** comenzar por
-[relevo operativo completo](backend/docs/RELEVO_C5_C2.md) y
-[acta C2-D](backend/docs/C5C2D_VALIDACION_LOCAL.md). Incluye ambos repos,
-cuentas/clave temporal, Docker/USB y pruebas; puede corregir Flutter/API/panel
-de C2. **23 de octubre: entrega a nueva revisión**, regresión D8a y D8b aprobadas
-dentro del alcance del acta; D1–D7 y D8c/d/e conservados. **C2 abierta a auditoría
-de Pavel.** [Entrega actual y comandos](backend/docs/C5C2_REVISION_TIMEOUT_D8B.md),
-[entrega parcial histórica](backend/docs/C5C2_ENTREGA_PARCIAL.md).
-Pavel auditó la entrega parcial; PR Flutter#9/b8253e2 y backend#11/3eb3f59 ya
-integrados en main remoto (fetch verificado). Revisión en fix/c5-c2-timeout-d8b,
-desde main actualizado: timeout de Tira local y D8b con teléfono/emulador.
-C2 abierta, sin publicar cambios nuevos ni intervenir OV-1.
-Flutter corrige eventos Socket.IO con offset de recuperación (9/9 pruebas);
-sala confirmada en ambos clientes. Corregido el rechazo SQL del snapshot con
-imágenes al iniciar:48/48 HTTP/SQL,72 migraciones solo temporales y build completo
-aprobados. Flutter/pausa del timeout local ya integrados:25 dirigidas y50/50
-HTTP/SQL con73 migraciones. Android/4005 confirma avance tras timeout, pausa
-activa8s, reanudación, figuras/textos contenidos y acierto. Regresión final:
-Flutter1.016 aprobadas/16 opt-in omitidas, backend128/1.675; análisis dirigido y
-build aprobados. Recibos sanitizados enlazados en la entrega.
-D8b posterior: inicio y preguntas/figuras coincidentes observados en teléfono y
-emulador. Falla contención de opciones; Flutter corrige el borde con13/13 pruebas
-y análisis dirigidos aprobados. Contención aprobada por el humano en ambos con
-APK4003 y selección propia; después detecta retorno al teléfono sin resultado
-si terminó en segundo plano. Flutter corrige recuperación HTTP/lifecycle (19/19),
-APK4004 observada el23: victoria en emulador y mismo ganador al volver en teléfono.
-SQL concuerda: dos respuestas únicas solo del emulador y ninguna del teléfono.
-D8b aprobado; no acredita cierre forzado, ACK perdido o competición. Timeout
-local integrado y regresión D8a aprobada; C2 espera nueva revisión de Pavel.
-[Contrato del flujo local](backend/docs/C5C2_TIMEOUT_LOCAL.md).
+**Trabajo vigente del 25/oct:** [limpieza de ESLint backend por bloques](backend/docs/LIMPIEZA_ESLINT_BACKEND.md),
+autorizada por Pavel. H3 queda en espera con 1/4 guiones aprobado; H3-2 pendiente
+de regresar a la primera cuenta. No dar H3 ni la limpieza global por terminadas.
+OV-1 continúa independiente; conservar todos los cambios locales anteriores.
+Actualización 26/oct: bloque competitivo L2-B/L3 verificado con 103 pruebas
+dirigidas y ambos proyectos TypeScript aprobados.
+Limpieza parcial: quedan 283 errores/179 advertencias de lint; sigue L2-B/L3.
+
+**Checkpoint vigente — 25/oct:** [H3 preparada y pausa antes de USB](backend/docs/C5_H3_INTEGRACION.md).
+Panel 144/144, sintaxis 29 módulos y Flutter dirigido 39/39. Integración H3
+PostgreSQL/HTTP/Chromium aprobada: 92/92, 78 migraciones solo temporales.
+Sesión humana y APK debug preparadas; Flutter completo: 1.020 aprobadas,
+16 omitidas, cero fallos. APK de pruebas instalada; H3-1 aprobada en Android:
+originales en historial/cuaderno tras edición y archivo, sin XP adicional.
+Humanos 1/4: sigue H3-2, cambio de cuenta. H3 abierta; quedan 6 entregas C5.
+Las entradas fechadas anteriores son antecedentes; OV-1 continúa independiente.
+
+**Continuación vigente24/oct: [H2B4 y H2 cerradas localmente](backend/docs/C5_H2B4_FUENTES_MUTABLES.md).**
+92/92 SQL/HTTP,78 migraciones temporales y178 unitarias editoriales. Denegación
+explícita sin prueba de versión, sin inventar pasado. Sigue preparar H3, después
+4 guiones humanos con USB;6 entregas C5. Sin Android/despliegue ni cambios OV-1.
+
+**Continuación24/oct: [H2B1 validada localmente](backend/docs/C5_H2B1_TRIVIA_LOCAL.md).**
+Trivia/Fantasma y nuevas CPU:75/75 SQL/HTTP,76 migraciones solo temporales y
+131 suites/1.735 unitarias backend. Este antecedente continuó en H2B2; entonces quedaban3 partes H2
+y7 entregas C5. Sin Android, despliegue ni cambios OV-1.
+
+**24/oct: [H2A validada localmente](backend/docs/C5_H2_SNAPSHOTS.md)** para
+Cima/Guardián/Rescate:68/68 SQL/HTTP,75 migraciones solo temporales y159 dirigidas/build.
+Este antecedente continuó en H2B1; H2 completa sigue abierta. Sin Android ni despliegue.
+
+**23 de octubre: [C5-C2 cerrada localmente y auditada](backend/docs/C5C2_CIERRE_LOCAL.md).**
+D1–D8 con D8a–e cubiertos en las actas; timeout/pausa de Tira local y
+presentación/recuperación online revisados, sin tocar OV-1 ni reglas de XP.
+
+Entrega funcional integrada/publicada: app PR #10/`44635ae`,
+backend PR #12/`9c225cb`. Remates en `fix/c5-c2-cierre-local`, todavía sin
+commit/push nuevos. La auditoría de este PC repitió build/1.675 backend,
+1.016 Flutter/16 omitidas y132 panel. Las50 PostgreSQL/HTTP,73 migraciones y
+Android son evidencia previa del compañero, no repetida durante este cierre.
+
+**24/oct: [C5-H1 cerrada localmente](backend/docs/C5_H1_HISTORIAL_REVOCACION.md).**
+58/58 PostgreSQL/HTTP con74 migraciones únicamente temporales en Docker;
+150 dirigidas, build y panel Chromium escritorio/390px aprobados. Sigue H2/H3.
+No guardar bytes PDF/offline aún; quedan7 entregas C5. Sin Android ni SQL remoto.
+C5 general sigue abierta: proveedor persistente, fotos/evidencias y operación
+requieren sus propios contratos/pruebas. Sin despliegue ni migración remota.
+[Cierre y límites](backend/docs/C5C2_CIERRE_LOCAL.md), [relevo](backend/docs/RELEVO_C5_C2.md).
+
+## Antecedentes de C5 (no indican el siguiente paso)
 
 **21 de octubre — [C5-C2-C validada automáticamente](backend/docs/C5C2C_CONSUMIDORES.md):**
 contratos/snapshots y Flutter incorporan imágenes opcionales sin cambiar XP ni

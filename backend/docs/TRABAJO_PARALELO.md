@@ -1,5 +1,20 @@
 # Reparto paralelo — 12 de octubre de 2026
 
+**Continuación vigente24/oct: [H2B4 y H2 cerradas localmente](C5_H2B4_FUENTES_MUTABLES.md).**
+92/92 SQL/HTTP,78 migraciones temporales,178 unitarias editoriales. Sigue
+preparar H3 y después4 guiones humanos con USB;6 entregas C5. Sin Android/despliegue.
+OV-1 conserva compañero, rama y checkpoint; el propietario continúa C5.
+
+**C2 cerrada localmente23/oct:** [acta auditada](C5C2_CIERRE_LOCAL.md), funcional
+integrado/publicado app44635ae/backend9c225cb. No reiniciar C2 ni D8b por las
+notas inferiores. Remates en fix/c5-c2-cierre-local, sin commit/push nuevos.
+[H1 cerrada localmente24/oct](C5_H1_HISTORIAL_REVOCACION.md):58/58 SQL/HTTP,
+74 migraciones temporales y150 dirigidas/build. [H2A](C5_H2_SNAPSHOTS.md):
+Cima/Guardián/Rescate,68/68 SQL/HTTP,75 migraciones temporales y159 dirigidas/build.
+Estas cifras son antecedentes; no sumarlas a la suite vigente H2B1.
+
+## Antecedentes fechados (no son la siguiente etapa)
+
 **Relevo vigente del21:** otro compañero termina C5-C2 del propietario según
 [su guía](RELEVO_C5_C2.md) y [acta C2-D](C5C2D_VALIDACION_LOCAL.md),0/8 humanos.
 No es el compañero de OV-1. Puede corregir Flutter/API/panel dentro de C2;

@@ -1,5 +1,10 @@
 # Relevo de pruebas locales para compañeros
 
+**Entrada vigente23/oct:** [C2 cerrada en su alcance local](C5C2_CIERRE_LOCAL.md).
+No remontar servicios ni repetir D8b por los guiones antiguos. Propietario continúa
+H2 tras [H1 cerrada localmente24/oct](C5_H1_HISTORIAL_REVOCACION.md):58/58 SQL/HTTP
+con74 migraciones solo temporales. Sin Android ni cambios OV-1; C5 sigue abierta.
+
 **Entrada vigente del21:** nuevo compañero para terminar C5-C2, distinto del
 responsable de OV-1. Leer [relevo completo](RELEVO_C5_C2.md) y
 [acta C2-D](C5C2D_VALIDACION_LOCAL.md),0/8 humanos con D8a–e pendientes.

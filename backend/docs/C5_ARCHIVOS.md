@@ -1,6 +1,32 @@
 # C5 — Archivos y recursos persistentes
 
+**Continuación24/oct: [H2B4 y H2 cerradas en backend local](C5_H2B4_FUENTES_MUTABLES.md).**
+92/92 SQL/HTTP,78 migraciones temporales,178 unitarias editoriales. No se crea
+versionado ficticio de lecciones/casos. Sigue preparar H3 y sus4 guiones humanos;
+6 entregas C5 pendientes. Sin Android/despliegue.
+
+**Antecedente24/oct: [H2A validada localmente](C5_H2_SNAPSHOTS.md)** para Cima/Guardián/Rescate:
+68/68 SQL/HTTP,75 migraciones temporales,159 dirigidas y build. Entonces seguía H2B
+para otros formatos y quedaban7 entregas C5. Sin Android/remoto/OV-1 en ese cierre.
+
+**Estado vigente del23/oct: [C5-C2 cerrada localmente y auditada](C5C2_CIERRE_LOCAL.md).**
+D1–D8 y D8a–e cubiertos según actas y límites. Entrega funcional integrada y
+publicada: app PR #10/`44635ae`, backend PR #12/`9c225cb`.
+Los estados/órdenes de ejecución fechados antes de este cierre se conservan como
+antecedentes; no reiniciar C2 ni D8b por esas notas. Sin nuevo ensayo físico,
+Docker o despliegue en los remates C2.
+**Continuación del24/oct:** [H1 cerrada localmente](C5_H1_HISTORIAL_REVOCACION.md),
+58/58 SQL/HTTP con Docker y74 migraciones solo temporales. Sigue H2, luego H3
+y PDF/offline; resto C5 abierto, sin Android/despliegue y OV-1 separado.
+
 ## Checkpoint vigente — 21 de octubre de 2026
+
+**Continuación del24/oct:** [C5-H1 cerrada localmente](C5_H1_HISTORIAL_REVOCACION.md):
+58/58 PostgreSQL/HTTP,74 migraciones únicamente temporales,150 dirigidas y build
+correctos. Chromium escritorio/390px repetido; sin Android ni SQL remoto.
+[H0](C5_HISTORICOS.md) conserva la regla original propia salvo revocación.
+Siguen H2/H3 y PDF/offline; quedan7 entregas de C5 abiertas.
+Los estados del21 siguientes conservan su evidencia, no reinician C2.
 
 **C5-A/B y C5-C1 validadas localmente.** [C5-C1](C5C_FLUTTER.md) cierra5/5
 comprobaciones humanas Android,3/3 Flutter VM/HTTP/PostgreSQL repetidas y57/57
@@ -48,7 +74,7 @@ ha ejecutado CI remoto ni integrado esta rama.
 |---|---|
 | C5-A — Base backend | Cerrado en su alcance local: contrato, validación, permisos, recibos y adaptador privado. 70 pruebas nuevas dentro de la regresión 1.637; ensayo posterior PostgreSQL/HTTP 15/15 y controles del ejecutor 8/8 aprobados. Sin despliegue ni almacenamiento externo. |
 | C5-B — Panel | [Validada localmente](C5B_PANEL.md): selector, vista previa, recibo y asociación segura a preguntas/casos/lecciones. Publicación inmediata, protección de usos y lectura autenticada de recursos publicados.23/23 integradas A+B y recorrido Chromium real. |
-| C5-C — Flutter y consumidores | C1 online validada5/5 Android; C2-A/B/C validadas automáticamente, sigue C2-D humano según su acta. Carga por opción apagada por defecto. Después PDF/offline, autorización histórica y fotos/evidencias con contratos propios. No cerrar todo C5-C por esos ensayos. |
+| C5-C — Flutter y consumidores | C1 online5/5 Android y [C2 cerrada localmente](C5C2_CIERRE_LOCAL.md), con ocho bloques y D8a–e cubiertos según actas/límites. Sigue contrato de autorización histórica antes de PDF/offline; fotos/evidencias y resto C5 abiertos. Carga apagada por defecto, sin activación productiva. |
 | C5-D — Integración y operación | Pruebas por flujo, recuperación, permisos, proveedor persistente autorizado, respaldo/limpieza y validación final. Las pruebas de seguridad se hacen también en A/B/C. |
 
 El cierre global de C5 incluye recursos académicos, fotos y evidencia privada.
@@ -229,10 +255,11 @@ gestos humanos ni cierran toda C5. El celular se necesitará al tener lista la A
 - Elegir/configurar el adaptador Supabase Storage previsto, buckets privados,
   credenciales solo en servidor, permisos y URLs estables sin tokens en el catálogo.
   Servicio real y despliegue requieren autorización; no están implementados en A.
-- Asociación y protección de retirada implementadas en B; ampliar consumidores
-  móviles e históricos conservando publicación directa y protección de borradores.
+- Asociación/protección de retirada y lectores móviles C1/C2 implementados.
+  [H1](C5_H1_HISTORIAL_REVOCACION.md) y [H2 cerradas localmente](C5_H2B4_FUENTES_MUTABLES.md); sigue H3,
+  conservando publicación directa y protección de borradores; no abrir por evitar404.
 - Biblioteca/listado, sustitución/versiones y limpieza con política de conservación.
-- Opciones: base/contrato/panel y consumidores C2-A/B/C listos; falta ensayo Android C2-D. Activación apagada por defecto, según [acta C2](C5C2_OPCIONES.md).
+- Opciones: [C2 cerrada localmente](C5C2_CIERRE_LOCAL.md), incluidos ensayos C2-D según actas/límites. No queda repetir Android como siguiente paso; carga productiva apagada y resto C5 pendientes.
 - Incorporar recursos gestionados a PDFs/offline; no descargarlos desde URLs arbitrarias.
 - Fotos de perfil y documentos de evidencia con reglas de acceso propias.
 - Respaldos, cuotas operativas, huérfanos y comportamiento de archivos ya descargados.

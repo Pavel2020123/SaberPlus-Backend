@@ -173,3 +173,21 @@ sus migraciones y los demás cambios locales no forman parte de esta entrega.
 Los recuentos globales y suites registrados arriba describen el árbol local
 completo validado, no un checkout aislado de este commit parcial.
 No se integra main, no se despliega y no se declara cerrada la limpieza.
+
+### Respaldo posterior del resto del avance — 26 de octubre
+
+Pavel solicitó guardar también los 122 archivos pendientes del backend:
+91 modificados y 31 nuevos. Se separaron 47 archivos de limpieza/configuración,
+49 de implementación y pruebas históricas C5, y 26 de documentación.
+La entrega documental incluye además esta actualización del acta.
+Los commits de implementación anteriores de esta entrega son 792a1df
+(limpieza y tipos) y 33785f1 (avance local de imágenes históricas/revocación).
+La exclusión descrita en la primera entrega ya no representa el estado actual.
+
+Verificación repetida antes del respaldo: TypeScript general/build aprobados;
+panel con 29 módulos válidos y 144/144 pruebas aprobadas. Se conserva como
+evidencia previa la suite backend 134/1.764 aprobada sobre este mismo código.
+Las integraciones PostgreSQL/Android no se repitieron para crear estos commits.
+H3 sigue abierta: 1/4 guiones aprobado; falta terminar H3-2 y ejecutar H3-3/H3-4.
+ESLint sigue abierto con 283 errores/179 advertencias en el último recuento.
+Guardar o publicar la rama no aplica migraciones ni autoriza despliegue.

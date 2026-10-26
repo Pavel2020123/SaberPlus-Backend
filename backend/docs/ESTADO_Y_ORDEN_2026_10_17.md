@@ -1,5 +1,27 @@
 # Continuación después de instituciones — espejo backend
 
+**Actualización vigente — 26/oct:** [limpieza de tipado y respaldo del avance](LIMPIEZA_ESLINT_BACKEND.md).
+Cambios separados en commits de limpieza/configuración y C5 histórico local.
+H3 sigue abierta, 1/4 guiones aprobado: terminar H3-2, después H3-3/H3-4.
+ESLint pendiente: 283 errores/179 advertencias. No hay despliegue ni cierre C5.
+Las continuaciones y menciones a cambios sin commit de fechas inferiores son
+antecedentes del momento indicado, no instrucciones vigentes.
+
+**Continuación vigente24/oct: [H2B4 y H2 cerradas localmente](C5_H2B4_FUENTES_MUTABLES.md).**
+92/92 SQL/HTTP,78 migraciones temporales,178 unitarias editoriales. Sigue
+preparar H3 y después4 guiones humanos con USB;6 entregas C5. Sin Android/despliegue.
+OV-1 conserva compañero, rama y checkpoint; el propietario continúa C5.
+
+**C2 cerrada localmente23/oct:** [acta auditada](C5C2_CIERRE_LOCAL.md), funcional
+integrado/publicado app44635ae/backend9c225cb. No reiniciar C2 ni D8b por las
+notas inferiores. Remates en fix/c5-c2-cierre-local, sin commit/push nuevos.
+[H1 cerrada localmente24/oct](C5_H1_HISTORIAL_REVOCACION.md):58/58 SQL/HTTP,
+74 migraciones temporales y150 dirigidas/build. [H2A](C5_H2_SNAPSHOTS.md):
+Cima/Guardián/Rescate,68/68 SQL/HTTP,75 migraciones temporales y159 dirigidas/build.
+Estas cifras son antecedentes; no sumarlas a la suite vigente H2B1.
+
+## Antecedentes fechados (no son la siguiente etapa)
+
 **22 de octubre — C5-C2: ENTREGA PARCIAL.** D1–D7 aprobados (7/8), D8a/c/d/e
 aprobados; D8b Tira online pendiente por segundo cliente. Ambos repos trabajan
 en fix/c5-c2-validacion, sin push/merge/despliegue ni intervención OV-1.

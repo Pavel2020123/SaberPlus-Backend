@@ -1,36 +1,78 @@
 # API de SaberPlus
 
-**Nuevo compañero de C2 (no OV-1):** seguir [relevo completo](docs/RELEVO_C5_C2.md)
-y [acta C2-D](docs/C5C2D_VALIDACION_LOCAL.md): instalación, cuentas/clave temporal,
-Docker/USB, pruebas pendientes y correcciones permitidas en app/backend/panel.
+**Trabajo vigente del 25/oct:** [limpieza de ESLint backend por bloques](docs/LIMPIEZA_ESLINT_BACKEND.md),
+autorizada por Pavel. H3 queda en espera con 1/4 guiones aprobado; H3-2 pendiente
+de regresar a la primera cuenta. No dar H3 ni la limpieza global por terminadas.
+OV-1 continúa independiente; conservar todos los cambios locales anteriores.
+Actualización 26/oct: bloque competitivo L2-B/L3 verificado con 103 pruebas
+dirigidas y ambos proyectos TypeScript aprobados.
+Limpieza parcial: quedan 283 errores/179 advertencias de lint; sigue L2-B/L3.
 
-**23 de octubre — entrega C5-C2 a nueva revisión:** regresión D8a y D8b aprobadas
-dentro del alcance del acta; D1–D7 y D8c/d/e conservados. **C2 abierta a auditoría
-de Pavel.** [Entrega actual y comandos](docs/C5C2_REVISION_TIMEOUT_D8B.md),
-[entrega parcial histórica](docs/C5C2_ENTREGA_PARCIAL.md).
-Pavel auditó la entrega parcial; PR Flutter#9/b8253e2 y backend#11/3eb3f59 ya
-integrados en main remoto. Nueva revisión en fix/c5-c2-timeout-d8b desde main
-actualizado: timeout de Tira local y D8b con dos clientes. C2 sigue abierta.
-Flutter corrige eventos Socket.IO con offset de recuperación (9/9 pruebas);
-sala confirmada en ambos clientes. El segundo Listo detectó rechazo SQL de
-opciones con imágenes: migración corregida y48/48 HTTP/SQL con72 migraciones
-solo temporales. Contrato TUG_LOCAL backend validado: tiempo de servidor,
-autorización, reintento concurrente y última pregunta sin respuestas ni XP
-inventados; Jest5/62, TypeScript y build completo aprobados. Falta la nueva
-revisión de Pavel: Android/4005 ya confirma avance tras timeout, pausa activa8s,
-reanudación, figuras/textos contenidos y acierto. Flutter/pausa integrados con25
-dirigidas y50/50 HTTP/SQL,73 migraciones propias. Regresión Flutter1.016/16
-opt-in omitidas y backend128/1.675; análisis dirigido/build aprobados. C2 abierta.
-D8b posterior ya inició y muestra preguntas/figuras coincidentes en ambos; el
-humano detecta contenido fuera del botón. Corrección Flutter localizada,13/13
-pruebas online/análisis aprobados; humano confirma contención correcta en ambos
-con APK4003 y selección propia. Retorno al teléfono tras final en segundo plano
-falla: conserva última ronda. Flutter corrige recuperación HTTP/lifecycle (19/19),
-APK4004 observada el23: victoria en emulador y mismo ganador al volver en teléfono.
-SQL concuerda: dos respuestas únicas solo del emulador y ninguna del teléfono.
-D8b aprobado; no acredita cierre forzado, ACK perdido o competición. Timeout
-local integrado y regresión D8a aprobada; C2 espera nueva revisión de Pavel.
-[Contrato del flujo local](docs/C5C2_TIMEOUT_LOCAL.md).
+## Tipos de pruebas en VS Code
+
+El proyecto usa TypeScript 5.9.3. El editor puede traer otra versión: el 25/oct
+se reprodujeron 18 diagnósticos en institucion.service.spec.ts con el TypeScript
+6.0.3 integrado, aunque Jest y el compilador del proyecto funcionaban.
+TypeScript 6 deja de incluir automáticamente los paquetes de tipos globales.
+Se declaran Node/Jest en tsconfig.json y solo Node en tsconfig.build.json;
+las pruebas siguen excluidas del build. No instalar Mocha ni desactivar
+diagnósticos para ocultarlo. Esto no migra el backend a TypeScript 6.
+La revisión completa posterior reprodujo 91 diagnósticos adicionales con
+TypeScript 6.0.3 (interop de Supertest/Sharp y errores capturados como unknown).
+Con TypeScript 5.9.3, los 383 archivos del proyecto dieron cero diagnósticos.
+No adaptar código o desactivar validaciones solo para compensar versiones
+distintas: este cambio no es una migración general a TypeScript 6.
+
+La configuración de VS Code apunta al SDK instalado del proyecto, tanto al
+abrir la raíz SaberPlus-Backend como al abrir su carpeta backend. Con un .ts
+activo, ejecutar **TypeScript: Select TypeScript Version → Use Workspace
+Version (5.9.3)**. Configurar la ruta no activa automáticamente esa elección;
+aceptar el aviso del editor o seleccionarla explícitamente y recargar la ventana.
+En VS Code reciente se utiliza js/ts.tsdk.path; versiones antiguas llaman a esa
+opción typescript.tsdk. No modificar ajustes globales del usuario.
+[Guía oficial de selección del SDK](https://code.visualstudio.com/docs/typescript/typescript-transpiling).
+
+## Checkpoints del proyecto
+
+**25/oct — [H3 integrada automáticamente](docs/C5_H3_INTEGRACION.md):** 92/92
+PostgreSQL/HTTP con 78 migraciones únicamente temporales; panel Chromium valida
+revocación y recuperación del recibo tras perder la respuesta. Android pendiente,
+sin despliegue ni nueva migración de H3. Sesión humana local preparada; verificar
+su vigencia antes de usarla. Las entradas anteriores no reinician H2.
+
+**Continuación vigente24/oct: [H2B4 y H2 cerradas localmente](docs/C5_H2B4_FUENTES_MUTABLES.md).**
+92/92 SQL/HTTP,78 migraciones temporales y178 unitarias editoriales. Denegación
+explícita sin prueba de versión, sin inventar pasado. Sigue preparar H3, después
+4 guiones humanos con USB;6 entregas C5. Sin Android/despliegue ni cambios OV-1.
+
+**Continuación24/oct: [H2B1 validada localmente](docs/C5_H2B1_TRIVIA_LOCAL.md).**
+Trivia/Fantasma y nuevas CPU:75/75 SQL/HTTP,76 migraciones solo temporales y
+131 suites/1.735 unitarias backend. Este antecedente continuó en H2B2; entonces quedaban3 partes H2
+y7 entregas C5. Sin Android, despliegue ni cambios OV-1.
+
+**24/oct: [H2A validada localmente](docs/C5_H2_SNAPSHOTS.md)** para Cima/Guardián/Rescate:
+68/68 SQL/HTTP,75 migraciones solo temporales y159 dirigidas/build. Continuó H2B1 para
+otros formatos; H2 no está cerrada, sin Android ni despliegue. OV-1 separado.
+
+**23 de octubre: [C5-C2 cerrada en su alcance local](docs/C5C2_CIERRE_LOCAL.md).**
+Entrega funcional en main remoto: app PR #10/`44635ae`, backend PR #12/`9c225cb`.
+Limpieza TypeScript y conciliación documental en `fix/c5-c2-cierre-local`,
+sin commit/push nuevos de este remate.
+
+D1–D8 con D8a–e cubiertos según las actas y sus límites. La auditoría de este PC
+repitió build/128 suites/1.675 backend,1.016 Flutter/16 omitidas y132 panel.
+PostgreSQL/HTTP50/73 migraciones y Android son evidencia previa del compañero,
+no una repetición de este cierre. No declarar ESLint global limpio ni producción.
+
+**24/oct: [C5-H1 cerrada en su alcance backend local](docs/C5_H1_HISTORIAL_REVOCACION.md).**
+Historial propio y revocación:58/58 PostgreSQL/HTTP,74 migraciones exclusivamente
+temporales con Docker,150 dirigidas/build y Chromium escritorio/390px aprobados.
+Sigue H2; H3/Android y PDF/offline separados. Quedan7 entregas C5; sin SQL remoto.
+No ampliar permisos, desplegar o migrar remotamente por cerrar C2.
+OV-1 separado; fotos/evidencias, proveedor persistente y C5-D siguen abiertos.
+[Cierre y límites](docs/C5C2_CIERRE_LOCAL.md), [relevo](docs/RELEVO_C5_C2.md).
+
+## Antecedentes de C5 (no indican el siguiente paso)
 
 **21 de octubre — [C5-C2-C validada automáticamente](docs/C5C2C_CONSUMIDORES.md):**
 contratos/snapshots y Flutter incorporan imágenes opcionales sin cambiar XP ni

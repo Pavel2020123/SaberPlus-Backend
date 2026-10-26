@@ -1,5 +1,15 @@
 # C5-C1 — Lectura de imágenes editoriales en Flutter
 
+**Estado vigente del23/oct: [C5-C2 cerrada localmente y auditada](C5C2_CIERRE_LOCAL.md).**
+D1–D8 y D8a–e cubiertos según actas y límites. Entrega funcional integrada y
+publicada: app PR #10/`44635ae`, backend PR #12/`9c225cb`.
+Los estados/órdenes de ejecución fechados antes de este cierre se conservan como
+antecedentes; no reiniciar C2 ni D8b por esas notas. Sin nuevo ensayo físico,
+Docker o despliegue en los remates C2.
+**Continuación del24/oct:** [H1 cerrada localmente](C5_H1_HISTORIAL_REVOCACION.md),
+58/58 SQL/HTTP con Docker y74 migraciones solo temporales. Sigue H2, luego H3
+y PDF/offline; resto C5 abierto, sin Android/despliegue y OV-1 separado.
+
 ## Reanudación del 21 de octubre de 2026
 
 Preparación realizada: Docker Linux activo, PostgreSQL temporal propio nuevo con

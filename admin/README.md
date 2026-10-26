@@ -1,5 +1,16 @@
 # Panel administrativo de SaberPlus
 
+**25/oct — H3, preparación integrada aprobada:** nueva sección **Control de
+imágenes**. Permite consultar la referencia de una imagen, confirmar su revocación
+por seguridad/derechos y recuperar el mismo recibo si se pierde la respuesta.
+No revoca al seleccionar ni duplica un envío incierto; cerrar sesión limpia los
+datos privados. No elimina preguntas, respuestas o XP ni constituye una biblioteca
+general de archivos. DEMO no permite efectuar revocaciones reales.
+Panel: 144/144 pruebas y sintaxis de 29 módulos. Integración: 92/92
+PostgreSQL/HTTP, incluida recuperación en Chromium y vista de 390 px.
+H3 sigue abierta: [guiones Android pendientes](../backend/docs/C5_H3_INTEGRACION.md).
+Las entradas inferiores conservan sus fechas y evidencia histórica.
+
 **22 de octubre — C5-C2, entrega parcial:** D1 del panel aprobado humanamente:
 selección/cancelación, guardado y recarga de imágenes por opción. Corregidos
 aviso visible junto a Guardar y coletilla de demo condicionada al modo real.

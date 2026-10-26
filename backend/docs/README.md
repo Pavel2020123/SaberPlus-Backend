@@ -1,5 +1,45 @@
 # Documentación backend
 
+**Trabajo vigente del 25/oct:** [limpieza de ESLint backend por bloques](LIMPIEZA_ESLINT_BACKEND.md),
+autorizada por Pavel. H3 queda en espera con 1/4 guiones aprobado; H3-2 pendiente
+de regresar a la primera cuenta. No dar H3 ni la limpieza global por terminadas.
+OV-1 continúa independiente; conservar todos los cambios locales anteriores.
+Actualización 26/oct: bloque competitivo L2-B/L3 verificado con 103 pruebas
+dirigidas y ambos proyectos TypeScript aprobados.
+Limpieza parcial: quedan 283 errores/179 advertencias de lint; sigue L2-B/L3.
+
+**Checkpoint vigente — 25/oct:** [H3 preparada y pausa antes de USB](C5_H3_INTEGRACION.md).
+Panel 144/144, sintaxis 29 módulos y Flutter dirigido 39/39. Integración H3
+PostgreSQL/HTTP/Chromium aprobada: 92/92, 78 migraciones solo temporales.
+Sesión humana y APK debug preparadas; Flutter completo: 1.020 aprobadas,
+16 omitidas, cero fallos. APK de pruebas instalada; H3-1 aprobada en Android:
+originales en historial/cuaderno tras edición y archivo, sin XP adicional.
+Humanos 1/4: sigue H3-2, cambio de cuenta. H3 abierta; quedan 6 entregas C5.
+Las entradas fechadas anteriores son antecedentes; OV-1 continúa independiente.
+
+- **Continuación vigente24/oct:** [H2B4 y H2 cerradas localmente](C5_H2B4_FUENTES_MUTABLES.md),
+  92/92 SQL/HTTP,78 migraciones temporales y178 unitarias editoriales. Sigue
+  preparar H3 y después4 guiones humanos con USB;6 entregas C5 pendientes.
+  Sin Android/despliegue; OV-1 independiente.
+
+- **Continuación vigente24/oct:** [H2B1 — Trivia/Fantasma y CPU](C5_H2B1_TRIVIA_LOCAL.md),
+  validada localmente:75/75 SQL/HTTP,76 migraciones temporales y131 suites/1.735
+  unitarias. Este antecedente continuó en H2B2; entonces quedaban3 partes H2.
+
+- **Continuación24/oct:** [H2A — snapshots propios](C5_H2_SNAPSHOTS.md), validada para
+  Cima/Guardián/Rescate.68/68 SQL/HTTP y159 dirigidas/build;75 migraciones temporales.
+  Este antecedente continuó en H2B1; H2 completa y H3 pendientes. Sin Android ni despliegue.
+
+- **Estado vigente23/oct:** [C2 cerrada localmente y auditada](C5C2_CIERRE_LOCAL.md).
+  Entrega funcional en main app44635ae/backend9c225cb. Remates en
+  fix/c5-c2-cierre-local sin commit/push nuevos. H1 validada localmente el24;
+  sigue H2 antes de PDF/offline, resto C5 abierto y OV-1 independiente.
+- [C5-H0 — autorización histórica](C5_HISTORICOS.md): contrato preparado y
+  regla de producto confirmada. [H1 cerrada localmente24/oct](C5_H1_HISTORIAL_REVOCACION.md):
+  58/58 PostgreSQL/HTTP,74 migraciones temporales,150 dirigidas/build; sigue H2.
+
+## Entradas históricas (no reiniciar C2 por estas notas)
+
 - **Nuevo compañero para terminar C2 (no OV-1):** [guía operativa](RELEVO_C5_C2.md)
   y [acta C2-D](C5C2D_VALIDACION_LOCAL.md). Entrega parcial auditada por Pavel e
   integrada: Flutter PR#9/b8253e2, backend PR#11/3eb3f59. Nueva rama
