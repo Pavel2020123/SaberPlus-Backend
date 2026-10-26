@@ -5,7 +5,7 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import { GUARDS_METADATA } from '@nestjs/common/constants';
-import sharpModule = require('sharp');
+import * as sharpModule from 'sharp';
 import { PrismaService } from '../prisma/prisma.service';
 import { ArchivoAlmacenamientoService } from './archivo-almacenamiento.service';
 import { InstitutionLogoDto, managedLogoUrl } from './institution-logo.dto';
@@ -148,7 +148,7 @@ describe('logo institucional validado y propietario', () => {
     );
     for (const value of ['https://example.org/x.png', '', null])
       await expect(
-        legacy.actualizarMiInstitucion('owner', undefined, undefined, value!),
+        legacy.actualizarMiInstitucion('owner', undefined, undefined, value),
       ).rejects.toBeInstanceOf(BadRequestException);
     expect(db.institucion.updateMany).not.toHaveBeenCalled();
   });

@@ -81,7 +81,7 @@ export class TriviaPresenceService
   }
   reconcile(): Promise<void> {
     if (this.stopped) return Promise.resolve();
-    if (this.running) return this.running;
+    if (this.running !== undefined) return this.running;
     this.running = this.scan()
       .catch(() => {
         this.log.error(

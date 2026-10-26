@@ -341,7 +341,7 @@ export class CompetitiveService {
       p.effectiveUs === undefined || /^\d+$/.test(p.effectiveUs),
       'INVALID_SERVER_TIME_US',
     );
-    if (p.effectiveUs === undefined) validDate(p.effectiveAt!);
+    if (p.effectiveUs === undefined) validDate(p.effectiveAt);
     const event =
       p.effectiveUs === undefined
         ? await tx.eventoXpCompetitivo.create({

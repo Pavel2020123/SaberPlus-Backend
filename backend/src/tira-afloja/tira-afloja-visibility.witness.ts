@@ -39,14 +39,14 @@ export class TiraAflojaVisibilityWitness {
   private async verifyDatabase(db: PrismaClient): Promise<void> {
     // A random, transaction-scoped challenge is visible only in this database's
     // advisory-lock namespace. No application rows or persistent settings change.
-    const a = randomInt(1, 2147483647), b = randomInt(1, 2147483647);
+    const a = randomInt(1, 2147483647),
+      b = randomInt(1, 2147483647);
     await this.source.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT pg_advisory_xact_lock(${a}::integer,${b}::integer)::text`;
       await db.$transaction(async (observer) => {
         const [proof] = await observer.$queryRaw<{ acquired: boolean }[]>`
           SELECT pg_try_advisory_xact_lock(${a}::integer,${b}::integer) AS acquired`;
-        if (proof.acquired)
-          throw new Error('TUG_WITNESS_DATABASE_MISMATCH');
+        if (proof.acquired) throw new Error('TUG_WITNESS_DATABASE_MISMATCH');
       });
     });
   }

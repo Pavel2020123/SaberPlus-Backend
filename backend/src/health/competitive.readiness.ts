@@ -131,7 +131,7 @@ const uuidFields: Record<string, string> = {
 };
 const columns = models.flatMap((name) =>
   Prisma.dmmf.datamodel.models
-    .find((m) => m.name === name)!
+    .find((m) => m.name === name)
     .fields.filter((f) => f.kind !== 'object')
     .map((f) => ({
       table: name,

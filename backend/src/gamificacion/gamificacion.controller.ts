@@ -29,7 +29,9 @@ export class GamificacionController {
 
   @Get('logros/:logroId/certificado')
   certificadoDeLogroRetirado() {
-    throw new GoneException('Los logros son insignias. Los certificados se entregan solo por áreas y por el curso completo. Actualiza la aplicación.');
+    throw new GoneException(
+      'Los logros son insignias. Los certificados se entregan solo por áreas y por el curso completo. Actualiza la aplicación.',
+    );
   }
 
   @Get('certificados')
@@ -43,10 +45,7 @@ export class GamificacionController {
     @Param('tipo') tipo: string,
     @Res({ passthrough: true }) respuesta: Response,
   ) {
-    const pdf = await this.certificados.generar(
-      request.usuario.sub,
-      tipo,
-    );
+    const pdf = await this.certificados.generar(request.usuario.sub, tipo);
     respuesta.setHeader('Content-Type', 'application/pdf');
     respuesta.setHeader('Cache-Control', 'private, no-store');
     respuesta.setHeader(

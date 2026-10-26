@@ -3,7 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { Test } from '@nestjs/testing';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import request = require('supertest');
+import * as request from 'supertest';
 import { PrismaService } from '../prisma/prisma.service';
 import { InstitutionTerritoryController } from './institution-territory.controller';
 import {

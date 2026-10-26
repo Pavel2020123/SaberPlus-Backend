@@ -5,7 +5,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import sharpModule = require('sharp');
+import * as sharpModule from 'sharp';
 import { PrismaService } from '../prisma/prisma.service';
 
 // El proyecto usa CommonJS; sharp publica sus tipos raíz como ESM.

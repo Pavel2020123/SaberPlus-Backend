@@ -41,7 +41,7 @@ export class CompetitiveReconciler
   }
   reconcile(): Promise<void> {
     if (this.stopping) return Promise.resolve();
-    if (this.running) return this.running;
+    if (this.running !== undefined) return this.running;
     this.running = this.scan()
       .catch((error: unknown) => {
         const dbError = error as { code?: string; meta?: { code?: string } };

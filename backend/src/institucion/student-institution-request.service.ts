@@ -228,12 +228,10 @@ export class StudentInstitutionRequestService {
       take: pageSize + 1,
     });
     return {
-      solicitudes: rows
-        .slice(0, pageSize)
-        .map((row) => ({
-          ...this.view(row),
-          estudianteNombre: row.estudiante.nombre,
-        })),
+      solicitudes: rows.slice(0, pageSize).map((row) => ({
+        ...this.view(row),
+        estudianteNombre: row.estudiante.nombre,
+      })),
       pagina: query.pagina,
       hayMas: rows.length > pageSize,
     };

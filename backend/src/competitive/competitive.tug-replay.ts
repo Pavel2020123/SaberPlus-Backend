@@ -89,8 +89,8 @@ export class TugSportsReplay
     const activation = time.activation
       ? {
           atUs: time.activation,
-          sportsVersion: m.activaVersion!,
-          presenceId: m.activaPresenceId!.toString(),
+          sportsVersion: m.activaVersion,
+          presenceId: m.activaPresenceId.toString(),
         }
       : null;
     const connections = (
@@ -129,7 +129,7 @@ export class TugSportsReplay
       FROM "TiraAflojaRespuesta" WHERE "partidaId"=${id}::uuid ORDER BY id`;
     const beneficiaryPresence: Record<string, TugBeneficiaryPresence> = {};
     for (const user of evidence.participants) {
-      const rival = evidence.participants.find((u) => u !== user)!;
+      const rival = evidence.participants.find((u) => u !== user);
       const proof = [
         ...history.events
           .filter(
@@ -183,13 +183,13 @@ export class TugSportsReplay
     const id = canonicalSourceId('TUG_MATCH', sourceId);
     const m = await tx.partidaTiraAfloja.findUnique({ where: { id } });
     check(m, 'NOT_FOUND');
-    check(readTugAdmission(m!) === 'ADMITTED', 'NOT_ADMITTED');
+    check(readTugAdmission(m) === 'ADMITTED', 'NOT_ADMITTED');
     check(
       await tx.tugMatchIdentity.findUnique({ where: { id } }),
       'IDENTITY_MISSING',
     );
-    check(m!.competitiveOriginalBId, 'PARTICIPANTS_INCOMPLETE');
-    return [m!.competitiveOriginalAId!, m!.competitiveOriginalBId!];
+    check(m.competitiveOriginalBId, 'PARTICIPANTS_INCOMPLETE');
+    return [m.competitiveOriginalAId, m.competitiveOriginalBId];
   }
 
   async loadLockedPair(
@@ -212,7 +212,7 @@ export class TugSportsReplay
     check(evidence.terminals, 'TERMINAL_PRECISION_UNSUPPORTED');
     const m = await tx.partidaTiraAfloja.findUniqueOrThrow({ where: { id } });
     check(m.temporalVersion !== 1, 'TEMPORAL_CONTRACT_UNSUPPORTED');
-    return evidence.terminals!;
+    return evidence.terminals;
   }
 
   /** Private classification only; new variants cannot enter the pair kernel. */
@@ -277,14 +277,14 @@ export class TugSportsReplay
     ).map((e) => e.row);
     const activation =
       m.temporalVersion === 1 && time.activation
-        ? { atUs: time.activation, presenceId: m.activaPresenceId!.toString() }
+        ? { atUs: time.activation, presenceId: m.activaPresenceId.toString() }
         : undefined;
     check(
       m.temporalVersion !== 1 ||
         !events.some((e) => e.tipo === 'RONDA_INICIADA') ||
         (activation &&
           m.activaVersion ===
-            events.find((e) => e.tipo === 'RONDA_INICIADA')!.version &&
+            events.find((e) => e.tipo === 'RONDA_INICIADA').version &&
           tugIsoUs(m.snapshotInicial['config']['activaEn']) ===
             us(time.activation) &&
           m.snapshotInicial['config']['activaPresenceId'] ===
@@ -302,7 +302,7 @@ export class TugSportsReplay
         ? (
             BigInt(
               Date.parse(
-                events.find((e) => e.tipo === 'RONDA_INICIADA')!.datos.iniciaEn,
+                events.find((e) => e.tipo === 'RONDA_INICIADA').datos.iniciaEn,
               ),
             ) * 1000n
           ).toString()
@@ -396,7 +396,7 @@ export class TugSportsReplay
           'EXPLICIT_PRECEDENCE_UNPROVEN',
         );
         classification = active ? 'EXPLICIT_ACTIVE' : 'EXPLICIT_PRE_ACTIVE';
-        const rival = participants.find((u) => u !== abandonments[0].userId)!;
+        const rival = participants.find((u) => u !== abandonments[0].userId);
         const winner =
           presence.openAt(rival, terminal) &&
           !pendingGraces.some((g) => g.userId === rival)
@@ -485,7 +485,7 @@ export class TugSportsReplay
         m.versionReglas === 1,
       'VERSIONS',
     );
-    const s = m.snapshotInicial as unknown as Row;
+    const s = m.snapshotInicial as Row;
     check(
       s?.version === 1 &&
         s.qPartida === m.qPartida &&

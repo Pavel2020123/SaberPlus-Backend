@@ -122,7 +122,7 @@ export function buildTugSnapshot(
         tema: q.subtema.tema.nombre,
         subtema: q.subtema.nombre,
         respuestas: (order as string[]).map((id) => {
-          const r = q.respuestas.find((r) => r.id === id)!;
+          const r = q.respuestas.find((r) => r.id === id);
           return {
             ...publicAnswerOption(r),
             esCorrecta: r.esCorrecta,

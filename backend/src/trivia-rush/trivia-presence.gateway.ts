@@ -51,7 +51,7 @@ export class TriviaPresenceGateway
     private readonly presence: TriviaPresenceService,
   ) {
     this.timer = setInterval(() => {
-      if (!this.running && !this.stopping)
+      if (this.running === undefined && !this.stopping)
         this.running = this.renew().finally(() => {
           this.running = undefined;
         });

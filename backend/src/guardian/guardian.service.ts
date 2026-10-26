@@ -164,7 +164,7 @@ export class GuardianService {
                 }
               : null,
           },
-          correctAnswerId: q.respuestas.find((a) => a.esCorrecta)!.id,
+          correctAnswerId: q.respuestas.find((a) => a.esCorrecta).id,
           explanation: q.explicacion,
         }));
       const now = new Date();
@@ -175,7 +175,7 @@ export class GuardianService {
           area: config.area,
           dificultad: config.dificultad,
           subtemaId: config.subtemaId,
-          preguntas: snapshots as unknown as Prisma.InputJsonValue,
+          preguntas: snapshots,
           creadoEn: now,
           venceEn: new Date(now.getTime() + 24 * 60 * 60 * 1000),
         },
@@ -246,7 +246,7 @@ export class GuardianService {
       const updated = await tx.intentoGuardian.update({
         where: { id },
         data: {
-          respuestas: next as unknown as Prisma.InputJsonValue,
+          respuestas: next,
           estado: score.estado,
           finalizadoEn: score.estado === 'ACTIVO' ? null : new Date(),
         },

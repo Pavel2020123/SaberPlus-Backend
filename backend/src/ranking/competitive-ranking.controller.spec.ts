@@ -83,18 +83,20 @@ describe('competitive ranking real HTTP/JWT boundary', () => {
         debeCambiarContrasena: false,
       });
     read.mockImplementation(async (q, own) =>
-      projectCompetitiveRanking(
-        q,
-        Array.from({ length: 60 }, (_, i) => ({
-          usuarioId: id(i + 1),
-          rol: RolUsuario.ESTUDIANTE,
-          gameId: JuegoCompetitivo.TRIVIA_RUSH,
-          temporada: 2026,
-          xp: 1000 - i,
-          alcanzadoEn: new Date('2026-01-01T12:00:00Z'),
-          updatedAt: new Date('2026-01-02T12:00:00Z'),
-        })),
-        own,
+      Promise.resolve(
+        projectCompetitiveRanking(
+          q,
+          Array.from({ length: 60 }, (_, i) => ({
+            usuarioId: id(i + 1),
+            rol: RolUsuario.ESTUDIANTE,
+            gameId: JuegoCompetitivo.TRIVIA_RUSH,
+            temporada: 2026,
+            xp: 1000 - i,
+            alcanzadoEn: new Date('2026-01-01T12:00:00Z'),
+            updatedAt: new Date('2026-01-02T12:00:00Z'),
+          })),
+          own,
+        ),
       ),
     );
     prisma.usuario.findMany.mockResolvedValue([

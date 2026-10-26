@@ -150,7 +150,7 @@ export function normalXp(
         roundRatio(80 * e.correct, e.questions) +
         (e.ghostId === null
           ? 0
-          : { VICTORIA: 20, EMPATE: 10, DERROTA: 0 }[e.outcome!])
+          : { VICTORIA: 20, EMPATE: 10, DERROTA: 0 }[e.outcome])
       );
     case 'SUMMIT':
       integer(e.maxHeight, 0, 5);
@@ -260,7 +260,7 @@ export function abandonmentWinXp(e: AbandonmentWin): number {
   );
   if (e.gameId === 'BATTLES')
     requireEvidence(
-      e.snapshotQuestions === battleQuestions(e.mode!),
+      e.snapshotQuestions === battleQuestions(e.mode),
       'INCOMPLETE_COMPETITIVE_BANK',
     );
   else integer(e.snapshotQuestions, 4, 20);

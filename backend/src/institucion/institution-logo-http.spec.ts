@@ -1,8 +1,8 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
-import request = require('supertest');
-import sharpModule = require('sharp');
+import * as request from 'supertest';
+import * as sharpModule from 'sharp';
 import { PrismaService } from '../prisma/prisma.service';
 import { InstitucionController } from './institucion.controller';
 import { ArchivoAlmacenamientoService } from './archivo-almacenamiento.service';
@@ -35,7 +35,7 @@ describe('rutas HTTP reales del logo con guardas y multipart', () => {
         { provide: PrismaService, useValue: db },
         {
           provide: JwtService,
-          useValue: { verifyAsync: async () => ({ sub: 'owner' }) },
+          useValue: { verifyAsync: () => Promise.resolve({ sub: 'owner' }) },
         },
       ],
     }).compile();

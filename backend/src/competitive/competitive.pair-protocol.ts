@@ -141,11 +141,11 @@ export class CompetitivePairProtocol extends CompetitiveService {
         if (prior.every(Boolean)) {
           ordered.forEach((p, i) =>
             requireEvidence(
-              prior[i]!.evidenciaHash === p.hash,
+              prior[i].evidenciaHash === p.hash,
               'IDEMPOTENCY_CONFLICT',
             ),
           );
-          return prior as EventoXpCompetitivo[];
+          return prior;
         }
         // Validate both calculations and historical coverage BEFORE the first post.
         const postings = [];

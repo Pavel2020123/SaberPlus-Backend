@@ -47,29 +47,30 @@ describe('GuardianService', () => {
       ...config,
       subtemaId: 'sub-1',
     });
+    const requiredConditions: unknown = expect.arrayContaining([
+      { estadoContenido: 'PUBLICADO' },
+      {
+        subtema: {
+          estadoContenido: 'PUBLICADO',
+          tema: { estadoContenido: 'PUBLICADO' },
+        },
+      },
+      {
+        OR: [
+          { casoId: null },
+          { caso: { is: { estadoContenido: 'PUBLICADO' } } },
+        ],
+      },
+      {
+        dificultad: config.dificultad,
+        subtemaId: 'sub-1',
+        subtema: { tema: { area: config.area } },
+      },
+    ]);
     expect(harness.pregunta.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
-          AND: expect.arrayContaining([
-            { estadoContenido: 'PUBLICADO' },
-            {
-              subtema: {
-                estadoContenido: 'PUBLICADO',
-                tema: { estadoContenido: 'PUBLICADO' },
-              },
-            },
-            {
-              OR: [
-                { casoId: null },
-                { caso: { is: { estadoContenido: 'PUBLICADO' } } },
-              ],
-            },
-            {
-              dificultad: config.dificultad,
-              subtemaId: 'sub-1',
-              subtema: { tema: { area: config.area } },
-            },
-          ]),
+          AND: requiredConditions,
         },
       }),
     );
@@ -82,11 +83,9 @@ describe('GuardianService', () => {
       /correctAnswerId|SECRET|esCorrecta/,
     );
     expect(state).not.toHaveProperty('preguntas');
-    const stored = harness.rows.get(state.id)!;
+    const stored = harness.rows.get(state.id);
     expect(stored.preguntas).toHaveLength(8);
-    expect(
-      new Set((stored.preguntas as any[]).map((q) => q.question.id)).size,
-    ).toBe(8);
+    expect(new Set(snapshotIds(stored.preguntas)).size).toBe(8);
   });
 
   it('keeps an existing matching attempt and rejects a different configuration', async () => {
@@ -109,7 +108,7 @@ describe('GuardianService', () => {
 
   it('reveals correction only for the answered snapshot', async () => {
     const first = await service.start(userId, config);
-    const id = first.pregunta!.id as string;
+    const id = first.pregunta.id as string;
     const next = await service.answer(userId, first.id, submission(id, false));
     expect(next).toMatchObject({
       aciertos: 0,
@@ -123,7 +122,7 @@ describe('GuardianService', () => {
       respuestaCorrectaId: `${id}-yes`,
       explicacion: `SECRET-${id}`,
     });
-    expect(next.pregunta!.id).not.toBe(id);
+    expect(next.pregunta.id).not.toBe(id);
     expect(JSON.stringify(next.pregunta)).not.toMatch(
       /SECRET|correctAnswerId|esCorrecta/,
     );
@@ -131,8 +130,8 @@ describe('GuardianService', () => {
 
   it('uses original snapshots when the published bank is edited afterwards', async () => {
     const first = await service.start(userId, config);
-    const id = first.pregunta!.id as string;
-    const edited = harness.candidates.find((q) => q.id === id)!;
+    const id = first.pregunta.id as string;
+    const edited = harness.candidates.find((q) => q.id === id);
     edited.enunciado = 'Edited later';
     edited.explicacion = 'Edited explanation';
     edited.respuestas[0].esCorrecta = false;
@@ -146,14 +145,14 @@ describe('GuardianService', () => {
 
   it('rejects a future question or option from another question without a mutation', async () => {
     const state = await service.start(userId, config);
-    const stored = harness.rows.get(state.id)!;
-    const future = (stored.preguntas as any[])[1].question.id;
+    const stored = harness.rows.get(state.id);
+    const future = snapshotIds(stored.preguntas)[1];
     await expect(
       service.answer(userId, state.id, submission(future, true)),
     ).rejects.toBeInstanceOf(ConflictException);
     await expect(
       service.answer(userId, state.id, {
-        ...submission(state.pregunta!.id as string, true),
+        ...submission(state.pregunta.id as string, true),
         respuestaId: `${future}-yes`,
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
@@ -162,7 +161,7 @@ describe('GuardianService', () => {
 
   it('replays an identical idempotency key without consuming another shield', async () => {
     const state = await service.start(userId, config);
-    const answer = submission(state.pregunta!.id as string, false);
+    const answer = submission(state.pregunta.id as string, false);
     const first = await service.answer(userId, state.id, answer);
     expect(await service.answer(userId, state.id, answer)).toEqual(first);
     expect(harness.attempt.update).toHaveBeenCalledTimes(1);
@@ -191,7 +190,7 @@ describe('GuardianService', () => {
 
   it('accepts only one of concurrent conflicting submissions', async () => {
     const state = await service.start(userId, config);
-    const id = state.pregunta!.id as string;
+    const id = state.pregunta.id as string;
     const results = await Promise.allSettled([
       service.answer(userId, state.id, submission(id, false, 'key-1')),
       service.answer(userId, state.id, submission(id, true, 'key-2')),
@@ -213,11 +212,7 @@ describe('GuardianService', () => {
       let last = submission('', true);
       for (let index = 0; index < count; index++) {
         expect(state.estado).toBe('ACTIVO');
-        last = submission(
-          state.pregunta!.id as string,
-          correct,
-          `key-${index}`,
-        );
+        last = submission(state.pregunta.id as string, correct, `key-${index}`);
         state = await service.answer(userId, state.id, last);
       }
       expect(state.estado).toBe(status);
@@ -231,7 +226,7 @@ describe('GuardianService', () => {
         }),
       ).rejects.toBeInstanceOf(ConflictException);
       expect(
-        Number.isFinite(harness.rows.get(state.id)!.finalizadoEn!.getTime()),
+        Number.isFinite(harness.rows.get(state.id).finalizadoEn.getTime()),
       ).toBe(true);
     },
   );
@@ -244,7 +239,7 @@ describe('GuardianService', () => {
         service.answer(
           'intruder',
           state.id,
-          submission(state.pregunta!.id as string, true),
+          submission(state.pregunta.id as string, true),
         ),
       () => service.abandon('intruder', state.id),
     ])
@@ -254,11 +249,11 @@ describe('GuardianService', () => {
 
   it('expires at the exact deadline and ignores an answer without grading it', async () => {
     const state = await service.start(userId, config);
-    harness.rows.get(state.id)!.venceEn = new Date(Date.now() - 1);
+    harness.rows.get(state.id).venceEn = new Date(Date.now() - 1);
     const result = await service.answer(
       userId,
       state.id,
-      submission(state.pregunta!.id as string, true),
+      submission(state.pregunta.id as string, true),
     );
     expect(result).toMatchObject({
       estado: 'EXPIRADO',
@@ -296,6 +291,25 @@ function submission(
   };
 }
 
+// Validate the synthetic snapshot before inspecting IDs; do not leak any
+// from a JSON field into the test arguments.
+function snapshotIds(value: Prisma.JsonValue): string[] {
+  if (!Array.isArray(value)) throw new Error('Expected a snapshot array.');
+  return value.map((entry) => {
+    if (entry === null || typeof entry !== 'object' || Array.isArray(entry))
+      throw new Error('Expected a snapshot object.');
+    const question = entry.question;
+    if (
+      question === null ||
+      typeof question !== 'object' ||
+      Array.isArray(question) ||
+      typeof question.id !== 'string'
+    )
+      throw new Error('Expected a question ID.');
+    return question.id;
+  });
+}
+
 function createHarness() {
   const rows = new Map<string, IntentoGuardian>();
   const candidates = Array.from({ length: 8 }, (_, index) => {
@@ -328,85 +342,116 @@ function createHarness() {
     findUnique: jest.fn().mockResolvedValue({ rol: RolUsuario.ESTUDIANTE }),
   };
   const pregunta = {
-    findMany: jest.fn(async () => structuredClone(candidates)),
+    findMany: jest.fn(() =>
+      Promise.resolve().then(() => structuredClone(candidates)),
+    ),
   };
   const attempt = {
-    findFirst: jest.fn(async ({ where }) =>
-      structuredClone(
-        [...rows.values()].find((row) =>
-          Object.entries(where).every(([key, value]) => row[key] === value),
-        ) ?? null,
+    findFirst: jest.fn(({ where }: { where: Partial<IntentoGuardian> }) =>
+      Promise.resolve().then(() =>
+        structuredClone(
+          [...rows.values()].find((row) =>
+            (Object.keys(where) as (keyof IntentoGuardian)[]).every(
+              (key) => row[key] === where[key],
+            ),
+          ) ?? null,
+        ),
       ),
     ),
-    create: jest.fn(async ({ data }) => {
-      const row = {
-        id: `attempt-${rows.size + 1}`,
-        subtemaId: null,
-        estado: 'ACTIVO',
-        version: 1,
-        respuestas: [],
-        finalizadoEn: null,
-        ...data,
-      } as IntentoGuardian;
-      if (row.subtemaId === undefined) row.subtemaId = null;
-      rows.set(row.id, structuredClone(row));
-      return structuredClone(row);
-    }),
-    update: jest.fn(async ({ where, data }) => {
-      const row = { ...rows.get(where.id)!, ...data };
-      rows.set(row.id, structuredClone(row));
-      return structuredClone(row);
-    }),
+    create: jest.fn(({ data }: { data: Partial<IntentoGuardian> }) =>
+      Promise.resolve().then(() => {
+        const row = {
+          id: `attempt-${rows.size + 1}`,
+          subtemaId: null,
+          estado: 'ACTIVO',
+          version: 1,
+          respuestas: [],
+          finalizadoEn: null,
+          ...data,
+        } as IntentoGuardian;
+        if (row.subtemaId === undefined) row.subtemaId = null;
+        rows.set(row.id, structuredClone(row));
+        return structuredClone(row);
+      }),
+    ),
+    update: jest.fn(
+      ({
+        where,
+        data,
+      }: {
+        where: { id: string };
+        data: Partial<IntentoGuardian>;
+      }) =>
+        Promise.resolve().then(() => {
+          const row = { ...rows.get(where.id), ...data };
+          rows.set(row.id, structuredClone(row));
+          return structuredClone(row);
+        }),
+    ),
   };
   let lockTail = Promise.resolve();
   const locks: Prisma.Sql[] = [];
   // This harness emulates lock ordering, not PostgreSQL or real DB isolation.
-  const transaction = jest.fn(async (action: (tx: any) => Promise<any>) => {
-    let locked = false;
-    let release: (() => void) | undefined;
-    const assertLock = () => {
-      if (!locked) throw new Error('Read/write before awaited lock');
-    };
-    const tx = {
-      usuario,
-      $queryRaw: async (sql: Prisma.Sql) => {
-        // The production transaction now also locks/rechecks the user row.
-        // Reentrant SQL within this simulated transaction must not await itself.
-        if (sql.sql.includes('FOR UPDATE')) {
+  type Methods<T> = {
+    [K in keyof T]: T[K] extends (...args: infer A) => infer R
+      ? (...args: A) => R
+      : never;
+  };
+  type Client = {
+    usuario: typeof usuario;
+    pregunta: Methods<typeof pregunta>;
+    intentoGuardian: Methods<typeof attempt>;
+    $queryRaw: (
+      sql: Prisma.Sql,
+    ) => Promise<({ id: string } | { locked: number })[]>;
+  };
+  const transaction = jest.fn(
+    async <T>(action: (tx: Client) => Promise<T>): Promise<T> => {
+      let locked = false;
+      let release: (() => void) | undefined;
+      const assertLock = () => {
+        if (!locked) throw new Error('Read/write before awaited lock');
+      };
+      const guarded =
+        <A extends unknown[], R>(fn: (...args: A) => R) =>
+        (...args: A): R => {
           assertLock();
-          return [{ id: userId }];
-        }
-        locks.push(sql);
-        const previous = lockTail;
-        lockTail = new Promise<void>((resolve) => {
-          release = resolve;
-        });
-        await previous;
-        locked = true;
-        return [{ locked: 1 }];
-      },
-      intentoGuardian: Object.fromEntries(
-        Object.entries(attempt).map(([key, fn]) => [
-          key,
-          (...args: any[]) => {
+          return fn(...args);
+        };
+      const tx = {
+        usuario,
+        $queryRaw: async (sql: Prisma.Sql) => {
+          // The production transaction now also locks/rechecks the user row.
+          // Reentrant SQL within this simulated transaction must not await itself.
+          if (sql.sql.includes('FOR UPDATE')) {
             assertLock();
-            return (fn as (...args: any[]) => unknown)(...args);
-          },
-        ]),
-      ),
-      pregunta: {
-        findMany: (...args: any[]) => {
-          assertLock();
-          return (pregunta.findMany as (...args: any[]) => unknown)(...args);
+            return [{ id: userId }];
+          }
+          locks.push(sql);
+          const previous = lockTail;
+          lockTail = new Promise<void>((resolve) => {
+            release = resolve;
+          });
+          await previous;
+          locked = true;
+          return [{ locked: 1 }];
         },
-      },
-    };
-    try {
-      return await action(tx);
-    } finally {
-      release?.();
-    }
-  });
+        intentoGuardian: {
+          findFirst: guarded(attempt.findFirst),
+          create: guarded(attempt.create),
+          update: guarded(attempt.update),
+        },
+        pregunta: {
+          findMany: guarded(pregunta.findMany),
+        },
+      };
+      try {
+        return await action(tx);
+      } finally {
+        release?.();
+      }
+    },
+  );
   return {
     rows,
     candidates,

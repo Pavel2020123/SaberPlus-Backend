@@ -35,9 +35,9 @@ describe('Bank coverage', () => {
     const controller = new BankCoverageController(
       coverage as unknown as BankCoverageService,
     );
-    controller.get({ area: 'INGLES', pagina: 1, limite: 20 });
+    await controller.get({ area: 'INGLES', pagina: 1, limite: 20 });
     expect(coverage.page).toHaveBeenLastCalledWith('INGLES', 1, 20, false);
-    controller.get({
+    await controller.get({
       area: 'INGLES',
       pagina: 1,
       limite: 20,
@@ -50,16 +50,14 @@ describe('Bank coverage', () => {
     const tx = {
       subtema: {
         count: jest.fn().mockResolvedValue(1),
-        findMany: jest
-          .fn()
-          .mockResolvedValue([
-            {
-              id: 's',
-              nombre: 'Tema',
-              estadoContenido: 'PUBLICADO',
-              tema: { id: 't', nombre: 'Tema', estadoContenido: 'PUBLICADO' },
-            },
-          ]),
+        findMany: jest.fn().mockResolvedValue([
+          {
+            id: 's',
+            nombre: 'Tema',
+            estadoContenido: 'PUBLICADO',
+            tema: { id: 't', nombre: 'Tema', estadoContenido: 'PUBLICADO' },
+          },
+        ]),
       },
       reportePregunta: { groupBy: jest.fn().mockResolvedValue(groups) },
       $queryRaw: jest.fn().mockResolvedValue([]),

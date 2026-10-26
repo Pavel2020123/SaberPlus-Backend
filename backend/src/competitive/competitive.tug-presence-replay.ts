@@ -143,7 +143,7 @@ export function replayTugPresence(
     'MISSING_CONNECTED',
   );
   for (const c of connections) {
-    const state = states.get(c.id)!;
+    const state = states.get(c.id);
     check(
       c.state === state.state &&
         us(c.lastUs) === state.last &&

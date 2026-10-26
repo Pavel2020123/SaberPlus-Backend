@@ -8,6 +8,10 @@ import { CertificadoHtmlService } from './certificado-html.service';
 @Module({
   imports: [PrismaModule],
   controllers: [GamificacionController],
-  providers: [GamificacionService, CertificadosCursoService, CertificadoHtmlService],
+  providers: [
+    GamificacionService,
+    CertificadosCursoService,
+    CertificadoHtmlService,
+  ],
 })
 export class GamificacionModule {}

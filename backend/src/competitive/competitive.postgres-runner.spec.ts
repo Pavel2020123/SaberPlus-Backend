@@ -3,19 +3,10 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-const { keys, inspectSummary } =
-  require('../../tool/competitive_postgres_summary.cjs') as {
-    keys: string[];
-    inspectSummary: (
-      output: string,
-      fileFailed?: boolean,
-    ) => {
-      valid: boolean;
-      missing: string[];
-      errors: string[];
-      summary: Record<string, number>;
-    };
-  };
+import {
+  keys,
+  inspectSummary,
+} from '../../tool/competitive_postgres_summary.cjs';
 const values: Record<string, number> = {
   tests: 2,
   suites: 0,

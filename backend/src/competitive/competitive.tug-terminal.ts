@@ -55,9 +55,9 @@ export function verifiedTugPair(
     us(proof.activation.presenceId);
     check(
       Number.isInteger(evidence.qPartida) &&
-        evidence.qPartida! >= 4 &&
-        evidence.qPartida! <= 20 &&
-        evidence.presentedRounds <= evidence.qPartida!,
+        evidence.qPartida >= 4 &&
+        evidence.qPartida <= 20 &&
+        evidence.presentedRounds <= evidence.qPartida,
       'Q',
     );
   }
@@ -128,7 +128,7 @@ export function verifiedTugPair(
         const start = proof.graceStarts[a.userId];
         check(
           start &&
-            us(start) >= us(proof.activation!.atUs) &&
+            us(start) >= us(proof.activation.atUs) &&
             us(start) + 30000000n === terminal,
           'GRACE_PHASE',
         );
@@ -162,9 +162,9 @@ export function verifiedTugPair(
         if (winner !== user) return { kind: 'NEUTRAL', reason: 'NO_WINNER' };
         check(
           Number.isInteger(evidence.qPartida) &&
-            evidence.qPartida! >= 4 &&
-            evidence.qPartida! <= 20 &&
-            evidence.presentedRounds <= evidence.qPartida!,
+            evidence.qPartida >= 4 &&
+            evidence.qPartida <= 20 &&
+            evidence.presentedRounds <= evidence.qPartida,
           'Q',
         );
         const presence = proof.beneficiaryPresence[user];
@@ -215,12 +215,12 @@ export function verifiedTugPair(
           (reason === 'EXPLICIT'
             ? open !== null
             : auth !== null &&
-              us(auth.atUs) > us(presence.rivalDisconnectedUs!));
+              us(auth.atUs) > us(presence.rivalDisconnectedUs));
         return {
           kind: 'ABANDONMENT_BENEFICIARY',
           correct: evidence.correct[i],
           actions: evidence.actions[i],
-          qPartida: evidence.qPartida!,
+          qPartida: evidence.qPartida,
           presence,
           eligibility:
             evidence.actions[i] === 0

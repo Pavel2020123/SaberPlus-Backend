@@ -56,9 +56,9 @@ export class CompetitiveTugPairProtocol extends CompetitiveService {
           'TUG_TEMPORAL_VERSION_REQUIRED',
         );
         const original = [
-          origin.competitiveOriginalAId!,
+          origin.competitiveOriginalAId,
           origin.competitiveOriginalBId,
-        ].filter(Boolean) as string[];
+        ].filter(Boolean);
         for (const user of [...original].sort())
           await this.lockStudent(tx, user);
         let receipt: TugPairReceipt;

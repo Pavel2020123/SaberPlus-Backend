@@ -47,8 +47,11 @@ describe('HealthController', () => {
     'timeout',
   ])('fails safely and recovers after %s', async (reason) => {
     probe.mockRejectedValueOnce(new Error(reason)).mockResolvedValue(undefined);
-    const failure = await controller.ready().catch((e) => e);
+    const failure: unknown = await controller.ready().catch((e: unknown) => e);
     expect(failure).toBeInstanceOf(ServiceUnavailableException);
+    if (!(failure instanceof ServiceUnavailableException)) {
+      throw new Error('Expected a service-unavailable exception.');
+    }
     expect(failure.getResponse()).toEqual({
       status: 'ERROR',
       service: 'saberplus-api',

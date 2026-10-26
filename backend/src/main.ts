@@ -118,7 +118,8 @@ async function bootstrap() {
       message: {
         statusCode: 429,
         error: 'Too Many Requests',
-        message: 'Demasiadas consultas de código. Espera un minuto e intenta de nuevo.',
+        message:
+          'Demasiadas consultas de código. Espera un minuto e intenta de nuevo.',
       },
     }),
   );

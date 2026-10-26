@@ -86,7 +86,7 @@ export function replayTrivia(
     });
   else {
     check(actions.every((a) => typeof a.seq === 'bigint' && a.seq > 0n));
-    actions.sort((x, y) => (x.seq! < y.seq! ? -1 : x.seq! > y.seq! ? 1 : 0));
+    actions.sort((x, y) => (x.seq < y.seq ? -1 : x.seq > y.seq ? 1 : 0));
     check(new Set(actions.map((a) => String(a.seq))).size === actions.length);
   }
   let score = {
@@ -143,7 +143,7 @@ export function replayTrivia(
         grant &&
           grant.id === action.a.concesionId &&
           grant.usuarioId === row.usuarioId &&
-          +new Date(grant.expiraEn!) > +action.at,
+          +new Date(grant.expiraEn) > +action.at,
       );
       switch (action.a.tipo) {
         case 'ESCUDO_COMBO':
@@ -260,7 +260,7 @@ export function replayTrivia(
       ? index === snapshot.q && +row.finalizadoEn === last
       : index < snapshot.q,
   );
-  if (row.estado === 'EXPIRADO') check(+row.finalizadoEn! === +row.venceEn);
+  if (row.estado === 'EXPIRADO') check(+row.finalizadoEn === +row.venceEn);
   return {
     correct: score.respuestasCorrectas,
     maxCombo: max,
@@ -320,22 +320,22 @@ export class TriviaCompetitiveVerifier implements CompetitiveVerifier {
     }
     check(
       +row.competitiveAdmittedAt === +row.iniciadoEn &&
-        ['TRIVIA_RUSH', 'GHOST_DUEL'].includes(row.modalidad!),
+        ['TRIVIA_RUSH', 'GHOST_DUEL'].includes(row.modalidad),
     );
     const s = readTriviaSnapshot(row);
     check(s);
-    const replay = replayTrivia(row, s!);
+    const replay = replayTrivia(row, s);
     let facts: NormalEvidence;
     if (row.modalidad === 'TRIVIA_RUSH') {
-      check(s!.ghost === null);
+      check(s.ghost === null);
       facts = {
         gameId: 'TRIVIA_RUSH',
         correct: replay.correct,
-        questions: s!.q,
+        questions: s.q,
         maxCombo: replay.maxCombo,
       };
     } else {
-      const ghost = s!.ghost;
+      const ghost = s.ghost;
       if (ghost) {
         const prior = await tx.intentoTriviaRush.findUnique({
           where: { id: ghost.intentoId },
@@ -350,25 +350,25 @@ export class TriviaCompetitiveVerifier implements CompetitiveVerifier {
             +prior.finalizadoEn <= +row.iniciadoEn &&
             !prior.asistido,
         );
-        const gs = readTriviaSnapshot(prior!);
+        const gs = readTriviaSnapshot(prior);
         check(
           gs &&
-            gs.q === s!.q &&
-            gs.config.duracionSegundos === s!.config.duracionSegundos &&
-            gs.config.versionReglas === s!.config.versionReglas &&
-            JSON.stringify(gs.config.areas) === JSON.stringify(s!.config.areas),
+            gs.q === s.q &&
+            gs.config.duracionSegundos === s.config.duracionSegundos &&
+            gs.config.versionReglas === s.config.versionReglas &&
+            JSON.stringify(gs.config.areas) === JSON.stringify(s.config.areas),
         );
-        const original = replayTrivia(prior!, gs!, true);
+        const original = replayTrivia(prior, gs, true);
         check(
           competitiveHash(ghost) ===
             competitiveHash({
-              intentoId: prior!.id,
+              intentoId: prior.id,
               puntaje: original.score,
               respuestasCorrectas: original.correct,
-              mejorCombo: prior!.mejorCombo,
-              finalizadoEn: prior!.finalizadoEn!.toISOString(),
-              q: gs!.q,
-              config: gs!.config,
+              mejorCombo: prior.mejorCombo,
+              finalizadoEn: prior.finalizadoEn.toISOString(),
+              q: gs.q,
+              config: gs.config,
               checkpoints: original.checkpoints,
             }),
         );
@@ -376,7 +376,7 @@ export class TriviaCompetitiveVerifier implements CompetitiveVerifier {
       facts = {
         gameId: 'GHOST_DUEL',
         correct: replay.correct,
-        questions: s!.q,
+        questions: s.q,
         outcome: ghost ? ghostOutcome(replay.score, ghost.puntaje) : null,
         distinctMode: true,
         ghostFixedAtStart: true,

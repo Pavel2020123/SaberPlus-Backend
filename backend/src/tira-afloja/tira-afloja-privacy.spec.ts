@@ -140,7 +140,7 @@ describe('Tira: privacidad sin cambiar reglas ni identificadores internos de per
       ronda: entrada.ronda,
       preguntaId: entrada.preguntaId,
       respuestaSeleccionadaId: entrada.respuestaId,
-    } as never);
+    });
     await expect(
       service.responder(partida.jugadorAId, partida.id, {
         ...entrada,

@@ -25,6 +25,8 @@ export class InstitutionTerritoryController {
   @Get('departamentos')
   @Header('Cache-Control', 'private, no-store')
   departments(@Query() _query: NoTerritoryQuery) {
+    // Keep the DTO binding so ValidationPipe rejects unexpected query fields.
+    void _query;
     return this.service.departments();
   }
 
@@ -34,6 +36,7 @@ export class InstitutionTerritoryController {
     @Param() params: DepartmentParam,
     @Query() _query: NoTerritoryQuery,
   ) {
+    void _query;
     return this.service.municipalities(params.departamentoCodigo);
   }
 }

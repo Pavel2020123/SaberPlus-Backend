@@ -403,15 +403,15 @@ export class TiraAflojaGateway
   ): Promise<void> {
     if (!cliente.data.presenceId || !cliente.data.partidaId || this.stopping)
       return Promise.resolve();
-    if (cliente.data.renewing) return cliente.data.renewing;
+    if (cliente.data.renewing !== undefined) return cliente.data.renewing;
     cliente.data.renewing = (async () => {
       try {
         const user = await this.autenticacion.autenticar(cliente);
         if (user.id !== this.usuarioId(cliente))
           throw new HttpException('Identidad cambió.', 401);
         const state = await this.presencia.observe(
-          cliente.data.partidaId!,
-          cliente.data.presenceId!,
+          cliente.data.partidaId,
+          cliente.data.presenceId,
           'RENEW',
         );
         // The game recovers exact retries first; an UNKNOWN connection still
@@ -420,11 +420,7 @@ export class TiraAflojaGateway
           throw new HttpException('Reconexión autenticada requerida.', 409);
       } catch (error) {
         await this.presencia
-          .observe(
-            cliente.data.partidaId!,
-            cliente.data.presenceId!,
-            'UNCERTAIN',
-          )
+          .observe(cliente.data.partidaId, cliente.data.presenceId, 'UNCERTAIN')
           .catch(() => undefined);
         throw error;
       }

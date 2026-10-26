@@ -37,7 +37,6 @@ import { AnaliticaBasicaService } from './analitica-basica.service';
 import { AnaliticaDetalladaService } from './analitica-detallada.service';
 import { ReporteInstitucionalService } from './reporte-institucional.service';
 import {
-  AdministradorInstitucionGuard,
   JwtGuard,
   ProfesorInstitucionGuard,
   PropietarioInstitucionGuard,

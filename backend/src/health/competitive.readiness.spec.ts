@@ -3,10 +3,12 @@ import { checkCompetitiveReadiness } from './competitive.readiness';
 describe('competitive readiness read-only contract', () => {
   it('uses bounded transaction, read-only mode and statement timeout', async () => {
     const tx = {
-      $executeRaw: jest.fn().mockResolvedValue(0),
+      $executeRaw: jest
+        .fn<Promise<number>, [TemplateStringsArray]>()
+        .mockResolvedValue(0),
       $queryRaw: jest.fn().mockResolvedValue([{ ok: true }]),
     };
-    const transaction = jest.fn((fn) => fn(tx));
+    const transaction = jest.fn((fn: (client: typeof tx) => unknown) => fn(tx));
     await checkCompetitiveReadiness({
       $transaction: transaction,
     } as unknown as PrismaClient);
@@ -33,7 +35,7 @@ describe('competitive readiness read-only contract', () => {
       };
       await expect(
         checkCompetitiveReadiness({
-          $transaction: (fn) => fn(tx),
+          $transaction: (fn: (client: typeof tx) => unknown) => fn(tx),
         } as unknown as PrismaClient),
       ).rejects.toThrow('COMPETITIVE_READINESS_UNAVAILABLE');
       expect(tx.$queryRaw).toHaveBeenCalledTimes(1);
@@ -49,7 +51,7 @@ describe('competitive readiness read-only contract', () => {
     };
     await expect(
       checkCompetitiveReadiness({
-        $transaction: (fn) => fn(tx),
+        $transaction: (fn: (client: typeof tx) => unknown) => fn(tx),
       } as unknown as PrismaClient),
     ).rejects.toThrow('COMPETITIVE_READINESS_UNAVAILABLE');
   });

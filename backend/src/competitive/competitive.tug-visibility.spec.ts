@@ -5,19 +5,32 @@ import { TiraAflojaService } from '../tira-afloja/tira-afloja.service';
 describe('competitive TUG visibility witness boundary', () => {
   it('keeps failed sweep work observable and continues without changing transaction budgets', async () => {
     const db = {
-      partidaTiraAfloja: { findMany: jest.fn().mockResolvedValue([{ id: 'expired' }]) },
-      $queryRaw: jest.fn().mockResolvedValueOnce([]).mockResolvedValueOnce([])
+      partidaTiraAfloja: {
+        findMany: jest.fn().mockResolvedValue([{ id: 'expired' }]),
+      },
+      $queryRaw: jest
+        .fn()
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([])
         .mockResolvedValueOnce([{ id: 'certificate' }]),
     };
     const service = new TiraAflojaService(db as any, {} as any);
-    const log = jest.spyOn((service as any).log, 'error').mockImplementation(() => {});
-    const state = jest.spyOn(service as any, 'procesarEstado')
-      .mockRejectedValueOnce({ code: 'P2028', meta: { error: 'Unable to start a transaction in the given time.' } })
+    const log = jest
+      .spyOn((service as any).log, 'error')
+      .mockImplementation(() => {});
+    const state = jest
+      .spyOn(service as any, 'procesarEstado')
+      .mockRejectedValueOnce({
+        code: 'P2028',
+        meta: { error: 'Unable to start a transaction in the given time.' },
+      })
       .mockResolvedValueOnce(undefined);
     await (service as any).procesarPartidasVencidas();
     expect(state.mock.calls).toEqual([['certificate'], ['expired']]);
     expect(JSON.parse(log.mock.calls[0][0] as string)).toMatchObject({
-      event: 'TUG_RECOVERY_PENDING', partidaId: 'certificate', code: 'P2028',
+      event: 'TUG_RECOVERY_PENDING',
+      partidaId: 'certificate',
+      code: 'P2028',
       transactionError: 'Unable to start a transaction in the given time.',
     });
     expect((service as any).barridoEnCurso).toBe(false);
@@ -71,12 +84,19 @@ describe('competitive TUG visibility witness boundary', () => {
 
   it('rejects a witness in a different database before reading or writing evidence', async () => {
     const sourceTx = { $queryRaw: jest.fn().mockResolvedValue([]) };
-    const observer = { $queryRaw: jest.fn().mockResolvedValue([{ acquired: true }]) };
+    const observer = {
+      $queryRaw: jest.fn().mockResolvedValue([{ acquired: true }]),
+    };
     const source = { $transaction: jest.fn((work) => work(sourceTx)) };
-    const db = { $transaction: jest.fn((work) => work(observer)), $queryRaw: jest.fn() };
+    const db = {
+      $transaction: jest.fn((work) => work(observer)),
+      $queryRaw: jest.fn(),
+    };
     const witness = new TiraAflojaVisibilityWitness(source as any);
     (witness as any).client = db;
-    await expect(witness.certify('owned-match')).rejects.toThrow('TUG_WITNESS_DATABASE_MISMATCH');
+    await expect(witness.certify('owned-match')).rejects.toThrow(
+      'TUG_WITNESS_DATABASE_MISMATCH',
+    );
     expect(db.$queryRaw).not.toHaveBeenCalled();
     expect((witness as any).identity).toBeUndefined();
   });
@@ -85,12 +105,26 @@ describe('competitive TUG visibility witness boundary', () => {
     { code: 'P1001' },
     { code: 'P2010', meta: { code: '23514' } },
     { code: 'P2010', meta: { code: '42P01' } },
-  ])('reports witness failure without rejecting an already committed sports operation: %j', async (error) => {
-    const service = new TiraAflojaService({} as any, {} as any);
-    const log = jest.spyOn((service as any).log, 'error').mockImplementation(() => {});
-    jest.spyOn((service as any).visibilityWitness, 'certify').mockRejectedValue(error);
-    await expect((service as any).certificarSinRevertirDeporte('owned-match')).resolves.toBeUndefined();
-    expect(log).toHaveBeenCalledWith(expect.stringContaining('TUG_VISIBILITY_PENDING'));
-    expect(JSON.parse(log.mock.calls[0][0] as string)).toMatchObject({ partidaId: 'owned-match', code: error.code });
-  });
+  ])(
+    'reports witness failure without rejecting an already committed sports operation: %j',
+    async (error) => {
+      const service = new TiraAflojaService({} as any, {} as any);
+      const log = jest
+        .spyOn((service as any).log, 'error')
+        .mockImplementation(() => {});
+      jest
+        .spyOn((service as any).visibilityWitness, 'certify')
+        .mockRejectedValue(error);
+      await expect(
+        (service as any).certificarSinRevertirDeporte('owned-match'),
+      ).resolves.toBeUndefined();
+      expect(log).toHaveBeenCalledWith(
+        expect.stringContaining('TUG_VISIBILITY_PENDING'),
+      );
+      expect(JSON.parse(log.mock.calls[0][0] as string)).toMatchObject({
+        partidaId: 'owned-match',
+        code: error.code,
+      });
+    },
+  );
 });

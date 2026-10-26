@@ -1,7 +1,7 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
-import request = require('supertest');
+import * as request from 'supertest';
 import { PrismaService } from '../prisma/prisma.service';
 import { InstitutionDirectoryController } from './institution-directory.controller';
 import { InstitutionDirectoryService } from './institution-directory.service';
