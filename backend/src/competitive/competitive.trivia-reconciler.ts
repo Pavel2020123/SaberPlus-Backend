@@ -7,6 +7,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CompetitiveService } from './competitive.service';
 import { CompetitiveError } from './competitive.rules';
+import { databaseErrorCodes } from './competitive.database-error';
 
 /** Durable admission is the queue; flags affect creation only. Never settle inside closure tx. */
 @Injectable()
@@ -33,14 +34,13 @@ export class TriviaCompetitiveReconciler
   }
   reconcile(): Promise<void> {
     if (this.stopping) return Promise.resolve();
-    if (this.running) return this.running;
+    if (this.running !== undefined) return this.running;
     this.running = this.scan()
-      .catch((error) => {
-        const code = error?.code,
-          sql = error?.meta?.code;
+      .catch((error: unknown) => {
+        const { code, sql } = databaseErrorCodes(error);
         this.logger.error(
-          ['P2021', 'P2022'].includes(code) ||
-            ['42P01', '42703', '42883'].includes(sql)
+          ['P2021', 'P2022'].includes(code ?? '') ||
+            ['42P01', '42703', '42883'].includes(sql ?? '')
             ? 'COMPETITIVE_SCHEMA_MISSING: required Trivia migrations must be applied before this backend.'
             : 'Trivia competitive recovery unavailable; durable work remains pending.',
         );

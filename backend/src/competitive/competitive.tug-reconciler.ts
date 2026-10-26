@@ -7,6 +7,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CompetitiveError } from './competitive.rules';
 import { CompetitiveTugPairProtocol } from './competitive.tug-pair-protocol';
+import { databaseErrorCodes } from './competitive.database-error';
 
 /** Admission + terminal are the durable queue. No flag controls recovery. */
 @Injectable()
@@ -33,11 +34,12 @@ export class TugCompetitiveReconciler
   }
   reconcile(): Promise<void> {
     if (this.stopping) return Promise.resolve();
-    if (this.running) return this.running;
+    if (this.running !== undefined) return this.running;
     this.running = this.scan()
-      .catch((error) => {
+      .catch((error: unknown) => {
+        const { code, sql } = databaseErrorCodes(error);
         this.logger.error(
-          `TUG_RECOVERY_UNAVAILABLE ${error?.code ?? 'UNKNOWN'} ${error?.meta?.code ?? ''}: required local schema/connection must be available; terminal origins remain durable.`,
+          `TUG_RECOVERY_UNAVAILABLE ${code ?? 'UNKNOWN'} ${sql ?? ''}: required local schema/connection must be available; terminal origins remain durable.`,
         );
       })
       .finally(() => {
@@ -61,9 +63,10 @@ export class TugCompetitiveReconciler
         await this.pair.settlePrecisePair(p.id);
       } catch (error) {
         const evidenceError = error instanceof CompetitiveError;
+        const diagnostic = databaseErrorCodes(error);
         const code = evidenceError
           ? error.code
-          : `RETRYABLE_${error?.code ?? 'UNKNOWN'}_${error?.meta?.code ?? ''}`;
+          : `RETRYABLE_${diagnostic.code ?? 'UNKNOWN'}_${diagnostic.sql ?? ''}`;
         // Absence is not proof that an independent observation cannot commit.
         // The witness may already hold an on-time observation in an open tx.
         // Visible orphan certificates ARE contradictory; missing ones remain

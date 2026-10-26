@@ -10,6 +10,7 @@ import { TriviaPresenceGateway } from '../trivia-rush/trivia-presence.gateway';
 import { TiraAflojaGateway } from '../tira-afloja/tira-afloja.gateway';
 
 describe('Trivia presence durable worker lifecycle', () => {
+  let errorLog: jest.SpyInstance;
   it('uses the database admission time for a new V1 action', async () => {
     const at = new Date('2050-01-01T00:00:15Z');
     const tx = { $queryRaw: jest.fn().mockResolvedValue([{ at }]) };
@@ -48,21 +49,31 @@ describe('Trivia presence durable worker lifecycle', () => {
     ).rejects.toBe(error);
   });
   it('preserves shared transport settings regardless of namespace initialization order', () => {
-    const { namespace: trivia, ...options } = Reflect.getMetadata(
+    const triviaMetadata: unknown = Reflect.getMetadata(
       GATEWAY_OPTIONS,
       TriviaPresenceGateway,
     );
-    const { namespace: tug, ...existing } = Reflect.getMetadata(
+    const tugMetadata: unknown = Reflect.getMetadata(
       GATEWAY_OPTIONS,
       TiraAflojaGateway,
     );
+    function optionsRecord(value: unknown): Record<string, unknown> {
+      if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+        throw new Error('Gateway options metadata must be an object');
+      }
+      return value as Record<string, unknown>;
+    }
+    const { namespace: trivia, ...options } = optionsRecord(triviaMetadata);
+    const { namespace: tug, ...existing } = optionsRecord(tugMetadata);
     expect(trivia).toBe('/trivia-presence');
     expect(tug).toBe('/tira-afloja');
     expect(options).toEqual(existing);
   });
   beforeEach(() => {
     jest.useFakeTimers();
-    jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
+    errorLog = jest
+      .spyOn(Logger.prototype, 'error')
+      .mockImplementation(() => undefined);
   });
   afterEach(() => {
     jest.useRealTimers();
@@ -103,7 +114,7 @@ describe('Trivia presence durable worker lifecycle', () => {
     const worker = new TriviaPresenceService(db as unknown as PrismaService);
     await worker.reconcile();
     await worker.reconcile();
-    expect(Logger.prototype.error).toHaveBeenCalledWith(
+    expect(errorLog).toHaveBeenCalledWith(
       expect.stringContaining('RECOVERY_FAILED'),
     );
     expect(db.$queryRaw).toHaveBeenCalledTimes(2);
@@ -121,8 +132,6 @@ describe('Trivia presence durable worker lifecycle', () => {
     const worker = new TriviaPresenceService(db as unknown as PrismaService);
     await worker.reconcile();
     expect(db.$transaction).toHaveBeenCalledTimes(2);
-    expect(Logger.prototype.error).toHaveBeenCalledWith(
-      'TRIVIA_PRESENCE_ATTEMPT_PENDING',
-    );
+    expect(errorLog).toHaveBeenCalledWith('TRIVIA_PRESENCE_ATTEMPT_PENDING');
   });
 });

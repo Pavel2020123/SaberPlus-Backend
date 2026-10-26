@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { ValidationPipe } from '@nestjs/common';
+import { Type, ValidationPipe } from '@nestjs/common';
 import { TriviaRushController } from '../trivia-rush/trivia-rush.controller';
 import {
   CompetitiveVerifierRegistry,
@@ -28,11 +28,23 @@ describe('Trivia and Ghost admission boundary', () => {
       }
     },
   );
-  const dto = Reflect.getMetadata(
+  const parameterTypes: unknown = Reflect.getMetadata(
     'design:paramtypes',
     TriviaRushController.prototype,
     'crear',
-  )[1];
+  );
+  if (!Array.isArray(parameterTypes))
+    throw new Error('Missing controller parameter metadata');
+  const bodyType: unknown = parameterTypes[1];
+  if (typeof bodyType !== 'function')
+    throw new Error('Missing body DTO constructor');
+  const dto = bodyType as Type<object>;
+  function bodyRecord(value: unknown): Record<string, unknown> {
+    if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+      throw new Error('Validation must return a DTO object');
+    }
+    return value as Record<string, unknown>;
+  }
   const pipe = new ValidationPipe({
     transform: true,
     whitelist: true,
@@ -43,18 +55,20 @@ describe('Trivia and Ghost admission boundary', () => {
   it.each(['TRIVIA_RUSH', 'GHOST_DUEL'])(
     'accepts explicit evidence modality %s without XP admission',
     async (modalidad) => {
-      const result = await pipe.transform(
+      const transformed: unknown = await pipe.transform(
         { ...config, modalidad },
         { type: 'body', metatype: dto },
       );
+      const result = bodyRecord(transformed);
       expect(result.modalidad).toBe(modalidad);
     },
   );
   it('preserves the legacy creation contract', async () => {
-    const result = await pipe.transform(config, {
+    const transformed: unknown = await pipe.transform(config, {
       type: 'body',
       metatype: dto,
     });
+    const result = bodyRecord(transformed);
     expect(result.areas).toEqual(config.areas);
     expect(result.duracionSegundos).toBe(60);
   });

@@ -69,8 +69,7 @@ describe('competitive TUG precise pair contract (no settlement)', () => {
       p.beneficiaryPresence.B.openConnectionAtTerminal = open
         ? openProof()
         : null;
-      p.beneficiaryPresence.B.authenticatedEvidence!.atUs =
-        String(disconnected);
+      p.beneficiaryPresence.B.authenticatedEvidence.atUs = String(disconnected);
       expect(verifiedTugPair(evidence(), p).resolutions[1]).toMatchObject({
         eligibility: 'PRESENCE_UNPROVEN',
       });
@@ -78,13 +77,13 @@ describe('competitive TUG precise pair contract (no settlement)', () => {
   );
   it('one microsecond later proves presence, while one earlier does not', () => {
     const p = proof();
-    p.beneficiaryPresence.B.authenticatedEvidence!.atUs = String(
+    p.beneficiaryPresence.B.authenticatedEvidence.atUs = String(
       disconnected - 1n,
     );
     expect(verifiedTugPair(evidence(), p).resolutions[1]).toMatchObject({
       eligibility: 'PRESENCE_UNPROVEN',
     });
-    p.beneficiaryPresence.B.authenticatedEvidence!.atUs = String(
+    p.beneficiaryPresence.B.authenticatedEvidence.atUs = String(
       disconnected + 1n,
     );
     expect(verifiedTugPair(evidence(), p).resolutions[1]).toMatchObject({
@@ -257,7 +256,9 @@ describe('competitive TUG precise pair contract (no settlement)', () => {
       e.abandonment = [];
       e.winner = winner;
       const r = verifiedTugPair(e, proof());
-      expect(r.resolutions.map((x: any) => x.outcome)).toEqual(
+      expect(
+        r.resolutions.map((x) => ('outcome' in x ? x.outcome : undefined)),
+      ).toEqual(
         winner === null
           ? ['EMPATE', 'EMPATE']
           : winner === 'A'
@@ -280,71 +281,77 @@ describe('competitive TUG precise pair contract (no settlement)', () => {
       spy.mockRestore();
     }
   });
-  it.each([
+  it.each<
+    [
+      string,
+      (e: TugReplayEvidence, p: Parameters<typeof verifiedTugPair>[1]) => void,
+      string,
+    ]
+  >([
     [
       'unversioned phase',
-      (e: any, p: any) => {
+      (e, p) => {
         p.temporalVersion = null;
       },
       'TEMPORAL_VERSION_REQUIRED',
     ],
     [
       'missing activation',
-      (e: any, p: any) => {
+      (e, p) => {
         p.activation = null;
       },
       'PHASE',
     ],
     [
       'activation after terminal',
-      (e: any, p: any) => {
+      (e, p) => {
         p.activation.atUs = String(terminal + 1n);
       },
       'ACTIVATION',
     ],
     [
       'grace before activation',
-      (e: any, p: any) => {
+      (e, p) => {
         p.graceStarts.A = String(activation - 1n);
       },
       'GRACE_PHASE',
     ],
     [
       'future terminal',
-      (e: any, p: any) => {
+      (e, p) => {
         p.observedUs = String(terminal - 1n);
       },
       'TIMELINE',
     ],
     [
       'correct without action',
-      (e: any) => {
+      (e) => {
         e.correct[0] = 1;
       },
       'COUNTS',
     ],
     [
       'action without certified R',
-      (e: any) => {
+      (e) => {
         e.presentedRounds = 0;
       },
       'COUNTS',
     ],
     [
       'wrong abandonment timestamp',
-      (e: any) => {
+      (e) => {
         e.abandonment[0].effectiveUs = String(terminal - 1n);
       },
       'ABANDONMENT',
     ],
     [
       'fictitious winner',
-      (e: any) => {
+      (e) => {
         e.winner = 'C';
       },
       'PARTICIPANTS',
     ],
-  ])('rejects %s', (_label, mutate: any, error) => {
+  ])('rejects %s', (_label, mutate, error) => {
     const e = evidence(),
       p = proof();
     mutate(e, p);

@@ -31,7 +31,7 @@ describe('Tug authenticated presence boundary', () => {
     const socket = (token: string) =>
       ({ handshake: { auth: { token }, headers: {} } }) as unknown as Socket;
     const noExpiry = jwt.sign({ sub: 'owner' });
-    expect(jwt.verify(noExpiry).exp).toBeUndefined();
+    expect(jwt.verify<{ exp?: number }>(noExpiry).exp).toBeUndefined();
     expect(await auth.autenticar(socket(noExpiry))).toEqual({
       id: 'owner',
       nombre: 'Owner',
@@ -81,7 +81,9 @@ describe('Tug authenticated presence boundary', () => {
     ).rejects.toBe(missing);
   });
   it('each observer instance has a different server identity and cannot accept a client clock', async () => {
-    const query = jest.fn().mockResolvedValue([{ state: 'OPEN' }]);
+    const query = jest
+      .fn<Promise<{ state: string }[]>, [TemplateStringsArray, ...unknown[]]>()
+      .mockResolvedValue([{ state: 'OPEN' }]);
     const db = { $queryRaw: query } as unknown as PrismaService;
     const a = new TiraAflojaPresenceService(db),
       b = new TiraAflojaPresenceService(db);

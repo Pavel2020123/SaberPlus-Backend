@@ -73,12 +73,12 @@ export async function lockSoloAttempt(
   requireEvidence(row, 'SOURCE_NOT_FOUND');
   return row;
 }
-function object(value: unknown): any {
+function object(value: unknown): Record<string, unknown> {
   requireEvidence(
     value !== null && typeof value === 'object' && !Array.isArray(value),
     'INVALID_SOLO_EVIDENCE',
   );
-  return value;
+  return value as Record<string, unknown>;
 }
 function textId(value: unknown): asserts value is string {
   requireEvidence(
@@ -100,6 +100,11 @@ export function soloFacts(
     'INVALID_SOLO_EVIDENCE',
   );
   const questionIds = new Set<string>();
+  const questions: {
+    id: string;
+    options: string[];
+    correctAnswerId: string;
+  }[] = [];
   for (const raw of row.preguntas) {
     const snapshot = object(raw),
       q = object(snapshot.question);
@@ -134,6 +139,11 @@ export function soloFacts(
         (!row.dificultad || q.dificultad === row.dificultad),
       'INVALID_SOLO_SNAPSHOT',
     );
+    questions.push({
+      id: q.id,
+      options,
+      correctAnswerId: snapshot.correctAnswerId,
+    });
   }
   const accepted: { esCorrecta: boolean }[] = [];
   const keys = new Set<string>();
@@ -146,18 +156,15 @@ export function soloFacts(
   for (let i = 0; i < row.respuestas.length; i++) {
     requireEvidence(score().estado === 'ACTIVO', 'ANSWERS_AFTER_TERMINAL');
     const answer = object(row.respuestas[i]),
-      snapshot = object(row.preguntas[i]);
+      snapshot = questions[i];
     textId(answer.idempotencyKey);
     requireEvidence(
-      !keys.has(answer.idempotencyKey) &&
-        answer.preguntaId === snapshot.question.id,
+      !keys.has(answer.idempotencyKey) && answer.preguntaId === snapshot.id,
       'INVALID_SOLO_EVIDENCE',
     );
     keys.add(answer.idempotencyKey);
     requireEvidence(
-      snapshot.question.respuestas.some(
-        (a: any) => a.id === answer.respuestaId,
-      ),
+      snapshot.options.some((id) => id === answer.respuestaId),
       'INVALID_SOLO_EVIDENCE',
     );
     const correct = answer.respuestaId === snapshot.correctAnswerId;
