@@ -7,6 +7,7 @@ import { InstitutionApproval } from "./institution-approval.mjs";
 import { BankCoverage } from "./bank-coverage.mjs";
 import { QuestionReports } from './question-reports.mjs';
 import { LearningMapEditor } from "./learning-map-editor.mjs";
+import { EditorialFileAccess } from "./editorial-file-access.mjs";
 
 const $ = (id) => document.getElementById(id);
 const config = globalThis.SABERPLUS_CONFIG;
@@ -60,6 +61,7 @@ const editor = new LessonEditor({
 });
 const approvals = new InstitutionApproval({ api, host: $("institution-approval-panel"), demo: config.demo });
 const reports = new QuestionReports({ api, host: $('question-reports-panel') });
+const fileAccess = new EditorialFileAccess({ api, host: $("editorial-file-access-panel"), setBusy: value => { state.busy = value; updateControls(); } });
 const coverage = new BankCoverage({ api, host: $("bank-coverage-panel"), onReports: filters => void changeSection('reports', filters) });
 const learningMap = new LearningMapEditor({ api, host: $("learning-map-panel"), setBusy: value => { state.busy = value; updateControls(); } });
 $("institution-approvals").onclick = () => void changeSection("institutions");
@@ -72,7 +74,7 @@ const bank = new QuestionEditor({
   },
 });
 function closeEditors() {
-  const closed = reports.close() && learningMap.close() && editor.close() && bank.close() && review.close() && tools.close();
+  const closed = fileAccess.close() && reports.close() && learningMap.close() && editor.close() && bank.close() && review.close() && tools.close();
   if (closed) {
     state.subtheme = null;
     $("subtopic-navigation").hidden = true;
@@ -96,7 +98,7 @@ $("subtopic-questions").onclick = () => {
 $("subtopic-lesson").onclick = () => {
   void changeSection("content");
 };
-const sections = ["catalog", "questions", "content", "cases", "institutions", "coverage", "map", "reports"];
+const sections = ["catalog", "questions", "content", "cases", "institutions", "coverage", "map", "reports", "images"];
 function renderSection() {
   for (const key of sections) {
     $("section-" + key).setAttribute("aria-current", state.section === key ? "page" : "false");
@@ -104,7 +106,7 @@ function renderSection() {
   }
   const scoped = ["questions", "content", "map"].includes(state.section);
   $("catalog-panels").hidden = state.section !== "catalog";
-  $("catalog-selection").hidden = ["institutions", "coverage", "reports"].includes(state.section);
+  $("catalog-selection").hidden = ["institutions", "coverage", "reports", "images"].includes(state.section);
   $("select-theme-field").hidden = $("select-sub-field").hidden = !scoped;
   $("selection-help").hidden = !scoped || Boolean(state.subtheme);
   $("subtopic-navigation").hidden = true;
@@ -122,6 +124,7 @@ async function changeSection(section, filters = {}) {
   if (section === "institutions") return approvals.open();
   if (section === "coverage") return coverage.open();
   if (section === 'reports') return reports.open(filters);
+  if (section === "images") return fileAccess.open();
   if (section === "cases" && state.area) return bank.open("casos", { ...state.area, area: state.area.id });
   if (selected && section === "questions") return bank.open("preguntas", selected);
   if (selected && section === "map") return learningMap.open(selected);
@@ -226,6 +229,7 @@ function confirmCatalogDiscard(subthemeOnly = false) {
   );
 }
 function showLogin(message = "") {
+  fileAccess.close(true);
   reports.close(true);
   approvals.close();
   coverage.close();
@@ -636,7 +640,7 @@ for (const [id, key, delta, load] of [
   };
 window.addEventListener("pagehide", () => showLogin());
 window.addEventListener("beforeunload", (event) => {
-  if (learningMap.pending || editor.dirty || bank.dirty || tools.dirty || catalogDraftPending() || state.busy) {
+  if (fileAccess.pending || fileAccess.dirty || learningMap.pending || editor.dirty || bank.dirty || tools.dirty || catalogDraftPending() || state.busy) {
     event.preventDefault();
     event.returnValue = "";
   }

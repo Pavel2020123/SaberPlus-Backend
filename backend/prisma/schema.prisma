@@ -297,6 +297,8 @@ enum AutorizacionArchivoEditorial {
 }
 
 model ArchivoEditorial {
+  revocacion            RevocacionArchivoEditorial?
+  imagenesHistoricas    ImagenHistorialRespuesta[]
   preguntas             Pregunta[]
   opciones              Respuesta[]
   casos                 CasoPregunta[]
@@ -321,6 +323,45 @@ model ArchivoEditorial {
   creadoPor             Usuario                      @relation(fields: [creadoPorId], references: [id], onDelete: Restrict)
 
   @@index([creadoPorId, estado, creadoEn])
+}
+
+enum MotivoRevocacionArchivo {
+  SEGURIDAD
+  DERECHOS
+}
+
+// La existencia de este recibo prevalece sobre cualquier permiso de lectura.
+// No se borra el archivo ni se reescribe el historial al revocar.
+model RevocacionArchivoEditorial {
+  archivoId       String                    @id @db.Uuid
+  operacionId     String                    @unique @db.Uuid
+  actorId         String                    @db.Uuid
+  huellaSolicitud String                    @db.Char(64)
+  motivo          MotivoRevocacionArchivo
+  detalle         String                    @db.VarChar(500)
+  creadoEn        DateTime                  @default(now()) @db.Timestamptz(3)
+  archivo         ArchivoEditorial          @relation(fields: [archivoId], references: [id], onDelete: Restrict)
+}
+
+enum RolImagenHistorial {
+  SELECCIONADA
+  CORRECTA
+}
+
+// Captura del servidor al INSERT del historial; no se reconstruye desde la
+// asociación actual ni se rellena retrospectivamente con datos aproximados.
+model ImagenHistorialRespuesta {
+  historialId String                 @db.Uuid
+  rol         RolImagenHistorial
+  usuarioId   String                 @db.Uuid
+  respuestaId String
+  archivoId   String                 @db.Uuid
+  sha256      String                 @db.Char(64)
+  historial   HistorialRespuesta     @relation(fields: [historialId], references: [id], onDelete: Cascade)
+  archivo     ArchivoEditorial       @relation(fields: [archivoId], references: [id], onDelete: Restrict)
+
+  @@id([historialId, rol])
+  @@index([archivoId, usuarioId])
 }
 
 enum JuegoCompetitivo {
@@ -1066,6 +1107,8 @@ model Batalla {
 }
 
 model BatallaPregunta {
+  // Nuevas asignaciones: copia privada; legado null, sin backfill.
+  snapshotInicial Json?
   batallaId     String   @db.Uuid
   preguntaId    String
   orden         Int
@@ -1076,6 +1119,7 @@ model BatallaPregunta {
   @@id([batallaId, preguntaId])
   @@unique([batallaId, orden])
   @@index([preguntaId])
+  @@index([snapshotInicial(ops: JsonbPathOps)], type: Gin, map: "BatallaPregunta_editorial_snapshot_idx")
 }
 
 model BatallaParticipante {
@@ -1265,6 +1309,7 @@ model PartidaTiraAfloja {
   @@index([jugadorAId, estado])
   @@index([jugadorBId, estado])
   @@index([ganadorId])
+  @@index([snapshotInicial(ops: JsonbPathOps)], type: Gin, map: "PartidaTiraAfloja_editorial_snapshot_idx")
 }
 
 model TugPresence {
@@ -1434,6 +1479,8 @@ model IntentoTriviaRush {
   competitiveRetryAt DateTime @default(dbgenerated("timezone('UTC', clock_timestamp())")) @db.Timestamp(3)
   modalidad                ModalidadTriviaRush?
   snapshotInicial          Json?
+  // Copia privada para nuevas partidas CPU. Legado conserva null, sin backfill.
+  snapshotLocal            Json?
   estado                   EstadoIntentoTriviaRush @default(ACTIVO)
   areas                    AreaIcfes[]
   duracionBaseSegundos     Int
@@ -1467,6 +1514,8 @@ model IntentoTriviaRush {
   @@index([usuarioId, estado, iniciadoEn])
   @@index([estado, venceEn])
   @@index([preguntaActualId])
+  @@index([snapshotInicial(ops: JsonbPathOps)], type: Gin, map: "IntentoTriviaRush_editorial_snapshot_idx")
+  @@index([snapshotLocal(ops: JsonbPathOps)], type: Gin, map: "IntentoTriviaRush_editorial_local_snapshot_idx")
 }
 
 model TriviaPresence {
@@ -1705,6 +1754,7 @@ model PomodoroRegistrado {
 }
 
 model HistorialRespuesta {
+  imagenes                ImagenHistorialRespuesta[]
   id                      String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   sesionId                String          @db.Uuid
   usuarioId               String          @db.Uuid
@@ -1763,6 +1813,7 @@ model IntentoGuardian {
 
   @@index([usuarioId, creadoEn])
   @@index([competitiveRulesVersion, competitiveSettledAt, competitiveRetryAt], map: "IntentoGuardian_competitive_pending_idx")
+  @@index([preguntas(ops: JsonbPathOps)], type: Gin, map: "IntentoGuardian_editorial_snapshot_idx")
 }
 
 model IntentoCima {
@@ -1787,6 +1838,7 @@ model IntentoCima {
 
   @@index([usuarioId, creadoEn])
   @@index([competitiveRulesVersion, competitiveSettledAt, competitiveRetryAt], map: "IntentoCima_competitive_pending_idx")
+  @@index([preguntas(ops: JsonbPathOps)], type: Gin, map: "IntentoCima_editorial_snapshot_idx")
 }
 
 model IntentoRescateEstrellas {
@@ -1811,6 +1863,7 @@ model IntentoRescateEstrellas {
 
   @@index([usuarioId, creadoEn])
   @@index([competitiveRulesVersion, competitiveSettledAt, competitiveRetryAt], map: "IntentoRescateEstrellas_competitive_pending_idx")
+  @@index([preguntas(ops: JsonbPathOps)], type: Gin, map: "IntentoRescateEstrellas_editorial_snapshot_idx")
 }
 
 // Historial legado: juego retirado el 27-09-2026. Sin motor ni nuevas escrituras.

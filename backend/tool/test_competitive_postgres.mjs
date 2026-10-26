@@ -204,7 +204,12 @@ async function main() {
     await docker('exec',name,'psql','-X','-U',user,'-d','postgres','-v','ON_ERROR_STOP=1','-c',roleSql);
     const territoryMigration = 'prisma/migrations/20261010193000_institution_territory/migration.sql';
     const candidates = [territoryMigration,migration,presenceMigration,competitiveTriviaMigration,tugMigration,
-      tugPresenceMigration,tugVisibilityMigration,tugAdmissionMigration,tugTemporalMigration,tugSettlementMigration];
+      tugPresenceMigration,tugVisibilityMigration,tugAdmissionMigration,tugTemporalMigration,tugSettlementMigration,
+      'prisma/migrations/20261023200000_editorial_history_revocation/migration.sql',
+      'prisma/migrations/20261024130000_editorial_solo_snapshot_access/migration.sql',
+      'prisma/migrations/20261024180000_editorial_trivia_local_snapshots/migration.sql',
+      'prisma/migrations/20261024200000_editorial_tug_snapshot_access/migration.sql',
+      'prisma/migrations/20261024220000_editorial_battle_snapshots/migration.sql'];
     const actualPaths = [...paths,...candidates.filter(p=>!paths.includes(p))].sort();
     for (const path of actualPaths) {
       if (territoryOnly && path >= territoryMigration) continue;

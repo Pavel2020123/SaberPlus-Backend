@@ -42,8 +42,11 @@ export async function editorialImagesData(
   // de retirar el recurso, ni una retirada ignorar una asociación ya confirmada.
   for (const id of ids) {
     await db.$queryRaw`SELECT id FROM "ArchivoEditorial" WHERE id = ${id}::uuid FOR UPDATE`;
-    const row = await db.archivoEditorial.findUnique({ where: { id } });
-    if (row?.estado !== 'DISPONIBLE')
+    const row = await db.archivoEditorial.findUnique({
+      where: { id },
+      include: { revocacion: true },
+    });
+    if (row?.estado !== 'DISPONIBLE' || row.revocacion)
       throw new ConflictException(
         'La imagen no está disponible. Consulta su carga o selecciona otra antes de guardar.',
       );

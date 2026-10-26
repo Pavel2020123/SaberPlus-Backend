@@ -128,8 +128,10 @@ async function server(options = {}) {
       next();
     });
   }
-  await app.listen(0, '127.0.0.1');
   instances.push(app);
+  // También registrar una aplicación cuya inicialización falle: el cleanup
+  // debe poder cerrar su pool, no perderlo antes de añadirlo al inventario.
+  await app.listen(0, '127.0.0.1');
   return { app, base: await app.getUrl(), jwt: module.get(JwtService) };
 }
 
@@ -1254,6 +1256,31 @@ test('C5-C2 Tira local valida diez segundos reales e idempotencia sin respuestas
     assert.equal(row.puntosOtorgados, 0);
     assert.equal(row.esFinal, true);
     assert.ok(row.tiempoRespuestaMs >= 10000);
+    // El cierre sin selección conserva únicamente imágenes de la pregunta
+    // realmente expuesta; no crea respuestas académicas ni abre preguntas futuras.
+    const {
+      canReadTriviaSnapshotImage,
+    } = require('../src/editorial-files/editorial-trivia-access');
+    const stored = await db.intentoTriviaRush.findUniqueOrThrow({
+      where: { id },
+    });
+    const original = stored.snapshotLocal.questions[0];
+    const image = original.pregunta.respuestas.find(
+      (option) => option.imagenUrl,
+    )?.imagenUrl;
+    assert.ok(image);
+    assert.equal(
+      await canReadTriviaSnapshotImage(db, image.split('/').pop(), student.id),
+      true,
+    );
+    assert.equal(
+      await canReadTriviaSnapshotImage(
+        db,
+        image.split('/').pop(),
+        randomUUID(),
+      ),
+      false,
+    );
     assert.equal(
       await db.triviaRushRespuesta.count({ where: { intentoId: id } }),
       1,
@@ -1504,24 +1531,53 @@ test('C5-C2 Tira local expira aun pausada y conserva la vigencia global', () =>
       },
       origin,
     );
+    // La admisión original es inmutable. Crear un segundo fixture ya vencido
+    // con fechas coherentes, en lugar de reescribir la copia de una partida.
+    const admitted = await db.intentoTriviaRush.findUniqueOrThrow({
+      where: { id },
+    });
+    assert.equal(
+      (await jsonPost(`${path}/abandonar`, token, {}, origin)).status,
+      201,
+    );
     const inicio = new Date(Date.now() - 601000),
       vence = new Date(inicio.getTime() + 600000);
-    await db.intentoTriviaRush.update({
-      where: { id },
+    const timed = await db.intentoTriviaRush.create({
       data: {
+        usuarioId: admitted.usuarioId,
+        modalidad: 'TUG_LOCAL',
+        areas: admitted.areas,
+        duracionBaseSegundos: 600,
+        snapshotLocal: admitted.snapshotLocal,
         iniciadoEn: inicio,
         venceEn: vence,
+        preguntaActualId: question,
         preguntaIniciaEn: new Date(inicio.getTime() + 1000),
         tiraLocalPausadaEn: new Date(inicio.getTime() + 2000),
+        tiraLocalRondaVersion: 2,
+        preguntas: {
+          create: admitted.snapshotLocal.questions.map(
+            ({ preguntaId, orden, opcionesOrden }) => ({
+              preguntaId,
+              orden,
+              opcionesOrden,
+            }),
+          ),
+        },
       },
     });
-    const expired = await call(path, token, {}, origin);
+    const expired = await call(
+      `/tira-local/intentos/${timed.id}`,
+      token,
+      {},
+      origin,
+    );
     assert.equal(expired.status, 200);
     assert.equal(expired.data.intento.estado, 'EXPIRADO');
     assert.equal(expired.data.intento.finalizadoEn, vence.toISOString());
     assert.equal(expired.data.intento.rondaLocal.pausada, false);
     assert.equal(
-      await db.triviaRushRespuesta.count({ where: { intentoId: id } }),
+      await db.triviaRushRespuesta.count({ where: { intentoId: timed.id } }),
       0,
     );
   }));
@@ -1917,6 +1973,2315 @@ async function attachOption(f, index = 0) {
     });
   });
 }
+
+async function withHistoryImages(action) {
+  const previous = process.env.EDITORIAL_HISTORY_IMAGES_LOCAL_ENABLED;
+  process.env.EDITORIAL_HISTORY_IMAGES_LOCAL_ENABLED = 'true';
+  try {
+    return await action();
+  } finally {
+    if (previous === undefined)
+      delete process.env.EDITORIAL_HISTORY_IMAGES_LOCAL_ENABLED;
+    else process.env.EDITORIAL_HISTORY_IMAGES_LOCAL_ENABLED = previous;
+  }
+}
+
+async function historyImageFixture() {
+  const f = await optionFixture();
+  for (let i = 0; i < f.question.respuestas.length; i++)
+    await attachOption(f, i);
+  const student = await user('ESTUDIANTE');
+  const selected = f.question.respuestas.find((option) => !option.esCorrecta);
+  const correct = f.question.respuestas.find((option) => option.esCorrecta);
+  const history = await db.historialRespuesta.create({
+    data: {
+      usuarioId: student.id,
+      sesionId: randomUUID(),
+      preguntaId: f.question.id,
+      respuestaSeleccionadaId: selected.id,
+      respuestaCorrectaId: correct.id,
+      area: 'MATEMATICAS',
+      origen: 'PRACTICA',
+      esCorrecta: false,
+    },
+    include: { imagenes: true },
+  });
+  return { ...f, student, selected, correct, history };
+}
+
+test('C5-H1 captura ambos roles al confirmar y permite archivo solo al propietario', () =>
+  withHistoryImages(async () => {
+    const f = await historyImageFixture();
+    assert.equal(f.history.imagenes.length, 2);
+    assert.deepEqual(
+      new Set(f.history.imagenes.map((r) => r.rol)),
+      new Set(['SELECCIONADA', 'CORRECTA']),
+    );
+    for (const row of f.history.imagenes) {
+      assert.equal(row.usuarioId, f.student.id);
+      assert.equal(row.archivoId, f.file.id);
+      assert.equal(row.sha256, digest(await disk.read(f.file.id)));
+    }
+    await db.pregunta.update({
+      where: { id: f.question.id },
+      data: { estadoContenido: 'ARCHIVADO' },
+    });
+    await db.subtema.update({
+      where: { id: f.sub.id },
+      data: { estadoContenido: 'ARCHIVADO' },
+    });
+    const own = await call(f.path, tokenFor(f.student));
+    assert.equal(own.status, 200);
+    assert.equal(
+      (
+        await call(
+          f.path.replace(f.file.id, f.file.id.toUpperCase()),
+          tokenFor(f.student),
+        )
+      ).status,
+      200,
+    );
+    assert.equal(digest(own.data), f.history.imagenes[0].sha256);
+    assert.equal(own.headers.get('cache-control'), 'private, no-store');
+    for (const role of ['ESTUDIANTE', 'PROFESOR']) {
+      const other = await user(role);
+      const denied = await call(f.path, tokenFor(other));
+      assert.equal(denied.status, 404);
+      const absent = await call(
+        `/recursos/editoriales/${randomUUID()}`,
+        tokenFor(other),
+      );
+      assert.deepEqual(denied.data, absent.data);
+    }
+    assert.equal((await call(f.path)).status, 401);
+    assert.equal(
+      (await call('/recursos/editoriales/no-uuid', tokenFor(f.student))).status,
+      400,
+    );
+    const unverified = await user('ESTUDIANTE', { correoVerificado: false });
+    assert.equal((await call(f.path, tokenFor(unverified))).status, 403);
+  }));
+
+test('C5-H1 no autoriza opciones no respondidas ni otra imagen incorporada después', () =>
+  withHistoryImages(async () => {
+    const f = await historyImageFixture(),
+      extra = await resource();
+    const nextPath = `/recursos/editoriales/${extra.file.id}`;
+    await db.respuesta.create({
+      data: {
+        preguntaId: f.question.id,
+        texto: 'Otra opción no expuesta',
+        esCorrecta: false,
+        imagenUrl: nextPath,
+        archivoImagenId: extra.file.id,
+      },
+    });
+    // Perturbación de fixture: la captura conserva el archivo original aunque se
+    // modifique la asociación mutable. No modifica el flujo de publicación real.
+    await db.respuesta.update({
+      where: { id: f.selected.id },
+      data: {
+        imagenUrl: nextPath,
+        archivoImagenId: extra.file.id,
+      },
+    });
+    await db.pregunta.update({
+      where: { id: f.question.id },
+      data: { estadoContenido: 'ARCHIVADO' },
+    });
+    assert.equal((await call(f.path, tokenFor(f.student))).status, 200);
+    assert.equal((await call(nextPath, tokenFor(f.student))).status, 404);
+    const consumer = await server({ consumers: true });
+    const token = tokenFor(f.student);
+    const history = await call(
+      '/simulacros/historial-respuestas',
+      token,
+      {},
+      consumer.base,
+    );
+    const notebook = await call('/cuaderno-errores', token, {}, consumer.base);
+    assert.equal(history.status, 200);
+    assert.equal(notebook.status, 200);
+    const entries = [
+      history.data.respuestas.find((row) => row.id === f.history.id),
+      notebook.data.errores.find((row) => row.preguntaId === f.question.id),
+    ];
+    for (const entry of entries) {
+      assert.ok(entry);
+      assert.equal(entry.respuestaSeleccionada.imagenUrl, f.path);
+      assert.equal(entry.respuestaCorrecta.imagenUrl, f.path);
+      assert.ok(!('archivoImagenId' in entry.respuestaSeleccionada));
+      assert.ok(!('sha256' in entry.respuestaSeleccionada));
+    }
+    assert.equal((await call(f.path, token)).status, 200);
+    const original = await db.imagenHistorialRespuesta.findUniqueOrThrow({
+      where: {
+        historialId_rol: { historialId: f.history.id, rol: 'SELECCIONADA' },
+      },
+    });
+    assert.equal(original.archivoId, f.file.id);
+    await assert.rejects(
+      db.imagenHistorialRespuesta.update({
+        where: {
+          historialId_rol: { historialId: f.history.id, rol: 'SELECCIONADA' },
+        },
+        data: { archivoId: extra.file.id },
+      }),
+    );
+  }));
+
+test('C5-H1 captura solo opciones de la pregunta, sin backfill al asociar más tarde', () =>
+  withHistoryImages(async () => {
+    const f = await optionFixture(),
+      student = await user('ESTUDIANTE');
+    const data = {
+      usuarioId: student.id,
+      sesionId: randomUUID(),
+      preguntaId: f.question.id,
+      respuestaSeleccionadaId: f.question.respuestas[0].id,
+      respuestaCorrectaId: f.question.respuestas.find((r) => r.esCorrecta).id,
+      area: 'MATEMATICAS',
+      origen: 'PRACTICA',
+      esCorrecta: false,
+    };
+    const old = await db.historialRespuesta.create({ data });
+    await attachOption(f);
+    assert.equal(
+      await db.imagenHistorialRespuesta.count({
+        where: { historialId: old.id },
+      }),
+      0,
+    );
+    const invalid = await db.historialRespuesta.create({
+      data: {
+        ...data,
+        sesionId: randomUUID(),
+        respuestaSeleccionadaId: randomUUID(),
+        respuestaCorrectaId: randomUUID(),
+      },
+    });
+    assert.equal(
+      await db.imagenHistorialRespuesta.count({
+        where: { historialId: invalid.id },
+      }),
+      0,
+    );
+    await db.pregunta.update({
+      where: { id: f.question.id },
+      data: { estadoContenido: 'ARCHIVADO' },
+    });
+    assert.equal((await call(f.path, tokenFor(student))).status, 404);
+  }));
+
+test('C5-H1 retirada protege prueba histórica aun sin asociaciones editoriales', () =>
+  withHistoryImages(async () => {
+    const f = await historyImageFixture();
+    await db.respuesta.updateMany({
+      where: { preguntaId: f.question.id },
+      data: { imagenUrl: null, archivoImagenId: null },
+    });
+    assert.equal(
+      (await call(`${prefix}/${f.file.id}`, f.token, { method: 'DELETE' }))
+        .status,
+      409,
+    );
+    assert.equal((await call(f.path, tokenFor(f.student))).status, 200);
+    assert.ok((await disk.read(f.file.id)).length);
+  }));
+
+test('C5-H1 revocación prevalece, es idempotente y conserva historial/bytes/resultados', () =>
+  withHistoryImages(async () => {
+    const f = await historyImageFixture();
+    const path = `${prefix}/${f.file.id}/revocaciones`;
+    const body = {
+      operacionId: randomUUID(),
+      motivo: 'DERECHOS',
+      detalle: 'Ensayo H1: permiso revocado.',
+    };
+    const post = (payload, token = f.token) =>
+      call(path, token, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+    const before = await db.historialRespuesta.findUniqueOrThrow({
+      where: { id: f.history.id },
+    });
+    const xp = (
+      await db.usuario.findUniqueOrThrow({ where: { id: f.student.id } })
+    ).xpTotal;
+    const responses = await Promise.all(
+      Array.from({ length: 4 }, () => post(body)),
+    );
+    assert.deepEqual(
+      responses.map((r) => r.status),
+      [201, 201, 201, 201],
+    );
+    const uppercaseReplay = await call(
+      `${prefix}/${f.file.id.toUpperCase()}/revocaciones`,
+      f.token,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      },
+    );
+    assert.equal(uppercaseReplay.status, 201);
+    assert.deepEqual(uppercaseReplay.data, responses[0].data);
+    assert.equal(
+      await db.revocacionArchivoEditorial.count({
+        where: { archivoId: f.file.id },
+      }),
+      1,
+    );
+    assert.equal((await call(f.path, tokenFor(f.student))).status, 404);
+    assert.equal((await call(f.file.contenidoUrl, f.token)).status, 404);
+    const detail = await call(`${prefix}/${f.file.id}`, f.token);
+    assert.equal(detail.data.estado, 'REVOCADO');
+    assert.equal(detail.data.contenidoUrl, null);
+    assert.equal(detail.data.puedeReintentar, false);
+    assert.ok(!('detalle' in detail.data));
+    assert.equal((await post({ ...body, motivo: 'SEGURIDAD' })).status, 409);
+    assert.equal((await post(body, tokenFor(await user()))).status, 404);
+    assert.equal((await upload(f.token, f.metadata)).status, 410);
+    assert.equal(
+      (await call(`${path}/${body.operacionId}`, f.token)).status,
+      200,
+    );
+    assert.equal(
+      (await call(`${path}/${body.operacionId}`, tokenFor(await user())))
+        .status,
+      404,
+    );
+    assert.deepEqual(
+      await db.historialRespuesta.findUniqueOrThrow({
+        where: { id: f.history.id },
+      }),
+      before,
+    );
+    assert.equal(
+      (await db.usuario.findUniqueOrThrow({ where: { id: f.student.id } }))
+        .xpTotal,
+      xp,
+    );
+    assert.equal(
+      await db.imagenHistorialRespuesta.count({
+        where: { historialId: f.history.id },
+      }),
+      2,
+    );
+    assert.equal(
+      digest(await disk.read(f.file.id)),
+      f.history.imagenes[0].sha256,
+    );
+    await assert.rejects(
+      db.revocacionArchivoEditorial.delete({ where: { archivoId: f.file.id } }),
+    );
+    await assert.rejects(
+      db.$transaction((tx) => editorialImagesData(tx, [f.path])),
+    );
+  }));
+
+test('C5-H1 revocar mientras termina una carga no permite reactivarla ni borra bytes', async () => {
+  let ready, release;
+  const writing = new Promise((ok) => {
+    ready = ok;
+  });
+  const resume = new Promise((ok) => {
+    release = ok;
+  });
+  const slow = await server({
+    store: {
+      put: async (...args) => {
+        ready();
+        await resume;
+        return disk.put(...args);
+      },
+      read: (...args) => disk.read(...args),
+      remove: (...args) => disk.remove(...args),
+    },
+  });
+  const admin = await user(),
+    token = tokenFor(admin),
+    metadata = fields();
+  const pending = upload(token, metadata, image, slow.base);
+  try {
+    await Promise.race([
+      writing,
+      new Promise((_, fail) => {
+        const timer = setTimeout(
+          () => fail(new Error('No comenzó la carga H1')),
+          10000,
+        );
+        timer.unref();
+      }),
+    ]);
+    const file = await db.archivoEditorial.findUniqueOrThrow({
+      where: { operacionId: metadata.operacionId },
+    });
+    const response = await call(`${prefix}/${file.id}/revocaciones`, token, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        operacionId: randomUUID(),
+        motivo: 'SEGURIDAD',
+        detalle: 'Ensayo H1 concurrente.',
+      }),
+    });
+    assert.equal(response.status, 201);
+    release();
+    assert.equal((await pending).status, 410);
+    assert.equal(
+      (await call(`${prefix}/${file.id}/contenido`, token)).status,
+      404,
+    );
+    const receipt = await call(
+      `${prefix}/operaciones/${metadata.operacionId}`,
+      token,
+    );
+    assert.equal(receipt.data.estado, 'REVOCADO');
+    assert.equal(receipt.data.puedeReintentar, false);
+    assert.equal(digest(await disk.read(file.id)), file.sha256);
+  } finally {
+    release();
+    await pending.catch(() => undefined);
+  }
+});
+
+test('C5-H1 una operación concurrente no revoca dos archivos diferentes', async () => {
+  const a = await resource(),
+    b = await resource();
+  const body = {
+    operacionId: randomUUID(),
+    motivo: 'SEGURIDAD',
+    detalle: 'Ensayo H1: operación compartida accidentalmente.',
+  };
+  const post = (file) =>
+    call(`${prefix}/${file.file.id}/revocaciones`, file.token, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+  const responses = await Promise.all([post(a), post(b)]);
+  assert.equal(responses.filter((r) => r.status === 201).length, 1);
+  assert.equal(responses.filter((r) => r.status === 404).length, 1);
+  assert.equal(
+    await db.revocacionArchivoEditorial.count({
+      where: { operacionId: body.operacionId },
+    }),
+    1,
+  );
+});
+
+test('C5-H1 rollback no deja prueba histórica y tablas nuevas deniegan acceso PostgREST', async () => {
+  const f = await historyImageFixture(),
+    id = randomUUID();
+  await assert.rejects(
+    db.$transaction(async (tx) => {
+      await tx.historialRespuesta.create({
+        data: {
+          id,
+          usuarioId: f.student.id,
+          sesionId: randomUUID(),
+          preguntaId: f.question.id,
+          respuestaSeleccionadaId: f.selected.id,
+          respuestaCorrectaId: f.correct.id,
+          area: 'MATEMATICAS',
+          origen: 'PRACTICA',
+          esCorrecta: false,
+        },
+      });
+      throw new Error('Rollback deliberado H1');
+    }),
+    /Rollback deliberado/,
+  );
+  assert.equal(
+    await db.imagenHistorialRespuesta.count({ where: { historialId: id } }),
+    0,
+  );
+  const tables = await db.$queryRaw`SELECT relname, relrowsecurity FROM pg_class
+    WHERE oid IN ('public."ImagenHistorialRespuesta"'::regclass, 'public."RevocacionArchivoEditorial"'::regclass)`;
+  assert.equal(tables.length, 2);
+  assert.ok(tables.every((r) => r.relrowsecurity));
+  const grants =
+    await db.$queryRaw`SELECT has_table_privilege(r.oid, c.oid, 'SELECT,INSERT,UPDATE,DELETE') AS permitido
+    FROM pg_roles r CROSS JOIN pg_class c WHERE r.rolname IN ('anon', 'authenticated')
+    AND c.oid IN ('public."ImagenHistorialRespuesta"'::regclass, 'public."RevocacionArchivoEditorial"'::regclass)`;
+  assert.ok(grants.every((r) => !r.permitido));
+});
+
+async function withSoloSnapshotImages(action) {
+  const previous = process.env.EDITORIAL_SOLO_SNAPSHOT_IMAGES_LOCAL_ENABLED;
+  process.env.EDITORIAL_SOLO_SNAPSHOT_IMAGES_LOCAL_ENABLED = 'true';
+  try {
+    return await action();
+  } finally {
+    if (previous === undefined)
+      delete process.env.EDITORIAL_SOLO_SNAPSHOT_IMAGES_LOCAL_ENABLED;
+    else process.env.EDITORIAL_SOLO_SNAPSHOT_IMAGES_LOCAL_ENABLED = previous;
+  }
+}
+
+async function soloSnapshotFixture(
+  model,
+  size,
+  placement,
+  transform = (snapshots) => snapshots,
+) {
+  const current = await resource(),
+    future = await resource();
+  const owner = await user('ESTUDIANTE');
+  const currentPath = `/recursos/editoriales/${current.file.id}`;
+  const futurePath = `/recursos/editoriales/${future.file.id}`;
+  const snapshots = Array.from({ length: size }, (_, index) => {
+    const picture = index === 0 ? currentPath : index === 1 ? futurePath : null;
+    const yes = randomUUID(),
+      no = randomUUID();
+    return {
+      question: {
+        id: randomUUID(),
+        enunciado: `H2A pregunta ${index}`,
+        dificultad: 'BASICO',
+        imagenUrl: placement === 'question' ? picture : null,
+        respuestas: [
+          {
+            id: yes,
+            texto: 'Opción A',
+            ...(placement === 'option' && picture
+              ? { imagenUrl: picture }
+              : {}),
+          },
+          { id: no, texto: 'Opción B' },
+        ],
+        caso:
+          placement === 'case'
+            ? {
+                id: randomUUID(),
+                titulo: 'H2A',
+                contexto: 'Contexto original',
+                imagenUrl: picture,
+              }
+            : null,
+      },
+      correctAnswerId: yes,
+      explanation: 'Explicación original',
+    };
+  });
+  const attempt = await db[model].create({
+    data: {
+      usuarioId: owner.id,
+      area: 'MATEMATICAS',
+      dificultad: 'BASICO',
+      preguntas: transform(snapshots),
+      creadoEn: new Date(Date.now() - 3600000),
+      venceEn: new Date(Date.now() + 3600000),
+    },
+  });
+  const firstAnswer = {
+    preguntaId: snapshots[0].question.id,
+    respuestaId: snapshots[0].correctAnswerId,
+    idempotencyKey: randomUUID(),
+    esCorrecta: true,
+  };
+  return {
+    current,
+    future,
+    owner,
+    token: tokenFor(owner),
+    currentPath,
+    futurePath,
+    snapshots,
+    attempt,
+    firstAnswer,
+  };
+}
+
+for (const [model, size, placement] of [
+  ['intentoCima', 12, 'question'],
+  ['intentoGuardian', 8, 'option'],
+  ['intentoRescateEstrellas', 10, 'case'],
+]) {
+  test(`C5-H2A ${model}: actual/respondida propia sí, futura/ajena/actual expirada no`, () =>
+    withSoloSnapshotImages(async () => {
+      const f = await soloSnapshotFixture(model, size, placement);
+      assert.equal((await call(f.currentPath, f.token)).status, 200);
+      assert.equal((await call(f.futurePath, f.token)).status, 404);
+      await db[model].update({
+        where: { id: f.attempt.id },
+        data: { venceEn: new Date(Date.now() - 1000) },
+      });
+      assert.equal((await call(f.currentPath, f.token)).status, 404);
+      await db[model].update({
+        where: { id: f.attempt.id },
+        data: { venceEn: new Date(Date.now() + 3600000) },
+      });
+      assert.equal(
+        (await call(f.currentPath, tokenFor(await user('ESTUDIANTE')))).status,
+        404,
+      );
+      assert.equal(
+        (await call(f.currentPath, tokenFor(await user('PROFESOR')))).status,
+        404,
+      );
+      process.env.EDITORIAL_SOLO_SNAPSHOT_IMAGES_LOCAL_ENABLED = 'false';
+      assert.equal((await call(f.currentPath, f.token)).status, 404);
+      process.env.EDITORIAL_SOLO_SNAPSHOT_IMAGES_LOCAL_ENABLED = 'true';
+      await db[model].update({
+        where: { id: f.attempt.id },
+        data: { respuestas: [f.firstAnswer] },
+      });
+      assert.equal((await call(f.currentPath, f.token)).status, 200);
+      assert.equal((await call(f.futurePath, f.token)).status, 200);
+      await db[model].update({
+        where: { id: f.attempt.id },
+        data: { estado: 'EXPIRADO', finalizadoEn: new Date() },
+      });
+      assert.equal((await call(f.currentPath, f.token)).status, 200);
+      assert.equal((await call(f.futurePath, f.token)).status, 404);
+      const revoke = await call(
+        `${prefix}/${f.current.file.id}/revocaciones`,
+        f.current.token,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            operacionId: randomUUID(),
+            motivo: 'SEGURIDAD',
+            detalle: 'Ensayo H2A.',
+          }),
+        },
+      );
+      assert.equal(revoke.status, 201);
+      assert.equal((await call(f.currentPath, f.token)).status, 404);
+    }));
+
+  test(`C5-H2A ${model}: referencia futura protege bytes y snapshot/propietario no se reescriben`, async () => {
+    const f = await soloSnapshotFixture(model, size, placement);
+    for (const file of [f.current, f.future]) {
+      assert.equal(
+        (
+          await call(`${prefix}/${file.file.id}`, file.token, {
+            method: 'DELETE',
+          })
+        ).status,
+        409,
+      );
+      assert.ok((await disk.read(file.file.id)).length);
+    }
+    await assert.rejects(
+      db[model].update({
+        where: { id: f.attempt.id },
+        data: { preguntas: f.snapshots.slice().reverse() },
+      }),
+    );
+    await assert.rejects(
+      db[model].update({
+        where: { id: f.attempt.id },
+        data: { usuarioId: (await user('ESTUDIANTE')).id },
+      }),
+    );
+    assert.deepEqual(
+      (await db[model].findUniqueOrThrow({ where: { id: f.attempt.id } }))
+        .preguntas,
+      f.snapshots,
+    );
+  });
+
+  test(`C5-H2A ${model}: avance corrupto o referencia en metadatos no concede permiso`, () =>
+    withSoloSnapshotImages(async () => {
+      const f = await soloSnapshotFixture(model, size, placement);
+      await db[model].update({
+        where: { id: f.attempt.id },
+        data: {
+          respuestas: [{ ...f.firstAnswer, preguntaId: 'no-corresponde' }],
+        },
+      });
+      assert.equal((await call(f.currentPath, f.token)).status, 404);
+      assert.equal((await call(f.futurePath, f.token)).status, 404);
+      await db[model].update({
+        where: { id: f.attempt.id },
+        data: {
+          respuestas: [{ ...f.firstAnswer, respuestaId: 'opcion-ajena' }],
+        },
+      });
+      assert.equal((await call(f.futurePath, f.token)).status, 404);
+      const unrelated = await resource(),
+        hiddenPath = `/recursos/editoriales/${unrelated.file.id}`;
+      const hidden = f.snapshots.map((s) => ({
+        ...s,
+        question: {
+          ...s.question,
+          imagenUrl: null,
+          caso: null,
+          respuestas: s.question.respuestas.map(({ id, texto }) => ({
+            id,
+            texto,
+          })),
+        },
+        internal: { imagenUrl: hiddenPath },
+      }));
+      const second = await user('ESTUDIANTE');
+      await db[model].create({
+        data: {
+          usuarioId: second.id,
+          area: 'MATEMATICAS',
+          dificultad: 'BASICO',
+          preguntas: hidden,
+          creadoEn: new Date(),
+          venceEn: new Date(Date.now() + 3600000),
+        },
+      });
+      assert.equal((await call(hiddenPath, tokenFor(second))).status, 404);
+      const malformed = await soloSnapshotFixture(
+        model,
+        size,
+        placement,
+        (snapshots) =>
+          snapshots.map((s) => ({
+            ...s,
+            correctAnswerId: 'opcion-inexistente',
+          })),
+      );
+      assert.equal(
+        (await call(malformed.currentPath, malformed.token)).status,
+        404,
+      );
+    }));
+}
+
+test('C5-H2A índices GIN aptos para contención y consulta de lectura sin recorrer JSON en Node', async () => {
+  const rows =
+    await db.$queryRaw`SELECT indexname, indexdef FROM pg_indexes WHERE indexname IN
+    ('IntentoCima_editorial_snapshot_idx','IntentoGuardian_editorial_snapshot_idx','IntentoRescateEstrellas_editorial_snapshot_idx')`;
+  assert.equal(rows.length, 3);
+  assert.ok(
+    rows.every(
+      (r) => /USING gin/.test(r.indexdef) && /jsonb_path_ops/.test(r.indexdef),
+    ),
+  );
+  const {
+    canReadSoloSnapshotImage,
+  } = require('../src/editorial-files/editorial-snapshot-access');
+  const f = await soloSnapshotFixture('intentoCima', 12, 'question');
+  const plans = [];
+  const measuring = {
+    $queryRaw: async (query) => {
+      const { Prisma } = require('@prisma/client');
+      plans.push(
+        await db.$queryRaw(
+          Prisma.sql`EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) ${query}`,
+        ),
+      );
+      return db.$queryRaw(query);
+    },
+  };
+  assert.equal(
+    await canReadSoloSnapshotImage(measuring, f.current.file.id, f.owner.id),
+    true,
+  );
+  assert.equal(plans.length, 1);
+  const plan = plans[0][0]['QUERY PLAN'][0];
+  assert.ok(Number.isFinite(plan['Execution Time']));
+  console.log(
+    JSON.stringify({
+      phase: 'h2a-snapshot-query-plan',
+      executionMs: plan['Execution Time'],
+      planningMs: plan['Planning Time'],
+    }),
+  );
+});
+
+async function withTriviaImages(action) {
+  const previous = process.env.EDITORIAL_TRIVIA_SNAPSHOT_IMAGES_LOCAL_ENABLED;
+  process.env.EDITORIAL_TRIVIA_SNAPSHOT_IMAGES_LOCAL_ENABLED = 'true';
+  try {
+    return await action();
+  } finally {
+    if (previous === undefined)
+      delete process.env.EDITORIAL_TRIVIA_SNAPSHOT_IMAGES_LOCAL_ENABLED;
+    else process.env.EDITORIAL_TRIVIA_SNAPSHOT_IMAGES_LOCAL_ENABLED = previous;
+  }
+}
+
+async function triviaImageFixture(mode, count = 12) {
+  const s = await structure(`Banco H2B1 ${randomUUID()}`);
+  // Aislar la selección por área de otros bancos creados por esta suite.
+  // Se ejecuta exclusivamente sobre la base temporal propiedad del runner.
+  await db.tema.updateMany({
+    where: { area: 'LECTURA_CRITICA' },
+    data: { estadoContenido: 'ARCHIVADO' },
+  });
+  await db.tema.update({
+    where: { id: s.theme.id },
+    data: { area: 'LECTURA_CRITICA' },
+  });
+  const pictures = [];
+  const hidden = await resource();
+  const context = await db.casoPregunta.create({
+    data: {
+      area: 'LECTURA_CRITICA',
+      titulo: 'Caso H2B1',
+      contexto: 'Texto del caso',
+      estadoContenido: 'PUBLICADO',
+      imagenUrl: `/recursos/editoriales/${hidden.file.id}`,
+      archivoImagenId: hidden.file.id,
+    },
+  });
+  for (let i = 0; i < count; i++) {
+    const picture = await resource();
+    pictures.push(picture);
+    const path = `/recursos/editoriales/${picture.file.id}`;
+    await db.pregunta.create({
+      data: {
+        subtemaId: s.sub.id,
+        casoId: context.id,
+        ordenEnCaso: i + 1,
+        enunciado: `H2B1 pregunta ${i}`,
+        explicacion: 'Explicación original',
+        dificultad: 'BASICO',
+        estadoContenido: 'PUBLICADO',
+        imagenUrl: path,
+        archivoImagenId: picture.file.id,
+        respuestas: {
+          create: Array.from({ length: 4 }, (_, k) => ({
+            texto: `Opción ${k}`,
+            esCorrecta: k === 0,
+            imagenUrl: path,
+            archivoImagenId: picture.file.id,
+          })),
+        },
+      },
+    });
+  }
+  const app = await server({ consumers: true });
+  const owner = await user('ESTUDIANTE'),
+    token = tokenFor(owner);
+  const route =
+    mode === 'TUG_LOCAL' ? '/tira-local/intentos' : '/trivia-rush/intentos';
+  const created = await jsonPost(
+    route,
+    token,
+    mode === 'TUG_LOCAL'
+      ? { areas: ['LECTURA_CRITICA'] }
+      : {
+          areas: ['LECTURA_CRITICA'],
+          duracionSegundos: 120,
+          ...(mode ? { modalidad: mode } : {}),
+        },
+    app.base,
+  );
+  assert.equal(created.status, 201);
+  const id = created.data.intento.id;
+  const row = await db.intentoTriviaRush.findUniqueOrThrow({ where: { id } });
+  const snapshot = row.snapshotLocal ?? row.snapshotInicial;
+  const assigned =
+    snapshot?.questions ??
+    (await db.triviaRushPregunta.findMany({
+      where: { intentoId: id },
+      orderBy: { orden: 'asc' },
+    }));
+  const ids = assigned.map((q) => q.preguntaId);
+  // Perturbación exclusiva del fixture: sin uso publicado o FK editorial que
+  // pueda ocultar un fallo del permiso por snapshot. No es edición productiva.
+  await db.tema.update({
+    where: { id: s.theme.id },
+    data: { estadoContenido: 'ARCHIVADO' },
+  });
+  await db.pregunta.updateMany({
+    where: { subtemaId: s.sub.id },
+    data: { imagenUrl: null, archivoImagenId: null },
+  });
+  await db.respuesta.updateMany({
+    where: { preguntaId: { in: ids } },
+    data: { imagenUrl: null, archivoImagenId: null },
+  });
+  let presence, connection;
+  if (row.presenciaVersion === 1) {
+    presence = app.app.get(
+      require('../src/trivia-rush/trivia-presence.service')
+        .TriviaPresenceService,
+    );
+    connection = randomUUID();
+    await presence.connect(owner.id, id, connection);
+  }
+  const renew = async () => {
+    if (presence) await presence.observe(id, connection, 'RENEW');
+  };
+  return {
+    ...s,
+    pictures,
+    hidden,
+    context,
+    app,
+    owner,
+    token,
+    row,
+    snapshot,
+    assigned,
+    route: `${route}/${id}`,
+    created: created.data,
+    renew,
+  };
+}
+
+for (const mode of ['TRIVIA_RUSH', 'GHOST_DUEL', 'TUG_LOCAL']) {
+  test(`C5-H2B1 ${mode}: copia original, pregunta actual/final propia, futura/ajena/caso oculto no`, () =>
+    withTriviaImages(async () => {
+      const f = await triviaImageFixture(mode);
+      const first = f.snapshot.questions[0],
+        second = f.snapshot.questions[1];
+      const current = first.pregunta.imagenUrl,
+        future = second.pregunta.imagenUrl;
+      assert.equal((await call(current, f.token)).status, 200);
+      assert.equal((await call(future, f.token)).status, 404);
+      assert.equal(
+        (await call(`/recursos/editoriales/${f.hidden.file.id}`, f.token))
+          .status,
+        404,
+      );
+      assert.equal(
+        (await call(current, tokenFor(await user('ESTUDIANTE')))).status,
+        404,
+      );
+      assert.equal(
+        (await call(current, tokenFor(await user('PROFESOR')))).status,
+        404,
+      );
+      process.env.EDITORIAL_TRIVIA_SNAPSHOT_IMAGES_LOCAL_ENABLED = 'false';
+      assert.equal((await call(current, f.token)).status, 404);
+      process.env.EDITORIAL_TRIVIA_SNAPSHOT_IMAGES_LOCAL_ENABLED = 'true';
+      const recovered = await call(f.route, f.token, {}, f.app.base);
+      assert.equal(recovered.status, 200);
+      assert.equal(recovered.data.intento.pregunta.imagenUrl, current);
+      assert.equal(
+        recovered.data.intento.pregunta.opciones[0].imagenUrl,
+        current,
+      );
+      assert.doesNotMatch(
+        JSON.stringify(recovered.data),
+        /snapshotLocal|snapshotInicial|esCorrecta|correctAnswerId/,
+      );
+      const original = f.snapshot;
+      await assert.rejects(
+        db.intentoTriviaRush.update({
+          where: { id: f.row.id },
+          data:
+            mode === 'TUG_LOCAL'
+              ? {
+                  snapshotLocal: {
+                    ...original,
+                    questions: original.questions.slice().reverse(),
+                  },
+                }
+              : {
+                  snapshotInicial: {
+                    ...original,
+                    questions: original.questions.slice().reverse(),
+                  },
+                },
+        }),
+      );
+      const file = f.pictures.find((p) => current.endsWith(p.file.id));
+      assert.equal(
+        (
+          await call(`${prefix}/${file.file.id}`, file.token, {
+            method: 'DELETE',
+          })
+        ).status,
+        409,
+      );
+      if (mode === 'TUG_LOCAL') {
+        assert.equal(f.row.evidenciaVersion, null);
+        assert.equal(f.row.presenciaVersion, null);
+        assert.equal(f.row.competitiveRulesVersion, null);
+        assert.equal(
+          (
+            await jsonPost(
+              `${f.route}/ronda`,
+              f.token,
+              { preguntaId: first.preguntaId },
+              f.app.base,
+            )
+          ).status,
+          201,
+        );
+      }
+      await f.renew();
+      const input = {
+        preguntaId: first.preguntaId,
+        respuestaId: first.pregunta.respuestas.find((r) => r.esCorrecta).id,
+        idempotencyKey: randomUUID(),
+      };
+      const answered = await jsonPost(
+        `${f.route}/respuestas`,
+        f.token,
+        input,
+        f.app.base,
+      );
+      assert.equal(answered.status, 201);
+      assert.equal(answered.data.evaluacion.esFinal, true);
+      assert.equal((await call(current, f.token)).status, 200);
+      assert.equal((await call(future, f.token)).status, 200);
+      await f.renew();
+      const repeat = await jsonPost(
+        `${f.route}/respuestas`,
+        f.token,
+        input,
+        f.app.base,
+      );
+      assert.equal(repeat.status, 201);
+      assert.equal(
+        await db.triviaRushRespuesta.count({
+          where: { intentoId: f.row.id, esFinal: true },
+        }),
+        1,
+      );
+      const abandoned = await jsonPost(
+        `${f.route}/abandonar`,
+        f.token,
+        {},
+        f.app.base,
+      );
+      assert.equal(abandoned.status, 201);
+      assert.equal((await call(current, f.token)).status, 200);
+      assert.equal((await call(future, f.token)).status, 404);
+      const revoked = await jsonPost(
+        `${prefix}/${file.file.id}/revocaciones`,
+        file.token,
+        {
+          operacionId: randomUUID(),
+          motivo: 'DERECHOS',
+          detalle: 'Ensayo H2B1.',
+        },
+      );
+      assert.equal(revoked.status, 201);
+      assert.equal((await call(current, f.token)).status, 404);
+    }));
+}
+
+test('C5-H2B1 segunda oportunidad no abre la siguiente pregunta ni convierte la primera selección en cierre', () =>
+  withTriviaImages(async () => {
+    const f = await triviaImageFixture('TRIVIA_RUSH');
+    const first = f.snapshot.questions[0],
+      next = f.snapshot.questions[1].pregunta.imagenUrl;
+    const grant = await db.concesionRecompensaJuego.create({
+      data: {
+        usuarioId: f.owner.id,
+        proveedor: 'fixture-local-H2B1',
+        referenciaProveedor: randomUUID(),
+        expiraEn: new Date(Date.now() + 60000),
+      },
+    });
+    await f.renew();
+    const booster = await jsonPost(
+      `${f.route}/potenciadores`,
+      f.token,
+      {
+        preguntaId: first.preguntaId,
+        potenciador: 'SEGUNDA_OPORTUNIDAD',
+        concesionId: grant.id,
+        idempotencyKey: randomUUID(),
+      },
+      f.app.base,
+    );
+    assert.equal(booster.status, 201);
+    await f.renew();
+    const incorrect = await jsonPost(
+      `${f.route}/respuestas`,
+      f.token,
+      {
+        preguntaId: first.preguntaId,
+        respuestaId: first.pregunta.respuestas.find((r) => !r.esCorrecta).id,
+        idempotencyKey: randomUUID(),
+      },
+      f.app.base,
+    );
+    assert.equal(incorrect.status, 201);
+    assert.equal(incorrect.data.evaluacion.esFinal, false);
+    assert.equal(incorrect.data.evaluacion.respuestaCorrectaId, null);
+    assert.equal((await call(first.pregunta.imagenUrl, f.token)).status, 200);
+    assert.equal((await call(next, f.token)).status, 404);
+    assert.equal(
+      await db.triviaRushRespuesta.count({
+        where: { intentoId: f.row.id, esFinal: true },
+      }),
+      0,
+    );
+    await jsonPost(`${f.route}/abandonar`, f.token, {}, f.app.base);
+    assert.equal((await call(first.pregunta.imagenUrl, f.token)).status, 404);
+  }));
+
+test('C5-H2B1 CPU admite cuatro preguntas y no incorpora retrospectivamente copias a partidas antiguas', () =>
+  withTriviaImages(async () => {
+    const f = await triviaImageFixture('TUG_LOCAL', 4);
+    assert.equal(f.snapshot.q, 4);
+    const oldOwner = await user('ESTUDIANTE'),
+      started = new Date();
+    const old = await db.intentoTriviaRush.create({
+      data: {
+        usuarioId: oldOwner.id,
+        modalidad: 'TUG_LOCAL',
+        areas: ['LECTURA_CRITICA'],
+        duracionBaseSegundos: 600,
+        iniciadoEn: started,
+        venceEn: new Date(started.getTime() + 600000),
+        preguntaActualId: f.assigned[0].preguntaId,
+        preguntas: {
+          create: f.assigned.map(({ preguntaId, orden, opcionesOrden }) => ({
+            preguntaId,
+            orden,
+            opcionesOrden,
+          })),
+        },
+      },
+    });
+    assert.equal(old.snapshotLocal, null);
+    const question = f.snapshot.questions[0];
+    assert.equal(
+      (
+        await jsonPost(
+          `${f.route}/ronda`,
+          f.token,
+          { preguntaId: question.preguntaId },
+          f.app.base,
+        )
+      ).status,
+      201,
+    );
+    assert.equal(
+      (
+        await jsonPost(
+          `${f.route}/respuestas`,
+          f.token,
+          {
+            preguntaId: question.preguntaId,
+            respuestaId: question.pregunta.respuestas.find(
+              (option) => option.esCorrecta,
+            ).id,
+            idempotencyKey: randomUUID(),
+          },
+          f.app.base,
+        )
+      ).status,
+      201,
+    );
+    const proof = await db.triviaRushRespuesta.findFirstOrThrow({
+      where: { intentoId: f.row.id },
+    });
+    await assert.rejects(
+      db.triviaRushRespuesta.update({
+        where: { id: proof.id },
+        data: { intentoId: old.id },
+      }),
+    );
+    await assert.rejects(
+      db.triviaRushRespuesta.update({
+        where: { id: proof.id },
+        data: { esCorrecta: false },
+      }),
+    );
+    await assert.rejects(
+      db.triviaRushRespuesta.delete({ where: { id: proof.id } }),
+    );
+    assert.equal(
+      (
+        await call(
+          f.snapshot.questions[0].pregunta.imagenUrl,
+          tokenFor(oldOwner),
+        )
+      ).status,
+      404,
+    );
+    await assert.rejects(
+      db.intentoTriviaRush.update({
+        where: { id: old.id },
+        data: { snapshotLocal: f.snapshot },
+      }),
+    );
+  }));
+
+test('C5-H2B1 Trivia legada sin evidencia no reconstruye referencias antiguas', () =>
+  withTriviaImages(async () => {
+    const f = await triviaImageFixture(undefined);
+    assert.equal(f.row.evidenciaVersion, null);
+    assert.equal(f.row.snapshotInicial, null);
+    assert.equal(f.row.snapshotLocal, null);
+    for (const file of f.pictures)
+      assert.equal(
+        (await call(`/recursos/editoriales/${file.file.id}`, f.token)).status,
+        404,
+      );
+  }));
+
+test('C5-H2B1 índices para las dos copias y plan de consulta por propietario', () =>
+  withTriviaImages(async () => {
+    const rows =
+      await db.$queryRaw`SELECT indexname, indexdef FROM pg_indexes WHERE indexname IN
+    ('IntentoTriviaRush_editorial_snapshot_idx','IntentoTriviaRush_editorial_local_snapshot_idx')`;
+    assert.equal(rows.length, 2);
+    assert.ok(rows.every((r) => /jsonb_path_ops/.test(r.indexdef)));
+    const {
+      canReadTriviaSnapshotImage,
+    } = require('../src/editorial-files/editorial-trivia-access');
+    const f = await triviaImageFixture('TUG_LOCAL', 4),
+      plans = [];
+    const picture = f.snapshot.questions[0].pregunta.imagenUrl.split('/').pop();
+    const measuring = {
+      $queryRaw: async (query) => {
+        const { Prisma } = require('@prisma/client');
+        plans.push(
+          await db.$queryRaw(
+            Prisma.sql`EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) ${query}`,
+          ),
+        );
+        return db.$queryRaw(query);
+      },
+    };
+    assert.equal(
+      await canReadTriviaSnapshotImage(measuring, picture, f.owner.id),
+      true,
+    );
+    const plan = plans[0][0]['QUERY PLAN'][0];
+    console.log(
+      JSON.stringify({
+        phase: 'h2b1-trivia-query-plan',
+        executionMs: plan['Execution Time'],
+        planningMs: plan['Planning Time'],
+      }),
+    );
+  }));
+
+async function withTugImages(action) {
+  const previous = process.env.EDITORIAL_TUG_SNAPSHOT_IMAGES_LOCAL_ENABLED;
+  const firstInstance = instances.length;
+  process.env.EDITORIAL_TUG_SNAPSHOT_IMAGES_LOCAL_ENABLED = 'true';
+  try {
+    return await action();
+  } finally {
+    // Cada guion crea un consumidor y su testigo Prisma independiente.
+    // Cerrarlos aquí evita acumular conexiones hasta el fin de toda la suite.
+    for (const instance of instances.splice(firstInstance))
+      await instance.close();
+    if (previous === undefined)
+      delete process.env.EDITORIAL_TUG_SNAPSHOT_IMAGES_LOCAL_ENABLED;
+    else process.env.EDITORIAL_TUG_SNAPSHOT_IMAGES_LOCAL_ENABLED = previous;
+  }
+}
+
+async function tugImageFixture() {
+  const s = await structure(`Banco H2B2 ${randomUUID()}`);
+  await db.tema.updateMany({
+    where: { area: 'LECTURA_CRITICA' },
+    data: { estadoContenido: 'ARCHIVADO' },
+  });
+  await db.tema.update({
+    where: { id: s.theme.id },
+    data: { area: 'LECTURA_CRITICA' },
+  });
+  const hidden = await resource(),
+    optionImage = await resource(),
+    pictures = [];
+  const context = await db.casoPregunta.create({
+    data: {
+      area: 'LECTURA_CRITICA',
+      titulo: 'Contexto privado de la copia',
+      contexto: 'Texto interno',
+      estadoContenido: 'PUBLICADO',
+      imagenUrl: `/recursos/editoriales/${hidden.file.id}`,
+      archivoImagenId: hidden.file.id,
+    },
+  });
+  for (let i = 0; i < 4; i++) {
+    const file = await resource();
+    pictures.push(file);
+    await db.pregunta.create({
+      data: {
+        subtemaId: s.sub.id,
+        casoId: context.id,
+        ordenEnCaso: i + 1,
+        enunciado: `H2B2 ${i}`,
+        dificultad: 'BASICO',
+        estadoContenido: 'PUBLICADO',
+        imagenUrl: `/recursos/editoriales/${file.file.id}`,
+        archivoImagenId: file.file.id,
+        respuestas: {
+          create: Array.from({ length: 4 }, (_, k) => ({
+            texto: `Respuesta ${k}`,
+            esCorrecta: k === 0,
+            imagenUrl: `/recursos/editoriales/${optionImage.file.id}`,
+            archivoImagenId: optionImage.file.id,
+          })),
+        },
+      },
+    });
+  }
+  const app = await server({ consumers: true });
+  const a = await user('ESTUDIANTE'),
+    b = await user('ESTUDIANTE');
+  const tokenA = tokenFor(a),
+    tokenB = tokenFor(b);
+  const first = await jsonPost(
+    '/tira-afloja/emparejamiento',
+    tokenA,
+    { area: 'LECTURA_CRITICA' },
+    app.base,
+  );
+  assert.equal(first.status, 201);
+  const paired = await jsonPost(
+    '/tira-afloja/emparejamiento',
+    tokenB,
+    { area: 'LECTURA_CRITICA' },
+    app.base,
+  );
+  assert.equal(paired.status, 201);
+  assert.equal(paired.data.partida.id, first.data.partida.id);
+  const id = first.data.partida.id,
+    route = `/tira-afloja/${id}`;
+  const presence = app.app.get(
+    require('../src/tira-afloja/tira-afloja-presence.service')
+      .TiraAflojaPresenceService,
+  );
+  const connections = [randomUUID(), randomUUID()];
+  await presence.connect(a.id, id, connections[0]);
+  await presence.connect(b.id, id, connections[1]);
+  const renew = async () => {
+    for (const connection of connections)
+      await presence.observe(id, connection, 'RENEW');
+  };
+  assert.equal(
+    (await jsonPost(`${route}/listo`, tokenA, {}, app.base)).status,
+    201,
+  );
+  assert.equal(
+    (await jsonPost(`${route}/listo`, tokenB, {}, app.base)).status,
+    201,
+  );
+  const match = await db.partidaTiraAfloja.findUniqueOrThrow({ where: { id } });
+  assert.equal(match.evidenciaVersion, 1);
+  assert.equal(match.certificacionRVersion, 1);
+  const snapshot = match.snapshotInicial;
+  // Quitar fuentes publicadas: probar la copia, sin que un permiso vigente o
+  // HistorialRespuesta pueda encubrir un fallo del adaptador de Tira online.
+  await db.tema.update({
+    where: { id: s.theme.id },
+    data: { estadoContenido: 'ARCHIVADO' },
+  });
+  await db.pregunta.updateMany({
+    where: { subtemaId: s.sub.id },
+    data: { imagenUrl: null, archivoImagenId: null },
+  });
+  await db.respuesta.updateMany({
+    where: { preguntaId: { in: snapshot.questions.map((q) => q.preguntaId) } },
+    data: { imagenUrl: null, archivoImagenId: null },
+  });
+  await db.casoPregunta.update({
+    where: { id: context.id },
+    data: { imagenUrl: null, archivoImagenId: null },
+  });
+  const present = async () => {
+    await renew();
+    const remaining = match.rondaIniciaEn.getTime() - Date.now() + 60;
+    if (remaining > 0)
+      await new Promise((resolve) => setTimeout(resolve, remaining));
+    await renew();
+    assert.equal((await call(route, tokenA, {}, app.base)).status, 200);
+    assert.equal(
+      await db.tiraAflojaRondaPresentada.count({
+        where: { partidaId: id, ronda: 1 },
+      }),
+      2,
+    );
+    assert.equal(
+      await db.tugRoundVisibility.count({ where: { partidaId: id, ronda: 1 } }),
+      1,
+    );
+  };
+  return {
+    ...s,
+    app,
+    a,
+    b,
+    tokenA,
+    tokenB,
+    id,
+    route,
+    match,
+    snapshot,
+    pictures,
+    hidden,
+    optionImage,
+    renew,
+    present,
+  };
+}
+
+test('C5-H2B2 countdown no autoriza; ronda confirmada permite imágenes propias de ambos jugadores, no futuras ni contexto', () =>
+  withTugImages(async () => {
+    const f = await tugImageFixture(),
+      current = f.snapshot.questions[0].pregunta.imagenUrl,
+      future = f.snapshot.questions[1].pregunta.imagenUrl;
+    assert.equal((await call(current, f.tokenA)).status, 404);
+    await f.present();
+    for (const token of [f.tokenA, f.tokenB]) {
+      assert.equal((await call(current, token)).status, 200);
+      assert.equal(
+        (await call(`/recursos/editoriales/${f.optionImage.file.id}`, token))
+          .status,
+        200,
+      );
+      assert.equal((await call(future, token)).status, 404);
+      assert.equal(
+        (await call(`/recursos/editoriales/${f.hidden.file.id}`, token)).status,
+        404,
+      );
+    }
+    assert.equal(
+      (await call(current, tokenFor(await user('ESTUDIANTE')))).status,
+      404,
+    );
+    assert.equal(
+      (await call(current, tokenFor(await user('PROFESOR')))).status,
+      404,
+    );
+    process.env.EDITORIAL_TUG_SNAPSHOT_IMAGES_LOCAL_ENABLED = 'false';
+    assert.equal((await call(current, f.tokenA)).status, 404);
+    // La retención funciona aunque la lectura esté apagada y la imagen sea futura.
+    const file = f.pictures.find((p) => future.endsWith(p.file.id));
+    assert.equal(
+      (
+        await call(`${prefix}/${file.file.id}`, file.token, {
+          method: 'DELETE',
+        })
+      ).status,
+      409,
+    );
+    process.env.EDITORIAL_TUG_SNAPSHOT_IMAGES_LOCAL_ENABLED = 'true';
+    const recovered = await call(f.route, f.tokenB, {}, f.app.base);
+    assert.equal(recovered.data.partida.pregunta.imagenUrl, current);
+    assert.doesNotMatch(
+      JSON.stringify(recovered.data.partida.pregunta),
+      /snapshotInicial|esCorrecta|explicacion|contexto|archivoImagenId/,
+    );
+    await assert.rejects(
+      db.tiraAflojaRondaPresentada.updateMany({
+        where: { partidaId: f.id },
+        data: { preguntaId: f.snapshot.questions[1].preguntaId },
+      }),
+    );
+    await assert.rejects(
+      db.partidaTiraAfloja.update({
+        where: { id: f.id },
+        data: { snapshotInicial: { ...f.snapshot, version: 2 } },
+      }),
+    );
+    assert.equal(
+      (await jsonPost(`${f.route}/abandonar`, f.tokenA, {}, f.app.base)).status,
+      201,
+    );
+  }));
+
+test('C5-H2B2 respuestas reales avanzan sin abrir ronda futura; el reintento no duplica evidencia', () =>
+  withTugImages(async () => {
+    const f = await tugImageFixture();
+    await f.present();
+    const entry = f.snapshot.questions[0],
+      current = entry.pregunta.imagenUrl,
+      future = f.snapshot.questions[2].pregunta.imagenUrl;
+    const option = entry.pregunta.respuestas.find((r) => r.esCorrecta);
+    const input = {
+      ronda: 1,
+      preguntaId: entry.preguntaId,
+      respuestaId: option.id,
+      idempotencyKey: randomUUID(),
+    };
+    await f.renew();
+    assert.equal(
+      (await jsonPost(`${f.route}/respuestas`, f.tokenA, input, f.app.base))
+        .status,
+      201,
+    );
+    assert.equal(
+      (await jsonPost(`${f.route}/respuestas`, f.tokenA, input, f.app.base))
+        .status,
+      201,
+    );
+    assert.equal(
+      (
+        await jsonPost(
+          `${f.route}/respuestas`,
+          f.tokenB,
+          { ...input, idempotencyKey: randomUUID() },
+          f.app.base,
+        )
+      ).status,
+      201,
+    );
+    assert.equal(
+      await db.tiraAflojaRespuesta.count({
+        where: { partidaId: f.id, ronda: 1 },
+      }),
+      2,
+    );
+    assert.equal((await call(current, f.tokenA)).status, 200);
+    assert.equal((await call(future, f.tokenA)).status, 404);
+    await jsonPost(`${f.route}/abandonar`, f.tokenA, {}, f.app.base);
+    assert.equal((await call(current, f.tokenA)).status, 200);
+    assert.equal((await call(future, f.tokenA)).status, 404);
+  }));
+
+test('C5-H2B2 ronda expuesta sin respuesta conserva imagen tras cierre, salvo revocación explícita', () =>
+  withTugImages(async () => {
+    const f = await tugImageFixture();
+    await f.present();
+    const path = f.snapshot.questions[0].pregunta.imagenUrl;
+    assert.equal(
+      (await jsonPost(`${f.route}/abandonar`, f.tokenA, {}, f.app.base)).status,
+      201,
+    );
+    assert.equal(
+      await db.tiraAflojaRespuesta.count({ where: { partidaId: f.id } }),
+      0,
+    );
+    assert.equal((await call(path, f.tokenB)).status, 200);
+    assert.equal(
+      (await call(f.snapshot.questions[1].pregunta.imagenUrl, f.tokenB)).status,
+      404,
+    );
+    const file = f.pictures.find((p) => path.endsWith(p.file.id));
+    const revoked = await jsonPost(
+      `${prefix}/${file.file.id}/revocaciones`,
+      file.token,
+      {
+        operacionId: randomUUID(),
+        motivo: 'SEGURIDAD',
+        detalle: 'Ensayo H2B2.',
+      },
+    );
+    assert.equal(revoked.status, 201);
+    assert.equal((await call(path, f.tokenA)).status, 404);
+    assert.equal((await call(path, f.tokenB)).status, 404);
+    assert.equal(
+      await db.tiraAflojaRondaPresentada.count({ where: { partidaId: f.id } }),
+      2,
+    );
+  }));
+
+test('C5-H2B2 una partida legada sin copia ni presentación no hereda imágenes de otro encuentro', () =>
+  withTugImages(async () => {
+    const f = await tugImageFixture(),
+      a = await user('ESTUDIANTE'),
+      b = await user('ESTUDIANTE');
+    const legacy = await db.partidaTiraAfloja.create({
+      data: {
+        jugadorAId: a.id,
+        jugadorBId: b.id,
+        area: 'LECTURA_CRITICA',
+        expiraEn: new Date(Date.now() + 600000),
+      },
+    });
+    assert.equal(legacy.snapshotInicial, null);
+    await f.present();
+    assert.equal(
+      (await call(f.snapshot.questions[0].pregunta.imagenUrl, tokenFor(a)))
+        .status,
+      404,
+    );
+    assert.equal(
+      (await call(f.snapshot.questions[0].pregunta.imagenUrl, tokenFor(b)))
+        .status,
+      404,
+    );
+    await assert.rejects(
+      db.partidaTiraAfloja.update({
+        where: { id: legacy.id },
+        data: { evidenciaVersion: 1, snapshotInicial: f.snapshot },
+      }),
+    );
+    await jsonPost(`${f.route}/abandonar`, f.tokenA, {}, f.app.base);
+  }));
+
+test('C5-H2B2 índice GIN y consulta por participante sobre evidencia real', () =>
+  withTugImages(async () => {
+    const f = await tugImageFixture();
+    await f.present();
+    const index =
+      await db.$queryRaw`SELECT indexdef FROM pg_indexes WHERE indexname='PartidaTiraAfloja_editorial_snapshot_idx'`;
+    assert.equal(index.length, 1);
+    assert.match(index[0].indexdef, /jsonb_path_ops/);
+    const { Prisma } = require('@prisma/client');
+    const {
+      canReadTugSnapshotImage,
+    } = require('../src/editorial-files/editorial-tug-access');
+    const plans = [],
+      measuring = {
+        $queryRaw: async (query) => {
+          plans.push(
+            await db.$queryRaw(
+              Prisma.sql`EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) ${query}`,
+            ),
+          );
+          return db.$queryRaw(query);
+        },
+      };
+    assert.equal(
+      await canReadTugSnapshotImage(
+        measuring,
+        f.snapshot.questions[0].pregunta.imagenUrl.split('/').pop(),
+        f.a.id,
+      ),
+      true,
+    );
+    const plan = plans[0][0]['QUERY PLAN'][0];
+    console.log(
+      JSON.stringify({
+        phase: 'h2b2-tug-query-plan',
+        executionMs: plan['Execution Time'],
+        planningMs: plan['Planning Time'],
+      }),
+    );
+    await jsonPost(`${f.route}/abandonar`, f.tokenA, {}, f.app.base);
+  }));
+
+async function withBattleImages(action) {
+  const previous = process.env.EDITORIAL_BATTLE_SNAPSHOT_IMAGES_LOCAL_ENABLED,
+    firstInstance = instances.length;
+  process.env.EDITORIAL_BATTLE_SNAPSHOT_IMAGES_LOCAL_ENABLED = 'true';
+  try {
+    return await action();
+  } finally {
+    for (const instance of instances.splice(firstInstance))
+      await instance.close();
+    if (previous === undefined)
+      delete process.env.EDITORIAL_BATTLE_SNAPSHOT_IMAGES_LOCAL_ENABLED;
+    else process.env.EDITORIAL_BATTLE_SNAPSHOT_IMAGES_LOCAL_ENABLED = previous;
+  }
+}
+async function battleImageFixture(mode = 'DUELO_RELAMPAGO', fallback = false) {
+  const s = await structure(`Banco H2B3 ${randomUUID()}`);
+  await db.tema.updateMany({
+    where: { area: 'LECTURA_CRITICA' },
+    data: { estadoContenido: 'ARCHIVADO' },
+  });
+  await db.tema.update({
+    where: { id: s.theme.id },
+    data: { area: 'LECTURA_CRITICA' },
+  });
+  const hidden = await resource(),
+    pictures = [];
+  const context = await db.casoPregunta.create({
+    data: {
+      area: 'LECTURA_CRITICA',
+      titulo: 'Caso original',
+      contexto: 'Contexto original H2B3',
+      estadoContenido: 'PUBLICADO',
+      imagenUrl: `/recursos/editoriales/${hidden.file.id}`,
+      archivoImagenId: hidden.file.id,
+    },
+  });
+  for (let i = 0; i < 4; i++) {
+    const mainImage = await resource(),
+      optionImage = await resource();
+    pictures.push(mainImage, optionImage);
+    await db.pregunta.create({
+      data: {
+        subtemaId: s.sub.id,
+        casoId: context.id,
+        ordenEnCaso: i + 1,
+        enunciado: `Pregunta original H2B3 ${i}`,
+        explicacion: 'Explicación original H2B3',
+        dificultad: 'BASICO',
+        estadoContenido: 'PUBLICADO',
+        imagenUrl: fallback
+          ? null
+          : `/recursos/editoriales/${mainImage.file.id}`,
+        archivoImagenId: fallback ? null : mainImage.file.id,
+        respuestas: {
+          create: Array.from({ length: 4 }, (_, k) => ({
+            texto: `Original ${k}`,
+            esCorrecta: k === 0,
+            explicacion: `Motivo original ${k}`,
+            imagenUrl: `/recursos/editoriales/${optionImage.file.id}`,
+            archivoImagenId: optionImage.file.id,
+          })),
+        },
+      },
+    });
+  }
+  const app = await server({ consumers: true }),
+    a = await user('ESTUDIANTE'),
+    b = await user('ESTUDIANTE');
+  const tokenA = tokenFor(a),
+    tokenB = tokenFor(b);
+  const first = await jsonPost(
+    '/batallas',
+    tokenA,
+    { area: 'LECTURA_CRITICA', modo: mode },
+    app.base,
+  );
+  assert.equal(first.status, 201);
+  assert.deepEqual(first.data.preguntas, []);
+  const paired = await jsonPost(
+    '/batallas',
+    tokenB,
+    { area: 'LECTURA_CRITICA', modo: mode },
+    app.base,
+  );
+  assert.equal(paired.status, 201);
+  assert.equal(paired.data.id, first.data.id);
+  const id = first.data.id,
+    route = `/batallas/${id}`;
+  const assigned = await db.batallaPregunta.findMany({
+    where: { batallaId: id },
+    orderBy: { orden: 'asc' },
+  });
+  const snapshots = assigned.map((p) => p.snapshotInicial);
+  assert.ok(snapshots.every((p) => p.version === 1));
+  await db.tema.update({
+    where: { id: s.theme.id },
+    data: { estadoContenido: 'ARCHIVADO' },
+  });
+  await db.pregunta.updateMany({
+    where: { subtemaId: s.sub.id },
+    data: {
+      enunciado: 'Texto cambiado del banco',
+      imagenUrl: null,
+      archivoImagenId: null,
+    },
+  });
+  await db.respuesta.updateMany({
+    where: { preguntaId: { in: assigned.map((p) => p.preguntaId) } },
+    data: { imagenUrl: null, archivoImagenId: null },
+  });
+  await db.casoPregunta.update({
+    where: { id: context.id },
+    data: {
+      contexto: 'Contexto nuevo del banco',
+      imagenUrl: null,
+      archivoImagenId: null,
+    },
+  });
+  const start = async (token) => {
+    const response = await jsonPost(`${route}/iniciar`, token, {}, app.base);
+    assert.equal(response.status, 201);
+    return response;
+  };
+  const answer = async (token, position) => {
+    const q = snapshots[position];
+    return jsonPost(
+      `${route}/respuestas`,
+      token,
+      {
+        preguntaId: q.preguntaId,
+        respuestaId: q.pregunta.respuestas.find((r) => r.esCorrecta).id,
+      },
+      app.base,
+    );
+  };
+  return {
+    ...s,
+    app,
+    a,
+    b,
+    tokenA,
+    tokenB,
+    id,
+    route,
+    snapshots,
+    assigned,
+    hidden,
+    pictures,
+    start,
+    answer,
+  };
+}
+
+for (const mode of ['DUELO_RELAMPAGO', 'CARRERA_FANTASMA', 'SUPERVIVENCIA']) {
+  test(`C5-H2B3 ${mode}: original por jugador y avance propio, sin imágenes futuras ni soluciones`, () =>
+    withBattleImages(async () => {
+      const f = await battleImageFixture(mode),
+        first = f.snapshots[0],
+        next = f.snapshots[1];
+      const path = first.pregunta.imagenUrl,
+        optionPath = first.pregunta.respuestas[0].imagenUrl;
+      assert.equal((await call(path, f.tokenA)).status, 404);
+      const started = await f.start(f.tokenA);
+      assert.equal(
+        started.data.preguntas[0].enunciado,
+        first.pregunta.enunciado,
+      );
+      assert.equal(
+        started.data.preguntas[0].contexto,
+        'Contexto original H2B3',
+      );
+      assert.doesNotMatch(
+        JSON.stringify(started.data.preguntas),
+        /snapshotInicial|esCorrecta|respuestaCorrectaId|explicacion|archivoImagenId/,
+      );
+      assert.equal((await call(path, f.tokenA)).status, 200);
+      assert.equal((await call(optionPath, f.tokenA)).status, 200);
+      assert.equal((await call(next.pregunta.imagenUrl, f.tokenA)).status, 404);
+      assert.equal(
+        (await call(next.pregunta.respuestas[0].imagenUrl, f.tokenA)).status,
+        404,
+      );
+      assert.equal((await call(path, f.tokenB)).status, 404);
+      assert.equal(
+        (await call(path, tokenFor(await user('ESTUDIANTE')))).status,
+        404,
+      );
+      assert.equal(
+        (await call(path, tokenFor(await user('PROFESOR')))).status,
+        404,
+      );
+      assert.equal(
+        (await call(`/recursos/editoriales/${f.hidden.file.id}`, f.tokenA))
+          .status,
+        404,
+      );
+      process.env.EDITORIAL_BATTLE_SNAPSHOT_IMAGES_LOCAL_ENABLED = 'false';
+      assert.equal((await call(path, f.tokenA)).status, 404);
+      process.env.EDITORIAL_BATTLE_SNAPSHOT_IMAGES_LOCAL_ENABLED = 'true';
+      const future = f.pictures.find((p) =>
+        next.pregunta.imagenUrl.endsWith(p.file.id),
+      );
+      assert.equal(
+        (
+          await call(`${prefix}/${future.file.id}`, future.token, {
+            method: 'DELETE',
+          })
+        ).status,
+        409,
+      );
+      assert.equal((await f.answer(f.tokenA, 0)).status, 201);
+      assert.equal((await call(next.pregunta.imagenUrl, f.tokenA)).status, 200);
+      assert.equal((await call(next.pregunta.imagenUrl, f.tokenB)).status, 404);
+      assert.equal((await f.answer(f.tokenA, 0)).status, 400);
+      assert.equal(
+        await db.batallaRespuesta.count({
+          where: { batallaId: f.id, usuarioId: f.a.id },
+        }),
+        1,
+      );
+      await assert.rejects(
+        db.batallaPregunta.update({
+          where: {
+            batallaId_preguntaId: {
+              batallaId: f.id,
+              preguntaId: first.preguntaId,
+            },
+          },
+          data: { snapshotInicial: { ...first, version: 2 } },
+        }),
+      );
+    }));
+}
+
+test('C5-H2B3 corrección e historial H1 usan opciones originales aunque cambien texto, imagen y correcta del banco', () =>
+  withBattleImages(async () => {
+    const f = await battleImageFixture(),
+      q = f.snapshots[0],
+      correct = q.pregunta.respuestas.find((r) => r.esCorrecta),
+      other = q.pregunta.respuestas.find((r) => !r.esCorrecta);
+    const replacement = await resource();
+    await db.respuesta.update({
+      where: { id: correct.id },
+      data: {
+        texto: 'Cambiada',
+        esCorrecta: false,
+        imagenUrl: `/recursos/editoriales/${replacement.file.id}`,
+        archivoImagenId: replacement.file.id,
+      },
+    });
+    await db.respuesta.update({
+      where: { id: other.id },
+      data: { esCorrecta: true },
+    });
+    await f.start(f.tokenA);
+    assert.equal((await f.answer(f.tokenA, 0)).status, 201);
+    const proof = await db.batallaRespuesta.findFirstOrThrow({
+      where: { batallaId: f.id, usuarioId: f.a.id },
+    });
+    assert.equal(proof.esCorrecta, true);
+    const history = await db.historialRespuesta.findFirstOrThrow({
+      where: { sesionId: f.id, usuarioId: f.a.id },
+      include: { imagenes: true },
+    });
+    assert.equal(history.respuestaCorrectaId, correct.id);
+    assert.equal(history.imagenes.length, 2);
+    assert.ok(
+      history.imagenes.every((i) => correct.imagenUrl.endsWith(i.archivoId)),
+    );
+    const read = await withHistoryImages(() =>
+      call('/simulacros/historial-respuestas', f.tokenA, {}, f.app.base),
+    );
+    assert.equal(read.status, 200);
+    const own = read.data.respuestas.find(
+      (r) => r.preguntaId === q.preguntaId || r.pregunta?.id === q.preguntaId,
+    );
+    assert.ok(own);
+    assert.equal(own.enunciado, q.pregunta.enunciado);
+    assert.equal(own.respuestaSeleccionada.texto, correct.texto);
+    assert.equal(own.respuestaSeleccionada.imagenUrl, correct.imagenUrl);
+    assert.equal(own.respuestaCorrecta.imagenUrl, correct.imagenUrl);
+    await assert.rejects(
+      db.batallaRespuesta.update({
+        where: { id: proof.id },
+        data: { esCorrecta: false },
+      }),
+    );
+    await assert.rejects(
+      db.batallaRespuesta.delete({ where: { id: proof.id } }),
+    );
+    const next = f.snapshots[1],
+      wrong = next.pregunta.respuestas.find((r) => !r.esCorrecta);
+    await db.respuesta.update({
+      where: { id: wrong.id },
+      data: {
+        texto: 'Otra versión del banco',
+        imagenUrl: `/recursos/editoriales/${replacement.file.id}`,
+        archivoImagenId: replacement.file.id,
+      },
+    });
+    assert.equal(
+      (
+        await jsonPost(
+          `${f.route}/respuestas`,
+          f.tokenA,
+          { preguntaId: next.preguntaId, respuestaId: wrong.id },
+          f.app.base,
+        )
+      ).status,
+      201,
+    );
+    const notebook = await withHistoryImages(() =>
+      call('/cuaderno-errores', f.tokenA, {}, f.app.base),
+    );
+    assert.equal(notebook.status, 200);
+    const error = notebook.data.errores.find(
+      (r) => r.preguntaId === next.preguntaId,
+    );
+    assert.ok(error);
+    assert.equal(error.enunciado, next.pregunta.enunciado);
+    assert.equal(error.respuestaSeleccionada.texto, wrong.texto);
+    assert.equal(error.respuestaSeleccionada.imagenUrl, wrong.imagenUrl);
+  }));
+
+test('C5-H2B3 cierre completo conserva imágenes originales y revocación prevalece sin cambiar resultados', () =>
+  withBattleImages(async () => {
+    const f = await battleImageFixture();
+    await f.start(f.tokenA);
+    await f.start(f.tokenB);
+    for (const token of [f.tokenA, f.tokenB])
+      for (let i = 0; i < f.snapshots.length; i++)
+        assert.equal((await f.answer(token, i)).status, 201);
+    const state = await db.batalla.findUniqueOrThrow({ where: { id: f.id } });
+    assert.equal(state.estado, 'FINALIZADA');
+    const read = await call(f.route, f.tokenA, {}, f.app.base);
+    assert.equal(read.status, 200);
+    assert.equal(
+      read.data.preguntas[0].respuestaCorrectaId,
+      f.snapshots[0].pregunta.respuestas.find((r) => r.esCorrecta).id,
+    );
+    const path = f.snapshots[0].pregunta.imagenUrl,
+      file = f.pictures.find((p) => path.endsWith(p.file.id));
+    assert.equal((await call(path, f.tokenA)).status, 200);
+    assert.equal(
+      (
+        await jsonPost(`${prefix}/${file.file.id}/revocaciones`, file.token, {
+          operacionId: randomUUID(),
+          motivo: 'DERECHOS',
+          detalle: 'Ensayo H2B3.',
+        })
+      ).status,
+      201,
+    );
+    assert.equal((await call(path, f.tokenA)).status, 404);
+    assert.equal((await call(path, f.tokenB)).status, 404);
+    assert.equal(
+      await db.batallaRespuesta.count({ where: { batallaId: f.id } }),
+      8,
+    );
+  }));
+
+test('C5-H2B3 fallback del caso se conserva y legado sin copia no se rellena después', () =>
+  withBattleImages(async () => {
+    const f = await battleImageFixture('DUELO_RELAMPAGO', true),
+      path = `/recursos/editoriales/${f.hidden.file.id}`;
+    const started = await f.start(f.tokenA);
+    assert.equal(started.data.preguntas[0].imagenUrl, path);
+    assert.equal((await call(path, f.tokenA)).status, 200);
+    assert.equal((await call(path, f.tokenB)).status, 404);
+    const owner = await user('ESTUDIANTE');
+    const legacy = await db.batalla.create({
+      data: {
+        modo: 'DUELO_RELAMPAGO',
+        retadorId: owner.id,
+        expiraEn: new Date(Date.now() + 600000),
+        participantes: { create: { usuarioId: owner.id } },
+        preguntas: {
+          create: {
+            preguntaId: f.assigned[0].preguntaId,
+            orden: 0,
+            opcionesOrden: f.assigned[0].opcionesOrden,
+          },
+        },
+      },
+    });
+    assert.equal((await call(path, tokenFor(owner))).status, 404);
+    await assert.rejects(
+      db.batallaPregunta.update({
+        where: {
+          batallaId_preguntaId: {
+            batallaId: legacy.id,
+            preguntaId: f.assigned[0].preguntaId,
+          },
+        },
+        data: { snapshotInicial: f.snapshots[0] },
+      }),
+    );
+    const index =
+      await db.$queryRaw`SELECT indexdef FROM pg_indexes WHERE indexname='BatallaPregunta_editorial_snapshot_idx'`;
+    assert.equal(index.length, 1);
+    assert.match(index[0].indexdef, /jsonb_path_ops/);
+  }));
+
+test('C5-H2B3 copia/participantes/respuestas privados: ACL y RLS impiden lectura o fabricación por PostgREST', async () => {
+  const tables = [
+    'Batalla',
+    'BatallaPregunta',
+    'BatallaParticipante',
+    'BatallaRespuesta',
+  ];
+  for (const table of tables) {
+    const qualified = `"${table}"`;
+    const [acl] = await db.$queryRaw`SELECT relrowsecurity AS rls,
+      has_table_privilege('anon',${qualified},'SELECT,INSERT,UPDATE,DELETE') AS anon,
+      has_table_privilege('authenticated',${qualified},'SELECT,INSERT,UPDATE,DELETE') AS authenticated
+      FROM pg_class WHERE oid=${qualified}::regclass`;
+    assert.deepEqual(acl, { rls: true, anon: false, authenticated: false });
+    for (const role of ['anon', 'authenticated'])
+      await assert.rejects(
+        db.$transaction(async (tx) => {
+          await tx.$executeRawUnsafe(`SET LOCAL ROLE ${role}`);
+          await tx.$queryRawUnsafe(`SELECT * FROM "${table}" LIMIT 1`);
+        }),
+        sqlState('42501'),
+      );
+  }
+});
+
+async function withAllHistoricalImages(action) {
+  const keys = [
+    'EDITORIAL_HISTORY_IMAGES_LOCAL_ENABLED',
+    'EDITORIAL_SOLO_SNAPSHOT_IMAGES_LOCAL_ENABLED',
+    'EDITORIAL_TRIVIA_SNAPSHOT_IMAGES_LOCAL_ENABLED',
+    'EDITORIAL_TUG_SNAPSHOT_IMAGES_LOCAL_ENABLED',
+    'EDITORIAL_BATTLE_SNAPSHOT_IMAGES_LOCAL_ENABLED',
+  ];
+  const previous = keys.map((key) => process.env[key]);
+  for (const key of keys) process.env[key] = 'true';
+  try {
+    return await action();
+  } finally {
+    keys.forEach((key, index) => {
+      if (previous[index] === undefined) delete process.env[key];
+      else process.env[key] = previous[index];
+    });
+  }
+}
+
+test('C5-H2B4 progreso 100% no acredita una imagen de lección archivada, reemplazada o revocada', () =>
+  withAllHistoricalImages(async () => {
+    const s = await structure(),
+      first = await resource(),
+      second = await resource(),
+      owner = await user('ESTUDIANTE'),
+      token = tokenFor(owner);
+    const firstPath = `/recursos/editoriales/${first.file.id}`,
+      secondPath = `/recursos/editoriales/${second.file.id}`;
+    await db.subtema.update({
+      where: { id: s.sub.id },
+      data: {
+        imagenUrl: firstPath,
+        archivoImagenId: first.file.id,
+        contenido: 'Lección actual',
+      },
+    });
+    await db.progresoTema.create({
+      data: {
+        usuarioId: owner.id,
+        subtemaId: s.sub.id,
+        completado: true,
+        porcentaje: 100,
+      },
+    });
+    assert.equal((await call(firstPath, token)).status, 200);
+    await db.tema.update({
+      where: { id: s.theme.id },
+      data: { estadoContenido: 'ARCHIVADO' },
+    });
+    assert.equal((await call(firstPath, token)).status, 404);
+    await db.tema.update({
+      where: { id: s.theme.id },
+      data: { estadoContenido: 'PUBLICADO' },
+    });
+    await db.subtema.update({
+      where: { id: s.sub.id },
+      data: { estadoContenido: 'ARCHIVADO' },
+    });
+    assert.equal((await call(firstPath, token)).status, 404);
+    assert.equal(
+      (
+        await call(`${prefix}/${first.file.id}`, first.token, {
+          method: 'DELETE',
+        })
+      ).status,
+      409,
+    );
+    // Perturbación del fixture, no autorización para editar lecciones con progreso.
+    await db.subtema.update({
+      where: { id: s.sub.id },
+      data: { imagenUrl: secondPath, archivoImagenId: second.file.id },
+    });
+    assert.equal((await call(firstPath, token)).status, 404);
+    assert.equal((await call(secondPath, token)).status, 404);
+    await db.subtema.update({
+      where: { id: s.sub.id },
+      data: { estadoContenido: 'PUBLICADO' },
+    });
+    assert.equal((await call(secondPath, token)).status, 200);
+    assert.equal((await call(firstPath, token)).status, 404);
+    assert.equal(
+      (
+        await jsonPost(
+          `${prefix}/${second.file.id}/revocaciones`,
+          second.token,
+          {
+            operacionId: randomUUID(),
+            motivo: 'DERECHOS',
+            detalle: 'Ensayo H2B4.',
+          },
+        )
+      ).status,
+      201,
+    );
+    assert.equal((await call(secondPath, token)).status, 404);
+    const progress = await db.progresoTema.findUniqueOrThrow({
+      where: {
+        usuarioId_subtemaId: { usuarioId: owner.id, subtemaId: s.sub.id },
+      },
+    });
+    assert.equal(progress.porcentaje, 100);
+    assert.equal(progress.completado, true);
+  }));
+
+test('C5-H2B4 historial propio e IDs de intento no prueban la versión de un caso mutable', () =>
+  withAllHistoricalImages(async () => {
+    const f = await optionFixture(),
+      first = await resource(),
+      second = await resource(),
+      owner = await user('ESTUDIANTE'),
+      token = tokenFor(owner);
+    const path = `/recursos/editoriales/${first.file.id}`,
+      replacement = `/recursos/editoriales/${second.file.id}`;
+    const context = await db.casoPregunta.create({
+      data: {
+        area: 'MATEMATICAS',
+        titulo: 'Caso mutable H2B4',
+        contexto: 'Versión inicial',
+        estadoContenido: 'PUBLICADO',
+        imagenUrl: path,
+        archivoImagenId: first.file.id,
+      },
+    });
+    await db.pregunta.update({
+      where: { id: f.question.id },
+      data: { casoId: context.id, ordenEnCaso: 1 },
+    });
+    const correct = f.question.respuestas.find((r) => r.esCorrecta),
+      selected = f.question.respuestas.find((r) => !r.esCorrecta);
+    const history = await db.historialRespuesta.create({
+      data: {
+        usuarioId: owner.id,
+        sesionId: randomUUID(),
+        preguntaId: f.question.id,
+        respuestaSeleccionadaId: selected.id,
+        respuestaCorrectaId: correct.id,
+        esCorrecta: false,
+        origen: 'PRACTICA',
+        area: 'MATEMATICAS',
+      },
+    });
+    assert.equal(
+      await db.imagenHistorialRespuesta.count({
+        where: { historialId: history.id },
+      }),
+      0,
+    );
+    await db.intentoSimulacro.create({
+      data: {
+        usuarioId: owner.id,
+        origen: 'PRACTICA',
+        area: 'MATEMATICAS',
+        preguntaIds: [f.question.id],
+        expira: new Date(Date.now() + 60000),
+      },
+    });
+    assert.equal((await call(path, token)).status, 200);
+    await db.casoPregunta.update({
+      where: { id: context.id },
+      data: { estadoContenido: 'ARCHIVADO' },
+    });
+    assert.equal((await call(path, token)).status, 404);
+    assert.equal(
+      (
+        await call(`${prefix}/${first.file.id}`, first.token, {
+          method: 'DELETE',
+        })
+      ).status,
+      409,
+    );
+    // Simular el cambio en la misma fila que un ID estable no puede versionar.
+    await db.casoPregunta.update({
+      where: { id: context.id },
+      data: {
+        imagenUrl: replacement,
+        archivoImagenId: second.file.id,
+        contexto: 'Versión posterior',
+      },
+    });
+    assert.equal((await call(path, token)).status, 404);
+    assert.equal((await call(replacement, token)).status, 404);
+    await db.casoPregunta.update({
+      where: { id: context.id },
+      data: { estadoContenido: 'PUBLICADO' },
+    });
+    for (const [table, id] of [
+      ['tema', f.theme.id],
+      ['subtema', f.sub.id],
+      ['pregunta', f.question.id],
+    ]) {
+      await db[table].update({
+        where: { id },
+        data: { estadoContenido: 'ARCHIVADO' },
+      });
+      assert.equal((await call(replacement, token)).status, 404);
+      await db[table].update({
+        where: { id },
+        data: { estadoContenido: 'PUBLICADO' },
+      });
+    }
+    assert.equal((await call(replacement, token)).status, 200);
+    assert.equal((await call(path, token)).status, 404);
+    assert.equal(
+      await db.historialRespuesta.count({
+        where: { id: history.id, usuarioId: owner.id },
+      }),
+      1,
+    );
+  }));
+
+test('C5-H2B4 notas, Markdown, contexto e IDs JSON declarados no conceden acceso ni revelan metadatos privados', () =>
+  withAllHistoricalImages(async () => {
+    const f = await optionFixture(),
+      file = await resource(),
+      owner = await user('ESTUDIANTE'),
+      token = tokenFor(owner),
+      path = `/recursos/editoriales/${file.file.id}`;
+    await db.progresoTema.create({
+      data: {
+        usuarioId: owner.id,
+        subtemaId: f.sub.id,
+        completado: true,
+        porcentaje: 100,
+      },
+    });
+    await db.subtema.update({
+      where: { id: f.sub.id },
+      data: { contenido: `Texto ![referencia](${path})` },
+    });
+    const context = await db.casoPregunta.create({
+      data: {
+        area: 'MATEMATICAS',
+        contexto: `Imagen declarada ${path}`,
+        estadoContenido: 'PUBLICADO',
+      },
+    });
+    await db.pregunta.update({
+      where: { id: f.question.id },
+      data: { casoId: context.id, ordenEnCaso: 1 },
+    });
+    await db.cuadernoError.create({
+      data: { usuarioId: owner.id, preguntaId: f.question.id, nota: path },
+    });
+    await db.intentoSimulacro.create({
+      data: {
+        usuarioId: owner.id,
+        origen: 'PRACTICA',
+        preguntaIds: [f.question.id, { imagenUrl: path }],
+        expira: new Date(Date.now() + 60000),
+      },
+    });
+    const denied = await call(path, token),
+      unknown = await call(`/recursos/editoriales/${randomUUID()}`, token);
+    assert.equal(denied.status, 404);
+    assert.equal(unknown.status, 404);
+    assert.equal(denied.data.message, unknown.data.message);
+    assert.doesNotMatch(
+      JSON.stringify(denied.data),
+      /sha256|titular|archivoImagenId|rutaRelativa/,
+    );
+  }));
+
+test('C5-H2B4 una prueba H1 exacta prevalece sobre la ausencia de publicación de la lección compartida', () =>
+  withAllHistoricalImages(async () => {
+    const f = await historyImageFixture();
+    const token = tokenFor(f.student);
+    await db.subtema.update({
+      where: { id: f.sub.id },
+      data: {
+        imagenUrl: f.path,
+        archivoImagenId: f.file.id,
+        estadoContenido: 'ARCHIVADO',
+      },
+    });
+    await db.progresoTema.create({
+      data: {
+        usuarioId: f.student.id,
+        subtemaId: f.sub.id,
+        completado: true,
+        porcentaje: 100,
+      },
+    });
+    assert.equal((await call(f.path, token)).status, 200);
+    assert.equal(
+      (await call(f.path, tokenFor(await user('ESTUDIANTE')))).status,
+      404,
+    );
+    process.env.EDITORIAL_HISTORY_IMAGES_LOCAL_ENABLED = 'false';
+    assert.equal((await call(f.path, token)).status, 404);
+    process.env.EDITORIAL_HISTORY_IMAGES_LOCAL_ENABLED = 'true';
+    assert.equal((await call(f.path, token)).status, 200);
+  }));
+
+test('C5-H2B4 filas legadas de juegos retirados no activan un adaptador histórico por contener una ruta', () =>
+  withAllHistoricalImages(async () => {
+    const file = await resource(),
+      owner = await user('ESTUDIANTE'),
+      path = `/recursos/editoriales/${file.file.id}`;
+    // Solo fila hostil de ensayo en una tabla legada; no se crea API ni módulo.
+    await db.intentoEscudoConocimiento.create({
+      data: {
+        usuarioId: owner.id,
+        area: 'MATEMATICAS',
+        preguntas: Array.from({ length: 12 }, () => ({
+          question: { id: randomUUID(), imagenUrl: path },
+        })),
+        venceEn: new Date(Date.now() + 60000),
+      },
+    });
+    assert.equal((await call(path, tokenFor(owner))).status, 404);
+  }));
 
 test('C5-C2-A migración aditiva: texto, nulabilidad, FK y par ruta/identificador', async () => {
   const f = await optionFixture();
@@ -2412,7 +4777,7 @@ test('C5-B lectura estudiantil exige publicación de todos los padres y no expon
   assert.equal((await call(path, token)).status, 404);
 });
 
-test('C5-B/C2-B panel real en Chromium: imagen de enunciado y de opción, publicación y recarga', async (t) =>
+test('C5-B/C2-B/H3 panel Chromium: carga, publicación, recarga y revocación con respuesta perdida', async (t) =>
   withOptionImages(async () => {
     let executable;
     for (const candidate of [
@@ -2629,6 +4994,143 @@ test('C5-B/C2-B panel real en Chromium: imagen de enunciado y de opción, public
           ...document.querySelectorAll('#bank-options .answer-image input'),
         ].some((input) => input.value.startsWith('/recursos/editoriales/')),
       );
+      await withHistoryImages(async () => {
+        const student = await user('ESTUDIANTE'),
+          token = tokenFor(student);
+        const option = savedOptions.find(
+          (item) => item.imagenUrl === optionReference,
+        );
+        assert.equal(option.esCorrecta, true);
+        const history = await db.historialRespuesta.create({
+          data: {
+            usuarioId: student.id,
+            sesionId: randomUUID(),
+            preguntaId: question.id,
+            respuestaSeleccionadaId: option.id,
+            respuestaCorrectaId: option.id,
+            esCorrecta: true,
+            origen: 'PRACTICA',
+            area: 'MATEMATICAS',
+          },
+        });
+        await db.pregunta.update({
+          where: { id: question.id },
+          data: { estadoContenido: 'ARCHIVADO' },
+        });
+        assert.equal((await call(optionReference, token)).status, 200);
+        await page.click('#section-images');
+        await page.waitForSelector('#editorial-file-access-panel input');
+        await page.type('#editorial-file-access-panel input', optionReference);
+        await page.click('#editorial-file-access-panel > button');
+        await page.waitForSelector('#editorial-file-access-panel textarea');
+        await page.select('#editorial-file-access-panel select', 'DERECHOS');
+        await page.type(
+          '#editorial-file-access-panel textarea',
+          'Ensayo H3: permiso de uso revocado.',
+        );
+        // Enviar realmente una vez y perder solo la respuesta hacia el navegador.
+        let lost = false;
+        const intercept = async (request) => {
+          if (
+            !lost &&
+            request.method() === 'POST' &&
+            request.url().endsWith('/revocaciones')
+          ) {
+            lost = true;
+            try {
+              const response = await fetch(request.url(), {
+                method: 'POST',
+                headers: {
+                  Authorization: request.headers().authorization,
+                  'Content-Type': 'application/json',
+                },
+                body: request.postData(),
+              });
+              assert.equal(response.status, 201);
+              await request.abort('failed');
+            } catch (error) {
+              runtimeErrors.push(error.message);
+              await request.abort('failed');
+            }
+          } else await request.continue();
+        };
+        await page.setRequestInterception(true);
+        page.on('request', intercept);
+        page.once('dialog', (dialog) => dialog.accept());
+        await page.click('#editorial-file-access-panel .danger');
+        await page.waitForFunction(() =>
+          document
+            .querySelector('#editorial-file-access-panel [role="status"]')
+            .textContent.includes('No se pudo confirmar la revocación'),
+        );
+        assert.equal(lost, true);
+        assert.equal(
+          await page.$eval(
+            '#editorial-file-access-panel textarea',
+            (node) => node.disabled,
+          ),
+          true,
+        );
+        const receiptButton = await page.$$(
+          '#editorial-file-access-panel .file-access-detail button',
+        );
+        const recovery = [];
+        for (const button of receiptButton)
+          if (
+            await button.evaluate(
+              (node) => node.textContent === 'Consultar recibo de revocación',
+            )
+          )
+            recovery.push(button);
+        assert.equal(recovery.length, 1);
+        await recovery[0].click();
+        await page.waitForFunction(() =>
+          document
+            .querySelector('#editorial-file-access-panel')
+            .textContent.includes('Revocación confirmada'),
+        );
+        page.off('request', intercept);
+        await page.setRequestInterception(false);
+        assert.equal((await call(optionReference, token)).status, 404);
+        assert.equal(
+          await db.revocacionArchivoEditorial.count({
+            where: { archivoId: optionReference.split('/').pop() },
+          }),
+          1,
+        );
+        assert.equal(
+          await db.historialRespuesta.count({
+            where: { id: history.id, usuarioId: student.id, esCorrecta: true },
+          }),
+          1,
+        );
+        for (const width of [1280, 390]) {
+          await page.setViewport({ width, height: 1000, deviceScaleFactor: 1 });
+          const fits = await page.$eval(
+            '#editorial-file-access-panel',
+            (node) => ({ scroll: node.scrollWidth, client: node.clientWidth }),
+          );
+          assert.ok(fits.scroll <= fits.client + 1);
+          await (
+            await page.$('#editorial-file-access-panel')
+          ).screenshot({
+            path: join(
+              process.env.EDITORIAL_FILES_QA_DIR,
+              `h3-revocacion-${width}.png`,
+            ),
+          });
+        }
+        console.log(
+          JSON.stringify({
+            phase: 'h3-browser-revocation-verified',
+            desktop: true,
+            responsive390: true,
+            lostResponse: true,
+            receiptRecovered: true,
+            android: false,
+          }),
+        );
+      });
       assert.deepEqual(runtimeErrors, []);
       console.log(
         JSON.stringify({

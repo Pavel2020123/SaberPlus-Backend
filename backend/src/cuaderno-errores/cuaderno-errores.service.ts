@@ -6,7 +6,9 @@ import {
 } from '@nestjs/common';
 import { AreaIcfes, EstadoCuadernoError, RolUsuario } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { publicAnswerOption } from '../common/public-answer-option';
+import { EditorialFileRuntime } from '../editorial-files/editorial-file-runtime';
+import { historicalAnswerOption } from '../editorial-files/historical-answer-option';
+import { ownBattleHistoryQuestions } from '../batallas/batalla.snapshot';
 
 interface FiltrosCuaderno {
   area?: AreaIcfes;
@@ -55,6 +57,7 @@ export class CuadernoErroresService {
         orderBy: { fechaRespuesta: 'desc' },
         distinct: ['preguntaId'],
         include: {
+          imagenes: new EditorialFileRuntime().historyEnabled(),
           pregunta: {
             select: {
               enunciado: true,
@@ -92,11 +95,18 @@ export class CuadernoErroresService {
       metadatos.map((registro) => [registro.preguntaId, registro]),
     );
 
+    const originalesBatalla = await ownBattleHistoryQuestions(
+      this.prisma,
+      usuarioId,
+      ultimosErrores,
+    );
     const todos = ultimosErrores.map((registro) => {
-      const seleccionada = registro.pregunta.respuestas.find(
+      const original = originalesBatalla.get(registro.id);
+      const opciones = original?.respuestas ?? registro.pregunta.respuestas;
+      const seleccionada = opciones.find(
         (respuesta) => respuesta.id === registro.respuestaSeleccionadaId,
       );
-      const correcta = registro.pregunta.respuestas.find(
+      const correcta = opciones.find(
         (respuesta) => respuesta.id === registro.respuestaCorrectaId,
       );
       const metadato = metadatosPorPregunta.get(registro.preguntaId);
@@ -108,19 +118,29 @@ export class CuadernoErroresService {
 
       return {
         preguntaId: registro.preguntaId,
-        enunciado: registro.pregunta.enunciado,
-        explicacion: registro.pregunta.explicacion,
+        enunciado: original?.enunciado ?? registro.pregunta.enunciado,
+        explicacion: original
+          ? original.explicacion
+          : registro.pregunta.explicacion,
         dificultad: registro.pregunta.dificultad,
         area: registro.area,
         origenUltimo: registro.origen,
         vecesFallada: conteos.get(registro.preguntaId) ?? 1,
         ultimoErrorEn: registro.fechaRespuesta,
         respuestaSeleccionada: seleccionada
-          ? publicAnswerOption(seleccionada)
+          ? historicalAnswerOption(
+              seleccionada,
+              registro.imagenes,
+              'SELECCIONADA',
+            )
           : null,
         respuestaCorrecta: correcta
           ? {
-              ...publicAnswerOption(correcta),
+              ...historicalAnswerOption(
+                correcta,
+                registro.imagenes,
+                'CORRECTA',
+              ),
               explicacion: correcta.explicacion,
             }
           : null,

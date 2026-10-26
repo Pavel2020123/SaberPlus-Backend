@@ -235,7 +235,7 @@ export class TriviaRushService {
         });
       } else {
         const duracionPausa =
-          ahora.getTime() - intento.tiraLocalPausadaEn!.getTime();
+          ahora.getTime() - intento.tiraLocalPausadaEn.getTime();
         await tx.intentoTriviaRush.update({
           where: { id: intentoId },
           data: {
@@ -467,7 +467,23 @@ export class TriviaRushService {
       const creada = await tx.intentoTriviaRush.create({
         data: {
           usuarioId,
-          ...(local ? { modalidad: ModalidadTriviaRush.TUG_LOCAL } : {}),
+          ...(local
+            ? {
+                modalidad: ModalidadTriviaRush.TUG_LOCAL,
+                snapshotLocal: {
+                  version: 1,
+                  q: asignadas.length,
+                  config: {
+                    areas,
+                    duracionSegundos,
+                    versionReglas: VERSION_REGLAS_TRIVIA_RUSH,
+                    modalidad: ModalidadTriviaRush.TUG_LOCAL,
+                  },
+                  questions: asignadas,
+                  ghost: null,
+                },
+              }
+            : {}),
           ...(entrada.competitive === true
             ? { competitiveRulesVersion: 1, competitiveAdmittedAt: inicio }
             : {}),
@@ -1330,7 +1346,7 @@ export class TriviaRushService {
           ? {
               modalidad: intento.modalidad,
               competitive: false,
-              fantasmaInicial: readTriviaSnapshot(intento)!.ghost,
+              fantasmaInicial: readTriviaSnapshot(intento).ghost,
             }
           : {}),
         estado: intento.estado,
@@ -1472,7 +1488,7 @@ export class TriviaRushService {
     });
     const snapshot = readTriviaSnapshot(original);
     const pregunta = snapshot
-      ? snapshot.questions.find((q) => q.preguntaId === respuesta.preguntaId)!
+      ? snapshot.questions.find((q) => q.preguntaId === respuesta.preguntaId)
           .pregunta
       : respuesta.pregunta;
     const correcta = pregunta.respuestas.find((item) => item.esCorrecta);
@@ -1733,13 +1749,13 @@ export class TriviaRushService {
       },
     });
     if (!prior) return null;
-    const original = readTriviaSnapshot(prior)!;
+    const original = readTriviaSnapshot(prior);
     const order = new Map(
       original.questions.map((q) => [q.preguntaId, q.orden]),
     );
     prior.respuestas.sort(
       (a, b) =>
-        order.get(a.preguntaId)! - order.get(b.preguntaId)! ||
+        order.get(a.preguntaId) - order.get(b.preguntaId) ||
         a.numeroIntento - b.numeroIntento,
     );
     let score = 0;
@@ -1748,7 +1764,7 @@ export class TriviaRushService {
       puntaje: prior.puntaje,
       respuestasCorrectas: prior.respuestasCorrectas,
       mejorCombo: prior.mejorCombo,
-      finalizadoEn: prior.finalizadoEn!.toISOString(),
+      finalizadoEn: prior.finalizadoEn.toISOString(),
       q: original.q,
       config: original.config,
       checkpoints: prior.respuestas.map((r) => ({

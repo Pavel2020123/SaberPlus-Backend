@@ -105,6 +105,8 @@ export class EditorialImageUpload {
     this.status = node("p");
     this.status.role = "status";
     this.status.ariaLive = "polite";
+    this.reference = node("p");
+    this.reference.className = "image-file-reference";
     const buttons = node("div");
     buttons.className = "editorial-image-actions";
     const button = (text, action) => {
@@ -170,6 +172,8 @@ export class EditorialImageUpload {
   controls() {
     const blocked = this.locked || this.running || this.api.demo;
     const managed = fileUuid(managedImageId(this.input.value));
+    this.reference.hidden = !managed;
+    this.reference.textContent = managed ? `Referencia para Control de imágenes: ${this.input.value}` : "";
     this.input.hidden = managed;
     for (const label of this.input.labels ?? []) label.hidden = managed;
     this.input.disabled =
@@ -274,8 +278,8 @@ export class EditorialImageUpload {
   accept(row) {
     if (row.estado !== "DISPONIBLE") {
       this.message(
-        row.estado === "RETIRADO"
-          ? "Esta imagen fue retirada. Quita la selección y elige otra."
+        ["RETIRADO", "REVOCADO"].includes(row.estado)
+          ? "Esta imagen ya no está disponible. Quita la selección y elige otra."
           : "La carga sigue pendiente. Puedes reintentar la misma carga.",
       );
       return;

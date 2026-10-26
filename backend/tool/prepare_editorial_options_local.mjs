@@ -57,6 +57,19 @@ async function main() {
     await readFile(join(directory, 'flutter-private.json'), 'utf8'),
   );
   assert.equal(config.API_BASE_URL, 'http://127.0.0.1:43187');
+  // Android needs endpoints, never the fixture login/password used by tests.
+  await writeFile(
+    join(directory, 'flutter-app.json'),
+    JSON.stringify({
+      APP_ENV: 'dev',
+      DEMO_MODE: 'false',
+      API_BASE_URL: config.API_BASE_URL,
+      CONTENT_BASE_URL: config.API_BASE_URL,
+      LOCAL_RANKING_SEASON: config.LOCAL_RANKING_SEASON,
+      LOCAL_RANKING_ENABLED: 'true',
+    }),
+    { mode: 0o600 },
+  );
   const manifestPath = join(directory, 'editorial-options-fixture.json');
   try {
     const existing = JSON.parse(await readFile(manifestPath, 'utf8'));

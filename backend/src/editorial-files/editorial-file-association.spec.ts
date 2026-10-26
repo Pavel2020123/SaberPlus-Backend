@@ -70,6 +70,17 @@ describe('asociación de imágenes a contenido', () => {
       ).rejects.toBeInstanceOf(ConflictException);
     },
   );
+
+  it('la revocación prevalece aunque el estado de almacenamiento sea DISPONIBLE', async () => {
+    db.archivoEditorial.findUnique.mockResolvedValueOnce({
+      id,
+      estado: 'DISPONIBLE',
+      revocacion: { archivoId: id },
+    });
+    await expect(
+      editorialImageData(tx, editorialImagePath(id)),
+    ).rejects.toBeInstanceOf(ConflictException);
+  });
   it('conserva compatibilidad HTTPS cuando la nueva carga está desactivada', async () => {
     process.env.EDITORIAL_FILES_LOCAL_ENABLED = 'false';
     expect(

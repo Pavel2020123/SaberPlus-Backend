@@ -5,6 +5,7 @@ import { resolve } from "node:path";
 import { createDemoApi } from "./demo-api.mjs";
 
 const assets = new Map([
+  ["/editorial-file-access.mjs", ["editorial-file-access.mjs", "text/javascript; charset=utf-8"]],
   ["/editorial-file-fields.mjs", ["editorial-file-fields.mjs", "text/javascript; charset=utf-8"]],
   ["/editorial-image-upload.mjs", ["editorial-image-upload.mjs", "text/javascript; charset=utf-8"]],
   ['/question-report-fields.mjs', ['question-report-fields.mjs', 'text/javascript; charset=utf-8']],

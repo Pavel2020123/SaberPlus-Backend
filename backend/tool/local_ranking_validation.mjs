@@ -16,6 +16,11 @@ const optionImagesLocal = process.env.SABERPLUS_C5_OPTION_IMAGES_LOCAL;
 if (optionImagesLocal !== undefined && !['true', 'false'].includes(optionImagesLocal)) {
   throw new Error('SABERPLUS_C5_OPTION_IMAGES_LOCAL must be true or false.');
 }
+// H3 opt-in affects only the fresh disposable API, never a remote environment.
+const historyImagesLocal = process.env.SABERPLUS_C5_HISTORY_IMAGES_LOCAL;
+if (historyImagesLocal !== undefined && !['true', 'false'].includes(historyImagesLocal)) {
+  throw new Error('SABERPLUS_C5_HISTORY_IMAGES_LOCAL must be true or false.');
+}
 const backend = fileURLToPath(new URL('../', import.meta.url));
 const require = createRequire(join(backend, 'package.json'));
 const execute = promisify(execFile);
@@ -35,6 +40,11 @@ Object.assign(env, { POSTGRES_USER: user, POSTGRES_PASSWORD: password, POSTGRES_
   EDITORIAL_PUBLICATION_ENABLED: 'true', // Only this freshly owned local API.
   EDITORIAL_FILES_LOCAL_ENABLED: 'true', // C5: private files only in this owned test environment.
   EDITORIAL_OPTION_IMAGES_LOCAL_ENABLED: String(optionImagesLocal === 'true'),
+  EDITORIAL_HISTORY_IMAGES_LOCAL_ENABLED: String(historyImagesLocal === 'true'),
+  EDITORIAL_SOLO_SNAPSHOT_IMAGES_LOCAL_ENABLED: String(historyImagesLocal === 'true'),
+  EDITORIAL_TRIVIA_SNAPSHOT_IMAGES_LOCAL_ENABLED: String(historyImagesLocal === 'true'),
+  EDITORIAL_TUG_SNAPSHOT_IMAGES_LOCAL_ENABLED: String(historyImagesLocal === 'true'),
+  EDITORIAL_BATTLE_SNAPSHOT_IMAGES_LOCAL_ENABLED: String(historyImagesLocal === 'true'),
   JWT_SECRET: randomBytes(32).toString('hex'), RANKING_ALIAS_SECRET: randomBytes(32).toString('hex') });
 let db, child, context, url = '', created = false;
 const run = (command, args, cwd = backend) => execute(command, args, {
@@ -60,7 +70,7 @@ try {
   Object.assign(env, { DATABASE_URL: url, DIRECT_URL: url, COMPETITIVE_TEST_OWNER: owner });
   let ready = false;
   for (let i = 0; i < 100; i++) {
-    try { await docker('exec', name, 'pg_isready', '-U', user); ready = true; break; }
+    try { await docker('exec', name, 'pg_isready', '-h', '127.0.0.1', '-U', user, '-d', 'postgres'); ready = true; break; }
     catch { await sleep(200); }
   }
   if (!ready) throw new Error('Temporary PostgreSQL unavailable.');
@@ -84,7 +94,12 @@ try {
   const tugLocalMigration = 'prisma/migrations/20261022203000_tug_local_timeout_scope/migration.sql';
   const tugImagesMigration = 'prisma/migrations/20261022213000_tug_option_image_snapshot/migration.sql';
   const tugPauseMigration = 'prisma/migrations/20261023150000_tug_local_pause/migration.sql';
-  const actualPaths = [...new Set([...paths, territoryMigration, profileMigration, logoMigration, studentRequestsMigration, studentCodesMigration, questionReportsMigration, editorialFilesMigration, editorialLinksMigration, editorialOptionsMigration, tugLocalMigration, tugImagesMigration, tugPauseMigration])].sort();
+  const editorialHistoryMigration = 'prisma/migrations/20261023200000_editorial_history_revocation/migration.sql';
+  const editorialSnapshotMigration = 'prisma/migrations/20261024130000_editorial_solo_snapshot_access/migration.sql';
+  const editorialTriviaMigration = 'prisma/migrations/20261024180000_editorial_trivia_local_snapshots/migration.sql';
+  const editorialTugMigration = 'prisma/migrations/20261024200000_editorial_tug_snapshot_access/migration.sql';
+  const editorialBattleMigration = 'prisma/migrations/20261024220000_editorial_battle_snapshots/migration.sql';
+  const actualPaths = [...new Set([...paths, territoryMigration, profileMigration, logoMigration, studentRequestsMigration, studentCodesMigration, questionReportsMigration, editorialFilesMigration, editorialLinksMigration, editorialOptionsMigration, tugLocalMigration, tugImagesMigration, tugPauseMigration, editorialHistoryMigration, editorialSnapshotMigration, editorialTriviaMigration, editorialTugMigration, editorialBattleMigration])].sort();
   for (const path of actualPaths) {
     const dest = join(directory, path.replace(/^prisma\//, ''));
     await mkdir(dirname(dest), { recursive: true });
@@ -161,6 +176,7 @@ try {
     pendingStudentCodesMigration: !paths.includes(studentCodesMigration),
     pendingQuestionReportsMigration: !paths.includes(questionReportsMigration),
     api: config.API_BASE_URL, syntheticFixtures: true, optionImagesLocal: optionImagesLocal === 'true',
+    historyImagesLocal: historyImagesLocal === 'true',
     ownPosition: 51, totalParticipants: 61 }));
   console.log('Local control.json actions: correct, solo-on, solo-off, stop. No HTTP mutation route.');
   let corrected = false;

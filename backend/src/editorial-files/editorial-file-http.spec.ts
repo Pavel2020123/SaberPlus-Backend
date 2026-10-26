@@ -1,7 +1,11 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Test } from '@nestjs/testing';
-import { ArchivoEditorial, Prisma } from '@prisma/client';
+import {
+  ArchivoEditorial,
+  Prisma,
+  RevocacionArchivoEditorial,
+} from '@prisma/client';
 import * as request from 'supertest';
 import * as sharpModule from 'sharp';
 import type { Server } from 'node:http';
@@ -10,6 +14,7 @@ import { EditorialFileController } from './editorial-file.controller';
 import { EditorialFileRuntime } from './editorial-file-runtime';
 import { EditorialFileService } from './editorial-file.service';
 import { EditorialFileStore } from './editorial-file.store';
+import { EditorialResourceController } from './editorial-resource.controller';
 import { EDITORIAL_INPUT_LIMIT } from './editorial-image';
 
 const sharp = sharpModule as unknown as typeof import('sharp').default;
@@ -18,6 +23,7 @@ describe('HTTP ADMIN de archivos: permisos, multipart y recibos', () => {
   const server = (): Server => app.getHttpServer() as Server;
   let image: Buffer;
   let row: ArchivoEditorial | null;
+  let revocation: RevocacionArchivoEditorial | null;
   const actor = '12a25419-147d-46b7-8774-48ba746fb704';
   const operation = 'f2c743aa-7ba2-454b-9319-b6e234f7d206';
   const auth = { Authorization: 'Bearer admin' };
@@ -42,6 +48,12 @@ describe('HTTP ADMIN de archivos: permisos, multipart y recibos', () => {
     casoPregunta: { count: jest.fn() },
     subtema: { count: jest.fn() },
     respuesta: { count: jest.fn() },
+    imagenHistorialRespuesta: { count: jest.fn() },
+    revocacionArchivoEditorial: {
+      findUnique: jest.fn(),
+      findFirst: jest.fn(),
+      create: jest.fn(),
+    },
     $queryRaw: jest.fn(),
     $transaction: jest.fn(),
   };
@@ -72,7 +84,7 @@ describe('HTTP ADMIN de archivos: permisos, multipart y recibos', () => {
 
   beforeAll(async () => {
     const module = await Test.createTestingModule({
-      controllers: [EditorialFileController],
+      controllers: [EditorialFileController, EditorialResourceController],
       providers: [
         EditorialFileRuntime,
         EditorialFileService,
@@ -132,12 +144,16 @@ describe('HTTP ADMIN de archivos: permisos, multipart y recibos', () => {
       db.casoPregunta,
       db.subtema,
       db.respuesta,
+      db.imagenHistorialRespuesta,
     ])
       model.count.mockResolvedValue(0);
     row = null;
+    revocation = null;
     contents.clear();
     db.usuario.findUnique.mockImplementation(
       ({ where }: { where: { id: string } }) => ({
+        id: where.id,
+        correoVerificado: true,
         rol:
           where.id === 'student'
             ? 'ESTUDIANTE'
@@ -147,7 +163,30 @@ describe('HTTP ADMIN de archivos: permisos, multipart y recibos', () => {
         debeCambiarContrasena: where.id === 'initial',
       }),
     );
-    table.findUnique.mockImplementation(() => row && { ...row });
+    table.findUnique.mockImplementation(
+      () => row && { ...row, revocacion: revocation },
+    );
+    db.revocacionArchivoEditorial.findUnique.mockImplementation(
+      ({ where }: { where: { operacionId: string } }) =>
+        revocation?.operacionId === where.operacionId ? revocation : null,
+    );
+    db.revocacionArchivoEditorial.create.mockImplementation(
+      ({ data }: { data: Omit<RevocacionArchivoEditorial, 'creadoEn'> }) => {
+        revocation = { ...data, creadoEn: new Date() };
+        return revocation;
+      },
+    );
+    db.revocacionArchivoEditorial.findFirst.mockImplementation(
+      ({
+        where,
+      }: {
+        where: { actorId: string; archivoId: string; operacionId: string };
+      }) =>
+        revocation &&
+        Object.entries(where).every(([key, value]) => revocation[key] === value)
+          ? revocation
+          : null,
+    );
     table.findFirst.mockImplementation(
       ({ where }: { where: { creadoPorId: string } }) =>
         row?.creadoPorId === where.creadoPorId ? { ...row } : null,
@@ -182,6 +221,125 @@ describe('HTTP ADMIN de archivos: permisos, multipart y recibos', () => {
       expect(table.create).not.toHaveBeenCalled();
     },
   );
+
+  const revokeBody = {
+    operacionId: 'c4130d8e-3147-4a0d-9531-aa084f1a474b',
+    motivo: 'SEGURIDAD',
+    detalle: 'Recurso retirado por seguridad.',
+  };
+
+  it('la lectura estudiantil usa el sujeto del JWT para la prueba histórica y conserva headers privados', async () => {
+    const previous = process.env.EDITORIAL_HISTORY_IMAGES_LOCAL_ENABLED;
+    process.env.EDITORIAL_HISTORY_IMAGES_LOCAL_ENABLED = 'true';
+    try {
+      const uploaded = await upload().expect(201);
+      const file = uploaded.body as { id: string };
+      table.findFirst.mockResolvedValueOnce({ id: file.id });
+      const response = await request(server())
+        .get(`/recursos/editoriales/${file.id}?usuarioId=admin`)
+        .set('Authorization', 'Bearer student')
+        .expect(200);
+      expect(response.headers['cache-control']).toBe('private, no-store');
+      expect(response.headers['x-content-type-options']).toBe('nosniff');
+      const calls = table.findFirst.mock.calls as unknown as [
+        Prisma.ArchivoEditorialFindFirstArgs,
+      ][];
+      const query = calls[0][0];
+      expect(query.where?.OR).toEqual(
+        expect.arrayContaining([
+          {
+            imagenesHistoricas: {
+              some: {
+                usuarioId: 'student',
+                sha256: row.sha256,
+                historial: { usuarioId: 'student' },
+              },
+            },
+          },
+        ]),
+      );
+      await request(server())
+        .get(`/recursos/editoriales/${file.id}`)
+        .expect(401);
+      await request(server())
+        .get('/recursos/editoriales/no-uuid')
+        .set('Authorization', 'Bearer student')
+        .expect(400);
+    } finally {
+      if (previous === undefined)
+        delete process.env.EDITORIAL_HISTORY_IMAGES_LOCAL_ENABLED;
+      else process.env.EDITORIAL_HISTORY_IMAGES_LOCAL_ENABLED = previous;
+    }
+  });
+  it.each(['student', 'teacher', 'initial'])(
+    'solo ADMIN habilitado revoca: %s',
+    async (token) => {
+      await request(server())
+        .post(`/admin/archivos/${operation}/revocaciones`)
+        .set('Authorization', `Bearer ${token}`)
+        .send(revokeBody)
+        .expect(403);
+      expect(db.revocacionArchivoEditorial.create).not.toHaveBeenCalled();
+    },
+  );
+  it.each([
+    { motivo: 'OTRO' },
+    { detalle: '' },
+    { detalle: 'x'.repeat(501) },
+    { detalle: '\u0000oculto' },
+    { operacionId: 'no-uuid' },
+    { actorId: 'no-admitido' },
+  ])(
+    'valida el cuerpo de revocación y rechaza campos adicionales: %j',
+    async (changes) => {
+      await request(server())
+        .post(`/admin/archivos/${operation}/revocaciones`)
+        .set(auth)
+        .send({ ...revokeBody, ...changes })
+        .expect(400);
+      expect(db.revocacionArchivoEditorial.create).not.toHaveBeenCalled();
+    },
+  );
+  it('revocación HTTP idempotente y recibo propio bloquean la descarga ADMIN', async () => {
+    const uploaded = await upload().expect(201);
+    const file = uploaded.body as { id: string; contenidoUrl: string };
+    const path = `/admin/archivos/${file.id}/revocaciones`;
+    const first = await request(server())
+      .post(path)
+      .set(auth)
+      .send(revokeBody)
+      .expect(201);
+    const repeat = await request(server())
+      .post(path)
+      .set(auth)
+      .send(revokeBody)
+      .expect(201);
+    expect(repeat.body).toEqual(first.body);
+    expect(first.headers['cache-control']).toBe('private, no-store');
+    const receipt = await request(server())
+      .get(`${path}/${revokeBody.operacionId}`)
+      .set(auth)
+      .expect(200);
+    expect(receipt.body).toEqual(first.body);
+    await request(server())
+      .get(`${path}/${revokeBody.operacionId}`)
+      .set('Authorization', 'Bearer other')
+      .expect(404);
+    await request(server()).get(file.contenidoUrl).set(auth).expect(404);
+    await request(server())
+      .get(`/admin/archivos/${file.id}`)
+      .set(auth)
+      .expect(200)
+      .expect(({ body }: { body: unknown }) =>
+        expect(body).toMatchObject({
+          estado: 'REVOCADO',
+          contenidoUrl: null,
+          puedeReintentar: false,
+        }),
+      );
+    expect(db.revocacionArchivoEditorial.create).toHaveBeenCalledTimes(1);
+    expect(store.remove).not.toHaveBeenCalled();
+  });
 
   it.each(['student', 'teacher', 'initial'])(
     '403 para rol o cambio inicial pendiente: %s',

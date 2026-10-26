@@ -761,3 +761,8 @@ summary { cursor: pointer; font-size: 14px; font-weight: 650; padding: 10px 0; }
 .editorial-image-preview { display: block; max-width: 100%; max-height: 360px; object-fit: contain; margin-block: 1rem; }
 .editorial-image-preview[hidden], .editorial-image-upload [hidden] { display: none; }
 .editorial-image-actions { display: flex; flex-wrap: wrap; gap: .6rem; }
+.image-file-reference, .file-access-detail p { overflow-wrap: anywhere; }
+.file-access-detail label { display: block; margin-block: 1rem; }
+.file-access-detail input, .file-access-detail select, .file-access-detail textarea { display: block; width: 100%; margin-top: .4rem; box-sizing: border-box; }
+.file-access-detail button { margin: .5rem .5rem .5rem 0; }
+.file-access-detail .danger { background: #b42318; border-color: #b42318; color: white; }

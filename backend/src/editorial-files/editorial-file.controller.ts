@@ -20,7 +20,10 @@ import { memoryStorage } from 'multer';
 import { AuthenticatedRequest } from '../auth/auth.types';
 import { AdminGuard } from '../auth/jwt.guard';
 import { MulterExceptionFilter } from '../institucion/multer-exception.filter';
-import { UploadEditorialFileDto } from './editorial-file.dto';
+import {
+  RevokeEditorialFileDto,
+  UploadEditorialFileDto,
+} from './editorial-file.dto';
 import { EditorialFileRuntime } from './editorial-file-runtime';
 import { EditorialFileService } from './editorial-file.service';
 import { EditorialFileStorageFilter } from './editorial-file-storage.filter';
@@ -85,5 +88,26 @@ export class EditorialFileController {
   @Header('Cache-Control', 'private, no-store')
   retire(@Param('id', new ParseUUIDPipe({ version: '4' })) id: string) {
     return this.files.retire(id);
+  }
+
+  @Post(':id/revocaciones')
+  @Header('Cache-Control', 'private, no-store')
+  revoke(
+    @Request() req: AuthenticatedRequest,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+    @Body() dto: RevokeEditorialFileDto,
+  ) {
+    return this.files.revoke(req.usuario.sub, id, dto);
+  }
+
+  @Get(':id/revocaciones/:operacionId')
+  @Header('Cache-Control', 'private, no-store')
+  revocationReceipt(
+    @Request() req: AuthenticatedRequest,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+    @Param('operacionId', new ParseUUIDPipe({ version: '4' }))
+    operationId: string,
+  ) {
+    return this.files.revocationReceipt(req.usuario.sub, id, operationId);
   }
 }

@@ -160,6 +160,20 @@ test("recibo no permite URL externa, identificador equivocado ni tamaño inváli
   ])
     assert.throws(() => fileReceipt(receipt(changes), operation));
 });
+
+test("un recibo REVOCADO no incluye URL ni permite reintentar la carga", () => {
+  const revoked = receipt({ estado: "REVOCADO", contenidoUrl: null, puedeReintentar: false });
+  assert.equal(fileReceipt(revoked, operation).estado, "REVOCADO");
+  assert.throws(() => fileReceipt({ ...revoked, contenidoUrl: receipt().contenidoUrl }, operation));
+  assert.throws(() => fileReceipt({ ...revoked, puedeReintentar: true }, operation));
+});
+
+test("consultar una carga revocada no la vincula al contenido", () => {
+  const h = harness({});
+  h.widget.accept(receipt({ estado: "REVOCADO", contenidoUrl: null, puedeReintentar: false }));
+  assert.equal(h.input.value, "");
+  assert.equal(h.changes(), 0);
+});
 test("seleccionar y cancelar no carga; guardar exige resolver la selección", async () => {
   let writes = 0;
   const h = harness({

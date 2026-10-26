@@ -150,7 +150,9 @@ async function main() {
     let ready = false;
     for (let attempt = 0; attempt < 100; attempt++) {
       try {
-        await docker('exec', name, 'pg_isready', '-U', user);
+        // El servidor provisional de initdb escucha solo por socket. Esperar
+        // TCP evita confundirlo con el servidor definitivo tras su reinicio.
+        await docker('exec', name, 'pg_isready', '-h', '127.0.0.1', '-U', user, '-d', 'postgres');
         ready = true;
         break;
       } catch {
@@ -196,6 +198,11 @@ async function main() {
       'prisma/migrations/20261022203000_tug_local_timeout_scope/migration.sql',
       'prisma/migrations/20261022213000_tug_option_image_snapshot/migration.sql',
       'prisma/migrations/20261023150000_tug_local_pause/migration.sql',
+      'prisma/migrations/20261023200000_editorial_history_revocation/migration.sql',
+      'prisma/migrations/20261024130000_editorial_solo_snapshot_access/migration.sql',
+      'prisma/migrations/20261024180000_editorial_trivia_local_snapshots/migration.sql',
+      'prisma/migrations/20261024200000_editorial_tug_snapshot_access/migration.sql',
+      'prisma/migrations/20261024220000_editorial_battle_snapshots/migration.sql',
     ];
     const paths = [...new Set([...committed, ...pending])].sort();
     for (const path of paths) {

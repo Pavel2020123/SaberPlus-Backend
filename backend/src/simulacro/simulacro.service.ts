@@ -7,7 +7,9 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { AreaIcfes, Dificultad, OrigenRespuesta, Prisma } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
-import { publicAnswerOption } from '../common/public-answer-option';
+import { EditorialFileRuntime } from '../editorial-files/editorial-file-runtime';
+import { historicalAnswerOption } from '../editorial-files/historical-answer-option';
+import { ownBattleHistoryQuestions } from '../batallas/batalla.snapshot';
 import {
   ESTADO_PUBLICADO,
   preguntaPublicadaWhere,
@@ -778,6 +780,7 @@ export class SimulacroService {
         orderBy: { fechaRespuesta: 'desc' },
         take: cantidad,
         include: {
+          imagenes: new EditorialFileRuntime().historyEnabled(),
           pregunta: {
             select: {
               enunciado: true,
@@ -808,6 +811,11 @@ export class SimulacroService {
         where: { ...whereBase, esCorrecta: true },
       }),
     ]);
+    const originalesBatalla = await ownBattleHistoryQuestions(
+      this.prisma,
+      usuarioId,
+      registros,
+    );
 
     return {
       resumen: {
@@ -818,18 +826,22 @@ export class SimulacroService {
           total > 0 ? Math.round((correctas / total) * 1000) / 10 : 0,
       },
       respuestas: registros.map((registro) => {
-        const seleccionada = registro.pregunta.respuestas.find(
+        const original = originalesBatalla.get(registro.id);
+        const opciones = original?.respuestas ?? registro.pregunta.respuestas;
+        const seleccionada = opciones.find(
           (respuesta) => respuesta.id === registro.respuestaSeleccionadaId,
         );
-        const correcta = registro.pregunta.respuestas.find(
+        const correcta = opciones.find(
           (respuesta) => respuesta.id === registro.respuestaCorrectaId,
         );
         return {
           id: registro.id,
           sesionId: registro.sesionId,
           preguntaId: registro.preguntaId,
-          enunciado: registro.pregunta.enunciado,
-          explicacion: registro.pregunta.explicacion,
+          enunciado: original?.enunciado ?? registro.pregunta.enunciado,
+          explicacion: original
+            ? original.explicacion
+            : registro.pregunta.explicacion,
           dificultad: registro.pregunta.dificultad,
           area: registro.area,
           origen: registro.origen,
@@ -837,11 +849,19 @@ export class SimulacroService {
           tiempoRespuestaSegundos: registro.tiempoRespuestaSegundos,
           fechaRespuesta: registro.fechaRespuesta,
           respuestaSeleccionada: seleccionada
-            ? publicAnswerOption(seleccionada)
+            ? historicalAnswerOption(
+                seleccionada,
+                registro.imagenes,
+                'SELECCIONADA',
+              )
             : null,
           respuestaCorrecta: correcta
             ? {
-                ...publicAnswerOption(correcta),
+                ...historicalAnswerOption(
+                  correcta,
+                  registro.imagenes,
+                  'CORRECTA',
+                ),
                 explicacion: correcta.explicacion,
               }
             : null,

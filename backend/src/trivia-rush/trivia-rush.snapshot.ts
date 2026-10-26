@@ -65,18 +65,29 @@ export interface TriviaSnapshot {
 export function readTriviaSnapshot(attempt: {
   evidenciaVersion?: number | null;
   snapshotInicial?: Prisma.JsonValue | null;
+  modalidad?: ModalidadTriviaRush | null;
+  snapshotLocal?: Prisma.JsonValue | null;
 }): TriviaSnapshot | null {
-  if (attempt.evidenciaVersion == null) return null;
-  const s = attempt.snapshotInicial as unknown as TriviaSnapshot;
+  const local = attempt.snapshotLocal != null;
+  if (!local && attempt.evidenciaVersion == null) return null;
+  const s = (local
+    ? attempt.snapshotLocal
+    : attempt.snapshotInicial) as unknown as TriviaSnapshot;
   if (
-    attempt.evidenciaVersion !== 1 ||
+    (local
+      ? attempt.modalidad !== 'TUG_LOCAL' || attempt.evidenciaVersion != null
+      : attempt.evidenciaVersion !== 1) ||
     !s ||
     s.version !== 1 ||
     !Number.isInteger(s.q) ||
-    s.q < 10 ||
+    s.q < (local ? 4 : 10) ||
     s.q > 30 ||
     !Array.isArray(s.questions) ||
-    s.questions.length !== s.q
+    s.questions.length !== s.q ||
+    (local &&
+      (s.config?.modalidad !== 'TUG_LOCAL' ||
+        s.config.duracionSegundos !== 600 ||
+        s.ghost !== null))
   )
     throw new BadRequestException('Evidencia inicial de Trivia invalida.');
   return s;

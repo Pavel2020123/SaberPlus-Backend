@@ -6,6 +6,25 @@ export const fileUuid = (value) =>
 export const managedImageId = (value) =>
   /^\/recursos\/editoriales\/([a-f0-9-]{36})$/i.exec(value ?? "")?.[1] ?? null;
 export const imagePath = (id) => `/recursos/editoriales/${id}`;
+export function fileReference(value) {
+  const text = typeof value === "string" ? value.trim() : "";
+  const id = managedImageId(text) ?? text;
+  if (!fileUuid(id)) throw new Error("Copia la referencia de una imagen cargada en SaberPlus o su identificador.");
+  return id.toLowerCase();
+}
+export function revocationFields(value) {
+  const detalle = value?.detalle?.trim();
+  if (!["SEGURIDAD", "DERECHOS"].includes(value?.motivo) || !detalle || detalle.length > 500 || /[\p{Cc}\p{Cf}]/u.test(detalle))
+    throw new Error("Selecciona el motivo y escribe un detalle interno de 1 a 500 caracteres, sin caracteres de control.");
+  return { motivo: value.motivo, detalle };
+}
+export function revocationReceipt(row, id, operationId) {
+  if (!fileUuid(row?.archivoId) || !fileUuid(row?.operacionId) || row.archivoId !== id || row.operacionId !== operationId ||
+      typeof row.creadoEn !== "string" || !/^\d{4}-\d\d-\d\dT/.test(row.creadoEn) || !Number.isFinite(Date.parse(row.creadoEn)))
+    throw new Error("No pudimos validar la revocación. Consulta el recibo antes de repetirla.");
+  revocationFields(row);
+  return row;
+}
 export function fileMetadata(value) {
   const result = {};
   for (const [key, limit] of [
@@ -47,7 +66,7 @@ export function fileReceipt(row, expectedOperation, expectedId) {
     !fileUuid(row?.operacionId) ||
     (expectedOperation && row.operacionId !== expectedOperation) ||
     (expectedId && row.id !== expectedId) ||
-    !["PREPARADO", "DISPONIBLE", "RETIRADO"].includes(row.estado) ||
+    !["PREPARADO", "DISPONIBLE", "RETIRADO", "REVOCADO"].includes(row.estado) ||
     row.tipo !== "image/webp" ||
     !Number.isInteger(row.bytes) ||
     row.bytes <= 0 ||

@@ -1,5 +1,5 @@
 import { lessonFields } from "./lesson-fields.mjs";
-import { fileUuid, fileMetadata, fileReceipt } from "./editorial-file-fields.mjs";
+import { fileUuid, fileMetadata, fileReceipt, fileReference, revocationFields, revocationReceipt } from "./editorial-file-fields.mjs";
 import { mapId, mapChange, mapDetail } from "./learning-map-fields.mjs";
 import { questionFields, caseFields } from "./question-fields.mjs";
 import { reportUuid, reportQuery, reportDecision, reportRow, reportPage } from './question-report-fields.mjs';
@@ -85,6 +85,18 @@ export class CatalogApi {
   editorialFileContent(id) {
     if (!fileUuid(id)) throw new PanelError("Imagen no válida.");
     return this.#protected(`/admin/archivos/${id}/contenido`, { responseType: "image" });
+  }
+  async revokeEditorialFile(id, operationId, fields) {
+    if (this.demo) throw new PanelError("La demo no revoca imágenes. Usa el panel conectado.");
+    id = fileReference(id);
+    if (!fileUuid(operationId)) throw new PanelError("Operación de revocación no válida.");
+    const body = { operacionId: operationId, ...revocationFields(fields) };
+    return revocationReceipt(await this.#protected(`/admin/archivos/${id}/revocaciones`, { method: "POST", body }), id, operationId);
+  }
+  async editorialRevocationReceipt(id, operationId) {
+    id = fileReference(id);
+    if (!fileUuid(operationId)) throw new PanelError("Operación de revocación no válida.");
+    return revocationReceipt(await this.#protected(`/admin/archivos/${id}/revocaciones/${operationId}`), id, operationId);
   }
   logout() {
     this.#generation++;
@@ -639,6 +651,16 @@ export class CatalogApi {
           this.logout();
           this.onSessionExpired();
         }
+        if (path.startsWith("/admin/archivos/") && path.includes("/revocaciones"))
+          throw new PanelError({
+            400: "Revisa el motivo y el detalle interno de la revocación.",
+            401: "Tu sesión terminó. Ingresa de nuevo.",
+            403: "Solo ADMIN puede revocar imágenes y consultar sus recibos.",
+            404: "No encontramos un recibo para esta operación en tu cuenta.",
+            409: "La imagen u operación cambió. Consulta el recibo y el estado actual antes de continuar.",
+            410: "La imagen ya fue retirada. Consulta su estado actual.",
+            503: "No pudimos confirmar la revocación. Conserva el envío y consulta el recibo.",
+          }[response.status] ?? "No pudimos confirmar la revocación. Consulta el recibo o reintenta el mismo envío.", response.status);
         if (path.startsWith("/admin/archivos"))
           throw new PanelError({
             400: "Revisa la imagen y sus datos de autoría y permiso de uso.",

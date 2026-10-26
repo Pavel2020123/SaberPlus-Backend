@@ -31,13 +31,21 @@ describe('recibos, integridad y ciclo de archivos editoriales', () => {
     updateMany: jest.fn(),
   };
   const store = { put: jest.fn(), read: jest.fn(), remove: jest.fn() };
-  const runtime = { assertEnabled: jest.fn() };
+  const runtime = {
+    assertEnabled: jest.fn(),
+    historyEnabled: jest.fn(),
+    snapshotsEnabled: jest.fn(),
+    triviaSnapshotsEnabled: jest.fn(),
+    tugSnapshotsEnabled: jest.fn(),
+    battleSnapshotsEnabled: jest.fn(),
+  };
   const db = {
     archivoEditorial: table,
     pregunta: { count: jest.fn() },
     casoPregunta: { count: jest.fn() },
     subtema: { count: jest.fn() },
     respuesta: { count: jest.fn() },
+    imagenHistorialRespuesta: { count: jest.fn() },
     $queryRaw: jest.fn(),
     $transaction: jest.fn(),
   };
@@ -65,6 +73,7 @@ describe('recibos, integridad y ciclo de archivos editoriales', () => {
       db.casoPregunta,
       db.subtema,
       db.respuesta,
+      db.imagenHistorialRespuesta,
     ])
       model.count.mockResolvedValue(0);
     table.findUnique.mockImplementation(() => row && { ...row });
@@ -111,6 +120,10 @@ describe('recibos, integridad y ciclo de archivos editoriales', () => {
     expect(result).not.toHaveProperty('huellaSolicitud');
     expect(result).not.toHaveProperty('creadoPorId');
     expect(await service.content(result.id)).toBeInstanceOf(Buffer);
+    expect(await service.content(result.id.toUpperCase())).toBeInstanceOf(
+      Buffer,
+    );
+    expect(store.read).toHaveBeenLastCalledWith(result.id);
   });
 
   it('un reintento idéntico no crea otro recurso ni vuelve a escribir bytes', async () => {
@@ -118,6 +131,32 @@ describe('recibos, integridad y ciclo de archivos editoriales', () => {
     expect(await service.upload(actor, dto, image)).toEqual(first);
     expect(table.create).toHaveBeenCalledTimes(1);
     expect(store.put).toHaveBeenCalledTimes(1);
+  });
+
+  it('una carga repetida no reactiva una revocación confirmada', async () => {
+    await service.upload(actor, dto, image);
+    table.findUnique.mockImplementation(() => ({
+      ...row,
+      revocacion: { archivoId: row.id },
+    }));
+    await expect(service.upload(actor, dto, image)).rejects.toBeInstanceOf(
+      GoneException,
+    );
+    expect(store.put).toHaveBeenCalledTimes(1);
+  });
+
+  it('una revocación durante IO impide confirmar la carga y conserva bytes para auditoría', async () => {
+    store.put.mockImplementationOnce(() => {
+      table.findUnique.mockImplementation(() => ({
+        ...row,
+        revocacion: { archivoId: row.id },
+      }));
+    });
+    await expect(service.upload(actor, dto, image)).rejects.toBeInstanceOf(
+      GoneException,
+    );
+    expect(table.updateMany).not.toHaveBeenCalled();
+    expect(store.remove).not.toHaveBeenCalled();
   });
 
   it('cambiar metadatos en la misma operación devuelve conflicto', async () => {
@@ -236,9 +275,10 @@ describe('recibos, integridad y ciclo de archivos editoriales', () => {
   it('la retirada revoca acceso antes del borrado; el reintento termina la limpieza', async () => {
     const result = await service.upload(actor, dto, image);
     store.remove.mockRejectedValueOnce(new ServiceUnavailableException());
-    await expect(service.retire(result.id)).rejects.toBeInstanceOf(
-      ServiceUnavailableException,
-    );
+    await expect(
+      service.retire(result.id.toUpperCase()),
+    ).rejects.toBeInstanceOf(ServiceUnavailableException);
+    expect(store.remove).toHaveBeenCalledWith(result.id);
     expect(row?.estado).toBe('RETIRADO');
     await expect(service.content(result.id)).rejects.toBeInstanceOf(
       NotFoundException,

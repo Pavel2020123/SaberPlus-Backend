@@ -19,6 +19,12 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { publicAnswerOption } from '../common/public-answer-option';
 import { preguntaPublicadaWhere } from '../common/contenido-publicado';
+import {
+  BattleQuestion,
+  battleQuestionInclude,
+  freezeBattleQuestion,
+  readBattleSnapshot,
+} from './batalla.snapshot';
 
 const HORAS_PARTIDA = 24;
 const MAX_BATALLAS_XP_DIA = 5;
@@ -137,6 +143,15 @@ export class BatallasService {
     const estado = entrada.invitacionPrivada
       ? EstadoBatalla.PENDIENTE
       : EstadoBatalla.BUSCANDO;
+    const asignadas = preguntas.map((pregunta, orden) => {
+      const opcionesOrden = mezclar(pregunta.respuestas.map((item) => item.id));
+      return {
+        preguntaId: pregunta.id,
+        orden,
+        opcionesOrden,
+        snapshotInicial: freezeBattleQuestion(pregunta, orden, opcionesOrden),
+      };
+    });
 
     const batalla = await this.prisma.batalla.create({
       data: {
@@ -147,11 +162,7 @@ export class BatallasService {
         codigoInvitacion: entrada.invitacionPrivada ? codigoInvitacion() : null,
         expiraEn,
         preguntas: {
-          create: preguntas.map((pregunta, orden) => ({
-            preguntaId: pregunta.id,
-            orden,
-            opcionesOrden: mezclar(pregunta.respuestas.map((item) => item.id)),
-          })),
+          create: asignadas,
         },
         participantes: {
           create: [
@@ -338,13 +349,15 @@ export class BatallasService {
         );
       }
 
-      const pregunta = await tx.pregunta.findUnique({
-        where: { id: entrada.preguntaId },
-        include: {
-          respuestas: true,
-          subtema: { select: { tema: { select: { area: true } } } },
-        },
-      });
+      const pregunta =
+        readBattleSnapshot(preguntaBatalla.snapshotInicial)?.pregunta ??
+        (await tx.pregunta.findUnique({
+          where: { id: entrada.preguntaId },
+          include: {
+            respuestas: true,
+            subtema: { select: { tema: { select: { area: true } } } },
+          },
+        }));
       if (!pregunta) throw new NotFoundException('Pregunta no encontrada.');
       const seleccionada = pregunta.respuestas.find(
         (respuesta) => respuesta.id === entrada.respuestaId,
@@ -581,25 +594,23 @@ export class BatallasService {
       yo: { alias: 'Tu' },
       preguntas: (yo?.iniciadoEn || finalizada ? batalla.preguntas : []).map(
         (item) => {
+          const original: Omit<BattleQuestion, 'subtema'> =
+            readBattleSnapshot(item.snapshotInicial)?.pregunta ?? item.pregunta;
           const ordenOpciones = Array.isArray(item.opcionesOrden)
             ? (item.opcionesOrden as string[])
             : [];
           const opciones = new Map(
-            item.pregunta.respuestas.map((respuesta) => [
-              respuesta.id,
-              respuesta,
-            ]),
+            original.respuestas.map((respuesta) => [respuesta.id, respuesta]),
           );
           const propia = propias.get(item.preguntaId);
-          const correcta = item.pregunta.respuestas.find(
+          const correcta = original.respuestas.find(
             (respuesta) => respuesta.esCorrecta,
           );
           return {
-            id: item.pregunta.id,
-            enunciado: item.pregunta.enunciado,
-            contexto: item.pregunta.caso?.contexto ?? null,
-            imagenUrl:
-              item.pregunta.imagenUrl ?? item.pregunta.caso?.imagenUrl ?? null,
+            id: original.id,
+            enunciado: original.enunciado,
+            contexto: original.caso?.contexto ?? null,
+            imagenUrl: original.imagenUrl ?? original.caso?.imagenUrl ?? null,
             opciones: ordenOpciones
               .map((id) => opciones.get(id))
               .filter(Boolean)
@@ -610,7 +621,7 @@ export class BatallasService {
                   esCorrecta: propia?.esCorrecta ?? null,
                   respuestaCorrectaId: correcta?.id ?? null,
                   explicacion:
-                    item.pregunta.explicacion ?? correcta?.explicacion ?? null,
+                    original.explicacion ?? correcta?.explicacion ?? null,
                 }
               : {}),
           };
@@ -693,7 +704,7 @@ export class BatallasService {
         ...(area ? { subtema: { tema: { area } } } : {}),
         respuestas: { some: { esCorrecta: true } },
       }),
-      include: { respuestas: { select: { id: true, esCorrecta: true } } },
+      include: battleQuestionInclude,
       take: 150,
     });
     const validas = candidatas.filter(
