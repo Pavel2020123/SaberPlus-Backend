@@ -43,6 +43,12 @@ Se preparó una corrección separable sin subir de versión principal NestJS:
 `npm audit --omit=dev --json` posterior: cero vulnerabilidades.
 No se desactiva ni se relaja la comprobación de seguridad del workflow.
 
+La primera publicación de la corrección detectó además entradas opcionales
+`@emnapi/core` y `@emnapi/runtime` ausentes en la instalación limpia de Linux.
+Se regeneró el lockfile con npm 11.11.0, la versión de CI. La validación
+`npm ci --dry-run --ignore-scripts --include=dev --os=linux --cpu=x64`
+pasó. La integración queda condicionada a todos los checks del nuevo HEAD.
+
 ## Límites y puesta en servicio local
 
 Esta auditoría no acredita una nueva prueba Android ni PostgreSQL integrado.
