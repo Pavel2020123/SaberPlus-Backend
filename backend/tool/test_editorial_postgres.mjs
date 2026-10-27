@@ -61,6 +61,7 @@ async function main() {
   const coverage = process.argv.includes('--coverage');
   const learningMap = process.argv.includes('--learning-map');
   const deferredReview = process.argv.includes('--deferred-review');
+  const vocational = process.argv.includes('--orientacion-vocacional');
   if (
     process.argv
       .slice(2)
@@ -75,9 +76,10 @@ async function main() {
             '--coverage',
             '--learning-map',
             '--deferred-review',
+            '--orientacion-vocacional',
           ].includes(arg),
       ) ||
-    [teacherPriorities, studyTime, institutionApproval, summit, starRescue, coverage, learningMap, deferredReview].filter(Boolean).length >
+    [teacherPriorities, studyTime, institutionApproval, summit, starRescue, coverage, learningMap, deferredReview, vocational].filter(Boolean).length >
       1
   )
     throw new Error('Opción de pruebas no reconocida.');
@@ -195,7 +197,7 @@ async function main() {
     if (!migrations.length)
       throw new Error('No se encontraron migraciones versionadas.');
     const sql = [];
-    if (summit || starRescue || learningMap || deferredReview) sql.push('CREATE ROLE anon NOLOGIN NOSUPERUSER NOBYPASSRLS; CREATE ROLE authenticated NOLOGIN NOSUPERUSER NOBYPASSRLS; GRANT USAGE ON SCHEMA public TO anon, authenticated;');
+    if (summit || starRescue || learningMap || deferredReview || vocational) sql.push('CREATE ROLE anon NOLOGIN NOSUPERUSER NOBYPASSRLS; CREATE ROLE authenticated NOLOGIN NOSUPERUSER NOBYPASSRLS; GRANT USAGE ON SCHEMA public TO anon, authenticated;');
     const approvalMigration =
       'backend/prisma/migrations/20260917130000_institution_approval/migration.sql';
     const approvalPrivacyMigration =
@@ -259,6 +261,10 @@ async function main() {
     if (institutionApproval && !migrations.includes(territoryMigration)) {
       sql.push(await readFile(join(repository, territoryMigration), 'utf8'));
     }
+    const vocationalMigration = 'backend/prisma/migrations/20261014120000_vocational_orientation_v1/migration.sql';
+    if (vocational && !migrations.includes(vocationalMigration)) {
+      sql.push(await readFile(join(repository, vocationalMigration), 'utf8'));
+    }
     await writeFile(migrationFile, sql.join('\n'), 'utf8');
     await run(binary('psql'), [
       '-X',
@@ -270,12 +276,13 @@ async function main() {
     console.log(
       `SQL de ${migrations.length} migraciones versionadas${teacherPriorities && !migrations.includes(priorityMigration) ? ' y la migración local P3-A' : ''}${studyTime && !migrations.includes(studyMigration) ? ' y la migración local P4-A' : ''}${institutionApproval && !migrations.includes(approvalMigration) ? ' y la migración local P4-C' : ''} aplicado solo a la instancia desechable.`,
     );
+    if (vocational) console.log('OV-1B: migración 20261014120000 aplicada a la instancia propia.');
     const result = await run(
       process.execPath,
       [
         '--test',
         '--test-concurrency=1',
-        deferredReview ? 'test/deferred-review-postgres.test.cjs' : learningMap ? 'test/learning-map-postgres.test.cjs' : coverage ? 'test/bank-coverage-postgres.test.cjs' : starRescue ? 'test/star-rescue-postgres.test.cjs' : summit ? 'test/summit-postgres.test.cjs' : institutionApproval
+        vocational ? 'test/orientacion-vocacional-postgres.test.cjs' : deferredReview ? 'test/deferred-review-postgres.test.cjs' : learningMap ? 'test/learning-map-postgres.test.cjs' : coverage ? 'test/bank-coverage-postgres.test.cjs' : starRescue ? 'test/star-rescue-postgres.test.cjs' : summit ? 'test/summit-postgres.test.cjs' : institutionApproval
           ? 'test/institution-approval-postgres.test.cjs'
           : studyTime
             ? 'test/study-time-postgres.test.cjs'

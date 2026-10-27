@@ -1,3 +1,4 @@
+import { OrientacionVocacionalModule } from './orientacion-vocacional/orientacion-vocacional.module';
 import { Module } from '@nestjs/common';
 import { EditorialFileModule } from './editorial-files/editorial-file.module';
 import { DeferredReviewModule } from './deferred-review/deferred-review.module';
@@ -32,6 +33,7 @@ import { RetiredGamesController } from './common/retired-games.controller';
 
 @Module({
   imports: [
+    OrientacionVocacionalModule,
     EditorialFileModule,
     DeferredReviewModule,
     LearningMapModule,
