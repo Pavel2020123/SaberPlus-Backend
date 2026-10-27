@@ -8,7 +8,8 @@ const integer = n => Number.isSafeInteger(n) && n >= 0;
 export function validateCoverage(data, area, page) {
   if (!data || data.area !== area || data.pagina !== page || data.limite !== 20 ||
       !integer(data.totalSubtemas) || typeof data.hayMas !== "boolean" ||
-      data.hayMas !== (page * 20 < data.totalSubtemas) || data.reportesDisponibles !== false ||
+      data.hayMas !== (page * 20 < data.totalSubtemas) ||
+      !(data.reportesDisponibles === false || (data.reportesDisponibles === true && data.reportesVersion === 1)) ||
       !Array.isArray(data.items) || data.items.length > 20 ||
       data.items.length !== Math.min(20, Math.max(0, data.totalSubtemas - (page - 1) * 20)) ||
       new Set(data.items.map(r => r?.id)).size !== data.items.length) throw new Error("Cobertura inválida.");
@@ -22,14 +23,16 @@ export function validateCoverage(data, area, page) {
         Object.keys(levels).reduce((n,k) => n + row.dificultades[k], 0) !== row.publicadas ||
         !Array.isArray(row.dificultadesFaltantes) ||
         JSON.stringify(row.dificultadesFaltantes) !== JSON.stringify(Object.keys(levels).filter(k => row.dificultades[k] === 0)) ||
-        row.reportes !== null) throw new Error("Conteos de cobertura inconsistentes.");
+        (data.reportesDisponibles
+          ? (!integer(row.reportes) || !integer(row.preguntasConReportes) || row.preguntasConReportes > row.reportes)
+          : row.reportes !== null)) throw new Error("Conteos de cobertura inconsistentes.");
   }
   return data;
 }
 const node = (tag, text = "") => { const n = document.createElement(tag); n.textContent = text; return n; };
 const button = (text, action) => { const b = node("button", text); b.type = "button"; b.onclick = action; return b; };
 export class BankCoverage {
-  constructor({ api, host }) { this.api = api; this.host = host; this.version = 0; this.area = "MATEMATICAS"; this.page = 1; }
+  constructor({ api, host, onReports }) { this.api = api; this.host = host; this.onReports = onReports; this.version = 0; this.area = "MATEMATICAS"; this.page = 1; }
   close() { this.version++; this.host.hidden = true; this.host.replaceChildren(); }
   async open() {
     this.close(); this.host.hidden = false;
@@ -44,7 +47,7 @@ export class BankCoverage {
     this.next = button("Siguiente →", () => { this.page++; void this.load(); });
     this.host.append(node("h2", "Cobertura del banco"),
       node("p", "Informe de solo lectura. Publicadas = preguntas visibles con tema, subtema y contexto publicados. Los conteos no certifican calidad ni suficiencia para un juego."),
-      node("p", "Sin explicación: preguntas publicadas sin explicación general. Reportes de preguntas: función pendiente, no se muestra un cero ficticio."),
+      node("p", "Sin explicación: preguntas publicadas sin explicación general. Reportes abiertos = pendientes + en revisión, también sobre preguntas archivadas. Un servidor anterior puede no ofrecer estos conteos; no se muestra un cero ficticio."),
       label, select, button("Actualizar cobertura", () => void this.load()), this.status, this.list, this.previous, this.next);
     await this.load();
   }
@@ -53,7 +56,14 @@ export class BankCoverage {
     this.previous.disabled = this.next.disabled = true;
     this.list.replaceChildren(); this.status.textContent = "Consultando cobertura…";
     try {
-      const data = validateCoverage(await this.api.coverage(area, page), area, page);
+      let response;
+      try { response = await this.api.coverage(area, page, true); }
+      catch (error) {
+        // Old servers reject the opt-in query. Never downgrade network/auth/DB failures.
+        if (error.status !== 400 || version !== this.version) throw error;
+        response = await this.api.coverage(area, page);
+      }
+      const data = validateCoverage(response, area, page);
       if (version !== this.version) return;
       this.status.textContent = data.items.length ? `Página ${page} · ${data.totalSubtemas} subtemas en esta área` : "No hay subtemas en esta página.";
       for (const row of data.items) {
@@ -64,6 +74,11 @@ export class BankCoverage {
           node("p", Object.entries(levels).map(([key, title]) => `${title}: ${row.dificultades[key]}`).join(" · ")),
           node("p", row.dificultadesFaltantes.length ? `Sin preguntas publicadas: ${row.dificultadesFaltantes.map(k => levels[k]).join(", ")}` : "Hay preguntas publicadas de las tres dificultades."),
           node("p", `Publicadas sin explicación general: ${row.sinExplicacion}`));
+        card.append(node('p', data.reportesDisponibles
+          ? `Reportes abiertos: ${row.reportes} · Preguntas distintas afectadas: ${row.preguntasConReportes}`
+          : 'Conteos de reportes no disponibles en esta versión del servidor.'));
+        if (data.reportesDisponibles && this.onReports) card.append(button('Ver reportes del subtema',
+          () => this.onReports({ area, subtemaId: row.id })));
         this.list.append(card);
       }
       this.previous.disabled = page <= 1; this.next.disabled = !data.hayMas || page >= 10000;

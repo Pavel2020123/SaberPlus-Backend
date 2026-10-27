@@ -1,18 +1,80 @@
 # Documentación backend
 
-## Entrada vigente — 13 de octubre de 2026
+- **Nuevo compañero para terminar C2 (no OV-1):** [guía operativa](RELEVO_C5_C2.md)
+  y [acta C2-D](C5C2D_VALIDACION_LOCAL.md). Entrega parcial auditada por Pavel e
+  integrada: Flutter PR#9/b8253e2, backend PR#11/3eb3f59. Nueva rama
+  fix/c5-c2-timeout-d8b: timeout de Tira local y D8b con dos clientes. No repetir
+  los demás aprobados ni avanzar a otras etapas; C2 sigue abierta.
 
-Propietario: [C2C, logo](PR_I5_C2_LOGO.md). Compañero: [OV-1A](CHECKPOINT_OV1.md).
+**21 de octubre — [C5-C2-C validada automáticamente](C5C2C_CONSUMIDORES.md):**
+contratos/snapshots y Flutter incorporan imágenes opcionales sin cambiar XP ni
+romper JSON antiguo.969 Flutter aprobadas/16 opt-in omitidas,128 suites/1.675
+backend y44/44 PostgreSQL/HTTP;70 migraciones temporales, ninguna nueva de C2-C.
+**Sigue C2-D:0/8 guiones humanos propuestos**, con Docker/USB al preparar la sesión.
+Activación apagada por defecto; sin nuevo ensayo Android ni despliegue. C1 conserva5/5.
+Entrega C2-C/relevo: app `e833d6b`, backend `cfba7cd`.
+Deuda ESLint previa:27 incidencias verificadas en HEAD, descritas en el acta.
+Integrada en main local: app `f912880`/backend `09c763b`; sin push nuevo ni cambios OV-1.
+
+- **20 de octubre, continuación vigente:** [C5-A/B archivos](C5_ARCHIVOS.md).
+  [Panel validado](C5B_PANEL.md):23/23 PostgreSQL/HTTP y recorrido Chromium real.
+  Sigue C Flutter/consumidores y D integración/operación. Rama feat/c5-archivos-base,
+  rutas desactivadas por defecto, sin merge ni despliegue. OV-1 separado.
+
+- [Sincronización documental del19](AUDITORIA_DOCUMENTAL_2026_10_19.md): integración,
+  correcciones, límites de la revisión y siguiente preparación local C5.
+
+- **19 de octubre, entrada vigente:** [R4 integrada/regresiones/comando seguro](MA1R_R4_VALIDACION_LOCAL.md).
+  12/12 humanos y45/45 PostgreSQL/HTTP; backend121/1567 tras fix de concurrencia, ADMIN109, build/TS y
+  Flutter920/13 opt-in omitidas/análisis aprobados. Remate Android confirmado:
+  R4 cerrada localmente e integrada en main por PR API #9/app #6 (eef0d40/21757a1);
+  CI backend del PR aprobado. Sigue preparación local C5, QA-1 Flutter remoto pendiente.
+  Sin despliegue. Sesiones anteriores
+  limpiadas, remate en otra temporal; no asumir disponibilidad por leer estas actas.
+  Entradas anteriores inferiores históricas, no pasos nuevos.
+
+- [MA-1R-UX1 — Ocultar/Deshacer personal](MA1R_UX1_OCULTAR_DESHACER.md): propuesta
+  posterior a R4; no DELETE, schema/endpoints nuevos ni cambios al estado ADMIN.
+
+- **18 de octubre, MA-1R/R3:** [App/panel y resultados](MA1R_R3_APP_PANEL.md).
+  [R2 backend local, contrato efectivo](MA1R_R2_BACKEND.md).
+  R1/flujo autorizados;121 suites/1.560 aprobadas, build/TypeScript correctos.
+  R3:32 dirigidas Flutter/109 ADMIN aprobadas. SQL sin aplicar; R4 pendiente, sin despliegue.
+
+## Entrada vigente — 17 de octubre de 2026
+
+[C4-C](PR_I5_C4_CODIGO.md) cubre10/10 guiones locales con Android+19 HTTP/SQL finales,
+no10 manuales independientes. APK corregida instalada,93 dirigidas Flutter/análisis
+aprobados; regresión global final893/13 opt-in omitidas. [C3C](PR_I5_C3_SOLICITUDES.md) cerrado.
+[Cierre técnico local consolidado](CIERRE_INSTITUCIONES_LOCAL.md): observaciones y
+commits app6bab6be/API7ba93d7/lockbfce42e integrados a main por PR app #5/API #8.
+CI backend del PR/main aprobado; Flutter analyze limpio/102 dirigidas aprobadas.
+[Orden posterior y auditoría](ESTADO_Y_ORDEN_2026_10_17.md):
+MA-1R/R1–R3 locales, sigue R4; OV-1 del compañero en curso sin entrega nueva verificada.
+Sin nuevos ensayos físicos/SQL ni despliegue; documentación separada en
+`docs/estado-post-instituciones`, publicación manual/PR pendientes.
+Las entradas anteriores fechadas inferiores son antecedentes.
+
+## Antecedente — 15 de octubre de 2026
+
+Propietario: [C3A/B solicitudes implementadas; sigue C3C integrado](PR_I5_C3_SOLICITUDES.md).
+37 nuevas/1.411 regresión/14 HTTP/SQL backend y27 dirigidas Flutter aprobadas;
+65 migraciones solo temporales. Sin ensayo Android C3 ni despliegue remoto.
+El checkpoint C3 prevalece sobre los siguientes pasos históricos inferiores.
+
+Antecedente14 de octubre: [C2C validada localmente](PR_I5_C2_LOGO.md); dieron paso a solicitudes
+estudiantiles/avisos/código institucional.6/6 HTTP/SQL y8/8 humanos; límites y
+observaciones de captura original/CI en acta. Compañero: [OV-1A](CHECKPOINT_OV1.md).
 Leer [reparto y checkpoints](TRABAJO_PARALELO.md). Las conciliaciones de septiembre
 u octubre anteriores son evidencia histórica, no la próxima etapa.
 
 
-**Trabajo paralelo acordado:** propietario → instituciones (sigue C2C);
-compañero → test vocacional OV-1 (comienza A, después B/C/D), sin esperar C2C.
+**Trabajo paralelo vigente:** propietario → entrega institucional integrada y
+próximo bloque por acordar; compañero → OV-1A/B/C/D en paralelo.
 Ver [responsables, ramas y entrega](TRABAJO_PARALELO.md). Este acuerdo sustituye
 la secuencia estricta de OV-1 y el trabajo individual directo en main.
 
-## Continuación vigente — 12 de octubre de 2026
+## Antecedente — 12 de octubre de 2026
 
 **Siguiente: PR-I5-C2C, ensayo integrado del logo institucional.**
 C2A/backend y C2B/Flutter implementadas: 79 pruebas backend y 45 Flutter
@@ -91,7 +153,8 @@ productivos pendientes; incidencias históricas conservadas.
 - [PR-I2 — I2-1/2/3 integrados](PR_I2_RANKINGS.md): contrato, lector PostgreSQL
   y API autenticada; merge `66b5aa2`. Flutter I2-4 fusionada en `1921ba9`.
   I2-5 conserva cierre operativo; recorrido funcional Android ya revisado.
-  Seguir el reparto vigente: propietario C2C, compañero OV-1A.
+  Seguir el reparto vigente: propietario cierre/entrega institucional y próximo
+  bloque por acordar; compañero OV-1 según su checkpoint. No reiniciar C2C.
   El ranking general permanece vigente.
 - [Relevo PR-I1](PR_I1_RELEVO.md).
 - [Infraestructura y evidencia PR-I1](PR_I1_COMPETITIVE_INFRASTRUCTURE.md).

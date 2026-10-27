@@ -1,15 +1,110 @@
 # SaberPlus Backend
 
+**Nuevo compañero de C2 (no OV-1):** comenzar por
+[relevo operativo completo](backend/docs/RELEVO_C5_C2.md) y
+[acta C2-D](backend/docs/C5C2D_VALIDACION_LOCAL.md). Incluye ambos repos,
+cuentas/clave temporal, Docker/USB y pruebas; puede corregir Flutter/API/panel
+de C2. **23 de octubre: entrega a nueva revisión**, regresión D8a y D8b aprobadas
+dentro del alcance del acta; D1–D7 y D8c/d/e conservados. **C2 abierta a auditoría
+de Pavel.** [Entrega actual y comandos](backend/docs/C5C2_REVISION_TIMEOUT_D8B.md),
+[entrega parcial histórica](backend/docs/C5C2_ENTREGA_PARCIAL.md).
+Pavel auditó la entrega parcial; PR Flutter#9/b8253e2 y backend#11/3eb3f59 ya
+integrados en main remoto (fetch verificado). Revisión en fix/c5-c2-timeout-d8b,
+desde main actualizado: timeout de Tira local y D8b con teléfono/emulador.
+C2 abierta, sin publicar cambios nuevos ni intervenir OV-1.
+Flutter corrige eventos Socket.IO con offset de recuperación (9/9 pruebas);
+sala confirmada en ambos clientes. Corregido el rechazo SQL del snapshot con
+imágenes al iniciar:48/48 HTTP/SQL,72 migraciones solo temporales y build completo
+aprobados. Flutter/pausa del timeout local ya integrados:25 dirigidas y50/50
+HTTP/SQL con73 migraciones. Android/4005 confirma avance tras timeout, pausa
+activa8s, reanudación, figuras/textos contenidos y acierto. Regresión final:
+Flutter1.016 aprobadas/16 opt-in omitidas, backend128/1.675; análisis dirigido y
+build aprobados. Recibos sanitizados enlazados en la entrega.
+D8b posterior: inicio y preguntas/figuras coincidentes observados en teléfono y
+emulador. Falla contención de opciones; Flutter corrige el borde con13/13 pruebas
+y análisis dirigidos aprobados. Contención aprobada por el humano en ambos con
+APK4003 y selección propia; después detecta retorno al teléfono sin resultado
+si terminó en segundo plano. Flutter corrige recuperación HTTP/lifecycle (19/19),
+APK4004 observada el23: victoria en emulador y mismo ganador al volver en teléfono.
+SQL concuerda: dos respuestas únicas solo del emulador y ninguna del teléfono.
+D8b aprobado; no acredita cierre forzado, ACK perdido o competición. Timeout
+local integrado y regresión D8a aprobada; C2 espera nueva revisión de Pavel.
+[Contrato del flujo local](backend/docs/C5C2_TIMEOUT_LOCAL.md).
+
+**21 de octubre — [C5-C2-C validada automáticamente](backend/docs/C5C2C_CONSUMIDORES.md):**
+contratos/snapshots y Flutter incorporan imágenes opcionales sin cambiar XP ni
+romper JSON antiguo.969 Flutter aprobadas/16 opt-in omitidas,128 suites/1.675
+backend y44/44 PostgreSQL/HTTP;70 migraciones temporales, ninguna nueva de C2-C.
+**Estado histórico del21: C2-D tenía0/8**; prevalece la entrega parcial del22 superior.
+Activación apagada por defecto; sin nuevo ensayo Android ni despliegue. C1 conserva5/5.
+Entrega C2-C/relevo: app `e833d6b`, backend `cfba7cd`.
+Deuda ESLint previa:27 incidencias verificadas en HEAD, descritas en el acta.
+Integrada en main local: app `f912880`/backend `09c763b`; sin push nuevo ni cambios OV-1.
+
+**20 de octubre — C5-A/B validadas localmente:** [imágenes desde el panel](backend/docs/C5B_PANEL.md),
+23/23 PostgreSQL/HTTP, panel124/124 y backend126/1650 aprobados en `feat/c5-archivos-base`.
+Recorrido Chromium aprobado; sigue C5-C Flutter.69 migraciones
+aplicadas solo en Docker temporal propio y limpiado. Rutas desactivadas por defecto,
+adaptador solo development/test. Sin merge, despliegue ni cambios OV-1.
+Esta entrada prevalece sobre el «siguiente C5» de las notas inferiores.
+
+**19 de octubre — checkpoint vigente MA-1R/R4:**12/12 humanos y45/45 pruebas
+HTTP/PostgreSQL aisladas repetidas tras fix de concurrencia aprobadas; backend121 suites/1567, ADMIN109, build/TS
+y Flutter920/13 opt-in omitidas/análisis correctos. [Acta técnica y límites](backend/docs/MA1R_R4_VALIDACION_LOCAL.md).
+Repetir suite específica desde backend: `npm run test:question-reports:postgres`.
+Retirada del botón y borrador con flecha confirmados: **R4 cerrada localmente**.
+**Integrado en main:** [backend PR #9](https://github.com/Pavel2020123/SaberPlus-Backend/pull/9)
+(`eef0d40`) y [app PR #6](https://github.com/Pavel2020123/saber_plus/pull/6) (`21757a1`).
+CI backend del PR aprobado; QA-1 Flutter remoto pendiente. Sigue preparación local
+C5, archivos generales. Bases automáticas/anteriores limpiadas; remate en otra
+sesión temporal. Sin despliegue ni migraciones remotas por esta entrega.
+OV-1 separado. Entradas anteriores inferiores son antecedentes, no estado vigente.
+
+[Documentación conciliada y guía de continuidad](backend/docs/AUDITORIA_DOCUMENTAL_2026_10_19.md).
+
+**18 de octubre — MA-1R/R3 app/panel locales:** [acta R3](backend/docs/MA1R_R3_APP_PANEL.md).
+R2 backend local: [implementación](backend/docs/MA1R_R2_BACKEND.md).
+R1/flujo inicial autorizados; 121 suites/1.560 aprobadas, build/TypeScript correctos.
+R3:32 dirigidas Flutter/109 ADMIN aprobadas y26 módulos de sintaxis.
+Regresión Flutter del18:917 aprobadas/13 opt-in omitidas y análisis sin incidencias.
+SQL escrito, no aplicado; sigue R4 PostgreSQL/HTTP Nest/Android.
+Sin despliegue ni CI remoto de R2. OV-1 separado; contrato legacy de cobertura intacto.
+
+**17 de octubre, estado vigente:** [C4-C10/10 guiones locales cubiertos](backend/docs/PR_I5_C4_CODIGO.md)
+con Android+19 HTTP/SQL finales, no10 manuales independientes. APK corregida instalada,
+Regresión Flutter final893 aprobadas/13 opt-in omitidas y análisis limpio.
+[Cierre técnico local consolidado](backend/docs/CIERRE_INSTITUCIONES_LOCAL.md),
+backend119 suites/1.470 y panel95/95. Commits creados app6bab6be/API7ba93d7/lockbfce42e;
+integrados a main por [PR #8 API](https://github.com/Pavel2020123/SaberPlus-Backend/pull/8)
+y [PR #5 app](https://github.com/Pavel2020123/saber_plus/pull/5).
+CI backend del PR y main aprobado; Flutter analyze limpio y102 dirigidas aprobadas.
+[Orden posterior y auditoría](backend/docs/ESTADO_Y_ORDEN_2026_10_17.md): MA-1R,
+reportes académicos, propuesto y no iniciado. OV-1 del compañero en curso, sin
+entrega nueva verificada aquí. Sin nuevos ensayos físicos/SQL ni despliegue.
+La auditoría documental se entrega separada en `docs/estado-post-instituciones`;
+publicación manual y revisión por PR pendientes.
+Las notas fechadas inferiores son antecedentes, no el siguiente paso.
+
+**15 de octubre — C3A/B solicitudes implementadas localmente.**
+Backend37 nuevas, regresión1.411/118 suites y14 HTTP/PostgreSQL aprobadas;
+cliente Flutter27 dirigidas. Sigue C3C Flutter/API/Android, no despliegue.
+[Contrato y checkpoint](backend/docs/PR_I5_C3_SOLICITUDES.md). Migración solo temporal;
+OV-1 sigue separado. No hacer commit de instituciones todavía.
+
+**14 de octubre:** [C2C validada localmente](backend/docs/PR_I5_C2_LOGO.md),6/6
+HTTP/SQL y8/8 humanos. Siguen solicitudes estudiantiles/avisos/código institucional.
+Acta conserva observaciones de captura original/CI y límites; sin despliegue.
+
 13 de octubre: [checkpoint del compañero OV-1](backend/docs/CHECKPOINT_OV1.md)
 y [C2C del propietario](backend/docs/PR_I5_C2_LOGO.md) independientes.
 [Conciliación documental](backend/docs/AUDITORIA_DOCUMENTAL_2026_10_13.md).
 
-**Trabajo paralelo acordado:** propietario → instituciones (sigue C2C);
-compañero → test vocacional OV-1 (comienza A, después B/C/D), sin esperar C2C.
+**Trabajo paralelo acordado:** propietario → entrega institucional integrada y
+próximo bloque por acordar; compañero → OV-1A/B/C/D en paralelo.
 Ver [responsables, ramas y entrega](backend/docs/TRABAJO_PARALELO.md). Este acuerdo sustituye
 la secuencia estricta de OV-1 y el trabajo individual directo en main.
 
-## Continuación vigente — 12 de octubre de 2026
+## Antecedente — 12 de octubre de 2026
 
 **Siguiente: PR-I5-C2C, ensayo integrado del logo institucional.**
 C2A/backend y C2B/Flutter implementadas: 79 pruebas backend y 45 Flutter

@@ -15,6 +15,7 @@ import {
   Min,
   MinLength,
   ValidateNested,
+  ValidateIf,
 } from 'class-validator';
 import { CatalogPageDto } from './academic-catalog.controller';
 
@@ -22,6 +23,10 @@ export class EditorialOptionDto {
   @IsString() @MinLength(1) @MaxLength(4000) texto!: string;
   @IsJsonBoolean() esCorrecta!: boolean;
   @IsString() @MaxLength(4000) explicacion!: string;
+  @ValidateIf((_object, value) => value !== undefined)
+  @IsString()
+  @MaxLength(2000)
+  imagenUrl?: string;
 }
 export class EditorialQuestionDto {
   @IsString() @MinLength(1) @MaxLength(120) subtemaId!: string;

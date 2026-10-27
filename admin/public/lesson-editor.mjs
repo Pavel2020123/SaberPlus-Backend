@@ -1,5 +1,7 @@
 import { previewBlocks, referenceUrl } from "./lesson-fields.mjs";
 import { LessonBlocks } from "./lesson-blocks.mjs";
+import { EditorialImageUpload } from "./editorial-image-upload.mjs";
+import { fileUuid, managedImageId } from "./editorial-file-fields.mjs";
 
 export class LessonEditor {
   constructor({
@@ -48,6 +50,7 @@ export class LessonEditor {
       "lesson-image",
     ])
       this.$(id).oninput = () => {
+        this.imageUpload?.externalChanged();
         if (id === "lesson-text") this.blocks.load(this.$(id).value);
         this.dirty = true;
         this.preview();
@@ -61,6 +64,10 @@ export class LessonEditor {
     this.$("editor-reload").onclick = () => {
       if (this.record) void this.open(this.kind, this.record.id, this.parent);
     };
+    this.imageUpload = new EditorialImageUpload({ api, doc, host: this.$("lesson-image-upload"), input: this.$("lesson-image"), confirm,
+      setBusy: (value) => { this.setBusy(value); this.controls(); },
+      onChange: () => { this.dirty = true; this.preview(); this.controls(); },
+    });
   }
   message(text, error = false) {
     this.$("editor-message").textContent = text;
@@ -88,6 +95,7 @@ export class LessonEditor {
     this.$("lesson-preview").replaceChildren();
     this.$("lesson-references").replaceChildren();
     this.blocks.load("");
+    this.imageUpload.reset();
     this.blocks.lock(true);
     this.message("");
     return true;
@@ -131,6 +139,7 @@ export class LessonEditor {
     this.blocks.load(record.contenido);
     this.$("lesson-video").value = record.videoUrl;
     this.$("lesson-image").value = record.imagenUrl;
+    this.imageUpload.setValue(record.imagenUrl);
     this.$("lesson-form").hidden = this.kind === "temas";
     this.$("preview-section").hidden = this.kind === "temas";
     this.$("editor-policy").textContent =
@@ -150,6 +159,7 @@ export class LessonEditor {
       "lesson-save",
     ])
       this.$(id).disabled = locked || !this.record?.editable;
+    this.imageUpload?.lock(locked || !this.record?.editable);
     for (const id of ["editor-name", "editor-rename"])
       this.$(id).disabled = locked || !this.record?.renombrable;
     this.$("editor-reload").disabled = locked || !this.record;
@@ -225,6 +235,7 @@ export class LessonEditor {
       ["lesson-image", "Imagen"],
     ]) {
       try {
+        if (id === "lesson-image" && fileUuid(managedImageId(this.$(id).value))) continue;
         const url = referenceUrl(this.$(id).value);
         if (!url) continue;
         const link = this.doc.createElement("a");
@@ -247,6 +258,8 @@ export class LessonEditor {
       !(rename ? this.record.renombrable : this.record.editable)
     )
       return;
+    try { this.imageUpload.ensureReady(); }
+    catch (error) { this.message(error.message, true); return; }
     // Saving either form sends only its fields; keep the other unsaved fields intact.
     const nameDraft = this.$("editor-name").value;
     const lessonDraft = {
@@ -281,6 +294,7 @@ export class LessonEditor {
           this.blocks.load(lessonDraft.contenido);
           this.$("lesson-video").value = lessonDraft.videoUrl;
           this.$("lesson-image").value = lessonDraft.imagenUrl;
+          this.imageUpload.setValue(lessonDraft.imagenUrl);
         } else this.$("editor-name").value = nameDraft;
         this.dirty = true;
         this.preview();

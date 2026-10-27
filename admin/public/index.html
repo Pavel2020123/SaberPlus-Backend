@@ -118,6 +118,7 @@
             <button id="section-cases" type="button">Casos y contextos</button>
             <button id="section-institutions" type="button">Instituciones</button>
             <button id="section-coverage" type="button">Cobertura</button>
+            <button id="section-reports" type="button">Reportes de preguntas</button>
             <button id="section-map" type="button">Mapa de aprendizaje</button>
           </nav>
           <p id="demo-banner" class="demo-note" hidden>
@@ -142,6 +143,7 @@
           <p id="selection-help" class="hint" hidden>Selecciona área, tema y subtema para comenzar.</p>
           <section id="institution-approval-panel" class="content" aria-label="Verificación institucional" hidden></section>
           <section id="bank-coverage-panel" class="content" aria-label="Cobertura del banco" hidden></section>
+          <section id="question-reports-panel" class="content" aria-label="Reportes privados de preguntas" hidden></section>
           <section id="learning-map-panel" class="catalog-panel lesson-editor" aria-label="Mapa de aprendizaje" hidden></section>
           <div id="catalog-panels" class="catalog-grid">
             <section class="catalog-panel" aria-labelledby="themes-title">
@@ -308,12 +310,13 @@
                 >
                 <input
                   id="lesson-image"
-                  type="url"
+                  type="text"
                   maxlength="2000"
                   placeholder="https://…"
                 />
+                <div id="lesson-image-upload"></div>
                 <p class="hint">
-                  Dejar un enlace vacío lo elimina. Por ahora las imágenes y videos se agregan mediante enlaces HTTPS.
+                  Deja el enlace vacío o quita la imagen y guarda para confirmar. Los videos se agregan mediante enlaces HTTPS.
                 </p>
                 <button id="lesson-save" class="primary" type="submit">
                   Guardar explicación
@@ -392,7 +395,8 @@
               ></textarea>
               <label for="bank-image"
                 >Referencia de imagen (HTTPS, opcional)</label
-              ><input id="bank-image" type="url" maxlength="2000" />
+              ><input id="bank-image" type="text" maxlength="2000" />
+              <div id="bank-image-upload"></div>
               <div id="question-fields">
                 <label for="bank-difficulty">Dificultad</label
                 ><select id="bank-difficulty">
@@ -402,9 +406,9 @@
                 </select>
                 <h3>Opciones de respuesta</h3>
                 <p class="hint">
-                  De 2 a 6 opciones de texto; marca una correcta. Las imágenes
-                  dentro de opciones requieren una ampliación del contrato y no
-                  están implementadas todavía.
+                  De 2 a 6 opciones con texto; marca una correcta. Cuando aparezca
+                  el selector, puedes añadir una imagen opcional sin reemplazar
+                  el texto de la respuesta.
                 </p>
                 <div id="bank-options" class="bank-options"></div>
                 <button id="option-add" class="secondary" type="button">
@@ -446,6 +450,7 @@
                 />
                 </details>
               </div>
+              <p id="bank-save-message" class="notice" aria-hidden="true"></p>
               <button id="bank-save" class="primary" type="submit">
                 Guardar pregunta
               </button>

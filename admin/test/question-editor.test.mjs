@@ -202,8 +202,8 @@ function harness(api, confirm = () => true) {
     replaceChildren(...children) {
       this.children = children;
     },
-    append(child) {
-      this.children.push(child);
+    append(...children) {
+      this.children.push(...children);
     },
   });
   const doc = {
@@ -263,11 +263,14 @@ test("editor conserva texto y opciones ante error, confirma descarte y limpia al
   assert.equal(h.$("bank-text").value, "Mi texto pendiente");
   assert.equal(h.editor.readOptions()[0].texto, "Mi opción");
   assert.match(h.$("bank-message").textContent, /Duplicada/);
+  assert.match(h.$("bank-save-message").textContent, /Duplicada/);
+  assert.equal(h.$("bank-save-message").className, "notice error");
   assert.equal(h.editor.close(), false);
   assert.equal(h.busy(), false);
   h.editor.close(true);
   assert.equal(h.editor.dirty, false);
   assert.equal(h.$("bank-text").value, "");
+  assert.equal(h.$("bank-save-message").textContent, "");
 });
 
 test("editor guarda sin publicar, límites de opciones y solo lectura", async () => {
@@ -288,10 +291,36 @@ test("editor guarda sin publicar, límites de opciones y solo lectura", async ()
   await h.editor.save();
   assert.equal(saved.respuestas.length, 2);
   assert.equal(h.editor.dirty, false);
+  assert.match(h.$("bank-save-message").textContent, /Guardado en BORRADOR/);
   h.editor.fill({ ...record(), editable: false });
+  assert.doesNotMatch(h.$("bank-save-message").textContent, /Guardado/);
   assert.equal(h.$("bank-save").disabled, true);
   assert.equal(h.editor.options[0].texto.disabled, true);
 });
+
+for (const demo of [false, true]) {
+  test(`guardado directo ${demo ? "demo" : "real"}: aviso fiel al entorno`, async () => {
+    const h = harness({
+      simple: true,
+      demo,
+      bankPage: async (kind) => page(kind),
+      bankRecord: async (_kind, _parent, _id, input) => ({
+        ...record(),
+        ...input,
+        estadoContenido: "PUBLICADO",
+      }),
+    });
+    await h.editor.open("preguntas", parent);
+    await h.editor.select("q1");
+    await h.editor.save();
+    assert.equal(
+      h.$("bank-save-message").textContent,
+      demo
+        ? "Guardado y publicado. En demostración, el cambio es solo local."
+        : "Guardado y publicado.",
+    );
+  });
+}
 
 test("editor ignora detalles tardíos y la vista previa no ejecuta HTML", async () => {
   let finish;
@@ -338,4 +367,115 @@ test("IDs del editor están en HTML y no hay inserción de HTML ni almacenamient
     source,
     /innerHTML|insertAdjacentHTML|localStorage|sessionStorage/,
   );
+});
+
+test("opciones conservan referencias y las huellas distinguen imagen sin alterar texto antiguo", () => {
+  const original = draft();
+  const illustrated = draft();
+  illustrated.respuestas[0].imagenUrl = 'https://example.com/a.png';
+  assert.equal(questionFields(illustrated).respuestas[0].imagenUrl, illustrated.respuestas[0].imagenUrl);
+  assert.notEqual(questionCanonical('MATEMATICAS', illustrated), questionCanonical('MATEMATICAS', original));
+  const reversed = { ...illustrated, respuestas: [...illustrated.respuestas].reverse() };
+  assert.equal(questionCanonical('MATEMATICAS', reversed), questionCanonical('MATEMATICAS', illustrated));
+  illustrated.respuestas[0].imagenUrl = '';
+  assert.equal(questionCanonical('MATEMATICAS', illustrated), questionCanonical('MATEMATICAS', original));
+  for (const bad of [null, 'javascript:alert(1)', 'https://user:pass@example.com/a.png']) {
+    illustrated.respuestas[0].imagenUrl = bad;
+    assert.throws(() => questionFields(illustrated));
+  }
+});
+
+const optionPng = () => new File([
+  Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+yG9sAAAAASUVORK5CYII=', 'base64'),
+], 'opcion.png', { type: 'image/png' });
+async function imageEditor(extra = {}, confirm = () => true) {
+  const h = harness({
+    bankPage: async (kind) => ({ ...page(kind), imagenesEnOpcionesHabilitadas: true }),
+    bankRecord: async () => ({ ...record(), imagenesEnOpcionesHabilitadas: true }),
+    ...extra,
+  }, confirm);
+  await h.editor.open('preguntas', parent);
+  await h.editor.select('q1');
+  return h;
+}
+
+test("no ofrece selector por opción cuando el backend no lo habilita o se usa demo", async () => {
+  const h = harness({ bankPage: async (kind) => page(kind), bankRecord: async () => record() });
+  await h.editor.open('preguntas', parent);
+  await h.editor.select('q1');
+  assert.ok(h.editor.options.every((option) => !option.imageUpload));
+  const demo = await imageEditor({ demo: true });
+  assert.ok(demo.editor.options.every((option) => !option.imageUpload));
+});
+
+test("agregar/quitar otras opciones conserva el archivo elegido y guardar exige subirlo primero", async () => {
+  let saves = 0;
+  const h = await imageEditor();
+  const widget = h.editor.options[0].imageUpload;
+  const file = optionPng();
+  await widget.select(file);
+  assert.equal(h.editor.dirty, true);
+  h.$('option-add').onclick();
+  assert.equal(h.editor.options[0].imageUpload, widget);
+  assert.equal(widget.file, file);
+  h.$('option-remove').onclick();
+  assert.equal(widget.file, file);
+  h.editor.api.bankRecord = async () => { saves++; return record(); };
+  await h.editor.save();
+  assert.equal(saves, 0);
+  assert.match(h.$('bank-message').textContent, /Sube la imagen/);
+  h.editor.close(true);
+});
+
+test("quitar una opción con carga incierta requiere confirmación y conserva el resto", async () => {
+  let accepted = false;
+  const h = await imageEditor({}, () => accepted);
+  h.$('option-add').onclick();
+  const widget = h.editor.options[2].imageUpload;
+  await widget.select(optionPng());
+  widget.request = { operationId: 'operacion-incierta' };
+  h.$('option-remove').onclick();
+  assert.equal(h.editor.options.length, 3);
+  assert.ok(widget.request);
+  accepted = true;
+  h.$('option-remove').onclick();
+  assert.equal(h.editor.options.length, 2);
+  assert.equal(widget.file, null);
+  assert.equal(widget.request, null);
+  h.editor.close(true);
+});
+
+test("editor conserva o quita explícitamente la imagen al guardar sin borrar bytes", async () => {
+  let payload;
+  const h = await imageEditor({
+    bankRecord: async (_kind, _parent, _id, input) => {
+      if (input) payload = input;
+      const row = { ...record(), imagenesEnOpcionesHabilitadas: true };
+      if (!input) row.respuestas[0].imagenUrl = 'https://example.com/a.png';
+      return { ...row, ...input };
+    },
+  });
+  assert.equal(h.editor.readOptions()[0].imagenUrl, 'https://example.com/a.png');
+  await h.editor.save();
+  assert.equal(payload.respuestas[0].imagenUrl, 'https://example.com/a.png');
+  h.editor.options[0].imageUpload.clear();
+  await h.editor.save();
+  assert.equal(payload.respuestas[0].imagenUrl, '');
+  assert.equal(payload.respuestas[1].imagenUrl, '');
+  h.editor.close(true);
+});
+
+test("cerrar o cambiar registro invalida una carga tardía de una opción", async () => {
+  let finish;
+  const h = await imageEditor({ uploadEditorialFile: () => new Promise((resolve) => { finish = resolve; }) });
+  const widget = h.editor.options[0].imageUpload;
+  await widget.select(optionPng());
+  for (const key of ['titulo','textoAlternativo','fuente','titular']) widget.nodes[key].value = 'Texto autorizado';
+  const loading = widget.upload();
+  h.editor.close(true);
+  finish({ estado: 'DISPONIBLE', id: '2df4f385-fec2-4cb1-89af-91f67a476b52', textoAlternativo: 'Rectángulo' });
+  await loading;
+  assert.equal(h.editor.options.length, 0);
+  assert.equal(h.editor.dirty, false);
+  assert.equal(widget.input.value, '');
 });

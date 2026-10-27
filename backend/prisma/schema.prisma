@@ -130,6 +130,8 @@ model Institucion {
   descripcionPublica   String?                       @db.VarChar(500)
   revisionPerfil       Int                           @default(0)
   logoArchivo          InstitucionLogo?
+  codigoIngresoEstudiantil CodigoIngresoEstudiantil?
+  ingresosPorCodigo IngresoInstitucionCodigo[]
   imagenPortada        String?                       @db.VarChar(255)
   limiteGrado10        Int?
   limiteGrado11        Int?
@@ -144,6 +146,7 @@ model Institucion {
   anuncios             Anuncio[]
   miembros             MiembroInstitucion[]
   solicitudesIngreso   SolicitudIngresoInstitucion[]
+  solicitudesEstudiantes SolicitudIngresoEstudiante[]
   invitaciones         InvitacionInstitucion[]
   auditorias           AuditoriaInstitucion[]
 
@@ -157,8 +160,38 @@ model InstitucionLogo {
   institucion Institucion @relation(fields: [institucionId], references: [id], onDelete: Cascade)
 }
 
+// Secreto de ingreso estudiantil: nunca incluir en directorios ni contexto docente general.
+model CodigoIngresoEstudiantil {
+  institucionId String @id @db.Uuid
+  codigo String @unique @db.VarChar(36)
+  revision Int
+  operacionId String @db.Uuid
+  fechaActualizacion DateTime @default(now()) @db.Timestamp(6)
+  institucion Institucion @relation(fields: [institucionId], references: [id], onDelete: Cascade)
+}
+
+// Recibo idempotente propio; conserva hash, no el código compartido en claro.
+model IngresoInstitucionCodigo {
+  id String @id @db.Uuid
+  institucionId String @db.Uuid
+  estudianteId String @db.Uuid
+  codigoHash String @db.Char(64)
+  revisionCodigo Int
+  fechaCreacion DateTime @default(now()) @db.Timestamp(6)
+  institucion Institucion @relation(fields: [institucionId], references: [id], onDelete: Cascade)
+  estudiante Usuario @relation(fields: [estudianteId], references: [id], onDelete: Cascade)
+
+  @@index([estudianteId, fechaCreacion])
+}
+
 model Usuario {
   intentosVocacionales IntentoVocacional[]
+  archivosEditoriales ArchivoEditorial[]
+  reportesPreguntas ReportePregunta[] @relation("AutorReportePregunta")
+  operacionesReportePregunta OperacionReportePregunta[] @relation("ActorOperacionReportePregunta")
+  auditoriasReportePregunta AuditoriaReportePregunta[] @relation("ActorAuditoriaReportePregunta")
+  tasaReportePregunta TasaReportePregunta?
+  ingresosInstitucionCodigo IngresoInstitucionCodigo[]
   eventosXpCompetitivo EventoXpCompetitivo[]
   balancesCompetitivos BalanceCompetitivo[]
   repasosDiferidos RepasoDiferido[]
@@ -241,10 +274,54 @@ model Usuario {
   membresiaInstitucion      MiembroInstitucion?
   solicitudesInstitucion    SolicitudIngresoInstitucion[] @relation("SolicitanteInstitucion")
   solicitudesRevisadas      SolicitudIngresoInstitucion[] @relation("RevisorInstitucion")
+  ingresosEstudiantiles     SolicitudIngresoEstudiante[] @relation("EstudianteSolicitante")
+  ingresosEstudiantilesRevisados SolicitudIngresoEstudiante[] @relation("RevisorIngresoEstudiante")
   invitacionesCreadas       InvitacionInstitucion[]       @relation("CreadorInvitacionInstitucion")
   invitacionesAceptadas     InvitacionInstitucion[]       @relation("ReceptorInvitacionInstitucion")
   auditoriasCreadas         AuditoriaInstitucion[]        @relation("ActorAuditoriaInstitucion")
   auditoriasRecibidas       AuditoriaInstitucion[]        @relation("AfectadoAuditoriaInstitucion")
+}
+
+// C5-A: recursos preparados, todavía sin asociación a contenido publicado.
+// Los bytes están detrás de un adaptador privado, nunca en /uploads.
+enum EstadoArchivoEditorial {
+  PREPARADO
+  DISPONIBLE
+  RETIRADO
+}
+
+enum AutorizacionArchivoEditorial {
+  ORIGINAL
+  LICENCIA
+  DOMINIO_PUBLICO
+  AUTORIZACION_ESCRITA
+}
+
+model ArchivoEditorial {
+  preguntas             Pregunta[]
+  opciones              Respuesta[]
+  casos                 CasoPregunta[]
+  lecciones             Subtema[]
+  id                    String                       @id @db.Uuid
+  operacionId           String                       @unique @db.Uuid
+  creadoPorId           String                       @db.Uuid
+  huellaSolicitud       String                       @db.Char(64)
+  estado                EstadoArchivoEditorial       @default(PREPARADO)
+  titulo                String                       @db.VarChar(120)
+  textoAlternativo      String                       @db.VarChar(500)
+  fuente                String                       @db.VarChar(500)
+  titular               String                       @db.VarChar(255)
+  autorizacion          AutorizacionArchivoEditorial
+  referenciaAutorizacion String?                     @db.VarChar(2000)
+  sha256                String                       @db.Char(64)
+  bytes                 Int
+  ancho                 Int
+  alto                  Int
+  creadoEn              DateTime                     @default(now()) @db.Timestamptz(3)
+  actualizadoEn         DateTime                     @updatedAt @db.Timestamptz(3)
+  creadoPor             Usuario                      @relation(fields: [creadoPorId], references: [id], onDelete: Restrict)
+
+  @@index([creadoPorId, estado, creadoEn])
 }
 
 enum JuegoCompetitivo {
@@ -438,6 +515,27 @@ model SolicitudIngresoInstitucion {
 
   @@index([institucionId, estado, fechaCreacion])
   @@index([solicitanteId, estado, fechaCreacion])
+}
+
+// Separada del ingreso docente: aprobar vincula Usuario.institucionId,
+// nunca crea MiembroInstitucion ni cambia el rol ESTUDIANTE.
+model SolicitudIngresoEstudiante {
+  id                 String @id @db.Uuid
+  institucionId      String @db.Uuid
+  estudianteId       String @db.Uuid
+  estado             EstadoSolicitudIngresoInstitucion @default(PENDIENTE)
+  mensaje            String? @db.VarChar(500)
+  revision           Int @default(0)
+  revisadoPorId      String? @db.Uuid
+  fechaCreacion      DateTime @default(now()) @db.Timestamp(6)
+  fechaActualizacion DateTime @default(now()) @updatedAt @db.Timestamp(6)
+  institucion        Institucion @relation(fields: [institucionId], references: [id], onDelete: Cascade)
+  estudiante         Usuario @relation("EstudianteSolicitante", fields: [estudianteId], references: [id], onDelete: Cascade)
+  revisadoPor        Usuario? @relation("RevisorIngresoEstudiante", fields: [revisadoPorId], references: [id], onDelete: SetNull)
+
+  // Un índice parcial SQL impide más de una PENDIENTE por estudiante.
+  @@index([estudianteId, fechaCreacion, id])
+  @@index([institucionId, estado, fechaCreacion, id])
 }
 
 model InvitacionInstitucion {
@@ -689,6 +787,8 @@ model Tema {
 }
 
 model Subtema {
+  archivoImagenId       String?                @db.Uuid
+  archivoImagen         ArchivoEditorial?      @relation(fields: [archivoImagenId], references: [id], onDelete: Restrict)
   id                    String                 @id @default(uuid())
   nombre                String
   temaId                String
@@ -708,6 +808,7 @@ model Subtema {
   siguientesAprendizaje RelacionAprendizaje[]  @relation("BaseAprendizaje")
 
   @@index([estadoContenido, temaId])
+  @@index([archivoImagenId])
 }
 
 model MapaAprendizaje {
@@ -732,6 +833,9 @@ model RelacionAprendizaje {
 }
 
 model Pregunta {
+  archivoImagenId        String?                @db.Uuid
+  archivoImagen          ArchivoEditorial?      @relation(fields: [archivoImagenId], references: [id], onDelete: Restrict)
+  reportesAcademicos ReportePregunta[]
   id                     String                  @id @default(uuid())
   enunciado              String                  @db.Text
   explicacion            String?                 @db.Text
@@ -762,11 +866,100 @@ model Pregunta {
   cuadernoErrores        CuadernoError[]
 
   @@index([casoId, ordenEnCaso])
+  @@index([archivoImagenId])
   @@index([huellaContenido, estadoContenido])
   @@index([estadoContenido, subtemaId])
 }
 
+enum MotivoReportePregunta {
+  ENUNCIADO_CONFUSO
+  RESPUESTA_INCORRECTA
+  EXPLICACION_INCORRECTA
+  IMAGEN_NO_CARGA
+  OTRO
+}
+
+enum EstadoReportePregunta {
+  PENDIENTE
+  EN_REVISION
+  RESUELTO
+  DESCARTADO
+}
+
+enum TipoOperacionReportePregunta {
+  CREAR
+  DECIDIR
+}
+
+// Snapshot de recepción, no una reconstrucción de lo mostrado en un dispositivo.
+model ReportePregunta {
+  id String @id @default(uuid()) @db.Uuid
+  autorId String? @db.Uuid
+  preguntaId String
+  motivo MotivoReportePregunta
+  detalle String? @db.VarChar(500)
+  areaCapturada AreaIcfes
+  subtemaIdCapturado String
+  snapshot Json
+  estado EstadoReportePregunta @default(PENDIENTE)
+  revision Int @default(0)
+  fechaCreacion DateTime @default(now()) @db.Timestamptz(3)
+  fechaActualizacion DateTime @default(now()) @db.Timestamptz(3)
+  autor Usuario? @relation("AutorReportePregunta", fields: [autorId], references: [id], onDelete: SetNull)
+  pregunta Pregunta @relation(fields: [preguntaId], references: [id], onDelete: Restrict)
+  operaciones OperacionReportePregunta[]
+  auditorias AuditoriaReportePregunta[]
+
+  @@unique([autorId, preguntaId, motivo])
+  @@index([preguntaId])
+  @@index([autorId, fechaCreacion, id])
+  @@index([estado, fechaCreacion, id])
+  @@index([areaCapturada, estado, fechaCreacion, id])
+  @@index([subtemaIdCapturado, estado])
+}
+
+// Un UUID alternativo que deduplica también recibe su propio recibo estable.
+model OperacionReportePregunta {
+  id String @id @db.Uuid
+  actorId String? @db.Uuid
+  reporteId String @db.Uuid
+  tipo TipoOperacionReportePregunta
+  huellaSolicitud String @db.Char(64)
+  resultado Json
+  fechaCreacion DateTime @default(now()) @db.Timestamptz(3)
+  actor Usuario? @relation("ActorOperacionReportePregunta", fields: [actorId], references: [id], onDelete: SetNull)
+  reporte ReportePregunta @relation(fields: [reporteId], references: [id], onDelete: Restrict)
+
+  @@index([actorId, fechaCreacion])
+  @@index([reporteId])
+}
+
+model AuditoriaReportePregunta {
+  id String @id @default(uuid()) @db.Uuid
+  reporteId String @db.Uuid
+  actorId String? @db.Uuid
+  estadoAnterior EstadoReportePregunta?
+  estadoNuevo EstadoReportePregunta
+  revision Int
+  motivoRevision String? @db.VarChar(500)
+  fechaCreacion DateTime @default(now()) @db.Timestamptz(3)
+  actor Usuario? @relation("ActorAuditoriaReportePregunta", fields: [actorId], references: [id], onDelete: SetNull)
+  reporte ReportePregunta @relation(fields: [reporteId], references: [id], onDelete: Restrict)
+
+  @@unique([reporteId, revision])
+}
+
+// Ventana técnica durable por cuenta; no almacena IP, correo ni token.
+model TasaReportePregunta {
+  usuarioId String @id @db.Uuid
+  inicio DateTime @db.Timestamptz(3)
+  solicitudes Int
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+}
+
 model CasoPregunta {
+  archivoImagenId    String?          @db.Uuid
+  archivoImagen      ArchivoEditorial? @relation(fields: [archivoImagenId], references: [id], onDelete: Restrict)
   id                 String          @id @default(uuid())
   titulo             String?
   contexto           String          @db.Text
@@ -780,11 +973,15 @@ model CasoPregunta {
 
   @@index([area, fechaCreacion])
   @@index([estadoContenido, area])
+  @@index([archivoImagenId])
 }
 
 model Respuesta {
   id                    String                @id @default(uuid())
   texto                 String                @db.Text
+  imagenUrl             String?               @db.Text
+  archivoImagenId       String?               @db.Uuid
+  archivoImagen         ArchivoEditorial?     @relation(fields: [archivoImagenId], references: [id], onDelete: Restrict)
   explicacion           String?               @db.Text
   esCorrecta            Boolean               @default(false)
   preguntaId            String
@@ -792,6 +989,8 @@ model Respuesta {
   seleccionesBatalla    BatallaRespuesta[]
   seleccionesTiraAfloja TiraAflojaRespuesta[]
   seleccionesTriviaRush TriviaRushRespuesta[]
+
+  @@index([archivoImagenId])
 }
 
 // --- MODULO: BATALLAS ASINCRONAS ---
@@ -1222,6 +1421,7 @@ enum EstadoConcesionRecompensa {
 enum ModalidadTriviaRush {
   TRIVIA_RUSH
   GHOST_DUEL
+  TUG_LOCAL
 }
 
 model IntentoTriviaRush {
@@ -1252,6 +1452,8 @@ model IntentoTriviaRush {
   segundaOportunidadActiva Boolean                 @default(false)
   preguntaActualId         String?
   preguntaIniciaEn         DateTime?               @db.Timestamp(6)
+  tiraLocalPausadaEn        DateTime?               @db.Timestamp(6)
+  tiraLocalRondaVersion     Int                     @default(0)
   iniciadoEn               DateTime                @default(now()) @db.Timestamp(6)
   venceEn                  DateTime                @db.Timestamp(6)
   finalizadoEn             DateTime?               @db.Timestamp(6)

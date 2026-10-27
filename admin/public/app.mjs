@@ -5,6 +5,7 @@ import { EditorialReview } from "./editorial-review.mjs";
 import { EditorialTools } from "./editorial-tools.mjs";
 import { InstitutionApproval } from "./institution-approval.mjs";
 import { BankCoverage } from "./bank-coverage.mjs";
+import { QuestionReports } from './question-reports.mjs';
 import { LearningMapEditor } from "./learning-map-editor.mjs";
 
 const $ = (id) => document.getElementById(id);
@@ -26,6 +27,7 @@ let themesVersion = 0,
   sessionVersion = 0;
 const api = new CatalogApi(config.apiBase, {
   simple: true,
+  demo: config.demo,
   onSessionExpired: () =>
     showLogin("La sesión terminó o tus permisos cambiaron. Ingresa de nuevo."),
 });
@@ -57,7 +59,8 @@ const editor = new LessonEditor({
   },
 });
 const approvals = new InstitutionApproval({ api, host: $("institution-approval-panel"), demo: config.demo });
-const coverage = new BankCoverage({ api, host: $("bank-coverage-panel") });
+const reports = new QuestionReports({ api, host: $('question-reports-panel') });
+const coverage = new BankCoverage({ api, host: $("bank-coverage-panel"), onReports: filters => void changeSection('reports', filters) });
 const learningMap = new LearningMapEditor({ api, host: $("learning-map-panel"), setBusy: value => { state.busy = value; updateControls(); } });
 $("institution-approvals").onclick = () => void changeSection("institutions");
 const bank = new QuestionEditor({
@@ -69,7 +72,7 @@ const bank = new QuestionEditor({
   },
 });
 function closeEditors() {
-  const closed = learningMap.close() && editor.close() && bank.close() && review.close() && tools.close();
+  const closed = reports.close() && learningMap.close() && editor.close() && bank.close() && review.close() && tools.close();
   if (closed) {
     state.subtheme = null;
     $("subtopic-navigation").hidden = true;
@@ -93,7 +96,7 @@ $("subtopic-questions").onclick = () => {
 $("subtopic-lesson").onclick = () => {
   void changeSection("content");
 };
-const sections = ["catalog", "questions", "content", "cases", "institutions", "coverage", "map"];
+const sections = ["catalog", "questions", "content", "cases", "institutions", "coverage", "map", "reports"];
 function renderSection() {
   for (const key of sections) {
     $("section-" + key).setAttribute("aria-current", state.section === key ? "page" : "false");
@@ -101,12 +104,12 @@ function renderSection() {
   }
   const scoped = ["questions", "content", "map"].includes(state.section);
   $("catalog-panels").hidden = state.section !== "catalog";
-  $("catalog-selection").hidden = ["institutions", "coverage"].includes(state.section);
+  $("catalog-selection").hidden = ["institutions", "coverage", "reports"].includes(state.section);
   $("select-theme-field").hidden = $("select-sub-field").hidden = !scoped;
   $("selection-help").hidden = !scoped || Boolean(state.subtheme);
   $("subtopic-navigation").hidden = true;
 }
-async function changeSection(section) {
+async function changeSection(section, filters = {}) {
   if (state.busy || !confirmCatalogDiscard()) return;
   const selected = state.subtheme;
   if (!closeEditors()) return;
@@ -118,6 +121,7 @@ async function changeSection(section) {
   renderSection();
   if (section === "institutions") return approvals.open();
   if (section === "coverage") return coverage.open();
+  if (section === 'reports') return reports.open(filters);
   if (section === "cases" && state.area) return bank.open("casos", { ...state.area, area: state.area.id });
   if (selected && section === "questions") return bank.open("preguntas", selected);
   if (selected && section === "map") return learningMap.open(selected);
@@ -222,6 +226,7 @@ function confirmCatalogDiscard(subthemeOnly = false) {
   );
 }
 function showLogin(message = "") {
+  reports.close(true);
   approvals.close();
   coverage.close();
   $("institution-approvals").hidden = true;

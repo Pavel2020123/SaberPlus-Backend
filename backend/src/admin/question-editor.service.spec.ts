@@ -3,6 +3,7 @@ import {
   BadRequestException,
   ConflictException,
   NotFoundException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { GUARDS_METADATA } from '@nestjs/common/constants';
 import { plainToInstance } from 'class-transformer';
@@ -327,5 +328,43 @@ describe('QuestionEditorService', () => {
     await expect(service.detallePregunta('missing')).rejects.toBeInstanceOf(
       NotFoundException,
     );
+  });
+
+  it('DTO admite campo omitido o vacío, pero no null, números ni referencias excesivas', () => {
+    for (const value of [null, 3, 'x'.repeat(2001)]) {
+      const input = body();
+      Object.assign(input.respuestas[0], { imagenUrl: value });
+      expect(
+        validateSync(plainToInstance(EditorialQuestionDto, input)).length,
+      ).toBeGreaterThan(0);
+    }
+    for (const value of [undefined, '', 'https://example.com/a.png']) {
+      const input = body();
+      input.respuestas[0].imagenUrl = value;
+      expect(
+        validateSync(plainToInstance(EditorialQuestionDto, input)),
+      ).toHaveLength(0);
+    }
+  });
+
+  it('una imagen por opción con activación apagada no entra en la transacción', async () => {
+    const input = body();
+    input.respuestas[0].imagenUrl = 'https://example.com/a.png';
+    await expect(service.guardarPregunta(input)).rejects.toBeInstanceOf(
+      ServiceUnavailableException,
+    );
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('conserva la referencia al consultar y bloquea la edición cuando la activación está apagada', async () => {
+    Object.assign(row.respuestas[0], {
+      imagenUrl: 'https://example.com/a.png',
+    });
+    const detail = await service.detallePregunta('q1');
+    expect(detail.respuestas[0]).toMatchObject({
+      imagenUrl: 'https://example.com/a.png',
+    });
+    expect(detail.editable).toBe(false);
+    expect(detail.imagenesEnOpcionesHabilitadas).toBe(false);
   });
 });

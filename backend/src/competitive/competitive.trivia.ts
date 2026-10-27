@@ -392,7 +392,8 @@ export class TriviaCompetitiveVerifier implements CompetitiveVerifier {
       );
     return {
       source: { ...source, sourceId: id },
-      gameId: row.modalidad!,
+      // The allowlist above excludes local Tira attempts from this verifier.
+      gameId: row.modalidad === 'TRIVIA_RUSH' ? 'TRIVIA_RUSH' : 'GHOST_DUEL',
       startedAt: row.iniciadoEn,
       terminalAt: row.finalizadoEn,
       competitiveOnline: true,

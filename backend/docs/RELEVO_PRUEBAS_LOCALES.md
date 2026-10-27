@@ -1,11 +1,36 @@
 # Relevo de pruebas locales para compañeros
 
-**Trabajo paralelo acordado:** propietario → instituciones (sigue C2C);
-compañero → test vocacional OV-1 (comienza A, después B/C/D), sin esperar C2C.
+**Entrada vigente del21:** nuevo compañero para terminar C5-C2, distinto del
+responsable de OV-1. Leer [relevo completo](RELEVO_C5_C2.md) y
+[acta C2-D](C5C2D_VALIDACION_LOCAL.md),0/8 humanos con D8a–e pendientes.
+Incluye cuentas/clave temporal, Docker, USB, panel, pruebas y cambios de ambos repos.
+Las instrucciones anteriores de reportes/juegos/instituciones no reinician esas etapas.
+
+**19 de octubre, propietario en MA-1R/R4:** [acta vigente](MA1R_R4_VALIDACION_LOCAL.md),
+12/12 humanos,45/45 HTTP/PostgreSQL y corrección de carrera ADMIN P2010/40001
+probados. `npm run test:question-reports:postgres` crea su propia base, no requiere
+celular ni credenciales externas. La sesión humana anterior se cerró/limpió; no
+reutilizar archivo privado ni repetir12. Remate visual confirmado en sesión
+posterior: R4 cerrada localmente e integrada en main por PR API #9/app #6 (eef0d40/21757a1).
+CI backend del PR aprobado; sigue preparación local C5 y QA-1 Flutter remoto pendiente.
+OV-1 sigue con el compañero, no se le
+transfiere este frente. Sin push/merge/despliegue automático.
+Los guiones inferiores de instituciones/juegos son históricos, no pasos nuevos.
+
+**17 de octubre, continuación vigente:** instituciones cerradas localmente, commits
+app6bab6be/API7ba93d7/lockbfce42e integrados a main por PR app #5/API #8,
+e679c50/388bb18. CI backend PR/main aprobado; Flutter analyze/102 dirigidas aprobados.
+La auditoría previa fue documental; la entrega posterior comprobó GitHub y pruebas.
+Sin nuevos ensayos físicos/SQL ni despliegue; documentación separada en
+`docs/estado-post-instituciones`, publicación manual/PR pendientes.
+[Orden posterior](ESTADO_Y_ORDEN_2026_10_17.md): MA-1R/R1–R3 locales;
+[app/panel y pruebas](MA1R_R3_APP_PANEL.md),18 de octubre. Sigue R4 con PostgreSQL
+y HTTP Nest temporal, después Android. SQL R2 sin aplicar; no repetir UI ni instituciones.
+Compañero → OV-1A/B/C/D en curso según el propietario; sin entrega nueva verificada aquí.
 Ver [responsables, ramas y entrega](TRABAJO_PARALELO.md). Este acuerdo sustituye
 la secuencia estricta de OV-1 y el trabajo individual directo en main.
 
-## Continuación vigente — 12 de octubre de 2026
+## Antecedente — 12 de octubre de 2026, no continuar por este paso
 
 **Siguiente: PR-I5-C2C, ensayo integrado del logo institucional.**
 C2A/backend y C2B/Flutter implementadas: 79 pruebas backend y 45 Flutter
@@ -22,7 +47,8 @@ Actualizado: 12 de octubre de 2026. Se necesitan **ambos repositorios**, públic
 permisos de escritura se coordinan sin cambiar visibilidad.
 Guía completa y prompt operativo: `docs/RELEVO_PRUEBAS_LOCALES.md` del repositorio
 Flutter `Pavel2020123/saber_plus`; no es un archivo dentro de este árbol backend.
-Puntos vivos en Flutter: PR_I5_C2_LOGO.md (propietario) y CHECKPOINT_OV1.md
+Puntos vivos en Flutter: CIERRE_INSTITUCIONES_LOCAL.md y ESTADO_Y_ORDEN_2026_10_17.md
+(propietario) y CHECKPOINT_OV1.md
 (compañero). Roadmap general: consolidación del propietario al entregar/integrar bloques.
 No duplicar aquí una ruta independiente: verificar siempre ese bloque actualizado.
 
@@ -44,8 +70,9 @@ No duplicar aquí una ruta independiente: verificar siempre ese bloque actualiza
 
 ## Preparación mínima en este repositorio
 
-1. Acceso privado, main y pull fast-forward con worktree limpio; revisar cambios
-   y contratos afectados. No reset/force-push ni cambios ajenos automáticos.
+1. Confirmar acceso y permisos de los dos repositorios, rama/HEAD y worktree antes
+   de actualizar. Trabajar por rama/PR; main recibe cambios revisados. No cambiar
+   visibilidad ni hacer reset/force-push o descartar cambios ajenos automáticamente.
 2. Docker Desktop LOCAL Linux abierto; Node/npm según `backend/package.json`.
    En `backend/`: `npm ci --include=dev`, `npm run build`, después
    `node tool/local_ranking_validation.mjs`. Revisar cada resultado y recursos.
@@ -60,7 +87,7 @@ No duplicar aquí una ruta independiente: verificar siempre ese bloque actualiza
 6. Tras CADA prueba: acta backend del módulo + checkpoint propio en Flutter;
    registrar humano/HTTP/SQL, resultados/límites y siguiente paso, sin secretos.
    No editar roadmap general simultáneamente: propietario consolida por bloque.
-7. Juego completo: documentación actualizada, tests y commit por repo afectado
+7. Entrega completa: documentación actualizada, tests y commit por repo afectado
    autorizado; dar rutas/hash/comando push. Push no automático. La guía operativa
    de soporte puede ir en commit documental separado para no mezclar código de juegos.
 8. Stop por control propio, esperar confirmación, retirar solo reverse USB del

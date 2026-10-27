@@ -15,7 +15,12 @@ type Counts = {
 @Injectable()
 export class BankCoverageService {
   constructor(private readonly prisma: PrismaService) {}
-  async page(area: AreaIcfes, pagina: number, limite: number) {
+  async page(
+    area: AreaIcfes,
+    pagina: number,
+    limite: number,
+    withReports = false,
+  ) {
     return this.prisma.$transaction(
       async (tx) => {
         const where = { tema: { area } };
@@ -60,13 +65,38 @@ export class BankCoverageService {
       `)
           : [];
         const byId = new Map(counts.map((r) => [r.subtemaId, r]));
+        const reportCounts =
+          withReports && rows.length
+            ? await tx.reportePregunta.groupBy({
+                by: ['subtemaIdCapturado', 'preguntaId'],
+                where: {
+                  subtemaIdCapturado: { in: rows.map((r) => r.id) },
+                  estado: { in: ['PENDIENTE', 'EN_REVISION'] },
+                },
+                _count: { _all: true },
+              })
+            : [];
+        const reportsBySubtopic = new Map<
+          string,
+          { reportes: number; preguntasConReportes: number }
+        >();
+        for (const group of reportCounts) {
+          const value = reportsBySubtopic.get(group.subtemaIdCapturado) ?? {
+            reportes: 0,
+            preguntasConReportes: 0,
+          };
+          value.reportes += group._count._all;
+          value.preguntasConReportes++;
+          reportsBySubtopic.set(group.subtemaIdCapturado, value);
+        }
         return {
           area,
           pagina,
           limite,
           totalSubtemas,
           hayMas: pagina * limite < totalSubtemas,
-          reportesDisponibles: false,
+          reportesDisponibles: withReports,
+          ...(withReports ? { reportesVersion: 1 } : {}),
           items: rows.map((row) => {
             const c = byId.get(row.id);
             const dificultades = {
@@ -84,7 +114,15 @@ export class BankCoverageService {
               dificultadesFaltantes: Object.values(Dificultad).filter(
                 (d) => dificultades[d] === 0,
               ),
-              reportes: null,
+              reportes: withReports
+                ? (reportsBySubtopic.get(row.id)?.reportes ?? 0)
+                : null,
+              ...(withReports
+                ? {
+                    preguntasConReportes:
+                      reportsBySubtopic.get(row.id)?.preguntasConReportes ?? 0,
+                  }
+                : {}),
             };
           }),
         };

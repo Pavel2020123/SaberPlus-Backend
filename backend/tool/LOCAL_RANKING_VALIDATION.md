@@ -1,5 +1,35 @@
 # Ensayo I2-5 exclusivamente local
 
+**19 de octubre, MA-1R/R4 técnico aprobado:**12/12 humanos y45/45 integradas,
+con regresiones y límites en [acta R4](../docs/MA1R_R4_VALIDACION_LOCAL.md).
+La suite independiente es `npm run test:question-reports:postgres`, no necesita
+sesión humana ni celular. API/base/credenciales del ensayo humano se cerraron
+y limpiaron; no reutilizarlas. Remate en otra sesión posterior, retirada del botón
+inferior/borrador confirmados: R4 cerrada localmente e integrada en main por PR
+API #9/app #6. CI backend del PR aprobado; sigue preparación C5, no otro ensayo por defecto.
+Las instrucciones inferiores de arranque son
+históricas/reutilizables únicamente cuando se solicite otro ensayo.
+
+**19 de octubre, reanudación MA-1R/R4:** en una sesión nueva propia, la opción
+`node tool/prepare_question_reports_local.mjs --resume-case7` prepara tres reportes
+por las API reales, con práctica respondida/calificada y un intento duplicado.
+Requiere `SABERPLUS_LOCAL_SESSION` del harness actual. Es preparación automática,
+no aprobación de casos Android ni reejecución humana de1–6. El verificador
+`--case6` detecta esa fixture y registra `manualCaseClaim:false`. Ver acta R4.
+
+**18 de octubre, MA-1R/R4:** allowlist explícita añade migración de reportes:
+67 aplicadas solo en la base tmpfs nueva. [Arranque y límites](../docs/MA1R_R4_VALIDACION_LOCAL.md).
+`tool/prepare_question_reports_local.mjs` prepara dos preguntas por API y tres
+smoke aprobados; requiere SABERPLUS_LOCAL_SESSION de esta sesión. No es cierre
+de la suite integrada ni confirma casos Android; no ejecutar contra base habitual.
+
+Actualización16 de octubre,C4: allowlist explícita incorpora
+`20261016180000_student_institution_codes`; base temporal66 migraciones.
+`node --test tool/test_student_institution_codes_local.cjs`16/16 HTTP/SQL y
+regresión C3 posterior14/14 aprobadas. Contrato/checkpoint actual en
+[código estudiantil](../docs/PR_I5_C4_CODIGO.md). No acredita Android C4 ni bootstrap
+productivo429. Las preparaciones históricas inferiores no son tareas nuevas.
+
 Actualización C2,12 de octubre: allowlist incorpora explícitamente
 `20261012180000_institution_logo`; demás migraciones conservan su origen en HEAD.
 Guion `node --test tool/test_institution_logo_local.cjs` preparado (no ejecutado):

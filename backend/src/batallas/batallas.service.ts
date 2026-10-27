@@ -17,6 +17,7 @@ import {
   RolUsuario,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { publicAnswerOption } from '../common/public-answer-option';
 import { preguntaPublicadaWhere } from '../common/contenido-publicado';
 
 const HORAS_PARTIDA = 24;
@@ -602,10 +603,7 @@ export class BatallasService {
             opciones: ordenOpciones
               .map((id) => opciones.get(id))
               .filter(Boolean)
-              .map((respuesta) => ({
-                id: respuesta.id,
-                texto: respuesta.texto,
-              })),
+              .map(publicAnswerOption),
             respuestaPropiaId: propia?.respuestaSeleccionadaId ?? null,
             ...(finalizada
               ? {

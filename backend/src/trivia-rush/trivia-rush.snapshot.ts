@@ -1,5 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
 import { AreaIcfes, ModalidadTriviaRush, Prisma } from '@prisma/client';
+import { publicAnswerOption } from '../common/public-answer-option';
 
 export const snapshotQuestionInclude = {
   respuestas: true,
@@ -32,8 +33,7 @@ export function freezeQuestion(
       },
       caso: p.caso,
       respuestas: p.respuestas.map((r) => ({
-        id: r.id,
-        texto: r.texto,
+        ...publicAnswerOption(r),
         esCorrecta: r.esCorrecta,
         explicacion: r.explicacion,
       })),

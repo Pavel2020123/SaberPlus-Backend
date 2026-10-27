@@ -6,6 +6,7 @@ import { createDemoEditorialReview } from "./demo-editorial-review.mjs";
 import { createDemoEditorialTools } from "./demo-editorial-tools.mjs";
 import { createDemoInstitutionApproval } from "./demo-institution-approval.mjs";
 import { demoCoverage } from "./demo-bank-coverage.mjs";
+import { createDemoQuestionReports } from './demo-question-reports.mjs';
 import { createDemoLearningMap } from "./demo-learning-map.mjs";
 
 // Local-only fixtures. This module has no network or database dependencies.
@@ -118,6 +119,9 @@ export function createDemoApi() {
       ],
     });
   }
+  const questionReports = createDemoQuestionReports({ send,
+    question: questionBank.records.questions.find(q => q.id === 'demo-legacy-q2'),
+    area: 'MATEMATICAS', subtemaId: 'demo-legacy-sub' });
   for (const row of [...themes, ...subthemes])
     if (row.estadoContenido === "PUBLICADO")
       row.fechaPublicacion = "2026-09-01T00:00:00Z";
@@ -253,12 +257,15 @@ export function createDemoApi() {
       const limite = Number(url.searchParams.get("limite") ?? 50);
       if (!areas.some(a => a.id === area) || !Number.isInteger(pagina) || pagina < 1 || pagina > 10000 ||
           !Number.isInteger(limite) || limite < 1 || limite > 100 ||
-          [...url.searchParams.keys()].some(k => !["area","pagina","limite"].includes(k))) {
+          (url.searchParams.has('reportesVersion') && url.searchParams.get('reportesVersion') !== '1') ||
+          [...url.searchParams.keys()].some(k => !["area","pagina","limite", "reportesVersion"].includes(k))) {
         send(res, 400, {}); return;
       }
-      send(res, 200, demoCoverage({ themes, subthemes, ...questionBank.records }, area, pagina, limite));
+      send(res, 200, demoCoverage({ themes, subthemes, ...questionBank.records,
+        reports: questionReports.rows }, area, pagina, limite, url.searchParams.get('reportesVersion') === '1'));
       return;
     }
+    if (questionReports.route(req, res, url, body, 'demo-admin')) return;
     if (institutionApprovals(req, res, url, body)) return;
     if (learningMap(req, res, url, body)) return;
     if (questionBank(req, res, url, body, direct)) return;

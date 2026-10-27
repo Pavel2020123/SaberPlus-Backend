@@ -11,6 +11,11 @@ import { validateCompetitiveDatabase } from './test_competitive_postgres.mjs';
 import { readLocalControl } from './local_control_file.mjs';
 
 if (process.argv.length !== 2) throw new Error('No external arguments accepted.');
+// Explicit opt-in for C2-D only. Never inherit a production/editorial runtime flag.
+const optionImagesLocal = process.env.SABERPLUS_C5_OPTION_IMAGES_LOCAL;
+if (optionImagesLocal !== undefined && !['true', 'false'].includes(optionImagesLocal)) {
+  throw new Error('SABERPLUS_C5_OPTION_IMAGES_LOCAL must be true or false.');
+}
 const backend = fileURLToPath(new URL('../', import.meta.url));
 const require = createRequire(join(backend, 'package.json'));
 const execute = promisify(execFile);
@@ -28,6 +33,8 @@ const env = Object.fromEntries(Object.entries(process.env).filter(([key]) =>
 Object.assign(env, { POSTGRES_USER: user, POSTGRES_PASSWORD: password, POSTGRES_DB: 'postgres',
   NODE_ENV: 'test', SMTP_HOST: '127.0.0.1', SMTP_PORT: '1',
   EDITORIAL_PUBLICATION_ENABLED: 'true', // Only this freshly owned local API.
+  EDITORIAL_FILES_LOCAL_ENABLED: 'true', // C5: private files only in this owned test environment.
+  EDITORIAL_OPTION_IMAGES_LOCAL_ENABLED: String(optionImagesLocal === 'true'),
   JWT_SECRET: randomBytes(32).toString('hex'), RANKING_ALIAS_SECRET: randomBytes(32).toString('hex') });
 let db, child, context, url = '', created = false;
 const run = (command, args, cwd = backend) => execute(command, args, {
@@ -66,7 +73,18 @@ try {
   const territoryMigration = 'prisma/migrations/20261010193000_institution_territory/migration.sql';
   const profileMigration = 'prisma/migrations/20261011200000_institution_public_profile/migration.sql';
   const logoMigration = 'prisma/migrations/20261012180000_institution_logo/migration.sql';
-  const actualPaths = [...new Set([...paths, territoryMigration, profileMigration, logoMigration])].sort();
+  const studentRequestsMigration = 'prisma/migrations/20261014180000_student_institution_requests/migration.sql';
+  const studentCodesMigration = 'prisma/migrations/20261016180000_student_institution_codes/migration.sql';
+  // R4: explicit academic-report migration, only in this newly owned tmpfs DB.
+  const questionReportsMigration = 'prisma/migrations/20261017220000_academic_question_reports/migration.sql';
+  // C5: explicitly allow these additive migrations while working on this branch.
+  const editorialFilesMigration = 'prisma/migrations/20261020120000_editorial_files_base/migration.sql';
+  const editorialLinksMigration = 'prisma/migrations/20261020150000_editorial_image_links/migration.sql';
+  const editorialOptionsMigration = 'prisma/migrations/20261021180000_editorial_option_image_links/migration.sql';
+  const tugLocalMigration = 'prisma/migrations/20261022203000_tug_local_timeout_scope/migration.sql';
+  const tugImagesMigration = 'prisma/migrations/20261022213000_tug_option_image_snapshot/migration.sql';
+  const tugPauseMigration = 'prisma/migrations/20261023150000_tug_local_pause/migration.sql';
+  const actualPaths = [...new Set([...paths, territoryMigration, profileMigration, logoMigration, studentRequestsMigration, studentCodesMigration, questionReportsMigration, editorialFilesMigration, editorialLinksMigration, editorialOptionsMigration, tugLocalMigration, tugImagesMigration, tugPauseMigration])].sort();
   for (const path of actualPaths) {
     const dest = join(directory, path.replace(/^prisma\//, ''));
     await mkdir(dirname(dest), { recursive: true });
@@ -139,7 +157,11 @@ try {
     pendingTerritoryMigration: !paths.includes(territoryMigration),
     pendingProfileMigration: !paths.includes(profileMigration),
     pendingLogoMigration: !paths.includes(logoMigration),
-    api: config.API_BASE_URL, syntheticFixtures: true, ownPosition: 51, totalParticipants: 61 }));
+    pendingStudentRequestsMigration: !paths.includes(studentRequestsMigration),
+    pendingStudentCodesMigration: !paths.includes(studentCodesMigration),
+    pendingQuestionReportsMigration: !paths.includes(questionReportsMigration),
+    api: config.API_BASE_URL, syntheticFixtures: true, optionImagesLocal: optionImagesLocal === 'true',
+    ownPosition: 51, totalParticipants: 61 }));
   console.log('Local control.json actions: correct, solo-on, solo-off, stop. No HTTP mutation route.');
   let corrected = false;
   let soloEnabled = false;

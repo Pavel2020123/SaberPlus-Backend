@@ -16,6 +16,7 @@ import {
   TipoEventoTiraAfloja,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { publicAnswerOption } from '../common/public-answer-option';
 import { preguntaPublicadaWhere } from '../common/contenido-publicado';
 import { TiraAflojaRealtimePublisher } from './tira-afloja-realtime.publisher';
 import { requireTugPresence } from './tira-afloja-presence.service';
@@ -258,7 +259,7 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
           .sort(
             (a, b) => ordenOpciones.indexOf(a.id) - ordenOpciones.indexOf(b.id),
           )
-          .map((respuesta) => ({ id: respuesta.id, texto: respuesta.texto }))
+          .map(publicAnswerOption)
       : [];
 
     return {

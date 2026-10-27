@@ -1,6 +1,8 @@
 import { lessonFields } from "./lesson-fields.mjs";
+import { fileUuid, fileMetadata, fileReceipt } from "./editorial-file-fields.mjs";
 import { mapId, mapChange, mapDetail } from "./learning-map-fields.mjs";
 import { questionFields, caseFields } from "./question-fields.mjs";
+import { reportUuid, reportQuery, reportDecision, reportRow, reportPage } from './question-report-fields.mjs';
 import {
   areas as toolAreas,
   hash,
@@ -49,6 +51,7 @@ export class CatalogApi {
       onSessionExpired = () => {},
       timeoutMs = 60000,
       simple = false,
+      demo = false,
     } = {},
   ) {
     this.base = base;
@@ -56,9 +59,32 @@ export class CatalogApi {
     this.onSessionExpired = onSessionExpired;
     this.timeoutMs = timeoutMs;
     this.simple = simple;
+    this.demo = demo;
   }
   get authenticated() {
     return this.#token !== null;
+  }
+  async uploadEditorialFile(file, metadata, operationId) {
+    if (this.demo) throw new PanelError("La demostración no guarda archivos. Usa el panel conectado a la API local.");
+    if (!fileUuid(operationId) || !(file instanceof Blob) || !file.size || file.size > 5242880)
+      throw new PanelError("Selecciona una imagen de hasta 5 MiB.");
+    const body = new FormData();
+    body.append("operacionId", operationId);
+    for (const [key, value] of Object.entries(fileMetadata(metadata))) body.append(key, value);
+    body.append("archivo", file, "imagen");
+    return fileReceipt(await this.#protected("/admin/archivos", { method: "POST", body }), operationId);
+  }
+  async editorialFileReceipt(operationId) {
+    if (!fileUuid(operationId)) throw new PanelError("Carga no válida.");
+    return fileReceipt(await this.#protected(`/admin/archivos/operaciones/${operationId}`), operationId);
+  }
+  async editorialFile(id) {
+    if (!fileUuid(id)) throw new PanelError("Imagen no válida.");
+    return fileReceipt(await this.#protected(`/admin/archivos/${id}`), undefined, id);
+  }
+  editorialFileContent(id) {
+    if (!fileUuid(id)) throw new PanelError("Imagen no válida.");
+    return this.#protected(`/admin/archivos/${id}/contenido`, { responseType: "image" });
   }
   logout() {
     this.#generation++;
@@ -121,10 +147,27 @@ export class CatalogApi {
       );
     return rows;
   }
-  coverage(area, pagina = 1) {
+  coverage(area, pagina = 1, withReports = false) {
     if (!["LECTURA_CRITICA","MATEMATICAS","SOCIALES_CIUDADANAS","CIENCIAS_NATURALES","INGLES"].includes(area) ||
         !Number.isInteger(pagina) || pagina < 1 || pagina > 10000) throw new PanelError("Filtro de cobertura inválido.");
-    return this.#protected(`/admin/cobertura?${new URLSearchParams({ area, pagina: String(pagina), limite: "20" })}`);
+    return this.#protected(`/admin/cobertura?${new URLSearchParams({ area, pagina: String(pagina), limite: "20", ...(withReports ? {reportesVersion: '1'} : {}) })}`);
+  }
+  async questionReports(filters = {}, page = 1) {
+    return reportPage(await this.#protected(`/admin/reportes-preguntas?${reportQuery(filters, page)}`), page, filters);
+  }
+  async questionReport(id) {
+    if (!reportUuid(id)) throw new PanelError('Reporte inválido.');
+    const row = reportRow(await this.#protected(`/admin/reportes-preguntas/${id}`), { admin: true, detail: true });
+    if (row.id !== id) throw new PanelError('El detalle no corresponde al reporte.');
+    return row;
+  }
+  async decideQuestionReport(id, change) {
+    if (!reportUuid(id)) throw new PanelError('Reporte inválido.');
+    const row = reportRow(await this.#protected(`/admin/reportes-preguntas/${id}/estado`,
+      { method: 'PATCH', body: reportDecision(change) }));
+    if (row.id !== id || row.estado !== change.destino || row.revision !== change.revision + 1)
+      throw new PanelError('No se pudo confirmar el recibo de la decisión. Consulta el estado actual.');
+    return row;
   }
   async learningMap(id, area, change) {
     if (!mapId(id) || !["LECTURA_CRITICA","MATEMATICAS","SOCIALES_CIUDADANAS","CIENCIAS_NATURALES","INGLES"].includes(area)) throw new PanelError('Selección del mapa inválida.');
@@ -368,7 +411,8 @@ export class CatalogApi {
             (option) =>
               typeof option?.texto !== "string" ||
               typeof option.esCorrecta !== "boolean" ||
-              typeof option.explicacion !== "string",
+              typeof option.explicacion !== "string" ||
+              (option.imagenUrl !== undefined && typeof option.imagenUrl !== "string"),
           )
         : typeof row.titulo !== "string" || typeof row.contexto !== "string")
     )
@@ -539,7 +583,7 @@ export class CatalogApi {
       throw new PanelError("Inicia sesión para continuar.", 401);
     return this.#request(path, options);
   }
-  async #request(path, { method = "GET", body, token = this.#token } = {}) {
+  async #request(path, { method = "GET", body, token = this.#token, responseType = "json" } = {}) {
     const generation = this.#generation;
     const controller = new AbortController();
     this.#requests.add(controller);
@@ -552,11 +596,11 @@ export class CatalogApi {
         credentials: "omit",
         cache: "no-store",
         headers: {
-          Accept: "application/json",
-          ...(body ? { "Content-Type": "application/json" } : {}),
+          Accept: responseType === "image" ? "image/webp" : "application/json",
+          ...(body && !(body instanceof FormData) ? { "Content-Type": "application/json" } : {}),
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        ...(body ? { body: JSON.stringify(body) } : {}),
+        ...(body ? { body: body instanceof FormData ? body : JSON.stringify(body) } : {}),
       });
       if (generation !== this.#generation)
         throw new PanelError("Solicitud cancelada.");
@@ -595,6 +639,25 @@ export class CatalogApi {
           this.logout();
           this.onSessionExpired();
         }
+        if (path.startsWith("/admin/archivos"))
+          throw new PanelError({
+            400: "Revisa la imagen y sus datos de autoría y permiso de uso.",
+            401: "Tu sesión terminó. Ingresa de nuevo.",
+            403: "Solo ADMIN puede cargar y consultar estas imágenes.",
+            404: "No encontramos esa carga en tu cuenta. Puedes reintentar el mismo envío.",
+            409: "La imagen o la operación cambió. Conserva tu selección y consulta la carga.",
+            410: "La imagen fue retirada. Selecciona una nueva.",
+            413: "La imagen supera 5 MiB. Elige una más pequeña.",
+            503: "La carga no está habilitada o el almacenamiento no está disponible. Conserva la selección y consulta su estado.",
+          }[response.status] ?? "No pudimos confirmar la carga. Consulta su estado antes de repetirla.", response.status);
+        if (path.startsWith('/admin/reportes-preguntas'))
+          throw new PanelError({
+            400: 'Revisa los filtros y el motivo de la decisión.',
+            401: 'Tu sesión terminó. Ingresa de nuevo.', 403: 'Solo ADMIN puede gestionar reportes.',
+            404: 'Este reporte no está disponible.',
+            409: 'El reporte o la operación cambió. Consulta su estado actual antes de decidir de nuevo.',
+            429: 'Alcanzaste el límite de decisiones. Espera antes de reintentar.',
+          }[response.status] ?? 'No se pudo confirmar la operación. Consulta el reporte o reintenta la misma decisión.', response.status);
         if (response.status === 503 && path.startsWith("/admin/simple/"))
           throw new PanelError("Guardar y publicar no está habilitado o el servidor no está disponible. Revisa EDITORIAL_PUBLICATION_ENABLED en el backend antes de continuar.", 503);
         throw new PanelError(
@@ -610,12 +673,24 @@ export class CatalogApi {
           response.status,
         );
       }
-      const data = await response.json();
+      let data;
+      if (responseType === "image") {
+        if (!/^image\/webp(?:;|$)/i.test(response.headers.get("Content-Type") ?? ""))
+          throw new PanelError("La respuesta no contiene una imagen válida.");
+        data = await response.blob();
+        if (!data.size || data.size > 2097152) throw new PanelError("La imagen guardada supera el límite permitido.");
+      } else data = await response.json();
       if (generation !== this.#generation)
         throw new PanelError("Solicitud cancelada.");
       return data;
     } catch (error) {
       if (error instanceof PanelError) throw error;
+      if (path.startsWith("/admin/archivos"))
+        throw new PanelError(method === "GET" ? "No pudimos consultar la imagen. Reintenta la consulta." : "No pudimos confirmar la carga. Conservamos la selección; consulta su estado o reintenta el mismo envío.");
+      if (path.startsWith('/admin/reportes-preguntas'))
+        throw new PanelError(method === 'GET'
+          ? 'No pudimos consultar los reportes. Reintenta sin cambiar la decisión pendiente.'
+          : 'No se pudo confirmar la decisión. Consulta el estado actual o reintenta la misma decisión.');
       if (method === 'POST' && path.startsWith('/admin/instituciones/solicitudes/'))
         throw new PanelError('No pudimos confirmar la decisión. Consulta el estado de la solicitud antes de volver a revisarla; podría haberse guardado.');
       if (path === "/auth/login" || path === "/auth/perfil")
