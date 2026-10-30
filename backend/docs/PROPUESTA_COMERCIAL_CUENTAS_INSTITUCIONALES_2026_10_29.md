@@ -2,7 +2,7 @@
 
 **Fecha:** 29 de octubre de 2026  
 **Estado:** PROPUESTA PARA REVISIÓN — NO IMPLEMENTADA NI AUTORIZADA PARA DESPLIEGUE  
-**Alcance de este documento:** requisitos y flujos de negocio. No modifica código, esquema Prisma, migraciones, datos ni permisos vigentes.
+**Alcance de este documento:** requisitos y flujos de negocio, incluida la decisión posterior sobre **eliminación completa por el docente**, panel web, códigos de beca y anuncios. No modifica código, esquema Prisma, migraciones, datos ni permisos vigentes.
 
 ## 1. Objetivo y decisión de producto
 
@@ -51,7 +51,7 @@ Flujo propuesto:
 
 Una importación no debe permitir sobrepasar cupos ni cambiar datos de estudiantes de otras instituciones. Se deben proteger CSV de exposición innecesaria y destruir archivos temporales cuando proceda.
 
-## 6. Recuperación y baja de cuentas institucionales
+## 6. Recuperación y baja de cuentas institucionales (ver decisión posterior vinculante en sección 12)
 
 **Recuperación:** el profesor autorizado puede iniciar un **restablecimiento de acceso** de estudiantes de su institución, después de controles de identidad, autorización y registro de auditoría. Se genera credencial temporal/flujo de recuperación con expiración y un solo uso; el docente **no puede ver la contraseña actual** ni recuperar hashes. Los estudiantes pueden cambiar su clave cuando el acceso esté habilitado.
 
@@ -106,8 +106,101 @@ La interfaz puede ofrecer `Desvincular estudiante` y `Solicitar eliminación def
 7. Desvinculación de un alumno no borra automáticamente información de otra institución ni historiales sujetos a retención.
 8. El sistema audita altas, renovaciones, cambios de cupos, restablecimientos y bajas.
 
-## 11. Exclusiones de este documento
+## 11. Alcance de implementación
 
-No implementa la pasarela de pago, cálculo de precios, panel web, código Flutter, SQL, Prisma ni migraciones. Las becas/códigos de un solo uso y anuncios corresponden a otra propuesta futura y **no se consideran implementados** por este documento.
+No implementa pasarela de pago, panel web, código Flutter, SQL, Prisma ni migraciones. **Los códigos de beca y la publicidad se documentan como propuestas adicionales en la sección 13; no están implementados.**
 
 **Siguiente paso técnico recomendado:** auditar modelos y endpoints actuales de instituciones, altas, membresías, cuentas, permisos y planes; decidir las políticas pendientes; redactar SRS y diseño de base de datos; realizar implementación en rama con pruebas de concurrencia, permisos, vencimiento, CSV y recuperación; aprobar por PR antes de cualquier despliegue.
+
+
+---
+
+## 12. Decisión posterior del propietario — eliminación COMPLETA de cuentas institucionales (29 de octubre de 2026)
+
+> **Esta sección actualiza y prevalece sobre la interpretación de la sección 6 que limitaba la acción ordinaria del docente a «desvincular».** La decisión de producto del propietario de SaberPlus es que el docente/responsable institucional autorizado **sí pueda solicitar y ejecutar la eliminación definitiva de las cuentas institucionales creadas por él o bajo su autoridad**, desde su propio panel, y no solo retirar al estudiante de una clase o institución.
+
+### 12.1. Lo que se solicita expresamente
+
+- El docente puede listar las cuentas institucionales que creó mediante el CSV o creación individual y que siguen adscritas a su ámbito de administración.
+- Desde el panel web docente existirá una acción clara **«Eliminar cuenta institucional definitivamente»**, distinta de «Suspender», «Retirar de clase» y «Desvincular institución».
+- Cuando se ejecuta una eliminación definitiva válida, esa identidad institucional deja de poder iniciar sesión; su credencial, sesiones, asignaciones y acceso se invalidan. No se podrá recuperar la cuenta mediante la renovación posterior.
+- La eliminación no requiere que el docente pida al administrador general ejecutar manualmente cada baja: la facultad se concede al rol institucional autorizado para las **cuentas institucionales de su propia institución, creadas bajo ese mandato**, dentro de las reglas del producto.
+- El docente **no** podrá eliminar cuentas de otra institución, cuentas personales independientes, cuentas de otros administradores ni identidades que también tengan derechos o vínculos válidos fuera del ámbito institucional.
+- No atribuir al docente propiedad legal de datos personales por haber registrado al estudiante: este es un **permiso operativo de administración** otorgado por el sistema y sujeto a los derechos de estudiantes, familias y obligaciones del responsable del tratamiento.
+
+### 12.2. Condiciones necesarias para hacer segura esa facultad
+
+El botón de eliminación definitiva debe comprobar en NestJS: identidad con sesión autenticada, rol vigente, pertenencia a institución, autoridad sobre la cuenta, tipo `INSTITUCIONAL_GESTIONADA`, ausencia de vínculos o titularidades ajenas y que la eliminación sea legalmente procedente. La UI no es el control de seguridad. Se pide confirmación explícita, preferiblemente reautenticación del docente, y se registra un evento de auditoría sin conservar credenciales o datos sensibles innecesarios.
+
+Si un registro está sujeto a plazos de conservación, una disputa, una obligación de trazabilidad o una solicitud de titular/acudiente pendiente, el proceso no debe fingir borrado definitivo: **bloquear acceso y poner la supresión en estado pendiente**, explicar la razón y completar la supresión cuando resulte procedente. Cuando sí procede, eliminar o anonimizar los datos personales asociados en los sistemas pertinentes y gestionar respaldos según política de retención. Evitar borrados en cascada que destruyan resultados compartidos, registros financieros, evidencias de seguridad o relaciones de otras personas.
+
+**Regla de UX:** antes de confirmar mostrar «Esta acción elimina definitivamente la cuenta institucional y su acceso. No es lo mismo que suspenderla ni desvincularla». Indicar el impacto sobre resultados personales y posibilidad o no de recuperación; confirmar con nombre/identificador del estudiante. Si no procede, mostrar estado y siguiente paso real, no «eliminada».
+
+### 12.3. Diferencia con vencimiento y renovación
+
+- **Vencimiento del plan:** suspensión de acceso, **sin eliminación automática**. Todas las cuentas institucionales siguen vinculadas y son candidatas a renovación.
+- **Renovación:** reactiva únicamente las cuentas aún existentes y con licencia reasignada. No recupera cuentas previamente eliminadas definitivamente.
+- **Eliminación voluntaria del docente:** operación individual y explícita, irreversible cuando concluye la supresión efectiva; puede liberar el cupo solo de acuerdo con la política comercial de reasignación (no automáticamente en cualquier momento).
+- **Nuevo grupo:** el docente puede importar otras 30 cuentas después de que un contrato y los cupos correspondientes estén aprobados. No se requiere borrar cuentas anteriores para renovar y **no debe promocionarse el borrado como mecanismo para evitar pagar cupos**.
+
+### 12.4. Ejemplos de aceptación
+
+1. La Institución A tiene 30 alumnos creados por un docente autorizado. Al vencer el plan, quedan con acceso suspendido pero visibles en la gestión del docente.
+2. El docente selecciona una cuenta exclusivamente institucional de su ámbito y confirma «Eliminar cuenta institucional definitivamente»: se revocan sesiones, se registra auditoría y se completa la supresión cuando sea procedente; la cuenta no retorna al renovar.
+3. Si el docente solo selecciona «Desvincular», la identidad **no** se destruye; son operaciones distintas.
+4. La Institución B, otro docente sin facultad y un estudiante común no pueden invocar el endpoint de eliminación de esa cuenta.
+5. Si la persona tiene una cuenta personal aparte, vínculos multiinstitucionales o datos sujetos a conservación, no se elimina indiscriminadamente toda su identidad o información ajena; el sistema informa la limitación y ejecuta únicamente la operación autorizada.
+6. Si un docente elimina 10 de 30 y luego renueva solo 20 licencias, las cuentas eliminadas no se reactivan ni ocupan cupo. La renovación debe definir qué 20 identidades existentes reciben licencia.
+
+## 13. Otras ideas comerciales planteadas por el propietario — detalle funcional (PROPUESTAS)
+
+### 13.1. Contratos, docentes y panel web
+
+- Ofrecer planes por mes, por temporada del calendario ICFES y por 1, 1,5, 2, 2,5, 3 o 4 años, con precios y reglas de renovación a definir. Un colegio puede contratar, por ejemplo, 30 plazas; no debe excederlas al activar accesos.
+- La creación de la institución por docente/responsable pasa por el flujo de aprobación institucional que defina el administrador general; **crear una institución no equivale a tener automáticamente un contrato pagado activo**.
+- La institución tiene un responsable verificable. No asumir que un docente cualquiera puede actuar como representante legal o comprador.
+- Permitir a la misma identidad docente acceder desde Flutter y desde un **panel web docente** con información detallada: alumnos, cupos, estado del contrato, CSV, estadísticas y solicitudes de renovación. Mantener separado el rol ADMIN_GENERAL. El vencimiento suspende acceso educativo de alumnos, pero el docente puede entrar al panel de gestión limitado.
+- Las renovaciones comerciales son autorizadas por el administrador general o un proceso de pago validado; el docente no cambia por sí mismo la fecha de vencimiento.
+
+### 13.2. Cuentas generadas desde CSV
+
+- El docente descarga plantilla CSV, registra al menos los nombres y apellidos necesarios para diferenciar homónimos, sube, revisa previsualización, errores, duplicados y confirma antes de crear.
+- El backend crea identidades institucionales únicas y contraseñas **aleatorias temporales**; no derivar contraseñas predecibles de nombres o apellidos.
+- El identificador institucional puede tener apariencia similar a un correo, pero **no afirmar que es un buzón real ni un dominio educativo registrado**. Alternativa recomendada: código `ALFREDO-0001` y campo de acceso «Usuario institucional o correo».
+- El docente descarga las credenciales **una sola vez** en sesión autorizada; no se almacenan claves legibles para visualización posterior. Restablecimiento con nueva clave temporal y cambio obligatorio en el primer inicio.
+- El archivo CSV se valida, se limita el tamaño y se protege; se evita crear usuarios duplicados; la asignación de licencias exige cupos disponibles y transacciones.
+
+### 13.3. Código de beca de un solo uso, creado por ADMIN_GENERAL
+
+- ADMIN_GENERAL crea desde su panel un código criptográficamente aleatorio, vigencia para canje, duración del beneficio (p. ej., 30 días), modalidad de acceso `BECA_CON_ANUNCIOS`, límite de **1 canje** y opcionalmente destinatario predefinido.
+- Puede entregarlo manualmente a una persona que solicita acceso por situación económica; la evaluación/confirmación de esa situación se hace de forma respetuosa, mínima y sin exposición innecesaria de datos sensibles.
+- El estudiante usa **su propia cuenta** y abre «¿Tienes un código de acceso?». Al canjear, el backend valida estado, vigencia y límite; una operación **atómica** vincula el código a **un solo usuario**, lo marca consumido y activa la beca durante el período concedido. Nadie más puede reutilizarlo. El canje duplicado en la misma cuenta no extiende el período.
+- ADMIN_GENERAL puede consultar códigos creados, redimidos, anulados y vencidos, con trazabilidad; no debe revelar innecesariamente códigos completos ya utilizados.
+- Expirado el beneficio, aplicar la política del plan personal gratuito o suspensión que se adopte; **esta beca es independiente de las cuentas institucionales** y no modifica su regla de no conversión automática al plan gratuito.
+- Limitar intentos de canje, evitar enumeración de códigos y registrar eventos de seguridad. No conceder acceso por una comprobación hecha solamente en Flutter.
+
+### 13.4. Publicidad en becas
+
+- El propietario propone beca gratuita **con anuncios**. Registrar un atributo de plan/política que permita distinguir plan individual pago, beca y licencia institucional.
+- **No adoptar «muchísimos anuncios» como requisito cerrado**: por tratarse de estudiantes y potencialmente menores, el diseño debe cumplir las normas y políticas de las tiendas/proveedor publicitario; preferir anuncios poco intrusivos, apropiados por edad y fuera de pruebas, preguntas y partidas donde perjudiquen el aprendizaje.
+- Medir ingresos y retención; no prometer que la publicidad financia el costo del acceso sin datos de monetización.
+- Los anuncios no se deben activar únicamente por mostrar un widget; los derechos de acceso se verifican en backend y el cliente aplica la experiencia publicitaria según el plan.
+
+### 13.5. Flujos cruzados y casos límite
+
+- Un alumno con cuenta institucional vencida **no obtiene automáticamente** acceso gratuito personal ni por beca, salvo una migración/vinculación expresamente autorizada que preserve derechos y contratos.
+- Si se intenta importar un estudiante ya existente en otra institución, pedir revisión, no fusionar ni borrar cuentas automáticamente.
+- Si un docente solicita eliminar una cuenta que tiene un proceso de supresión pendiente, mostrar el estado exacto y bloquear toda operación que lo contradiga.
+- Registrar fecha de compra, comienzo real del período, vencimiento, pagos/renovaciones, asignaciones y quién realizó cada cambio; contemplar zona horaria y uso de fechas de corte.
+
+## 14. Requisitos ampliados para revisión técnica
+
+- **LIC-14:** docente autorizado puede **eliminar completamente** cuentas institucionales de su ámbito cuando sea legal y técnicamente procedente; operación distinta de desvincular/suspender, con confirmación fuerte y auditoría.
+- **LIC-15:** si la supresión efectiva debe esperar por retención o vínculos ajenos, revocar acceso y registrar petición de supresión pendiente; no declarar eliminación completada.
+- **LIC-16:** revocar sesiones y credenciales de cuentas eliminadas; impedir reactivación tras renovación.
+- **LIC-17:** panel web y móvil comparten identidad docente y el mismo backend NestJS; exposición de estadísticas solo a miembros autorizados.
+- **LIC-18:** ADMIN_GENERAL emite becas de código aleatorio con 1 uso y vencimiento; canje transaccional e idempotente, vinculado a una cuenta.
+- **LIC-19:** beca con anuncios respetuosos y controles de edad/cumplimiento, sin interrupciones invasivas.
+- **LIC-20:** las renovaciones parciales y las importaciones masivas respetan cupos, duplicados y aislamiento entre instituciones.
+
+**Advertencia de implementación:** este documento refleja requisitos de producto y límites de seguridad; aún requiere diseño detallado, revisión jurídica para cuentas de menores, evaluación de borrado físico/anonimización y aprobación del equipo antes de cambiar esquema Prisma, endpoints o interfaz.
