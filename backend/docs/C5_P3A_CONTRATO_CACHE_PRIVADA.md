@@ -2,6 +2,20 @@
 
 1/nov/2026. Continuación de PDF P2, **propuesta técnica aún no implementada**. El propietario aprobó separar PDF exportable de contenido privado offline y revalidar este último al reconectar. No se inventa aprobación de plazos, endpoints ni permisos nuevos.
 
+## Política confirmada posteriormente por el propietario
+
+**72 horas desde la última validación exitosa de permisos con el backend**. Al vencer, revalidación obligatoria antes de consultar contenido privado. Una revocación/suspensión confirmada bloquea inmediatamente, incluso si quedaba plazo. Los PDF exportados quedan fuera. Proteger el contenido local e impedir que el ajuste manual de fecha/hora prolongue la concesión.
+
+No equivale a renovar con un login, ping, HTTP200 genérico, cache hit o fallo de red. El manifiesto debe estar ligado al propietario/contexto y a un nonce aleatorio nuevo de la solicitud, para que una respuesta vieja no renueve el plazo. Respuestas tardías anteriores a logout, suspensión, revocación o cambio de cuenta no pueden restaurar permisos.
+
+La base cliente usa ancla monotónica al inicio de la validación (conservadora ante latencia), no `DateTime.now()`. El adaptador Android deberá usar `SystemClock.elapsedRealtime`, que incluye suspensión del dispositivo; no `uptimeMillis` ni un Stopwatch del proceso. Si se pierde continuidad del arranque o el reloj monotónico retrocede, exigir revalidación en vez de recurrir al reloj manual. Fuente: [Android SystemClock](https://developer.android.com/reference/android/os/SystemClock).
+
+Protección prevista: cifrado autenticado de paquetes, clave no exportable administrada por la plataforma, vinculación cuenta/contexto y exclusión de backups/exportación. No guardar claves junto a los bytes ni prometer protección ante root/instrumentación del proceso. Referencia: [Android Keystore](https://developer.android.com/privacy-and-security/keystore). **Este almacenamiento todavía no está implementado ni activado.**
+
+Primer incremento de código: `private-offline-policy.ts` fija el plazo exacto del contrato servidor, sin crear endpoint ni conceder acceso; Flutter `PrivateOfflineAccessPolicy` implementa la máquina de permisos en memoria. No modifica autorización actual, sesión, imágenes online, disco ni PDF. Pendientes: manifiesto autorizado, reloj nativo, persistencia cifrada, enlace con suspensión/revocación y visores; no declarar P3-B/C/D completos por pruebas de la política pura.
+
+Validación de esta base:17/17 backend (6 política y11 PDF), ESLint dirigido y `npx nest build` correctos;29/29 Flutter (15 política y14 PDF/descargas), análisis limpio y hot reload. Son pruebas de contratos/decisiones, no de cifrado nativo, almacenamiento ni permisos reales de un endpoint nuevo. Se conserva la activación de caché privada apagada/no implementada.
+
 ## Frontera
 
 Primer incremento propuesto: únicamente imágenes gestionadas de lecciones publicadas junto con una copia exacta del contexto que las explica. No preguntas de diagnóstico/práctica, soluciones anticipadas, casos, juegos ni contenido histórico archivado. No usar una imagen nueva para reconstruir una versión pasada. El PDF exportado sigue fuera de la revocación remota.
@@ -32,7 +46,7 @@ El `userId` de una carpeta o SQLite no sustituye un permiso. Debe revisarse alma
 
 ## Decisiones abiertas antes de activar
 
-1. Duración máxima sin conexión y tratamiento al expirar; debe fijarse explícitamente, no deducirse del JWT ni de H3.
+1. Plazo resuelto:72 horas, revalidación al vencer, bloqueo al confirmar revocación/suspensión y PDF exportados excluidos, según confirmación superior.
 2. Cuota local por cuenta y política de eliminación/retención. Límites editoriales existentes: 2 MiB WEBP y dimensiones máximas del recurso; no bastan para una cuota global.
 3. Qué experiencia offline se permite al reiniciar sin poder verificar la sesión; hoy el flujo online puede limpiar tokens al fallar la restauración. No ampliar autenticación por accidente dentro del caché de imágenes.
 
