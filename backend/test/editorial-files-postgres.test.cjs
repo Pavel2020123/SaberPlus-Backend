@@ -724,6 +724,113 @@ test('C5 ACL y RLS bloquean lectura directa de recibos para anon/authenticated',
   }
 });
 
+async function pdfFixture() {
+  const app = await server({ consumers: true });
+  const s = await structure('PDF C5 - proporciones');
+  const file = await resource();
+  const student = await user('ESTUDIANTE');
+  await db.subtema.update({
+    where: { id: s.sub.id },
+    data: {
+      contenido: 'La figura tiene el ancho doble de su altura.',
+      imagenUrl: `/recursos/editoriales/${file.file.id}`,
+      archivoImagenId: file.file.id,
+    },
+  });
+  return {
+    app,
+    ...s,
+    file,
+    student,
+    token: tokenFor(student),
+    path: `/simulacros/temas/${s.theme.id}/pdf`,
+  };
+}
+
+test('C5-PDF P2 HTTP autenticado incrusta imagen y revocación bloquea una nueva copia', async () => {
+  const f = await pdfFixture();
+  assert.equal((await call(f.path, null, {}, f.app.base)).status, 401);
+  const before = await db.historialRespuesta.count({
+    where: { usuarioId: f.student.id },
+  });
+  const exported = await call(f.path, f.token, {}, f.app.base);
+  assert.equal(exported.status, 200);
+  assert.equal(exported.headers.get('content-type'), 'application/pdf');
+  assert.equal(exported.headers.get('cache-control'), 'private, no-store');
+  assert.equal(exported.headers.get('x-content-type-options'), 'nosniff');
+  assert.match(
+    exported.headers.get('content-disposition'),
+    /^attachment; filename="tema-/,
+  );
+  assert.equal(
+    Number(exported.headers.get('content-length')),
+    exported.data.length,
+  );
+  assert.equal(exported.data.subarray(0, 4).toString(), '%PDF');
+  assert.ok(exported.data.toString('latin1').includes('/Subtype /Image'));
+  const revoked = await call(
+    `${prefix}/${f.file.file.id}/revocaciones`,
+    f.file.token,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        operacionId: randomUUID(),
+        motivo: 'DERECHOS',
+        detalle: 'Ensayo sintético PDF P2.',
+      }),
+    },
+  );
+  assert.equal(revoked.status, 201);
+  const denied = await call(f.path, f.token, {}, f.app.base);
+  assert.equal(denied.status, 404);
+  assert.ok(!denied.headers.get('content-type').includes('application/pdf'));
+  assert.equal(
+    await db.historialRespuesta.count({ where: { usuarioId: f.student.id } }),
+    before,
+  );
+  assert.equal(
+    (await db.usuario.findUniqueOrThrow({ where: { id: f.student.id } }))
+      .xpTotal,
+    0,
+  );
+});
+
+test('C5-PDF P2 no exporta temas archivados ni imágenes de subtemas archivados', async () => {
+  const f = await pdfFixture();
+  await db.tema.update({
+    where: { id: f.theme.id },
+    data: { estadoContenido: 'ARCHIVADO' },
+  });
+  assert.equal((await call(f.path, f.token, {}, f.app.base)).status, 404);
+  await db.tema.update({
+    where: { id: f.theme.id },
+    data: { estadoContenido: 'PUBLICADO' },
+  });
+  await db.subtema.update({
+    where: { id: f.sub.id },
+    data: { estadoContenido: 'ARCHIVADO' },
+  });
+  const exported = await call(f.path, f.token, {}, f.app.base);
+  assert.equal(exported.status, 200);
+  assert.ok(!exported.data.toString('latin1').includes('/Subtype /Image'));
+});
+
+test('C5-PDF P2 runtime editorial apagado falla sin entregar un PDF incompleto', async () => {
+  const f = await pdfFixture();
+  const previous = process.env.EDITORIAL_FILES_LOCAL_ENABLED;
+  try {
+    process.env.EDITORIAL_FILES_LOCAL_ENABLED = 'false';
+    const denied = await call(f.path, f.token, {}, f.app.base);
+    assert.equal(denied.status, 503);
+    assert.ok(!denied.headers.get('content-type').includes('application/pdf'));
+  } finally {
+    if (previous === undefined)
+      delete process.env.EDITORIAL_FILES_LOCAL_ENABLED;
+    else process.env.EDITORIAL_FILES_LOCAL_ENABLED = previous;
+  }
+});
+
 async function structure(name = `Contenido C5 ${randomUUID()}`) {
   const theme = await db.tema.create({
     data: { nombre: name, area: 'MATEMATICAS', estadoContenido: 'PUBLICADO' },

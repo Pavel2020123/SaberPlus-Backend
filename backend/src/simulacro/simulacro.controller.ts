@@ -232,6 +232,8 @@ export class SimulacroController {
     @Res({ passthrough: true }) respuesta: Response,
   ) {
     const pdf = await this.temaPdfService.generarPdfTema(temaId);
+    respuesta.setHeader('Cache-Control', 'private, no-store');
+    respuesta.setHeader('X-Content-Type-Options', 'nosniff');
     respuesta.setHeader('Content-Type', 'application/pdf');
     respuesta.setHeader(
       'Content-Disposition',

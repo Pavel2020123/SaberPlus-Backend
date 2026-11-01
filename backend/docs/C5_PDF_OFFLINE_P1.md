@@ -1,5 +1,7 @@
 # C5-PDF P1 — imágenes editoriales en material descargable
 
+**Continuación:** [P2 HTTP/PostgreSQL y Android USB verificado](C5_PDF_OFFLINE_P2.md). Los pendientes P2 enumerados abajo son el estado de entrada de P1, no una orden de repetir el ensayo.
+
 31/oct/2026. Incremento local posterior a H3; no despliegue ni cierre de todo C5.
 
 ## Decisión de producto confirmada
