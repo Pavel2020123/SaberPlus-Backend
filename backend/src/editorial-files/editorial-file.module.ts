@@ -23,5 +23,6 @@ import {
     },
     { provide: EditorialFileStore, useClass: LocalEditorialFileStore },
   ],
+  exports: [EditorialFileService],
 })
 export class EditorialFileModule {}

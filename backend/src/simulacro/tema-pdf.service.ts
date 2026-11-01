@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 // PDFKit usa `export =` y este proyecto CommonJS no habilita esModuleInterop.
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 import PDFDocument = require('pdfkit');
@@ -6,6 +10,11 @@ import { existsSync, readFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { PrismaService } from '../prisma/prisma.service';
 import { ESTADO_PUBLICADO } from '../common/contenido-publicado';
+import { EditorialFileService } from '../editorial-files/editorial-file.service';
+import { managedEditorialImageId } from '../editorial-files/editorial-image-reference';
+import * as sharpModule from 'sharp';
+
+const sharp = sharpModule as unknown as typeof import('sharp').default;
 
 const AREA_NOMBRES: Record<string, string> = {
   LECTURA_CRITICA: 'Lectura Crítica',
@@ -218,7 +227,10 @@ function agregarImagenLocal(doc: PDFKit.PDFDocument, imagenUrl: string | null) {
 
 @Injectable()
 export class TemaPdfService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly editorialFiles: EditorialFileService,
+  ) {}
 
   async generarPdfTema(temaId: string) {
     const tema = await this.prisma.tema.findFirst({
@@ -231,6 +243,41 @@ export class TemaPdfService {
       },
     });
     if (!tema) throw new NotFoundException('El tema no existe.');
+
+    // Resolve only canonical, currently published resources, never arbitrary URLs
+    // or historical permissions. Do not silently export a lesson without its image.
+    const images = new Map<string, Buffer>();
+    let imageBytes = 0;
+    for (const subtema of tema.subtemas) {
+      if (
+        subtema.imagenUrl?.startsWith('/recursos/editoriales/') &&
+        !managedEditorialImageId(subtema.imagenUrl)
+      )
+        throw new NotFoundException('El archivo no está disponible.');
+      const id = managedEditorialImageId(subtema.imagenUrl ?? '');
+      if (!id || images.has(id)) continue;
+      if (images.size >= 32)
+        throw new ServiceUnavailableException(
+          'El tema contiene demasiadas imágenes para exportar.',
+        );
+      const bytes = await this.editorialFiles.publishedContent(id);
+      let png: Buffer;
+      try {
+        png = await sharp(bytes, { limitInputPixels: 20000000 })
+          .png()
+          .toBuffer();
+      } catch {
+        throw new ServiceUnavailableException(
+          'No pudimos preparar una imagen del PDF.',
+        );
+      }
+      imageBytes += png.length;
+      if (imageBytes > 32 * 1024 * 1024)
+        throw new ServiceUnavailableException(
+          'Las imágenes del tema exceden el límite de exportación.',
+        );
+      images.set(id, png);
+    }
 
     const archivo = await new Promise<Buffer>((resolve, reject) => {
       const doc = new PDFDocument({
@@ -263,6 +310,14 @@ export class TemaPdfService {
           lineGap: 3,
         });
       doc.y = 166;
+      doc
+        .font('Helvetica')
+        .fontSize(8.5)
+        .fillColor('#506773')
+        .text(
+          'Copia descargada: no se actualiza ni se retira a distancia. Consulta la app para ver el contenido vigente.',
+        );
+      doc.moveDown(0.8);
 
       if (tema.subtemas.length === 0) {
         doc
@@ -290,7 +345,15 @@ export class TemaPdfService {
           .stroke();
         doc.moveDown(0.8);
 
-        agregarImagenLocal(doc, subtema.imagenUrl);
+        const imageId = managedEditorialImageId(subtema.imagenUrl ?? '');
+        const image = imageId ? images.get(imageId) : undefined;
+        if (image) {
+          if (doc.y > doc.page.height - 280) doc.addPage();
+          doc.image(image, { fit: [470, 230], align: 'center' });
+          doc.moveDown(0.6);
+        } else {
+          agregarImagenLocal(doc, subtema.imagenUrl);
+        }
         if (subtema.contenido?.trim()) {
           renderizarMarkdown(doc, subtema.contenido);
         } else {
@@ -333,6 +396,10 @@ export class TemaPdfService {
       doc.end();
     });
 
+    // Revalidate after generation as well: a revocation during rendering must
+    // prevent this new export, but cannot recall previously downloaded PDFs.
+    for (const id of images.keys())
+      await this.editorialFiles.publishedContent(id);
     return { archivo, nombre: nombreArchivoSeguro(tema.nombre) };
   }
 }
