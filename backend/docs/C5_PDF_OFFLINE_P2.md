@@ -30,6 +30,8 @@ Hot reload aplicado. Android repitió la descarga denegada y mostró «Este PDF 
 
 Ver [acta Flutter y capturas](<../../../SaberPLus/saber_plus/docs/C5_PDF_OFFLINE_P2.md>). El estado final de APK/servicios se registra allí; no se presume por iniciar el build.
 
+Actualización final: APK debug compilada (70,5 s), paquete/etiqueta verificados e instalación Success. Mensaje corregido repetido después de reinstalar. API adicional 43188 detenida, sesión de la app cerrada y reverse original restaurado; API original del runner no actualizada/desplegada. Nueva regresión PDF/servicio/HTTP:78/78. No quedaron cambios en el baseline H3 al terminar.
+
 ## Límites
 
 P2 acredita este alcance local HTTP/Android, no validación humana independiente, exhaustividad visual de todo el catálogo, almacenamiento productivo ni todas las variantes de dispositivo. La revisión final del baseline H3 conservó XP 0, cinco respuestas, diez referencias históricas y cero filas CuadernoError.
