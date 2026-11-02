@@ -21,6 +21,10 @@ const historyImagesLocal = process.env.SABERPLUS_C5_HISTORY_IMAGES_LOCAL;
 if (historyImagesLocal !== undefined && !['true', 'false'].includes(historyImagesLocal)) {
   throw new Error('SABERPLUS_C5_HISTORY_IMAGES_LOCAL must be true or false.');
 }
+const privateOfflineLocal = process.env.SABERPLUS_C5_PRIVATE_OFFLINE_LOCAL;
+if (privateOfflineLocal !== undefined && !['true', 'false'].includes(privateOfflineLocal)) {
+  throw new Error('SABERPLUS_C5_PRIVATE_OFFLINE_LOCAL must be true or false.');
+}
 const backend = fileURLToPath(new URL('../', import.meta.url));
 const require = createRequire(join(backend, 'package.json'));
 const execute = promisify(execFile);
@@ -39,6 +43,7 @@ Object.assign(env, { POSTGRES_USER: user, POSTGRES_PASSWORD: password, POSTGRES_
   NODE_ENV: 'test', SMTP_HOST: '127.0.0.1', SMTP_PORT: '1',
   EDITORIAL_PUBLICATION_ENABLED: 'true', // Only this freshly owned local API.
   EDITORIAL_FILES_LOCAL_ENABLED: 'true', // C5: private files only in this owned test environment.
+  EDITORIAL_PRIVATE_OFFLINE_LOCAL_ENABLED: String(privateOfflineLocal === 'true'),
   EDITORIAL_OPTION_IMAGES_LOCAL_ENABLED: String(optionImagesLocal === 'true'),
   EDITORIAL_HISTORY_IMAGES_LOCAL_ENABLED: String(historyImagesLocal === 'true'),
   EDITORIAL_SOLO_SNAPSHOT_IMAGES_LOCAL_ENABLED: String(historyImagesLocal === 'true'),
@@ -176,7 +181,7 @@ try {
     pendingStudentCodesMigration: !paths.includes(studentCodesMigration),
     pendingQuestionReportsMigration: !paths.includes(questionReportsMigration),
     api: config.API_BASE_URL, syntheticFixtures: true, optionImagesLocal: optionImagesLocal === 'true',
-    historyImagesLocal: historyImagesLocal === 'true',
+    historyImagesLocal: historyImagesLocal === 'true', privateOfflineLocal: privateOfflineLocal === 'true',
     ownPosition: 51, totalParticipants: 61 }));
   console.log('Local control.json actions: correct, solo-on, solo-off, stop. No HTTP mutation route.');
   let corrected = false;
