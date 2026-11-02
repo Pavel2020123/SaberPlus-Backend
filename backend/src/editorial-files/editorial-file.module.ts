@@ -10,8 +10,8 @@ import { PrivateOfflineLessonController } from './private-offline-lesson.control
 import {
   EDITORIAL_FILE_ROOT,
   EditorialFileStore,
-  LocalEditorialFileStore,
 } from './editorial-file.store';
+import { editorialFileProvider } from './editorial-file-provider';
 
 @Module({
   imports: [PrismaModule],
@@ -28,7 +28,11 @@ import {
       provide: EDITORIAL_FILE_ROOT,
       useFactory: () => resolve(process.cwd(), '.tmp', 'editorial-files'),
     },
-    { provide: EditorialFileStore, useClass: LocalEditorialFileStore },
+    {
+      provide: EditorialFileStore,
+      inject: [EDITORIAL_FILE_ROOT],
+      useFactory: (root: string) => editorialFileProvider(root),
+    },
   ],
   exports: [EditorialFileService],
 })

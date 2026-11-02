@@ -15,9 +15,9 @@
 | No hay transacción atómica PostgreSQL/almacén. | Reserva, IO y confirmación del servicio son pasos separados. | Diagnóstico de estados intermedios, recuperación idempotente y respaldo coherente de metadatos/objetos; no prometer atomicidad distribuida. |
 | PDF exportado y caché privada son distintos. | P2 y P3 implementados; manifiesto privado y tiempo monotónico72h en Android. | Nueva copia/P3 deben denegar revocación; PDF ya exportado permanece independiente. |
 
-## Decisión pendiente
+## Decisión confirmada
 
-Los documentos C5 prevén **Supabase Storage privado**, pero el único adaptador real es `LocalEditorialFileStore` con raíz `.tmp/editorial-files`. Falta confirmación del propietario antes de elegir e implementar el protocolo del proveedor. No hay un proveedor existente configurado que pueda considerarse autorizado por inferencia.
+El propietario confirmó **Supabase Storage privado** el1/nov/2026 después de esta auditoría. Se autoriza implementar y ensayar localmente el adaptador, no crear/configurar buckets remotos ni usar credenciales reales. La base auditada solo contiene `LocalEditorialFileStore` con raíz `.tmp/editorial-files`; la nueva implementación debe registrarse con sus pruebas posteriores.
 
 Desarrollo/pruebas locales y preparación de entrega sí están autorizados. Crear/configurar buckets remotos, usar credenciales reales, contratar, desplegar, migrar remotamente o publicar requieren nueva autorización. No se sustituyó esa decisión con otra arquitectura ni se cambió el runtime productivo.
 
