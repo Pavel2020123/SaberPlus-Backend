@@ -987,8 +987,8 @@ function questionBody(sub, imagenUrl, extra = {}) {
     ...extra,
   };
 }
-async function panelFixture() {
-  const app = await server({ panel: true });
+async function panelFixture(options = {}) {
+  const app = await server({ panel: true, ...options });
   const password = randomUUID();
   const admin = await user('ADMIN', {
     contrasenaHash: await bcrypt.hash(password, 4),
@@ -998,6 +998,109 @@ async function panelFixture() {
   await api.login(admin.correo, password);
   return { app, admin, password, api, token: tokenFor(admin) };
 }
+
+function realStorageStore() {
+  const raw = process.env.EDITORIAL_FILES_SUPABASE_TEST_CONFIG;
+  if (!raw) return null;
+  const config = JSON.parse(raw);
+  assert.match(config.url, /^http:\/\/127\.0\.0\.1:\d+$/);
+  assert.match(config.bucket, /^editorial-[a-f0-9]{16}$/);
+  assert.equal(typeof config.serviceKey, 'string');
+  assert.equal(process.env.NODE_ENV, 'test');
+  return new (require('../src/editorial-files/supabase-editorial-file.store').SupabaseEditorialFileStore)(config);
+}
+
+test('C5-D real Storage panel API to student image PDF manifest and revocation', {
+  skip: !process.env.EDITORIAL_FILES_SUPABASE_TEST_CONFIG,
+}, () => withPrivateOffline(async () => {
+  const store = realStorageStore();
+  const f = await panelFixture({ consumers: true, store });
+  const s = await structure(`Supabase real ${randomUUID()}`);
+  const file = await f.api.uploadEditorialFile(new Blob([image], { type: 'image/png' }), fields(), randomUUID());
+  const path = `/recursos/editoriales/${file.id}`;
+  const lesson = await f.api.editor('subtemas', s.sub.id, s.theme.id);
+  await f.api.editor('subtemas', s.sub.id, s.theme.id, {
+    revision: lesson.revision, contenido: 'Lección sintética de integración persistente.', videoUrl: '', imagenUrl: path,
+  });
+  const student = await user('ESTUDIANTE'), token = tokenFor(student);
+  const content = await call(path, token, {}, f.app.base);
+  assert.equal(content.status, 200);
+  assert.deepEqual(content.data, await store.read(file.id));
+  const { EditorialFileRecoveryService } = require('../src/editorial-files/editorial-file-recovery.service');
+  const recovery = f.app.app.get(EditorialFileRecoveryService);
+  const previousOps = process.env.EDITORIAL_FILE_OPERATIONS_LOCAL_ENABLED;
+  let backup;
+  process.env.EDITORIAL_FILE_OPERATIONS_LOCAL_ENABLED = 'true';
+  try {
+    backup = await recovery.backup(f.admin.id, file.id);
+    await store.remove(file.id); // Fault injection into this newly owned synthetic object only.
+    assert.equal((await call(path, token, {}, f.app.base)).status, 503);
+    await recovery.restore(f.admin.id, file.id, backup);
+    assert.deepEqual((await call(path, token, {}, f.app.base)).data, content.data);
+    const { promisify } = require('node:util');
+    const { execFile } = require('node:child_process');
+    const execute = promisify(execFile);
+    const storageConfig = JSON.parse(process.env.EDITORIAL_FILES_SUPABASE_TEST_CONFIG);
+    const cliEnv = { ...process.env, EDITORIAL_FILE_PROVIDER: 'supabase', EDITORIAL_SUPABASE_STORAGE_URL: storageConfig.url,
+      EDITORIAL_SUPABASE_BUCKET: storageConfig.bucket, EDITORIAL_SUPABASE_SERVICE_KEY: storageConfig.serviceKey };
+    const operator = async (command, resourceId, confirmation, overrides = {}) => {
+      const args = ['tool/editorial_file_operations.mjs', command, process.env.EDITORIAL_FILES_TEST_OWNER, f.admin.id];
+      if (resourceId) args.push(resourceId);
+      if (confirmation) args.push(confirmation);
+      const result = await execute(process.execPath, args, { env: { ...cliEnv, ...overrides }, timeout: 60000, maxBuffer: 1024 * 1024 });
+      return JSON.parse(result.stdout.trim());
+    };
+    assert.ok(Array.isArray((await operator('audit')).items));
+    assert.equal((await operator('backup', file.id)).backupCreated, true);
+    await store.remove(file.id);
+    assert.equal((await operator('restore', file.id)).bytesVerificados, content.data.length);
+    assert.deepEqual((await call(path, token, {}, f.app.base)).data, content.data);
+    const legacy = await resource();
+    await operator('backup', legacy.file.id, undefined, { EDITORIAL_FILE_PROVIDER: 'local' });
+    await operator('restore', legacy.file.id);
+    assert.deepEqual(await store.read(legacy.file.id), await disk.read(legacy.file.id));
+    await assert.rejects(recovery.cleanupRetired(f.admin.id, file.id));
+    const unused = await f.api.uploadEditorialFile(new Blob([image], { type: 'image/png' }), fields(), randomUUID());
+    const remove = store.remove.bind(store);
+    store.remove = async () => { throw new ServiceUnavailableException('Synthetic interrupted cleanup'); };
+    assert.equal((await call(`${prefix}/${unused.id}`, f.token, { method: 'DELETE' }, f.app.base)).status, 503);
+    store.remove = remove;
+    assert.equal((await call(`${prefix}/${unused.id}/contenido`, f.token, {}, f.app.base)).status, 404);
+    await recovery.cleanupRetired(f.admin.id, unused.id);
+    assert.equal((await operator('cleanup', unused.id, '--confirm-cleanup')).estado, 'RETIRADO');
+    await assert.rejects(store.read(unused.id));
+  } finally {
+    if (previousOps === undefined) delete process.env.EDITORIAL_FILE_OPERATIONS_LOCAL_ENABLED;
+    else process.env.EDITORIAL_FILE_OPERATIONS_LOCAL_ENABLED = previousOps;
+  }
+  const pdfPath = `/simulacros/temas/${s.theme.id}/pdf`;
+  const pdf = await call(pdfPath, token, {}, f.app.base);
+  assert.equal(pdf.status, 200);
+  assert.ok(pdf.data.toString('latin1').includes('/Subtype /Image'));
+  const exportedHash = digest(pdf.data);
+  const manifestPath = `/recursos/editoriales/lecciones/${s.sub.id}/offline`;
+  const options = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ requestNonce: 'c'.repeat(64) }) };
+  const manifest = await call(manifestPath, token, options, f.app.base);
+  assert.equal(manifest.status, 201);
+  assert.equal(manifest.data.ownerId, student.id);
+  assert.deepEqual(Buffer.from(manifest.data.snapshot.image.base64, 'base64'), content.data);
+  await f.api.revokeEditorialFile(file.id, randomUUID(), { motivo: 'DERECHOS', detalle: 'Ensayo sintético Storage real C5-D.' });
+  process.env.EDITORIAL_FILE_OPERATIONS_LOCAL_ENABLED = 'true';
+  try {
+    assert.equal((await recovery.restore(f.admin.id, file.id, backup)).estado, 'REVOCADO');
+    await assert.rejects(recovery.cleanupRetired(f.admin.id, file.id));
+  } finally {
+    if (previousOps === undefined) delete process.env.EDITORIAL_FILE_OPERATIONS_LOCAL_ENABLED;
+    else process.env.EDITORIAL_FILE_OPERATIONS_LOCAL_ENABLED = previousOps;
+  }
+  for (const url of [path, pdfPath]) assert.equal((await call(url, token, {}, f.app.base)).status, 404);
+  assert.equal((await call(manifestPath, token, options, f.app.base)).status, 404);
+  assert.equal(digest(pdf.data), exportedHash); // An exported PDF is not revoked in place.
+  assert.equal(await db.historialRespuesta.count({ where: { usuarioId: student.id } }), 0);
+  assert.equal((await db.usuario.findUniqueOrThrow({ where: { id: student.id } })).xpTotal, 0);
+  f.api.logout();
+  console.log(JSON.stringify({ phase: 'c5-d-real-storage-flow-verified', panelApi: true, studentRead: true, pdfImage: true, privateManifest: true, revocation: true, exportedCopyRetained: true, exactBackupRestore: true, interruptedCleanupRecovered: true, revokedRetention: true, operatorCli: true, legacyCopySameIdentity: true }));
+}));
 
 async function withOptionImages(action) {
   const previous = process.env.EDITORIAL_OPTION_IMAGES_LOCAL_ENABLED;
@@ -5033,7 +5136,8 @@ test('C5-B/C2-B/H3 panel Chromium: carga, publicación, recarga y revocación co
       t.skip('No hay Chromium instalado; recorrido visual pendiente.');
       return;
     }
-    const f = await panelFixture(),
+    const storage = realStorageStore();
+    const f = await panelFixture(storage ? { store: storage } : {}),
       s = await structure('AAA C5 navegador ' + randomUUID());
     const { createAdminServer } = await import('../../admin/server.mjs');
     const panel = createAdminServer({ apiBase: f.app.base });
@@ -5252,7 +5356,7 @@ test('C5-B/C2-B/H3 panel Chromium: carga, publicación, recarga y revocación co
           where: { id: question.id },
           data: { estadoContenido: 'ARCHIVADO' },
         });
-        assert.equal((await call(optionReference, token)).status, 200);
+        assert.equal((await call(optionReference, token, {}, f.app.base)).status, 200);
         await page.click('#section-images');
         await page.waitForSelector('#editorial-file-access-panel input');
         await page.type('#editorial-file-access-panel input', optionReference);
@@ -5326,7 +5430,7 @@ test('C5-B/C2-B/H3 panel Chromium: carga, publicación, recarga y revocación co
         );
         page.off('request', intercept);
         await page.setRequestInterception(false);
-        assert.equal((await call(optionReference, token)).status, 404);
+        assert.equal((await call(optionReference, token, {}, f.app.base)).status, 404);
         assert.equal(
           await db.revocacionArchivoEditorial.count({
             where: { archivoId: optionReference.split('/').pop() },
@@ -5369,7 +5473,8 @@ test('C5-B/C2-B/H3 panel Chromium: carga, publicación, recarga y revocación co
       assert.deepEqual(runtimeErrors, []);
       console.log(
         JSON.stringify({
-          phase: 'c5b-browser-verified',
+        phase: 'c5b-browser-verified',
+        storageProvider: storage ? 'supabase-local' : 'local',
           desktop: true,
           responsive390: true,
           android: false,

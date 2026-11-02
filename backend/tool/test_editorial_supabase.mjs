@@ -63,6 +63,10 @@ export async function withOwnedSupabase(action) {
       catch { await new Promise((ok) => setTimeout(ok, 300)); }
     }
     assert.ok(ready);
+    // Storage's upstream migrations reference this role even with a random
+    // bootstrap owner. Only this newly owned empty test DB is touched.
+    await owned('container', dbName);
+    await docker('exec', dbName, 'psql', '-X', '-U', username, '-d', 'postgres', '-v', 'ON_ERROR_STOP=1', '-c', 'CREATE ROLE postgres NOLOGIN SUPERUSER;');
     stage = 'storage';
     const keys = Object.keys(env).filter((key) => !/^(PATH|SystemRoot|WINDIR|TEMP|TMP|USERPROFILE|LOCALAPPDATA|APPDATA|COMSPEC|PATHEXT|DOCKER_CONTEXT|POSTGRES_)/i.test(key));
     await docker('run', '-d', '--name', name, '--label', `${purpose}=${nonce}`, '--network', network,
@@ -89,8 +93,19 @@ export async function withOwnedSupabase(action) {
     assert.equal(created.status, 200);
     console.log(JSON.stringify({ phase: 'c5-owned-storage-ready', image, loopback: true, privateBucket: true }));
     stage = 'test';
-    return await action({ config: { url, bucket, serviceKey }, anonKey, restart: async () => { await owned('container', name); await docker('restart', name); }, docker, name, dbName, volume });
+    return await action({ config: { url, bucket, serviceKey }, anonKey, restart: async () => {
+      await owned('container', name); await docker('restart', name);
+      const current = (await docker('port', name, '5000/tcp')).stdout.trim();
+      assert.match(current, /^127\.0\.0\.1:\d+$/);
+      console.log(JSON.stringify({ phase: 'c5-storage-restart-binding', changed: current !== binding }));
+      return `http://${current}`;
+    }, docker, name, dbName, volume });
   } catch (error) {
+    if (createdStorage) {
+      const logs = await docker('logs', '--tail', '4', name).catch(() => ({ stdout: '', stderr: '' }));
+      const safe = (logs.stdout + logs.stderr).replaceAll(password, '[secret]').replaceAll(secret, '[secret]').replaceAll(serviceKey, '[secret]').replaceAll(anonKey, '[secret]');
+      console.error(safe.slice(-4000));
+    }
     console.error(JSON.stringify({ phase: 'c5-owned-storage-failed', stage, type: error?.constructor?.name, status: error?.status ?? null }));
     throw new Error(`Owned Storage check failed at ${stage}`);
   } finally {
@@ -106,30 +121,36 @@ export async function withOwnedSupabase(action) {
 async function main() {
   if (process.argv.length !== 2) throw new Error('External configuration is not accepted');
   require('ts-node/register/transpile-only');
-  const { SupabaseEditorialFileStore } = require('../src/editorial-files/supabase-editorial-file.store');
+  const { SupabaseEditorialFileStore } = require('./src/editorial-files/supabase-editorial-file.store');
   const sharp = require('sharp');
   await withOwnedSupabase(async ({ config, anonKey, restart }) => {
-    const store = new SupabaseEditorialFileStore(config);
+    const checkpoint = (step) => console.log(JSON.stringify({ phase: 'c5-storage-check', step }));
+    let store = new SupabaseEditorialFileStore(config);
     const id = randomUUID();
     const bytes = await sharp({ create: { width: 80, height: 40, channels: 3, background: 'blue' } }).webp().toBuffer();
-    await store.put(id, bytes);
+    checkpoint('upload'); await store.put(id, bytes);
     assert.deepEqual(await store.read(id), bytes);
-    await Promise.all(Array.from({ length: 4 }, () => store.put(id, bytes)));
+    checkpoint('replay'); await Promise.all(Array.from({ length: 4 }, () => store.put(id, bytes)));
     await assert.rejects(store.put(id, Buffer.from('different')));
-    const anonymous = await fetch(`${config.url}/object/authenticated/${config.bucket}/editorial/v1/${id}.webp`, { headers: { Authorization: `Bearer ${anonKey}` } });
+    checkpoint('anonymous'); const anonymous = await fetch(`${config.url}/object/authenticated/${config.bucket}/editorial/v1/${id}.webp`, { headers: { Authorization: `Bearer ${anonKey}` } });
+    console.log(JSON.stringify({ phase: 'c5-storage-access-status', anonymous: anonymous.status }));
     assert.ok(anonymous.status >= 400);
-    const publicRead = await fetch(`${config.url}/object/public/${config.bucket}/editorial/v1/${id}.webp`);
+    checkpoint('public'); const publicRead = await fetch(`${config.url}/object/public/${config.bucket}/editorial/v1/${id}.webp`);
     assert.ok(publicRead.status >= 400);
-    await restart();
+    checkpoint('restart'); const restartedUrl = await restart();
+    store = new SupabaseEditorialFileStore({ ...config, url: restartedUrl });
     let restored = false;
-    for (let i = 0; i < 30; i++) {
+    for (let i = 0; i < 80; i++) {
       try { assert.deepEqual(await store.read(id), bytes); restored = true; break; }
       catch { await new Promise((ok) => setTimeout(ok, 300)); }
     }
     assert.ok(restored);
-    await store.remove(id); await store.remove(id);
+    checkpoint('remove'); await store.remove(id); await store.remove(id);
     await assert.rejects(store.read(id));
     console.log(JSON.stringify({ phase: 'c5-real-storage-contract-passed', persistedAcrossRestart: true, concurrentReplay: true, noOverwrite: true, anonymousDenied: true, publicDenied: true, repeatedDelete: true }));
   });
 }
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main().catch(() => { process.exitCode = 1; });
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main().catch((error) => {
+  console.error(JSON.stringify({ phase: 'c5-storage-runner-failed', type: error?.constructor?.name, code: error?.code ?? null }));
+  process.exitCode = 1;
+});

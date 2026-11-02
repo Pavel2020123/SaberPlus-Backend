@@ -12,6 +12,7 @@ import {
   EditorialFileStore,
 } from './editorial-file.store';
 import { editorialFileProvider } from './editorial-file-provider';
+import { EditorialFileRecoveryService } from './editorial-file-recovery.service';
 
 @Module({
   imports: [PrismaModule],
@@ -23,6 +24,7 @@ import { editorialFileProvider } from './editorial-file-provider';
   providers: [
     EditorialFileRuntime,
     EditorialFileService,
+    EditorialFileRecoveryService,
     PrivateOfflineLessonService,
     {
       provide: EDITORIAL_FILE_ROOT,

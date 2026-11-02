@@ -40,7 +40,7 @@ export function validateEditorialFilesDatabase(value, marker) {
     throw new Error('Solo se permite el PostgreSQL temporal propio de C5.');
 }
 
-async function main() {
+async function main(storage) {
   if (process.argv.length !== 2)
     throw new Error('No se aceptan argumentos ni URL externa.');
   const root = await realpath(tmpdir());
@@ -67,6 +67,7 @@ async function main() {
     EDITORIAL_FILES_LOCAL_ENABLED: 'true',
     EDITORIAL_PUBLICATION_ENABLED: 'true',
   });
+  if (storage) env.EDITORIAL_FILES_SUPABASE_TEST_CONFIG = JSON.stringify(storage.config);
   let context,
     url = '',
     created = false,
@@ -74,6 +75,7 @@ async function main() {
   const redact = (value) =>
     String(value)
       .replaceAll(password, '[oculto]')
+      .replaceAll(storage?.config.serviceKey || 'unused-storage-key', '[clave almacenamiento]')
       .replaceAll(url || 'unused-url', '[base temporal]');
   const run = (command, args, cwd = backend, timeout = 120000) =>
     execute(command, args, {
@@ -301,7 +303,12 @@ if (
   process.argv[1] &&
   pathToFileURL(resolve(process.argv[1])).href === import.meta.url
 ) {
-  main().catch(() => {
+  const realStorage = process.env.SABERPLUS_C5_REAL_STORAGE_TEST;
+  if (realStorage !== undefined && !['true', 'false'].includes(realStorage)) throw new Error('Invalid local Storage opt-in');
+  const executeTests = realStorage === 'true'
+    ? import('./test_editorial_supabase.mjs').then(({ withOwnedSupabase }) => withOwnedSupabase(main))
+    : main();
+  executeTests.catch(() => {
     console.error('No se pudo completar C5; detalles privados omitidos.');
     process.exitCode = 1;
   });

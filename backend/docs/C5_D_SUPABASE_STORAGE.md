@@ -1,5 +1,11 @@
 # C5-D — adaptador Supabase Storage privado, desarrollo local
 
+## Actualización vigente · 2/nov/2026
+
+La sección de verificación original de abajo es histórica. Storage oficial local ya se ejecutó: los logs del 1/nov registran contrato real aprobado, dos baterías integradas de 99/99 casos y cinco escenarios Android sobre el proveedor de ensayo. Se añadieron recuperación conservadora y CLI local; el 2/nov se repite el recorrido incluyendo copia desde el proveedor local con la misma identidad. No se presenta un proceso todavía en ejecución como aprobado.
+
+La falta de espacio original está resuelta. Nueva batería del 2/nov aprobada: 99/99 integradas, 242/242 unitarias editoriales, 7/7 CLI; compilación y lint dirigido correctos. [Runbook operativo, comandos, evidencia y límites](C5_D_OPERACION_LOCAL.md). La auditoría es paginada sobre registros PostgreSQL; no detecta ni borra objetos sin registro del bucket. No hubo activación de Supabase remoto ni producción. La entrega por PR se prepara localmente, sin push ni merge.
+
 1/nov/2026. Proveedor confirmado expresamente por el propietario. **Incremento en desarrollo, no cierre C5-D.** Sin conexión a un proyecto Supabase real, nuevas migraciones, despliegues ni gastos.
 
 ## Implementación
