@@ -5,6 +5,8 @@ import { EditorialFileController } from './editorial-file.controller';
 import { EditorialResourceController } from './editorial-resource.controller';
 import { EditorialFileRuntime } from './editorial-file-runtime';
 import { EditorialFileService } from './editorial-file.service';
+import { PrivateOfflineLessonService } from './private-offline-lesson.service';
+import { PrivateOfflineLessonController } from './private-offline-lesson.controller';
 import {
   EDITORIAL_FILE_ROOT,
   EditorialFileStore,
@@ -13,10 +15,15 @@ import {
 
 @Module({
   imports: [PrismaModule],
-  controllers: [EditorialFileController, EditorialResourceController],
+  controllers: [
+    EditorialFileController,
+    EditorialResourceController,
+    PrivateOfflineLessonController,
+  ],
   providers: [
     EditorialFileRuntime,
     EditorialFileService,
+    PrivateOfflineLessonService,
     {
       provide: EDITORIAL_FILE_ROOT,
       useFactory: () => resolve(process.cwd(), '.tmp', 'editorial-files'),

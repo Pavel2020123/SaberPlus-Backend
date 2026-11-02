@@ -724,6 +724,134 @@ test('C5 ACL y RLS bloquean lectura directa de recibos para anon/authenticated',
   }
 });
 
+async function withPrivateOffline(action) {
+  const previous = process.env.EDITORIAL_PRIVATE_OFFLINE_LOCAL_ENABLED,
+    firstInstance = instances.length;
+  process.env.EDITORIAL_PRIVATE_OFFLINE_LOCAL_ENABLED = 'true';
+  try {
+    return await action();
+  } finally {
+    for (const instance of instances.splice(firstInstance))
+      await instance.close();
+    if (previous === undefined)
+      delete process.env.EDITORIAL_PRIVATE_OFFLINE_LOCAL_ENABLED;
+    else process.env.EDITORIAL_PRIVATE_OFFLINE_LOCAL_ENABLED = previous;
+  }
+}
+
+test('C5-P3 private manifest requires explicit opt-in and cannot be enabled in production', async (t) => {
+  const f = await pdfFixture();
+  t.after(async () => {
+    const index = instances.indexOf(f.app.app);
+    if (index >= 0) instances.splice(index, 1);
+    await f.app.app.close();
+  });
+  const path = `/recursos/editoriales/lecciones/${f.sub.id}/offline`;
+  const options = {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ requestNonce: 'a'.repeat(64) }),
+  };
+  assert.equal((await call(path, f.token, options, f.app.base)).status, 503);
+  await withPrivateOffline(async () => {
+    const prior = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+    try {
+      assert.equal(
+        (await call(path, f.token, options, f.app.base)).status,
+        503,
+      );
+    } finally {
+      process.env.NODE_ENV = prior;
+    }
+  });
+});
+
+test('C5-P3 private manifest derives owner from JWT, binds snapshot and blocks revoked images', () =>
+  withPrivateOffline(async () => {
+    const f = await pdfFixture();
+    const path = `/recursos/editoriales/lecciones/${f.sub.id}/offline`;
+    const nonce = 'a'.repeat(64),
+      options = {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestNonce: nonce }),
+      };
+    assert.equal((await call(path, null, options, f.app.base)).status, 401);
+    assert.equal(
+      (
+        await call(
+          path,
+          f.token,
+          {
+            ...options,
+            body: JSON.stringify({
+              requestNonce: nonce,
+              ownerId: randomUUID(),
+            }),
+          },
+          f.app.base,
+        )
+      ).status,
+      400,
+    );
+    const result = await call(path, f.token, options, f.app.base);
+    assert.equal(result.status, 201);
+    assert.equal(result.headers.get('cache-control'), 'private, no-store');
+    assert.equal(result.data.ownerId, f.student.id);
+    assert.equal(result.data.requestNonce, nonce);
+    assert.equal(
+      Date.parse(result.data.expiresAt) - Date.parse(result.data.validatedAt),
+      72 * 60 * 60 * 1000,
+    );
+    assert.equal(
+      result.data.contextDigest,
+      digest(JSON.stringify(result.data.snapshot)),
+    );
+    assert.equal(
+      result.data.snapshot.image.sha256,
+      digest(Buffer.from(result.data.snapshot.image.base64, 'base64')),
+    );
+    assert.ok(!('preguntas' in result.data));
+    assert.ok(!('respuestas' in result.data));
+    const revocation = await call(
+      `${prefix}/${f.file.file.id}/revocaciones`,
+      f.file.token,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          operacionId: randomUUID(),
+          motivo: 'DERECHOS',
+          detalle: 'Ensayo privado P3.',
+        }),
+      },
+    );
+    assert.equal(revocation.status, 201);
+    assert.equal((await call(path, f.token, options, f.app.base)).status, 404);
+  }));
+
+test('C5-P3 private manifest never grants archived contexts or unverified accounts', () =>
+  withPrivateOffline(async () => {
+    const f = await pdfFixture(),
+      path = `/recursos/editoriales/lecciones/${f.sub.id}/offline`;
+    const options = {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requestNonce: 'b'.repeat(64) }),
+    };
+    await db.subtema.update({
+      where: { id: f.sub.id },
+      data: { estadoContenido: 'ARCHIVADO' },
+    });
+    assert.equal((await call(path, f.token, options, f.app.base)).status, 404);
+    await db.usuario.update({
+      where: { id: f.student.id },
+      data: { correoVerificado: false },
+    });
+    assert.equal((await call(path, f.token, options, f.app.base)).status, 403);
+  }));
+
 async function pdfFixture() {
   const app = await server({ consumers: true });
   const s = await structure('PDF C5 - proporciones');

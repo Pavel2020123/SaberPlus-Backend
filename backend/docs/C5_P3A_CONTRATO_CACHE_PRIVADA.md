@@ -1,5 +1,7 @@
 # C5-P3-A — borrador de contrato para caché privada de imágenes
 
+**Continuación:** [implementación local del manifiesto y pruebas](C5_P3_IMPLEMENTACION_LOCAL.md). Las expresiones de trabajo pendiente de este borrador describen P3-A; consultar el incremento posterior para el estado actual. Producción continúa desactivada.
+
 1/nov/2026. Continuación de PDF P2, **propuesta técnica aún no implementada**. El propietario aprobó separar PDF exportable de contenido privado offline y revalidar este último al reconectar. No se inventa aprobación de plazos, endpoints ni permisos nuevos.
 
 ## Política confirmada posteriormente por el propietario

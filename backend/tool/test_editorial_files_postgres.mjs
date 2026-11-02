@@ -134,7 +134,8 @@ async function main() {
     const binding = (await docker('port', name, '5432/tcp')).stdout.trim();
     if (!/^127\.0\.0\.1:\d+$/.test(binding))
       throw new Error('Se requiere loopback.');
-    url = `postgresql://${user}:${password}@${binding}/postgres?connection_limit=12&pool_timeout=30`;
+    // Many isolated Nest fixtures coexist; cap each pool, not PostgreSQL globally.
+    url = `postgresql://${user}:${password}@${binding}/postgres?connection_limit=4&pool_timeout=30`;
     const marker = { purpose, nonce, url };
     validateEditorialFilesDatabase(url, marker);
     const owner = join(directory, 'owner.json');
