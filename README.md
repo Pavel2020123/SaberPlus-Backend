@@ -1,12 +1,24 @@
 # SaberPlus Backend
 
+**Estado 3/nov:** LIC-1/LIC-2/LIC-3 implementados y verificados localmente.
+[Estado y pruebas del portal institucional y Flutter](backend/docs/LIC_3_PORTAL_Y_APP.md).
+Las prioridades inferiores son antecedentes; esto no constituye despliegue comercial.
+
+**Retoma 31/oct:** [estado, licencias #14 y pagos retirados](backend/docs/RETOMA_Y_VIABILIDAD_LICENCIAS_2026_10_31.md). La presentación concluyó según el propietario; H3/ESLint siguen abiertos. Licencias no implementadas; Google Play Billing previsto, sin pasarela móvil antigua operativa. Las prioridades inferiores son antecedentes.
+
+**Prioridad vigente desde 26/oct hasta la presentación del 28/oct:**
+[recorrido y alcance para el cliente](backend/docs/PRESENTACION_CLIENTE_2026_10_28.md). Pavel pausó la limpieza
+ESLint y el recorrido técnico de etapas para preparar la experiencia educativa.
+Conservar sus cambios y evidencias; no declararlos terminados. OV-1 sigue con
+su responsable. Las notas técnicas inferiores son antecedentes durante esta pausa.
+
 **Trabajo vigente del 25/oct:** [limpieza de ESLint backend por bloques](backend/docs/LIMPIEZA_ESLINT_BACKEND.md),
 autorizada por Pavel. H3 queda en espera con 1/4 guiones aprobado; H3-2 pendiente
 de regresar a la primera cuenta. No dar H3 ni la limpieza global por terminadas.
 OV-1 continúa independiente; conservar todos los cambios locales anteriores.
 Actualización 26/oct: bloque competitivo L2-B/L3 verificado con 103 pruebas
 dirigidas y ambos proyectos TypeScript aprobados.
-Limpieza parcial: quedan 283 errores/179 advertencias de lint; sigue L2-B/L3.
+Limpieza parcial: quedan 229 errores/116 advertencias de lint; sigue L2-B/L3.
 
 **Checkpoint vigente — 25/oct:** [H3 preparada y pausa antes de USB](backend/docs/C5_H3_INTEGRACION.md).
 Panel 144/144, sintaxis 29 módulos y Flutter dirigido 39/39. Integración H3

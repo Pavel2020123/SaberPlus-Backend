@@ -1,12 +1,25 @@
 # API de SaberPlus
 
+**Estado 3/nov:** LIC-1, LIC-2 y LIC-3 implementados y verificados localmente.
+[Portal institucional, estados Flutter y evidencia vigente](docs/LIC_3_PORTAL_Y_APP.md).
+Las prioridades fechadas inferiores son antecedentes. No hubo despliegue, migración
+remota, billing, push ni merge por estas entregas locales.
+
+**Entrada vigente 31/oct:** [retoma técnica y viabilidad de #14](docs/RETOMA_Y_VIABILIDAD_LICENCIAS_2026_10_31.md). No confundir propuesta fusionada con licencias implementadas. CSV/cupos existentes se amplían; Wompi/ePayco retirados, historial Prisma conservado. Sin migraciones ni despliegue en esta revisión.
+
+**Prioridad vigente desde 26/oct hasta la presentación del 28/oct:**
+[recorrido y alcance para el cliente](docs/PRESENTACION_CLIENTE_2026_10_28.md).
+Pavel pausó la limpieza ESLint y el recorrido técnico de etapas para preparar
+la experiencia educativa. Conservar cambios y evidencias; no declarar cierres.
+OV-1 mantiene su responsable. No modificar el backend para fingir una demo real.
+
 **Trabajo vigente del 25/oct:** [limpieza de ESLint backend por bloques](docs/LIMPIEZA_ESLINT_BACKEND.md),
 autorizada por Pavel. H3 queda en espera con 1/4 guiones aprobado; H3-2 pendiente
 de regresar a la primera cuenta. No dar H3 ni la limpieza global por terminadas.
 OV-1 continúa independiente; conservar todos los cambios locales anteriores.
 Actualización 26/oct: bloque competitivo L2-B/L3 verificado con 103 pruebas
 dirigidas y ambos proyectos TypeScript aprobados.
-Limpieza parcial: quedan 283 errores/179 advertencias de lint; sigue L2-B/L3.
+Limpieza parcial: quedan 229 errores/116 advertencias de lint; sigue L2-B/L3.
 
 ## Tipos de pruebas en VS Code
 

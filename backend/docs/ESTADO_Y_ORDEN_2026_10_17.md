@@ -1,9 +1,13 @@
 # Continuación después de instituciones — espejo backend
 
+**Prioridad del 26 al 28/oct:** [presentación al cliente](PRESENTACION_CLIENTE_2026_10_28.md).
+Limpieza ESLint y ejecución de etapas pausadas por Pavel; conservar el estado
+inferior como antecedente. No retomar automáticamente H3 ni modificar OV-1.
+
 **Actualización vigente — 26/oct:** [limpieza de tipado y respaldo del avance](LIMPIEZA_ESLINT_BACKEND.md).
 Cambios separados en commits de limpieza/configuración y C5 histórico local.
 H3 sigue abierta, 1/4 guiones aprobado: terminar H3-2, después H3-3/H3-4.
-ESLint pendiente: 283 errores/179 advertencias. No hay despliegue ni cierre C5.
+ESLint pendiente: 229 errores/116 advertencias. No hay despliegue ni cierre C5.
 Las continuaciones y menciones a cambios sin commit de fechas inferiores son
 antecedentes del momento indicado, no instrucciones vigentes.
 

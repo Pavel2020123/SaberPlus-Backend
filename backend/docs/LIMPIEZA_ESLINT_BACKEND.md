@@ -191,3 +191,62 @@ Las integraciones PostgreSQL/Android no se repitieron para crear estos commits.
 H3 sigue abierta: 1/4 guiones aprobado; falta terminar H3-2 y ejecutar H3-3/H3-4.
 ESLint sigue abierto con 283 errores/179 advertencias en el último recuento.
 Guardar o publicar la rama no aplica migraciones ni autoriza despliegue.
+
+## Segundo bloque competitivo L2-B / L3 — 26 de octubre
+
+Se eliminaron los any de los metadatos DTO y de los accesos privados del
+ensayo de visibilidad Tira. Los mocks SQL/callbacks de transacción tienen
+firmas explícitas. Los casts restantes representan dobles parciales de
+Prisma/publicador exclusivamente en tests, no datos productivos confiables.
+Las comprobaciones de recuperación, aislamiento del observador, liberación
+del pool y errores de esquema permanecen activas.
+
+Los cuatro controladores Cima, Guardián, Rescate y Trivia comparten ahora
+readCompetitiveOptIn: recibe unknown y devuelve el valor original del campo.
+Se mantiene IsBoolean: no convertir las cadenas "true"/"false" ni números en
+una admisión competitiva. Trece nuevos casos cubren valores crudos y ausencia.
+No cambian autenticación, puntuación, plazos, SQL ni presupuestos transaccionales.
+
+ESLint en los ocho archivos de este bloque: cero errores y advertencias.
+Recuento global: **246 errores y 163 advertencias** en 387 archivos;
+37 errores y 16 advertencias menos que antes del bloque. Restan retornos
+inseguros 36, llamadas 18, accesos 137, asignaciones 53 y base-to-string 2;
+los 163 argumentos inseguros son advertencias. La limpieza no está cerrada.
+TypeScript general/build aprobados; tres suites dirigidas/50 pruebas aprobadas
+antes de añadir los trece casos del helper. Suite completa posterior:
+**135 suites / 1.777 pruebas aprobadas**, 84,635 s. No se repiten integraciones
+físicas o PostgreSQL.
+H3 sigue en espera y OV-1 independiente. No commit/push de este nuevo bloque.
+
+## Tercer bloque — presencia Tira y avisos del adjunto, 26 de octubre
+
+replayTugPresence recibe filas desconocidas y comprueba la estructura de
+conexiones/eventos antes de leerlas. El estado reconstruido usa bigint y
+campos explícitos, sin Record<string, any>. Se mantienen el orden por ID,
+microsegundos, gracia de 30 s, lease de 45 s, límites de autenticación,
+reconexión, estados UNKNOWN y revisión de todo el historial inmutable.
+Los objetos originales se conservan, incluidos campos adicionales de evidencia;
+no se normalizan ni se recortan los datos usados en hashes.
+Una fila mal formada se rechaza con ROW, CONNECTION_DATA o EVENT_DATA.
+
+Se añadieron nueve casos: ocho de datos mal formados y uno de conservación de
+referencias/campos adicionales. En el consumidor tug-replay solo se precisaron
+los tipos de eventos autenticados ya filtrados; su limpieza completa sigue
+pendiente y no se modificaron consultas SQL ni reglas deportivas.
+
+También se corrigieron todos los avisos adjuntos en Trivia, certificado-curso
+(test), Guardian controller (test) y logo HTTP (test): JSON parseado como unknown,
+metadatos comprobados, matcher aislado y servidor HTTP real validado.
+Los seis archivos del listado dirigido, incluido el nuevo test de presencia,
+quedaron con cero errores y cero advertencias ESLint.
+
+Recuento global: **229 errores y 116 advertencias** en 387 archivos.
+Respecto al bloque anterior: 17 errores y 47 advertencias menos. Restan retornos
+inseguros 33, llamadas 17, asignaciones 41, accesos 136 y base-to-string 2;
+los 116 argumentos inseguros son advertencias. La limpieza global sigue abierta.
+TypeScript general/build aprobados. Suite completa: **135 suites / 1.786
+pruebas aprobadas**, 68,505 s. Un error intermedio del test HTTP al intentar
+usar un genérico no admitido por getHttpServer fue corregido con una comprobación
+real de Server; no se ocultó ni se desactivó ninguna regla.
+No se repitió PostgreSQL ni Android; esta evidencia unitaria no los sustituye.
+H3 permanece en espera y OV-1 independiente. Sin commit/push de esta pasada.

@@ -482,3 +482,43 @@ Archivos: `public/learning-map-editor.mjs`, `public/learning-map-fields.mjs`,
 `demo-learning-map.mjs`, `test/learning-map.test.mjs`. Contrato real:
 `../backend/LEARNING_MAP.md`. Verificar con `npm run check` y `npm test` en `admin/`.
 MA-2C Flutter implementada localmente. Migración/despliegue y ensayo real siguen pendientes.
+
+## LIC-2 — Utilidad local de cuentas institucionales
+
+`/cuentas` permite solicitar/aprobar sufijo, alta individual/CSV con previsualización,
+entrega única de temporales y reset por ámbito. El login editorial sigue siendo
+exclusivo de ADMIN; esta entrada separada admite propietario y docente autorizado.
+No es un buzón de correo ni el portal LIC-3. No persiste credenciales en navegador.
+
+Contrato, límites, pruebas reales de Edge/API/PostgreSQL y estado de entrega:
+[LIC-2](../backend/docs/LIC_2_CUENTAS_GESTIONADAS.md). No equivale a despliegue.
+
+## LIC-3 — Portal institucional local
+
+Entrada `/institucion`, con la misma cuenta y API de SaberPlus. Propietario:
+grupos, asignación/invitación docente, seguimiento, prioridades y cuentas LIC-2.
+Docente: solo grupos/alumnos asignados y acciones autorizadas por backend.
+La licencia vencida conserva consulta histórica y restringe nuevas gestiones;
+«Actualizar estado» revalida con el servidor, sin cerrar sesión por un 403.
+
+Arrancar con `API_BASE_URL=http://127.0.0.1:43187` y `ADMIN_PORT=4173` mediante
+`node server.mjs`, después de tener preparada la API local. No hay login de muestra
+permanente ni credenciales guardadas en el navegador. `/` sigue siendo editorial ADMIN.
+
+Verificación: 165 pruebas y sintaxis de 34 módulos; recorrido Edge/API/PostgreSQL
+real con datos propios desechables. Diseño UI/UX Pro Max, teclado, contraste,
+reduced-motion y vistas móviles. [Alcance, evidencias y límites actuales](../backend/docs/LIC_3_PORTAL_Y_APP.md).
+Implementación local, sin despliegue; no confundir con publicación comercial.
+
+## LIC-4 — Bajas y privacidad
+
+El propietario dispone de Bajas en `/institucion`: retirar cupo conserva la
+cuenta/historial; desvincular personal permite volver a modalidad independiente,
+pero no convierte cuentas gestionadas. Solicitar supresión no elimina datos.
+En `/privacidad`, solo ADMIN revisa impacto, bloqueos y confirmación escrita
+antes de ejecutar. Ejecución deshabilitada por defecto en backend. No se permite
+eliminar una institución o usuario con las rutas genéricas heredadas.
+
+[Contrato y evidencias locales LIC-4](../backend/docs/LIC_4_BAJAS_Y_RETENCION.md).
+Portal: 177 pruebas y sintaxis de 37 módulos; SQL/API/Edge con fixtures propios,
+sin afirmar despliegue o eliminación de datos reales.
