@@ -1,4 +1,5 @@
 import { Transform } from 'class-transformer';
+import { readCompetitiveOptIn } from '../common/competitive-opt-in';
 import {
   Body,
   Controller,
@@ -27,7 +28,7 @@ import { GuardianService } from './guardian.service';
 class CreateGuardianDto {
   @IsOptional()
   @IsBoolean()
-  @Transform(({ obj }) => obj.competitive)
+  @Transform(readCompetitiveOptIn)
   competitive?: boolean;
   @IsEnum(AreaIcfes) area!: AreaIcfes;
   @IsEnum(Dificultad) dificultad!: Dificultad;

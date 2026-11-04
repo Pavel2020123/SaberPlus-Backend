@@ -1,5 +1,6 @@
 import 'reflect-metadata';
-import { Logger, ValidationPipe } from '@nestjs/common';
+import { Logger, Type, ValidationPipe } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { Test } from '@nestjs/testing';
 import { CompetitiveModule } from './competitive.module';
 import { CompetitiveTugPairProtocol } from './competitive.tug-pair-protocol';
@@ -22,6 +23,33 @@ import { StarRescueController } from '../star-rescue/star-rescue.controller';
 
 const id = 'abcdef12-1234-4234-8234-123456789abc';
 const uid = 'abcdef12-1234-4234-8234-123456789def';
+
+function controllerDto(
+  controller: Type<unknown>,
+  method: string,
+  index: number,
+): Type<object> {
+  const prototype: unknown = controller.prototype;
+  if (prototype === null || typeof prototype !== 'object') {
+    throw new Error('Missing controller prototype');
+  }
+  const metadata: unknown = Reflect.getMetadata(
+    'design:paramtypes',
+    prototype,
+    method,
+  );
+  if (!Array.isArray(metadata))
+    throw new Error('Missing controller DTO metadata');
+  const dto: unknown = metadata[index];
+  if (typeof dto !== 'function') throw new Error('Missing DTO constructor');
+  return dto as Type<object>;
+}
+
+function competitiveValue(value: unknown): unknown {
+  if (value === null || typeof value !== 'object')
+    throw new Error('Expected transformed DTO');
+  return 'competitive' in value ? value.competitive : undefined;
+}
 function fixture(game: (typeof SOLO_GAMES)[number]): SoloAttempt {
   return {
     id,
@@ -65,9 +93,13 @@ describe.each(SOLO_GAMES)('$gameId verifier contract', (game) => {
     row.respuestas = choices(game.gameId === 'SUMMIT' ? 5 : 6);
     row.estado = 'VICTORIA';
     row.finalizadoEn = new Date(1000);
-    const tx = { $queryRaw: jest.fn().mockResolvedValue([row]) };
+    const tx = {
+      $queryRaw: jest
+        .fn<Promise<SoloAttempt[]>, [Prisma.Sql]>()
+        .mockResolvedValue([row]),
+    };
     const terminal = await new SoloCompetitiveVerifier(game).loadTerminal(
-      tx as any,
+      tx as unknown as Prisma.TransactionClient,
       { sourceType: game.sourceType, sourceId: id, participantId: uid },
     );
     expect(terminal.resolution.kind).toBe('RESULTADO');
@@ -88,42 +120,38 @@ describe.each(SOLO_GAMES)('$gameId verifier contract', (game) => {
   });
   it('rejects legacy, nonterminal and premature expiry evidence', async () => {
     const row = fixture(game),
-      tx = { $queryRaw: jest.fn().mockResolvedValue([row]) };
+      tx = {
+        $queryRaw: jest
+          .fn<Promise<SoloAttempt[]>, [Prisma.Sql]>()
+          .mockResolvedValue([row]),
+      };
     const verifier = new SoloCompetitiveVerifier(game),
       source = {
         sourceType: game.sourceType,
         sourceId: id,
         participantId: uid,
       };
-    await expect(verifier.loadTerminal(tx as any, source)).rejects.toThrow(
-      'SOURCE_NOT_TERMINAL',
-    );
+    await expect(
+      verifier.loadTerminal(tx as unknown as Prisma.TransactionClient, source),
+    ).rejects.toThrow('SOURCE_NOT_TERMINAL');
     row.competitiveRulesVersion = null;
-    await expect(verifier.loadTerminal(tx as any, source)).rejects.toThrow(
-      'INELIGIBLE_SOURCE',
-    );
+    await expect(
+      verifier.loadTerminal(tx as unknown as Prisma.TransactionClient, source),
+    ).rejects.toThrow('INELIGIBLE_SOURCE');
     row.competitiveRulesVersion = 1;
     row.estado = 'EXPIRADO';
     row.finalizadoEn = new Date(1000);
-    await expect(verifier.loadTerminal(tx as any, source)).rejects.toThrow(
-      'INVALID_SOLO_TIME',
-    );
+    await expect(
+      verifier.loadTerminal(tx as unknown as Prisma.TransactionClient, source),
+    ).rejects.toThrow('INVALID_SOLO_TIME');
   });
 });
 
 describe.each([SummitController, GuardianController, StarRescueController])(
   '%p competitive HTTP creation',
   (Controller) => {
-    const dto = Reflect.getMetadata(
-      'design:paramtypes',
-      Controller.prototype,
-      'start',
-    )[1];
-    const answerDto = Reflect.getMetadata(
-      'design:paramtypes',
-      Controller.prototype,
-      'answer',
-    )[2];
+    const dto = controllerDto(Controller, 'start', 1);
+    const answerDto = controllerDto(Controller, 'answer', 2);
     const pipe = new ValidationPipe({
       transform: true,
       whitelist: true,
@@ -133,17 +161,18 @@ describe.each([SummitController, GuardianController, StarRescueController])(
     const base = { area: 'MATEMATICAS', dificultad: 'BASICO' };
     it('defaults legacy to no opt-in and accepts only an actual boolean', async () => {
       expect(
-        (await pipe.transform(base, { type: 'body', metatype: dto }))
-          .competitive,
+        competitiveValue(
+          await pipe.transform(base, { type: 'body', metatype: dto }),
+        ),
       ).toBeUndefined();
       for (const competitive of [true, false])
         expect(
-          (
+          competitiveValue(
             await pipe.transform(
               { ...base, competitive },
               { type: 'body', metatype: dto },
-            )
-          ).competitive,
+            ),
+          ),
         ).toBe(competitive);
       for (const competitive of ['true', 'false', 1])
         await expect(
@@ -254,7 +283,10 @@ describe('production registry and reconciler lifecycle', () => {
   it('scans at startup and periodically, coalesces overlap and stops at shutdown', async () => {
     jest.useFakeTimers();
     const prisma = { $queryRaw: jest.fn().mockResolvedValue([]) };
-    const worker = new CompetitiveReconciler(prisma as any, {} as any);
+    const worker = new CompetitiveReconciler(
+      prisma as unknown as PrismaService,
+      {} as CompetitiveService,
+    );
     try {
       worker.onApplicationBootstrap();
       const running = worker.reconcile();
@@ -281,7 +313,10 @@ describe('production registry and reconciler lifecycle', () => {
         .mockRejectedValueOnce(new Error('temporary DB outage'))
         .mockResolvedValue([]),
     };
-    const worker = new CompetitiveReconciler(prisma as any, {} as any);
+    const worker = new CompetitiveReconciler(
+      prisma as unknown as PrismaService,
+      {} as CompetitiveService,
+    );
     try {
       await worker.reconcile();
       await worker.reconcile();
@@ -302,7 +337,10 @@ describe('production registry and reconciler lifecycle', () => {
       .spyOn(Logger.prototype, 'error')
       .mockImplementation(() => {});
     const prisma = { $queryRaw: jest.fn().mockRejectedValue(error) };
-    const worker = new CompetitiveReconciler(prisma as any, {} as any);
+    const worker = new CompetitiveReconciler(
+      prisma as unknown as PrismaService,
+      {} as CompetitiveService,
+    );
     try {
       await worker.reconcile();
       expect(log).toHaveBeenCalledWith(

@@ -11,6 +11,7 @@ import {
   MaxLength,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
+import { readCompetitiveOptIn } from '../common/competitive-opt-in';
 import {
   BadRequestException,
   Body,
@@ -36,7 +37,7 @@ import { TriviaRushService } from './trivia-rush.service';
 
 class CrearTriviaRushDto {
   @IsOptional()
-  @Transform(({ obj }) => obj.competitive)
+  @Transform(readCompetitiveOptIn)
   @IsBoolean()
   competitive?: boolean;
 

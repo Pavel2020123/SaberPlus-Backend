@@ -113,7 +113,7 @@ export class InstitucionService {
         });
         await tx.invitacionInstitucion.updateMany({
           where: {
-            correo: usuario.correo.trim().toLowerCase(),
+            correo: usuario.correo?.trim().toLowerCase() ?? { in: [] },
             estado: 'PENDIENTE',
           },
           data: { estado: 'CANCELADA' },
@@ -175,65 +175,14 @@ export class InstitucionService {
   }
 
   async eliminarMiInstitucion(usuarioId: string) {
-    const approval = await this.prisma.solicitudAltaInstitucion.findFirst({
-      where: { institucion: { Usuario: { some: { id: usuarioId } } } },
-      select: { id: true },
-    });
-    if (approval)
-      throw new BadRequestException(
-        'Solicita la baja al equipo de SaberPlus. Se conservará el historial de verificación y no se borrarán los datos de los estudiantes desde esta acción.',
-      );
     const usuario = await this.prisma.usuario.findUnique({
       where: { id: usuarioId },
-      select: {
-        id: true,
-        correo: true,
-        rol: true,
-        nombre: true,
-        institucionId: true,
-      },
+      select: { id: true },
     });
-
-    if (!usuario) {
-      throw new UnauthorizedException('Usuario no encontrado.');
-    }
-
-    if (!usuario.institucionId) {
-      throw new BadRequestException('No perteneces a una institución.');
-    }
-
-    if (usuario.rol !== 'PROFESOR' && usuario.rol !== 'ADMIN') {
-      throw new UnauthorizedException(
-        'Solo un profesor o administrador puede eliminar la institución.',
-      );
-    }
-
-    const institucionId = usuario.institucionId;
-
-    // Usuario no tiene onDelete: Cascade hacia Institucion, así que
-    // desvinculamos a todos antes de borrar (Clase sí cascadea solo).
-    await this.prisma.$transaction([
-      this.prisma.usuario.updateMany({
-        where: { institucionId },
-        data: { institucionId: null },
-      }),
-      this.prisma.institucion.delete({ where: { id: institucionId } }),
-    ]);
-
-    // El institucionId viaja en el JWT, así que emitimos uno nuevo sin él.
-    const payload = {
-      sub: usuario.id,
-      correo: usuario.correo,
-      rol: usuario.rol,
-      nombre: usuario.nombre,
-      institucionId: null,
-    };
-    const accessToken = await this.jwtService.signAsync(payload);
-
-    return {
-      mensaje: 'La institución fue eliminada correctamente.',
-      accessToken,
-    };
+    if (!usuario) throw new UnauthorizedException('Usuario no encontrado.');
+    throw new BadRequestException(
+      'Solicita la baja al equipo de SaberPlus. La eliminación directa está deshabilitada; se conserva el historial y no se borran cuentas ni resultados desde esta acción.',
+    );
   }
 
   async obtenerAnaliticasDeMiInstitucion(usuarioId: string) {

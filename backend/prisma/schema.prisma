@@ -113,7 +113,119 @@ model CodigoTemporalGrupo {
   @@index([creadoPorId, fechaCreacion])
 }
 
+enum TipoCupoInstitucional {
+  ESTUDIANTE
+  DOCENTE
+}
+
+enum EstadoAsignacionLicencia {
+  PENDIENTE
+  ACTIVA
+  RETIRADA
+}
+
+// Presence is an explicit opt-in; expiration must never restore legacy access.
+model ControlLicenciaInstitucional {
+  sufijo SufijoInstitucional?
+  institucionId String @id @db.Uuid
+  suspendida Boolean @default(false)
+  creadoEn DateTime @default(now()) @db.Timestamptz(3)
+  institucion Institucion @relation(fields: [institucionId], references: [id], onDelete: Restrict)
+  periodos PeriodoContratoInstitucional[]
+  asignaciones AsignacionLicenciaInstitucional[]
+  operaciones OperacionLicenciaInstitucional[]
+  origenesGestionados OrigenGestionadoInstitucional[]
+}
+
+model PeriodoContratoInstitucional {
+  id String @id @db.Uuid
+  institucionId String @db.Uuid
+  inicio DateTime @db.Timestamptz(3)
+  fin DateTime @db.Timestamptz(3)
+  meses Int
+  cuposEstudiantes Int
+  cuposDocentes Int
+  referenciaAcuerdo String @db.VarChar(255)
+  creadoEn DateTime @default(now()) @db.Timestamptz(3)
+  control ControlLicenciaInstitucional @relation(fields: [institucionId], references: [institucionId], onDelete: Restrict)
+
+  @@unique([institucionId, inicio])
+  @@index([institucionId, fin])
+}
+
+model AsignacionLicenciaInstitucional {
+  saldosPersonales SaldoPersonalInstitucional[]
+  id String @id @db.Uuid
+  institucionId String @db.Uuid
+  usuarioId String @db.Uuid
+  tipo TipoCupoInstitucional
+  estado EstadoAsignacionLicencia @default(PENDIENTE)
+  aceptadaEn DateTime? @db.Timestamptz(3)
+  retiradaEn DateTime? @db.Timestamptz(3)
+  creadoEn DateTime @default(now()) @db.Timestamptz(3)
+  actualizadoEn DateTime @updatedAt @db.Timestamptz(3)
+  control ControlLicenciaInstitucional @relation(fields: [institucionId], references: [institucionId], onDelete: Restrict)
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Restrict)
+
+  @@unique([institucionId, usuarioId])
+  @@index([institucionId, estado, tipo])
+}
+
+model SufijoInstitucional {
+  institucionId String @id @db.Uuid
+  solicitado String @db.VarChar(189)
+  aprobado String? @unique @db.VarChar(189)
+  version Int @default(1)
+  solicitadoEn DateTime @db.Timestamptz(3)
+  aprobadoEn DateTime? @db.Timestamptz(3)
+  control ControlLicenciaInstitucional @relation(fields: [institucionId], references: [institucionId], onDelete: Restrict)
+}
+
+model IdentificadorLogin {
+  valor String @id @db.VarChar(255)
+  usuarioId String @db.Uuid
+  tipo String @db.VarChar(16)
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  @@unique([usuarioId, tipo])
+}
+
+model SaldoPersonalInstitucional {
+  id String @id @db.Uuid
+  usuarioId String @db.Uuid
+  asignacionId String @db.Uuid
+  milisegundos BigInt
+  venceOriginal DateTime @db.Timestamptz(3)
+  guardadoEn DateTime @db.Timestamptz(3)
+  reanudadoEn DateTime? @db.Timestamptz(3)
+  venceReanudadoEn DateTime? @db.Timestamptz(3)
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Restrict)
+  asignacion AsignacionLicenciaInstitucional @relation(fields: [asignacionId], references: [id], onDelete: Restrict)
+}
+
+model OrigenGestionadoInstitucional {
+  usuarioId String @id @db.Uuid
+  institucionId String @db.Uuid
+  creadoEn DateTime @default(now()) @db.Timestamptz(3)
+  control ControlLicenciaInstitucional @relation(fields: [institucionId], references: [institucionId], onDelete: Restrict)
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Restrict)
+}
+
+model OperacionLicenciaInstitucional {
+  id String @id @db.Uuid
+  institucionId String @db.Uuid
+  actorId String @db.Uuid
+  tipo String @db.VarChar(40)
+  huella String @db.VarChar(64)
+  resultado Json
+  creadoEn DateTime @default(now()) @db.Timestamptz(3)
+  control ControlLicenciaInstitucional @relation(fields: [institucionId], references: [institucionId], onDelete: Restrict)
+  actor Usuario @relation(fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([institucionId, creadoEn])
+}
+
 model Institucion {
+  controlLicencia ControlLicenciaInstitucional?
   // Solo se asigna desde revisión ADMIN; null conserva legado sin clasificar.
   departamentoCodigo   String? @db.VarChar(2)
   municipioCodigo      String? @db.VarChar(5)
@@ -185,6 +297,18 @@ model IngresoInstitucionCodigo {
 }
 
 model Usuario {
+  suprimidaEn DateTime? @db.Timestamptz(3)
+  solicitudesSupresionDestino SolicitudSupresionCuenta[] @relation("SupresionDestino")
+  solicitudesSupresionCreadas SolicitudSupresionCuenta[] @relation("SupresionSolicitante")
+  solicitudesSupresionRevisadas SolicitudSupresionCuenta[] @relation("SupresionRevisor")
+  identificadoresLogin IdentificadorLogin[]
+  identificadorInstitucional String? @unique @db.VarChar(254)
+  versionSesion Int @default(0)
+  temporalConsumidaEn DateTime? @db.Timestamptz(3)
+  saldosPersonalesInstitucionales SaldoPersonalInstitucional[]
+  asignacionesLicencia AsignacionLicenciaInstitucional[]
+  origenGestionadoLicencia OrigenGestionadoInstitucional?
+  operacionesLicencia OperacionLicenciaInstitucional[]
   archivosEditoriales ArchivoEditorial[]
   reportesPreguntas ReportePregunta[] @relation("AutorReportePregunta")
   operacionesReportePregunta OperacionReportePregunta[] @relation("ActorOperacionReportePregunta")
@@ -198,7 +322,7 @@ model Usuario {
   solicitudAltaInstitucion SolicitudAltaInstitucion?
   id                        String                        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   nombre                    String                        @db.VarChar(255)
-  correo                    String                        @unique @db.VarChar(255)
+  correo                    String?                       @unique @db.VarChar(255)
   contrasenaHash            String
   // Cuando el admin crea la cuenta manualmente con una contraseña
   // temporal (punto 12: institución vía panel de admin), esta bandera
@@ -279,6 +403,27 @@ model Usuario {
   invitacionesAceptadas     InvitacionInstitucion[]       @relation("ReceptorInvitacionInstitucion")
   auditoriasCreadas         AuditoriaInstitucion[]        @relation("ActorAuditoriaInstitucion")
   auditoriasRecibidas       AuditoriaInstitucion[]        @relation("AfectadoAuditoriaInstitucion")
+}
+
+// Reviewed, explicit suppression. No scheduled purge or institutional bulk delete.
+model SolicitudSupresionCuenta {
+  id String @id @db.Uuid
+  operacionId String @unique @db.Uuid
+  usuarioId String @db.Uuid
+  solicitanteId String @db.Uuid
+  revisorId String? @db.Uuid
+  estado String @default("PENDIENTE") @db.VarChar(20)
+  motivo String @db.VarChar(500)
+  creadoEn DateTime @default(now()) @db.Timestamptz(3)
+  revisadoEn DateTime? @db.Timestamptz(3)
+  ejecutadoEn DateTime? @db.Timestamptz(3)
+  version Int @default(1)
+  usuario Usuario @relation("SupresionDestino", fields: [usuarioId], references: [id], onDelete: Restrict)
+  solicitante Usuario @relation("SupresionSolicitante", fields: [solicitanteId], references: [id], onDelete: Restrict)
+  revisor Usuario? @relation("SupresionRevisor", fields: [revisorId], references: [id], onDelete: Restrict)
+
+  @@index([estado, creadoEn])
+  @@index([usuarioId, creadoEn])
 }
 
 // C5-A: recursos preparados, todavía sin asociación a contenido publicado.
@@ -692,7 +837,10 @@ model AnuncioLectura {
   @@index([usuarioId, fechaLectura])
 }
 
-// --- MÓDULO: PASARELA DE PAGO (Wompi) ---
+// --- HISTORIAL LEGADO DE PAGOS: SIN PASARELA OPERATIVA ---
+// Android: Google Play Billing es la ruta prevista, todavía no implementada.
+// No reutilizar estas tablas como verificación de compras Play ni como licencia.
+// Se conservan por compatibilidad de migraciones y registros históricos.
 
 enum EstadoPago {
   PENDIENTE
@@ -707,12 +855,10 @@ enum EstadoReferido {
   RECOMPENSADO
 }
 
-// Una orden por cada intento de pago del muro de pago del estudiante
-// individual. Se crea en PENDIENTE antes de mandar al estudiante a
-// ePayco, y el webhook de confirmación la actualiza según el resultado
-// real de la transacción. La factura (`factura`) es el identificador
-// que viaja a ePayco como x_id_invoice y vuelve en el webhook, así que
-// es la llave para encontrar la orden de vuelta sin depender de sesión.
+// Tipos y órdenes del contrato de pagos retirado. Las rutas /pagos responden
+// HTTP 410 y no crean ni aprueban órdenes. Conservar enums, columnas y relaciones
+// hasta auditar los datos y aprobar una migración independiente de archivo/retiro.
+// Una futura pasarela web requiere contrato propio; no reactiva este legado.
 enum TipoPlan {
   MENSUAL
   TEMPORADA_A
@@ -735,6 +881,7 @@ model PagoOrden {
   estado                 EstadoPago      @default(PENDIENTE)
   cuponId                String?         @db.Uuid
   Cupon                  Cupon?          @relation(fields: [cuponId], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "fk_pagoorden_cupon")
+  // Referencia histórica del proveedor retirado; no usar para nuevas compras.
   refPayco               String?         @db.VarChar(50)
   transaccionId          String?         @unique @db.VarChar(100)
   motivoRespuesta        String?         @db.Text

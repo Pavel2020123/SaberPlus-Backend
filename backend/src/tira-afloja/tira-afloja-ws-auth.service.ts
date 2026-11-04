@@ -2,6 +2,7 @@ import {
   ForbiddenException,
   Injectable,
   UnauthorizedException,
+  Optional,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { RolUsuario } from '@prisma/client';
@@ -10,6 +11,8 @@ import { JwtPayload } from '../auth/auth.types';
 import { requiereVerificacionCorreo } from '../auth/verificacion.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { requireChangedInitialPassword } from '../auth/initial-password-access';
+import { LicenciaAccesoService } from '../institucion/licencia-acceso.service';
+import { exigirVersionSesion } from '../auth/session-version.policy';
 
 export interface UsuarioSocketTiraAfloja {
   id: string;
@@ -22,6 +25,7 @@ export class TiraAflojaWsAuthService {
   constructor(
     private readonly jwtService: JwtService,
     private readonly prisma: PrismaService,
+    @Optional() private readonly licencia?: LicenciaAccesoService,
   ) {}
 
   async autenticar(cliente: Socket): Promise<UsuarioSocketTiraAfloja> {
@@ -48,6 +52,7 @@ export class TiraAflojaWsAuthService {
         institucionId: true,
         correoVerificado: true,
         debeCambiarContrasena: true,
+        versionSesion: true,
       },
     });
     if (!usuario) {
@@ -58,10 +63,12 @@ export class TiraAflojaWsAuthService {
         'Tira y afloja solo admite cuentas de estudiante.',
       );
     }
+    exigirVersionSesion(usuario.versionSesion, payload.versionSesion);
     requireChangedInitialPassword(usuario.debeCambiarContrasena);
     if (requiereVerificacionCorreo(usuario)) {
       throw new ForbiddenException('Debes verificar tu correo para jugar.');
     }
+    await this.licencia?.exigirPractica(usuario.id);
     return {
       id: usuario.id,
       nombre: usuario.nombre,

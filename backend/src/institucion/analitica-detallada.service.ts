@@ -14,7 +14,15 @@ export interface AnaliticaAreaEstudiante {
 export interface AnaliticaEstudianteDetallada {
   id: string;
   nombre: string;
-  correo: string;
+  correo: string | null;
+  identificadorInstitucional: string | null;
+  diagnosticoInicial: {
+    completadoEn: Date;
+    totalPreguntas: number;
+    respuestasCorrectas: number | null;
+    porcentaje: number;
+    porArea: { area: AreaIcfes; porcentaje: number }[];
+  } | null;
   xpTotal: number;
   grupos: { id: string; nombre: string }[];
   totalSimulacros: number;
@@ -71,6 +79,7 @@ export class AnaliticaDetalladaService {
           _count: progresoPublicadoCount,
           nombre: true,
           correo: true,
+          identificadorInstitucional: true,
           xpTotal: true,
           ClaseEstudiante: {
             where: soloGruposAsignados
@@ -90,6 +99,10 @@ export class AnaliticaDetalladaService {
           },
           diagnosticoInicial: {
             select: {
+              completadoEn: true,
+              totalPreguntas: true,
+              respuestasCorrectas: true,
+              porcentaje: true,
               resultadosPorArea: {
                 select: { area: true, porcentaje: true },
               },
@@ -151,6 +164,20 @@ export class AnaliticaDetalladaService {
           id: estudiante.id,
           nombre: estudiante.nombre,
           correo: estudiante.correo,
+          identificadorInstitucional:
+            estudiante.identificadorInstitucional ?? null,
+          diagnosticoInicial:
+            estudiante.diagnosticoInicial?.completadoEn &&
+            estudiante.diagnosticoInicial.porcentaje != null
+              ? {
+                  completadoEn: estudiante.diagnosticoInicial.completadoEn,
+                  totalPreguntas: estudiante.diagnosticoInicial.totalPreguntas,
+                  respuestasCorrectas:
+                    estudiante.diagnosticoInicial.respuestasCorrectas,
+                  porcentaje: estudiante.diagnosticoInicial.porcentaje,
+                  porArea: estudiante.diagnosticoInicial.resultadosPorArea,
+                }
+              : null,
           xpTotal: estudiante.xpTotal ?? 0,
           grupos: estudiante.ClaseEstudiante.map((item) => item.Clase),
           totalSimulacros,

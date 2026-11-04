@@ -133,7 +133,7 @@ export class TugSportsReplay
       const proof = [
         ...history.events
           .filter(
-            (e) =>
+            (e): e is typeof e & { kind: 'CONNECTED' | 'RENEWED' } =>
               e.userId === user &&
               ['CONNECTED', 'RENEWED'].includes(e.kind) &&
               history.openAt(user, us(e.atUs)),
@@ -146,7 +146,11 @@ export class TugSportsReplay
               us(a.atUs) <= terminal &&
               history.openAt(user, us(a.atUs)),
           )
-          .map((a) => ({ kind: 'ACCEPTED_ANSWER', id: a.id, atUs: a.atUs })),
+          .map((a) => ({
+            kind: 'ACCEPTED_ANSWER' as const,
+            id: a.id,
+            atUs: a.atUs,
+          })),
       ].sort((a, b) =>
         us(a.atUs) < us(b.atUs)
           ? -1

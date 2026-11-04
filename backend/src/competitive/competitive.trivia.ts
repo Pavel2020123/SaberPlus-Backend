@@ -384,12 +384,14 @@ export class TriviaCompetitiveVerifier implements CompetitiveVerifier {
         compatibleConfiguration: true,
       };
     }
-    const hashable = (v: unknown): unknown =>
-      JSON.parse(
-        JSON.stringify(v, (_k, value) =>
+    const hashable = (v: unknown): unknown => {
+      const parsed: unknown = JSON.parse(
+        JSON.stringify(v, (_k: string, value: unknown) =>
           typeof value === 'bigint' ? value.toString() : value,
         ),
       );
+      return parsed;
+    };
     return {
       source: { ...source, sourceId: id },
       // The allowlist above excludes local Tira attempts from this verifier.

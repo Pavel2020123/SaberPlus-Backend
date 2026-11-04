@@ -18,6 +18,7 @@ export async function canReadBattleSnapshotImage(
   db: Database,
   id: string,
   owner: string,
+  onlyHistory = false,
 ) {
   const path = editorialImagePath(id.toLowerCase());
   const options = Prisma.sql`CASE WHEN jsonb_typeof(p."snapshotInicial"->'pregunta'->'respuestas')='array'
@@ -33,7 +34,7 @@ export async function canReadBattleSnapshotImage(
         EXISTS(SELECT 1 FROM "BatallaRespuesta" r CROSS JOIN LATERAL jsonb_array_elements(${options}) option
           WHERE r."batallaId"=b.id AND r."usuarioId"=u."usuarioId" AND r."preguntaId"=p."preguntaId" AND r.orden=p.orden
             AND option->>'id'=r."respuestaSeleccionadaId" AND option->'esCorrecta'=to_jsonb(r."esCorrecta"))
-        OR (b.estado='ACTIVA' AND b."expiraEn">timezone('UTC',clock_timestamp()) AND u.estado='EN_JUEGO' AND u."iniciadoEn" IS NOT NULL
+        OR (NOT ${onlyHistory} AND b.estado='ACTIVA' AND b."expiraEn">timezone('UTC',clock_timestamp()) AND u.estado='EN_JUEGO' AND u."iniciadoEn" IS NOT NULL
           AND NOT EXISTS(SELECT 1 FROM "BatallaRespuesta" r WHERE r."batallaId"=b.id AND r."usuarioId"=u."usuarioId" AND r.orden=p.orden)
           AND NOT EXISTS(SELECT 1 FROM "BatallaPregunta" previous WHERE previous."batallaId"=b.id AND previous.orden<p.orden
             AND NOT EXISTS(SELECT 1 FROM "BatallaRespuesta" r WHERE r."batallaId"=b.id AND r."usuarioId"=u."usuarioId" AND r.orden=previous.orden AND r."preguntaId"=previous."preguntaId")))

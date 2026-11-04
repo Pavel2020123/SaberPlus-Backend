@@ -195,6 +195,11 @@ async function main(storage) {
     if (!committed.length)
       throw new Error('Cadena versionada de migraciones requerida.');
     const pending = [
+      'prisma/migrations/20261102230000_managed_temporary_single_login/migration.sql',
+      'prisma/migrations/20261102180000_institution_license_contracts/migration.sql',
+      'prisma/migrations/20261102200000_institution_personal_balance/migration.sql',
+      'prisma/migrations/20261102220000_managed_account_identity/migration.sql',
+      'prisma/migrations/20261102223000_institution_alias_suffix/migration.sql',
       'prisma/migrations/20261020120000_editorial_files_base/migration.sql',
       'prisma/migrations/20261020150000_editorial_image_links/migration.sql',
       'prisma/migrations/20261021180000_editorial_option_image_links/migration.sql',

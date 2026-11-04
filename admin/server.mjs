@@ -5,6 +5,20 @@ import { resolve } from "node:path";
 import { createDemoApi } from "./demo-api.mjs";
 
 const assets = new Map([
+  ['/institucion', ['institution.html', 'text/html; charset=utf-8']],
+  ['/institution.css', ['institution.css', 'text/css; charset=utf-8']],
+  ['/institution-app.mjs', ['institution-app.mjs', 'text/javascript; charset=utf-8']],
+  ['/institution-learning.mjs', ['institution-learning.mjs', 'text/javascript; charset=utf-8']],
+  ['/institution-groups.mjs', ['institution-groups.mjs', 'text/javascript; charset=utf-8']],
+  ['/institution-lifecycle.mjs', ['institution-lifecycle.mjs', 'text/javascript; charset=utf-8']],
+  ['/privacidad', ['privacy.html', 'text/html; charset=utf-8']],
+  ['/privacy-app.mjs', ['privacy-app.mjs', 'text/javascript; charset=utf-8']],
+  ['/privacy-requests.mjs', ['privacy-requests.mjs', 'text/javascript; charset=utf-8']],
+  ['/privacy.css', ['privacy.css', 'text/css; charset=utf-8']],
+  ['/cuentas', ['cuentas.html', 'text/html; charset=utf-8']],
+  ['/managed-accounts.mjs', ['managed-accounts.mjs', 'text/javascript; charset=utf-8']],
+  ['/managed-accounts-app.mjs', ['managed-accounts-app.mjs', 'text/javascript; charset=utf-8']],
+  ['/managed-accounts.css', ['managed-accounts.css', 'text/css; charset=utf-8']],
   ["/editorial-file-access.mjs", ["editorial-file-access.mjs", "text/javascript; charset=utf-8"]],
   ["/editorial-file-fields.mjs", ["editorial-file-fields.mjs", "text/javascript; charset=utf-8"]],
   ["/editorial-image-upload.mjs", ["editorial-image-upload.mjs", "text/javascript; charset=utf-8"]],
@@ -136,7 +150,7 @@ if (
   const server = createAdminServer({ apiBase: process.env.API_BASE_URL, demo });
   server.listen(port, host, () => {
     console.log(
-      `SaberPlus editorial: http://${host}:${port} (${demo ? "DEMO aislada" : "API real; solo acceso ADMIN"})`,
+      `SaberPlus: http://${host}:${port} (${demo ? "DEMO editorial aislada" : "API real; editorial ADMIN e institución por permisos"})`,
     );
   });
   for (const signal of ["SIGINT", "SIGTERM"])

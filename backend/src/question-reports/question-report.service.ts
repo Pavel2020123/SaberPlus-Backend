@@ -92,19 +92,72 @@ export class QuestionReportService {
   ) {
     const user = await db.usuario.findUnique({
       where: { id },
-      select: { rol: true, correoVerificado: true },
+      select: {
+        rol: true,
+        correoVerificado: true,
+        identificadorInstitucional: true,
+        institucionId: true,
+        debeCambiarContrasena: true,
+      },
     });
     if (!user) throw new UnauthorizedException('La cuenta no está disponible.');
     if (user.rol !== role)
       throw new ForbiddenException(
         'Esta cuenta no tiene permiso para esta operación.',
       );
-    // Report-specific rule: the shared email guard exempts institutional accounts.
-    if (role === 'ESTUDIANTE' && user.correoVerificado !== true)
+    // LIC-2 approval: only explicit managed identity + current backend entitlement
+    // may replace a real verified mailbox; an institutional FK alone never does.
+    if (
+      role === 'ESTUDIANTE' &&
+      user.correoVerificado !== true &&
+      !(await this.gestionadaActiva(db, id, user))
+    )
       throw new ForbiddenException({
         code: 'REPORT_EMAIL_REQUIRED',
         message: 'Verifica tu correo antes de enviar o consultar reportes.',
       });
+  }
+
+  private async gestionadaActiva(
+    db: Prisma.TransactionClient,
+    usuarioId: string,
+    user: {
+      identificadorInstitucional: string;
+      institucionId: string;
+      debeCambiarContrasena: boolean;
+    },
+  ): Promise<boolean> {
+    if (
+      !user.identificadorInstitucional ||
+      !user.institucionId ||
+      user.debeCambiarContrasena
+    )
+      return false;
+    const institucionId = user.institucionId;
+    const origen = await db.origenGestionadoInstitucional.findUnique({
+      where: { usuarioId },
+    });
+    if (origen?.institucionId !== institucionId) return false;
+    const control = await db.controlLicenciaInstitucional.findUnique({
+      where: { institucionId },
+    });
+    if (!control || control.suspendida) return false;
+    const asignacion = await db.asignacionLicenciaInstitucional.findFirst({
+      where: { usuarioId, institucionId, tipo: 'ESTUDIANTE', estado: 'ACTIVA' },
+    });
+    if (!asignacion) return false;
+    const [clock] = await db.$queryRaw<
+      { ahora: Date }[]
+    >`SELECT clock_timestamp() AS ahora`;
+    return Boolean(
+      await db.periodoContratoInstitucional.findFirst({
+        where: {
+          institucionId,
+          inicio: { lte: clock.ahora },
+          fin: { gt: clock.ahora },
+        },
+      }),
+    );
   }
 
   private async lockActor(

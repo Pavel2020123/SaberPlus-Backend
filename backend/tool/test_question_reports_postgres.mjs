@@ -157,6 +157,11 @@ try {
   // Same explicit pending institutional/report chain as the human harness.
   // Never enumerate arbitrary working-tree SQL or teammate OV-1 migrations.
   const pending = [
+    '20261102230000_managed_temporary_single_login',
+    '20261102180000_institution_license_contracts',
+    '20261102200000_institution_personal_balance',
+    '20261102220000_managed_account_identity',
+    '20261102223000_institution_alias_suffix',
     '20261010193000_institution_territory',
     '20261011200000_institution_public_profile',
     '20261012180000_institution_logo',

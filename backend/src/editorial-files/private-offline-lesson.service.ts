@@ -4,18 +4,21 @@ import {
   ServiceUnavailableException,
   UnauthorizedException,
   ConflictException,
+  Optional,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { EditorialFileService } from './editorial-file.service';
 import { managedEditorialImageId } from './editorial-image-reference';
 import { sha256 } from './editorial-image';
 import { privateOfflineGrantPolicy } from './private-offline-policy';
+import { LicenciaAccesoService } from '../institucion/licencia-acceso.service';
 
 @Injectable()
 export class PrivateOfflineLessonService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly files: EditorialFileService,
+    @Optional() private readonly licencia?: LicenciaAccesoService,
   ) {}
 
   assertEnabled() {
@@ -50,9 +53,18 @@ export class PrivateOfflineLessonService {
     this.assertEnabled();
     const user = await this.prisma.usuario.findUnique({
       where: { id: ownerId },
-      select: { id: true, correoVerificado: true, debeCambiarContrasena: true },
+      select: {
+        id: true,
+        correoVerificado: true,
+        debeCambiarContrasena: true,
+        institucionId: true,
+      },
     });
-    if (!user?.correoVerificado || user.debeCambiarContrasena)
+    if (
+      !user ||
+      user.debeCambiarContrasena ||
+      !(await this.identidadAutorizada(user))
+    )
       throw new UnauthorizedException('Revalida tu sesión.');
     const lesson = await this.lesson(contextId);
     if (!lesson)
@@ -87,22 +99,56 @@ export class PrivateOfflineLessonService {
     if (id) await this.files.publishedContent(id);
     const account = await this.prisma.usuario.findUnique({
       where: { id: ownerId },
-      select: { id: true, correoVerificado: true, debeCambiarContrasena: true },
+      select: {
+        id: true,
+        correoVerificado: true,
+        debeCambiarContrasena: true,
+        institucionId: true,
+      },
     });
-    if (!account?.correoVerificado || account.debeCambiarContrasena)
+    if (
+      !account ||
+      account.debeCambiarContrasena ||
+      !(await this.identidadAutorizada(account))
+    )
       throw new UnauthorizedException('Revalida tu sesión.');
     const [clock] = await this.prisma.$queryRaw<
       { now: Date }[]
     >`SELECT clock_timestamp() AS now`;
+    const grant = privateOfflineGrantPolicy({
+      ownerId,
+      contextId,
+      requestNonce,
+      validatedAt: clock.now,
+    });
+    if (this.licencia)
+      grant.expiresAt = (
+        await this.licencia.limitarOffline(
+          ownerId,
+          clock.now,
+          new Date(grant.expiresAt),
+        )
+      ).toISOString();
     return {
-      ...privateOfflineGrantPolicy({
-        ownerId,
-        contextId,
-        requestNonce,
-        validatedAt: clock.now,
-      }),
+      ...grant,
       contextDigest: sha256(JSON.stringify(snapshot)),
       snapshot,
     };
+  }
+
+  private async identidadAutorizada(user: {
+    id: string;
+    correoVerificado: boolean;
+    institucionId?: string;
+  }): Promise<boolean> {
+    if (user.correoVerificado) return true;
+    // Explicit managed origin, never merely an institutional FK or a fake email.
+    if (!this.licencia || !user.institucionId) return false;
+    const origen = await this.prisma.origenGestionadoInstitucional.findUnique({
+      where: { usuarioId: user.id },
+    });
+    if (origen?.institucionId !== user.institucionId) return false;
+    await this.licencia.exigirPractica(user.id);
+    return true;
   }
 }

@@ -215,6 +215,80 @@ describe('academic question reports: creation and isolation', () => {
     );
     expect(db.pregunta.findUnique).not.toHaveBeenCalled();
   });
+  it('LIC-2 permite reportar con origen gestionado y licencia activa sin fingir email verificado', async () => {
+    const { db, service } = setup();
+    db.usuario.findUnique.mockResolvedValue({
+      rol: 'ESTUDIANTE',
+      correoVerificado: false,
+      identificadorInstitucional: 'ana@colegio.example',
+      institucionId: 'institution',
+      debeCambiarContrasena: false,
+    });
+    Object.assign(db, {
+      origenGestionadoInstitucional: {
+        findUnique: jest
+          .fn()
+          .mockResolvedValue({ institucionId: 'institution' }),
+      },
+      controlLicenciaInstitucional: {
+        findUnique: jest.fn().mockResolvedValue({ suspendida: false }),
+      },
+      asignacionLicenciaInstitucional: {
+        findFirst: jest.fn().mockResolvedValue({ id: 'seat' }),
+      },
+      periodoContratoInstitucional: {
+        findFirst: jest.fn().mockResolvedValue({ id: 'active' }),
+      },
+    });
+    db.$queryRaw.mockResolvedValue([{ ahora: time }]);
+    await service.create(actor, input());
+    expect(db.reportePregunta.create).toHaveBeenCalledTimes(1);
+    expect(db.usuario.update).not.toHaveBeenCalled();
+  });
+  it.each(['origin', 'suspended', 'seat', 'expired'])(
+    'LIC-2 rechaza reportes con cobertura inválida: %s',
+    async (reason) => {
+      const { db, service } = setup();
+      db.usuario.findUnique.mockResolvedValue({
+        rol: 'ESTUDIANTE',
+        correoVerificado: false,
+        identificadorInstitucional: 'ana@colegio.example',
+        institucionId: 'institution',
+        debeCambiarContrasena: false,
+      });
+      Object.assign(db, {
+        origenGestionadoInstitucional: {
+          findUnique: jest
+            .fn()
+            .mockResolvedValue(
+              reason === 'origin'
+                ? { institucionId: 'other' }
+                : { institucionId: 'institution' },
+            ),
+        },
+        controlLicenciaInstitucional: {
+          findUnique: jest
+            .fn()
+            .mockResolvedValue({ suspendida: reason === 'suspended' }),
+        },
+        asignacionLicenciaInstitucional: {
+          findFirst: jest
+            .fn()
+            .mockResolvedValue(reason === 'seat' ? null : { id: 'seat' }),
+        },
+        periodoContratoInstitucional: {
+          findFirst: jest
+            .fn()
+            .mockResolvedValue(reason === 'expired' ? null : { id: 'active' }),
+        },
+      });
+      db.$queryRaw.mockResolvedValue([{ ahora: time }]);
+      await expect(service.create(actor, input())).rejects.toBeInstanceOf(
+        ForbiddenException,
+      );
+      expect(db.reportePregunta.create).not.toHaveBeenCalled();
+    },
+  );
   it.each([null, { estadoContenido: 'BORRADOR' }])(
     'does not expose unavailable content %p',
     async (question) => {

@@ -1,0 +1,23 @@
+.accounts-shell { max-width: 1060px; margin: 0 auto; padding: 32px 20px 64px; }
+.accounts-shell .lead { max-width: 70ch; }
+.accounts-card { border: 1px solid var(--line); border-radius: 16px; padding: 24px; background: white; margin: 20px 0; min-width: 0; }
+.accounts-stack { display: grid; gap: 10px; max-width: 720px; }
+.accounts-stack input, .accounts-stack textarea, .accounts-stack select { width: 100%; min-height: 44px; padding: 12px; border: 1px solid var(--line); border-radius: 8px; font: inherit; }
+.accounts-stack textarea { min-height: 145px; resize: vertical; }
+.accounts-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 16px 0; }
+.accounts-note { background: var(--wash); border-left: 4px solid var(--accent); padding: 16px; line-height: 1.6; }
+.accounts-list { display: grid; gap: 12px; padding: 0; list-style: none; }
+.accounts-row { padding: 16px; border: 1px solid var(--line); border-radius: 12px; overflow-wrap: anywhere; }
+.accounts-row p { margin: 6px 0 12px; }
+.accounts-secrets { border: 2px solid var(--accent); }
+.accounts-secret { font-family: ui-monospace, monospace; white-space: pre-wrap; overflow-wrap: anywhere; user-select: all; }
+.accounts-shell [hidden] { display: none !important; }
+.accounts-shell .message { overflow-wrap: anywhere; color: var(--muted) !important; }
+.accounts-shell .message[role="alert"] { color: #9b1c1c !important; }
+.accounts-card > button { margin-top: 12px; }
+.accounts-card details { border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin: 20px 0; }
+.accounts-card summary { cursor: pointer; min-height: 44px; padding: 8px 0; font-weight: 600; }
+.accounts-card details[open] summary { margin-bottom: 12px; }
+.accounts-card summary:focus-visible { outline: 3px solid #277dbe; outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { .accounts-shell button { transition: none; } }
+@media (max-width: 540px) { .accounts-shell { padding: 24px 16px 48px; } .accounts-card { padding: 18px; } .accounts-actions button { flex: 1 1 160px; } }

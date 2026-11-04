@@ -48,6 +48,45 @@ const instances = [],
 const prefix = '/admin/archivos';
 const digest = (bytes) => createHash('sha256').update(bytes).digest('hex');
 
+test('LIC-1 SQL onlyHistory: solo snapshots keep answered media but deny the next question', async () => {
+  const { canReadSoloSnapshotImage } = require('../src/editorial-files/editorial-snapshot-access');
+  const f = await soloSnapshotFixture('intentoCima', 12, 'question');
+  assert.equal(await canReadSoloSnapshotImage(db, f.current.file.id, f.owner.id), true);
+  assert.equal(await canReadSoloSnapshotImage(db, f.current.file.id, f.owner.id, true), false);
+  await db.intentoCima.update({ where: { id: f.attempt.id }, data: { respuestas: [f.firstAnswer] } });
+  assert.equal(await canReadSoloSnapshotImage(db, f.current.file.id, f.owner.id, true), true);
+  assert.equal(await canReadSoloSnapshotImage(db, f.future.file.id, f.owner.id, true), false);
+});
+
+test('LIC-1 SQL onlyHistory: trivia requires a final answer, not just a current question', () =>
+  withTriviaImages(async () => {
+    const { canReadTriviaSnapshotImage } = require('../src/editorial-files/editorial-trivia-access');
+    const f = await triviaImageFixture('TRIVIA_RUSH');
+    const first = f.snapshot.questions[0];
+    const id = first.pregunta.imagenUrl.split('/').pop();
+    assert.equal(await canReadTriviaSnapshotImage(db, id, f.owner.id), true);
+    assert.equal(await canReadTriviaSnapshotImage(db, id, f.owner.id, true), false);
+    await f.renew();
+    const answered = await jsonPost(`${f.route}/respuestas`, f.token, { preguntaId: first.preguntaId,
+      respuestaId: first.pregunta.respuestas.find(r => r.esCorrecta).id, idempotencyKey: randomUUID() }, f.app.base);
+    assert.equal(answered.status, 201);
+    assert.equal(await canReadTriviaSnapshotImage(db, id, f.owner.id, true), true);
+    assert.equal(await canReadTriviaSnapshotImage(db, f.snapshot.questions[1].pregunta.imagenUrl.split('/').pop(), f.owner.id, true), false);
+  }));
+
+test('LIC-1 SQL onlyHistory: battle preserves answered media without disclosing the next round', () =>
+  withBattleImages(async () => {
+    const { canReadBattleSnapshotImage } = require('../src/editorial-files/editorial-battle-access');
+    const f = await battleImageFixture();
+    await f.start(f.tokenA);
+    const id = f.snapshots[0].pregunta.imagenUrl.split('/').pop();
+    assert.equal(await canReadBattleSnapshotImage(db, id, f.a.id), true);
+    assert.equal(await canReadBattleSnapshotImage(db, id, f.a.id, true), false);
+    assert.equal((await f.answer(f.tokenA, 0)).status, 201);
+    assert.equal(await canReadBattleSnapshotImage(db, id, f.a.id, true), true);
+    assert.equal(await canReadBattleSnapshotImage(db, f.snapshots[1].pregunta.imagenUrl.split('/').pop(), f.a.id, true), false);
+  }));
+
 async function server(options = {}) {
   let builder = Test.createTestingModule({
     imports: [

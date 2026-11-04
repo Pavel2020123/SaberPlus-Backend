@@ -109,4 +109,36 @@ describe('AnaliticaDetalladaService', () => {
     );
     expect(usuario.findMany).not.toHaveBeenCalled();
   });
+  it('separa diagnóstico completado de simulacros sin exponer IDs de preguntas', async () => {
+    usuario.findMany.mockResolvedValue([
+      {
+        id: 'managed',
+        nombre: 'Ana',
+        correo: null,
+        identificadorInstitucional: 'ana@colegio.example',
+        _count: { progresotemas: 0 },
+        ClaseEstudiante: [],
+        resultados: [],
+        progresotemas: [],
+        diagnosticoInicial: {
+          completadoEn: new Date('2026-11-03T12:00:00Z'),
+          totalPreguntas: 15,
+          respuestasCorrectas: 9,
+          porcentaje: 60,
+          resultadosPorArea: [{ area: 'MATEMATICAS', porcentaje: 40 }],
+        },
+      },
+    ]);
+    const result = await service.obtener('teacher-1');
+    expect(result.estudiantes[0]).toMatchObject({
+      correo: null,
+      totalSimulacros: 0,
+      diagnosticoInicial: {
+        porcentaje: 60,
+        totalPreguntas: 15,
+        porArea: [{ area: 'MATEMATICAS', porcentaje: 40 }],
+      },
+    });
+    expect(JSON.stringify(result)).not.toContain('preguntaIds');
+  });
 });

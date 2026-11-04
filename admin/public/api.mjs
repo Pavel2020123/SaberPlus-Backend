@@ -106,6 +106,13 @@ export class CatalogApi {
   }
 
   async login(correo, contrasena) {
+    return this.#login(correo, contrasena, false);
+  }
+  async loginCuentas(correo, contrasena) {
+    if (this.demo) throw new PanelError('Las cuentas gestionadas requieren la API local real.');
+    return this.#login(correo, contrasena, true);
+  }
+  async #login(correo, contrasena, cuentas) {
     this.logout();
     const generation = this.#generation;
     const result = await this.#request("/auth/login", {
@@ -120,7 +127,7 @@ export class CatalogApi {
     });
     if (generation !== this.#generation)
       throw new PanelError("Acceso cancelado.");
-    if (profile?.rol !== "ADMIN")
+    if (profile?.rol !== "ADMIN" && !(cuentas && profile?.rol === 'PROFESOR'))
       throw new PanelError(
         "Este panel requiere una cuenta editorial ADMIN. Una cuenta de profesor no tiene este permiso.",
         403,
@@ -133,7 +140,84 @@ export class CatalogApi {
     return {
       nombre:
         typeof profile.nombre === "string" ? profile.nombre : "Administrador",
+      ...(cuentas ? { rol: profile.rol, institucionId: profile.institucionId ?? null } : {}),
     };
+  }
+  institutionRead(section) {
+    if (this.demo) throw new PanelError('El portal institucional requiere la API real.');
+    const paths = {
+      contexto: '/instituciones/profesor/contexto',
+      grupos: '/instituciones/me/grupos',
+      resumen: '/instituciones/me/analiticas-basicas',
+      seguimiento: '/instituciones/me/analiticas',
+      administracion: '/instituciones/me/administracion',
+    };
+    if (!Object.hasOwn(paths, section)) throw new PanelError('Consulta institucional inválida.');
+    return this.#protected(paths[section]);
+  }
+  institutionEvidence(studentId) {
+    if (!fileUuid(studentId)) throw new PanelError('Estudiante no válido.');
+    return this.#protected(`/instituciones/me/estudiantes/${studentId}/evidencia`);
+  }
+  institutionGroup(action, body, groupId) {
+    if (this.demo || !['crear', 'editar', 'asignar'].includes(action)) throw new PanelError('Acción de grupos no válida.');
+    if (!body || typeof body !== 'object') throw new PanelError('Revisa los datos del grupo.');
+    if (action !== 'crear' && !fileUuid(groupId)) throw new PanelError('Grupo no válido.');
+    let fields;
+    if (action === 'asignar') {
+      if (!fileUuid(body.miembroId)) throw new PanelError('Selecciona un docente válido.');
+      fields = { miembroId: body.miembroId };
+    } else {
+      if (typeof body.nombre !== 'string') throw new PanelError('Escribe el nombre del grupo.');
+      fields = { nombre: validateName(body.nombre) };
+      if (action === 'crear') {
+        if (!['DECIMO', 'ONCE'].includes(body.grado)) throw new PanelError('Selecciona grado 10 u 11.');
+        fields.grado = body.grado;
+      }
+    }
+    const path = '/instituciones/me/grupos' + (action === 'crear' ? '' : `/${groupId}${action === 'asignar' ? '/profesores' : ''}`);
+    return this.#protected(path, { method: action === 'editar' ? 'PATCH' : 'POST', body: fields });
+  }
+  institutionTeacherInvitation(email) {
+    if (this.demo || typeof email !== 'string' || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) throw new PanelError('Escribe el correo real de la cuenta docente.');
+    return this.#protected('/instituciones/me/invitaciones', { method: 'POST', body: { correo: email.trim().toLowerCase(), rol: 'PROFESOR' } });
+  }
+  institutionPriorities(groupId, action = '', body) {
+    if (this.demo || !fileUuid(groupId)) throw new PanelError('Grupo no válido o API real no disponible.');
+    const read = action === '' || /^\?pagina=[1-9]\d{0,2}$/.test(action) || /^catalogo\?pagina=[1-9]\d{0,2}(?:&area=(LECTURA_CRITICA|MATEMATICAS|SOCIALES_CIUDADANAS|CIENCIAS_NATURALES|INGLES))?$/.test(action) || /^[a-f0-9-]{36}\/cumplimiento\?pagina=[1-9]\d{0,2}$/.test(action);
+    const create = action === '' && body !== undefined;
+    const withdraw = /^[a-f0-9-]{36}\/retirar$/.test(action);
+    if ((!read && !withdraw) || (!create && body !== undefined)) throw new PanelError('Acción de prioridades no válida.');
+    if (create && (!fileUuid(body?.id) || typeof body?.temaId !== 'string' || typeof body?.venceEn !== 'string')) throw new PanelError('Prioridad incompleta.');
+    const suffix = action.startsWith('?') || !action ? action : `/${action}`;
+    return this.#protected(`/instituciones/me/grupos/${groupId}/prioridades${suffix}`, create ? { method: 'POST', body } : withdraw ? { method: 'POST' } : undefined);
+  }
+  managedAccounts(institutionId, action, body) {
+    if (this.demo) throw new PanelError('La demo no gestiona credenciales reales.');
+    if (!fileUuid(institutionId)) throw new PanelError('Selecciona una institución válida.');
+    const reads = new Set(['contexto', 'grupos', 'sufijo']);
+    const commands = new Set(['sufijo/solicitar', 'sufijo/aprobar', 'previsualizar', 'confirmar', 'restablecer']);
+    if (!reads.has(action) && !commands.has(action) && !/^alumnos\?pagina=[1-9]\d{0,3}$/.test(action)) throw new PanelError('Acción de cuentas inválida.');
+    if ((commands.has(action) && (!body || typeof body !== 'object')) || (!commands.has(action) && body !== undefined)) throw new PanelError('Solicitud de cuentas inválida.');
+    return this.#protected(`/instituciones/${institutionId}/cuentas-gestionadas/${action}`, body === undefined ? { allowEmptyJson: action === 'sufijo' } : { method: 'POST', body });
+  }
+
+  institutionLifecycle(institutionId, action, body) {
+    if (this.demo || !fileUuid(institutionId)) throw new PanelError('Selecciona una institución real válida.');
+    const read = /^bajas\?pagina=[1-9]\d{0,3}$/.test(action) || action === 'mi-salida';
+    if (!read && !['retirar', 'volver-personal'].includes(action)) throw new PanelError('Acción de baja no válida.');
+    if (read ? body !== undefined : !body || !fileUuid(body.operacionId) || !fileUuid(body.usuarioId))
+      throw new PanelError('Solicitud de baja no válida.');
+    return this.#protected(`/instituciones/${institutionId}/licencia/${action}`, read ? undefined : { method: 'POST', body });
+  }
+
+  privacyRequests(action, body) {
+    if (this.demo) throw new PanelError('La demo no tramita supresiones.');
+    const read = /^\?pagina=[1-9]\d{0,3}$/.test(action) || /^[a-f0-9-]{36}\/revision$/.test(action);
+    const command = action === '' || /^[a-f0-9-]{36}\/(rechazar|ejecutar)$/.test(action);
+    if ((!read && !command) || (read && body !== undefined) || (command && (!body || typeof body !== 'object')))
+      throw new PanelError('Solicitud de privacidad no válida.');
+    return this.#protected(`/cuentas/supresion${action.startsWith('?') || action === '' ? '' : '/'}${action}`, read ? undefined : { method: 'POST', body });
   }
 
   async areas() {
@@ -595,7 +679,7 @@ export class CatalogApi {
       throw new PanelError("Inicia sesión para continuar.", 401);
     return this.#request(path, options);
   }
-  async #request(path, { method = "GET", body, token = this.#token, responseType = "json" } = {}) {
+  async #request(path, { method = "GET", body, token = this.#token, responseType = "json", allowEmptyJson = false } = {}) {
     const generation = this.#generation;
     const controller = new AbortController();
     this.#requests.add(controller);
@@ -647,9 +731,25 @@ export class CatalogApi {
             throw error;
           }
         }
-        if ([401, 403].includes(response.status) && this.#token) {
+        if ([401, 403].includes(response.status) && this.#token &&
+            (response.status === 401 || (!path.startsWith('/instituciones/') && !path.startsWith('/cuentas/supresion')))) {
           this.logout();
           this.onSessionExpired();
+        }
+        if (path.startsWith('/instituciones/') || path.startsWith('/cuentas/supresion')) {
+          const defaults = {
+            400: 'Revisa los datos de esta solicitud institucional.',
+            401: 'Tu sesión terminó. Ingresa nuevamente.',
+            403: 'La acción no está habilitada para tu rol, asignación o licencia. Puedes consultar las secciones autorizadas.',
+            404: 'Este recurso no está disponible en tu ámbito.',
+            409: 'Hubo otro cambio o un conflicto. Conserva tus datos y consulta el estado actual antes de reenviar.',
+            429: 'Alcanzaste el límite de solicitudes. Espera antes de reintentar.',
+          };
+          let detail;
+          try { detail = await response.json(); } catch { /* Keep a safe generic message. */ }
+          const message = typeof detail?.message === 'string' && detail.message.length <= 1024
+            ? detail.message : defaults[response.status] ?? 'No pudimos confirmar la operación institucional. Revisa su estado antes de reenviar.';
+          throw new PanelError(message, response.status);
         }
         if (path.startsWith("/admin/archivos/") && path.includes("/revocaciones"))
           throw new PanelError({
@@ -701,6 +801,11 @@ export class CatalogApi {
           throw new PanelError("La respuesta no contiene una imagen válida.");
         data = await response.blob();
         if (!data.size || data.size > 2097152) throw new PanelError("La imagen guardada supera el límite permitido.");
+      } else if (allowEmptyJson) {
+        // Nest returns an empty 200 body for a missing nullable suffix.
+        // Only this optional read accepts absence; malformed JSON still fails.
+        const text = await response.text();
+        data = text.trim() === '' ? null : JSON.parse(text);
       } else data = await response.json();
       if (generation !== this.#generation)
         throw new PanelError("Solicitud cancelada.");

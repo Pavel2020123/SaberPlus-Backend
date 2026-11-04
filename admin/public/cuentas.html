@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SaberPlus · Cuentas institucionales</title>
+  <link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/managed-accounts.css">
+  <script src="/config.js" defer></script><script type="module" src="/managed-accounts-app.mjs"></script>
+</head>
+<body>
+  <a class="skip" href="#main">Ir al contenido</a>
+  <header class="topbar"><a class="brand" href="/">SaberPlus</a><button id="accounts-logout" class="quiet" hidden>Cerrar sesión</button></header>
+  <main id="main" class="accounts-shell" tabindex="-1">
+    <p class="eyebrow">CUENTAS INSTITUCIONALES</p><h1>Accesos listos para aprender</h1>
+    <p class="lead">Crea cuentas gestionadas y ayuda a tus estudiantes a recuperar su acceso. No es un servicio de correo electrónico.</p>
+    <section id="accounts-login" class="accounts-card" aria-labelledby="accounts-login-title">
+      <h2 id="accounts-login-title">Acceso autorizado</h2>
+      <p>Propietario: altas e importación. Docente: restablecimiento de sus alumnos asignados. SaberPlus ADMIN: soporte autorizado.</p>
+      <form id="accounts-login-form" class="accounts-stack">
+        <label for="accounts-user">Correo o usuario institucional</label><input id="accounts-user" type="text" autocomplete="username" maxlength="254" required>
+        <label for="accounts-password">Contraseña</label><input id="accounts-password" type="password" autocomplete="current-password" maxlength="72" required>
+        <button class="primary" type="submit">Entrar</button>
+      </form>
+      <p class="hint">La sesión permanece solo en esta pestaña. No uses cuentas reales para pruebas locales.</p>
+    </section>
+    <section id="accounts-selection" class="accounts-card" hidden>
+      <h2>Institución de trabajo</h2><p id="accounts-welcome"></p>
+      <form id="accounts-institution-form" class="accounts-stack">
+        <label for="accounts-institution">Identificador de la institución</label><input id="accounts-institution" type="text" required autocomplete="off" maxlength="36" aria-describedby="accounts-institution-help">
+        <p id="accounts-institution-help" class="hint">ADMIN selecciona la institución autorizada por su identificador. El propietario y el docente usan su institución vinculada.</p>
+        <button class="secondary" type="submit">Abrir gestión de cuentas</button>
+      </form>
+    </section>
+    <p id="accounts-session-message" class="message" role="status" tabindex="-1"></p>
+    <div id="accounts-work"></div>
+  </main>
+</body>
+</html>

@@ -183,7 +183,7 @@ export class TiraAflojaGateway
       cliente.prependListener('disconnect', (reason: string) => {
         cliente.data.disconnectReason = reason;
       });
-      cliente.conn.on('packet', (packet) => {
+      cliente.conn.on('packet', (packet: { type: string }) => {
         if (packet.type === 'pong')
           void this.renovar(cliente).catch(() =>
             this.log.error(
@@ -268,7 +268,7 @@ export class TiraAflojaGateway
     @ConnectedSocket() cliente: SocketTiraAfloja,
     @MessageBody() entrada: EmparejarWsDto,
   ) {
-    this.limitar(cliente);
+    await this.limitar(cliente);
     const estado = await this.juego.emparejar(
       this.usuarioId(cliente),
       entrada.area,
@@ -283,7 +283,7 @@ export class TiraAflojaGateway
     @ConnectedSocket() cliente: SocketTiraAfloja,
     @MessageBody() entrada: SincronizarWsDto,
   ) {
-    this.limitar(cliente);
+    await this.limitar(cliente);
     const estado = await this.juego.obtener(
       this.usuarioId(cliente),
       entrada.partidaId,
@@ -299,7 +299,7 @@ export class TiraAflojaGateway
     @ConnectedSocket() cliente: SocketTiraAfloja,
     @MessageBody() entrada: PartidaWsDto,
   ) {
-    this.limitar(cliente);
+    await this.limitar(cliente);
     const estado = await this.juego.marcarListo(
       this.usuarioId(cliente),
       entrada.partidaId,
@@ -313,7 +313,7 @@ export class TiraAflojaGateway
     @ConnectedSocket() cliente: SocketTiraAfloja,
     @MessageBody() entrada: ResponderWsDto,
   ) {
-    this.limitar(cliente);
+    await this.limitar(cliente);
     await this.renovar(cliente, true);
     const estado = await this.juego.responder(
       this.usuarioId(cliente),
@@ -329,7 +329,7 @@ export class TiraAflojaGateway
     @ConnectedSocket() cliente: SocketTiraAfloja,
     @MessageBody() entrada: PartidaWsDto,
   ) {
-    this.limitar(cliente);
+    await this.limitar(cliente);
     const estado = await this.juego.abandonar(
       this.usuarioId(cliente),
       entrada.partidaId,
@@ -340,7 +340,7 @@ export class TiraAflojaGateway
 
   @SubscribeMessage('tira:latido')
   async latido(@ConnectedSocket() cliente: SocketTiraAfloja) {
-    this.limitar(cliente);
+    await this.limitar(cliente);
     await this.renovar(cliente);
     return { servidorAhora: new Date().toISOString() };
   }
@@ -430,7 +430,7 @@ export class TiraAflojaGateway
     return cliente.data.renewing;
   }
 
-  private limitar(cliente: SocketTiraAfloja): void {
+  private async limitar(cliente: SocketTiraAfloja): Promise<void> {
     const ahora = Date.now();
     const recientes = (cliente.data.acciones ?? []).filter(
       (fecha) => ahora - fecha < VENTANA_LIMITE_MS,
@@ -443,5 +443,8 @@ export class TiraAflojaGateway
     }
     recientes.push(ahora);
     cliente.data.acciones = recientes;
+    const user = await this.autenticacion.autenticar(cliente);
+    if (user.id !== this.usuarioId(cliente))
+      throw new HttpException('Identidad de conexión cambió.', 401);
   }
 }

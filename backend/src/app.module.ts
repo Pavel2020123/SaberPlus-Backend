@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { LicenciaAccesoModule } from './institucion/licencia-acceso.module';
 import { EditorialFileModule } from './editorial-files/editorial-file.module';
 import { DeferredReviewModule } from './deferred-review/deferred-review.module';
 import { LearningMapModule } from './learning-map/learning-map.module';
@@ -32,6 +33,7 @@ import { RetiredGamesController } from './common/retired-games.controller';
 
 @Module({
   imports: [
+    LicenciaAccesoModule,
     EditorialFileModule,
     DeferredReviewModule,
     LearningMapModule,

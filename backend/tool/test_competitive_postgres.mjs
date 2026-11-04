@@ -204,6 +204,11 @@ async function main() {
     await docker('exec',name,'psql','-X','-U',user,'-d','postgres','-v','ON_ERROR_STOP=1','-c',roleSql);
     const territoryMigration = 'prisma/migrations/20261010193000_institution_territory/migration.sql';
     const candidates = [territoryMigration,migration,presenceMigration,competitiveTriviaMigration,tugMigration,
+      'prisma/migrations/20261102230000_managed_temporary_single_login/migration.sql',
+      'prisma/migrations/20261102180000_institution_license_contracts/migration.sql',
+      'prisma/migrations/20261102200000_institution_personal_balance/migration.sql',
+      'prisma/migrations/20261102220000_managed_account_identity/migration.sql',
+      'prisma/migrations/20261102223000_institution_alias_suffix/migration.sql',
       tugPresenceMigration,tugVisibilityMigration,tugAdmissionMigration,tugTemporalMigration,tugSettlementMigration,
       'prisma/migrations/20261023200000_editorial_history_revocation/migration.sql',
       'prisma/migrations/20261024130000_editorial_solo_snapshot_access/migration.sql',

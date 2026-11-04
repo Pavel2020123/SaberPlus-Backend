@@ -1,4 +1,10 @@
 import { Module } from '@nestjs/common';
+import { SupresionCuentaService } from './supresion-cuenta.service';
+import { SupresionCuentaController } from './supresion-cuenta.controller';
+import { ManagedAccountController } from './managed-account.controller';
+import { ManagedAccountService } from './managed-account.service';
+import { LicenciaInstitucionalController } from './licencia-institucional.controller';
+import { LicenciaInstitucionalService } from './licencia-institucional.service';
 import { StudentInstitutionCodeController } from './student-institution-code.controller';
 import { StudentInstitutionCodeService } from './student-institution-code.service';
 import { StudentInstitutionRequestController } from './student-institution-request.controller';
@@ -47,6 +53,9 @@ import {
 @Module({
   imports: [PrismaModule],
   controllers: [
+    SupresionCuentaController,
+    ManagedAccountController,
+    LicenciaInstitucionalController,
     StudentInstitutionCodeController,
     StudentInstitutionRequestController,
     InstitutionProfileController,
@@ -62,6 +71,9 @@ import {
     TeacherStudyTimeController,
   ],
   providers: [
+    SupresionCuentaService,
+    ManagedAccountService,
+    LicenciaInstitucionalService,
     StudentInstitutionCodeService,
     StudentInstitutionRequestService,
     InstitutionProfileService,

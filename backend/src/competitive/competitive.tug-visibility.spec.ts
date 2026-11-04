@@ -1,5 +1,8 @@
 import { TiraAflojaVisibilityWitness } from '../tira-afloja/tira-afloja-visibility.witness';
 import { TiraAflojaService } from '../tira-afloja/tira-afloja.service';
+import { PrismaClient } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
+import { TiraAflojaRealtimePublisher } from '../tira-afloja/tira-afloja-realtime.publisher';
 
 // Operational witness behavior only. Visibility proof is tested on PostgreSQL.
 describe('competitive TUG visibility witness boundary', () => {
@@ -14,18 +17,22 @@ describe('competitive TUG visibility witness boundary', () => {
         .mockResolvedValueOnce([])
         .mockResolvedValueOnce([{ id: 'certificate' }]),
     };
-    const service = new TiraAflojaService(db as any, {} as any);
+    const service = new TiraAflojaService(
+      db as unknown as PrismaService,
+      {} as TiraAflojaRealtimePublisher,
+    );
     const log = jest
-      .spyOn((service as any).log, 'error')
+      .spyOn(service['log'], 'error')
       .mockImplementation(() => {});
     const state = jest
-      .spyOn(service as any, 'procesarEstado')
+      .fn<Promise<void>, [string]>()
       .mockRejectedValueOnce({
         code: 'P2028',
         meta: { error: 'Unable to start a transaction in the given time.' },
       })
       .mockResolvedValueOnce(undefined);
-    await (service as any).procesarPartidasVencidas();
+    service['procesarEstado'] = state;
+    await service['procesarPartidasVencidas']();
     expect(state.mock.calls).toEqual([['certificate'], ['expired']]);
     expect(JSON.parse(log.mock.calls[0][0] as string)).toMatchObject({
       event: 'TUG_RECOVERY_PENDING',
@@ -33,14 +40,14 @@ describe('competitive TUG visibility witness boundary', () => {
       code: 'P2028',
       transactionError: 'Unable to start a transaction in the given time.',
     });
-    expect((service as any).barridoEnCurso).toBe(false);
+    expect(service['barridoEnCurso']).toBe(false);
   });
   function fixture() {
-    const witness = new TiraAflojaVisibilityWitness({} as any);
+    const witness = new TiraAflojaVisibilityWitness({} as PrismaClient);
     const db = { $queryRaw: jest.fn(), $disconnect: jest.fn() };
-    (witness as any).client = db;
+    witness['client'] = db as unknown as PrismaClient;
     // This fixture tests the operational boundary after database verification.
-    (witness as any).identity = Promise.resolve();
+    witness['identity'] = Promise.resolve();
     return { witness, db };
   }
 
@@ -79,7 +86,7 @@ describe('competitive TUG visibility witness boundary', () => {
     const { witness, db } = fixture();
     await witness.close();
     expect(db.$disconnect).toHaveBeenCalledTimes(1);
-    expect((witness as any).client).toBeUndefined();
+    expect(witness['client']).toBeUndefined();
   });
 
   it('rejects a witness in a different database before reading or writing evidence', async () => {
@@ -87,18 +94,26 @@ describe('competitive TUG visibility witness boundary', () => {
     const observer = {
       $queryRaw: jest.fn().mockResolvedValue([{ acquired: true }]),
     };
-    const source = { $transaction: jest.fn((work) => work(sourceTx)) };
+    const source = {
+      $transaction: jest.fn((work: (tx: typeof sourceTx) => Promise<void>) =>
+        work(sourceTx),
+      ),
+    };
     const db = {
-      $transaction: jest.fn((work) => work(observer)),
+      $transaction: jest.fn((work: (tx: typeof observer) => Promise<void>) =>
+        work(observer),
+      ),
       $queryRaw: jest.fn(),
     };
-    const witness = new TiraAflojaVisibilityWitness(source as any);
-    (witness as any).client = db;
+    const witness = new TiraAflojaVisibilityWitness(
+      source as unknown as PrismaClient,
+    );
+    witness['client'] = db as unknown as PrismaClient;
     await expect(witness.certify('owned-match')).rejects.toThrow(
       'TUG_WITNESS_DATABASE_MISMATCH',
     );
     expect(db.$queryRaw).not.toHaveBeenCalled();
-    expect((witness as any).identity).toBeUndefined();
+    expect(witness['identity']).toBeUndefined();
   });
 
   it.each([
@@ -108,15 +123,18 @@ describe('competitive TUG visibility witness boundary', () => {
   ])(
     'reports witness failure without rejecting an already committed sports operation: %j',
     async (error) => {
-      const service = new TiraAflojaService({} as any, {} as any);
+      const service = new TiraAflojaService(
+        {} as PrismaService,
+        {} as TiraAflojaRealtimePublisher,
+      );
       const log = jest
-        .spyOn((service as any).log, 'error')
+        .spyOn(service['log'], 'error')
         .mockImplementation(() => {});
       jest
-        .spyOn((service as any).visibilityWitness, 'certify')
+        .spyOn(service['visibilityWitness'], 'certify')
         .mockRejectedValue(error);
       await expect(
-        (service as any).certificarSinRevertirDeporte('owned-match'),
+        service['certificarSinRevertirDeporte']('owned-match'),
       ).resolves.toBeUndefined();
       expect(log).toHaveBeenCalledWith(
         expect.stringContaining('TUG_VISIBILITY_PENDING'),

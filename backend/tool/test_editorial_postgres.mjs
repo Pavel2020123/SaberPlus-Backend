@@ -259,6 +259,12 @@ async function main() {
     if (institutionApproval && !migrations.includes(territoryMigration)) {
       sql.push(await readFile(join(repository, territoryMigration), 'utf8'));
     }
+    // Current identity client requires these explicit additive migrations in
+    // this owned disposable DB too; never enumerate arbitrary local SQL.
+    for (const name of ['20261102180000_institution_license_contracts', '20261102200000_institution_personal_balance', '20261102220000_managed_account_identity', '20261102223000_institution_alias_suffix', '20261102230000_managed_temporary_single_login']) {
+      const file = `backend/prisma/migrations/${name}/migration.sql`;
+      if (!migrations.includes(file)) sql.push(await readFile(join(repository, file), 'utf8'));
+    }
     await writeFile(migrationFile, sql.join('\n'), 'utf8');
     await run(binary('psql'), [
       '-X',

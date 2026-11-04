@@ -4,10 +4,13 @@ import {
   Injectable,
   NotFoundException,
   UnauthorizedException,
+  Optional,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { capacidadesPlanInstitucional } from './institucion-plan.util';
+import { InstitucionAccesoService } from './institucion-acceso.service';
+import { esCapacidadLicenciada } from './licencia-capacidades.policy';
 import {
   institutionOperational,
   requireInstitutionOperational,
@@ -15,7 +18,10 @@ import {
 
 @Injectable()
 export class VinculoInstitucionService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly acceso?: InstitucionAccesoService,
+  ) {}
 
   async obtenerContextoProfesor(usuarioId: string) {
     const usuario = await this.prisma.usuario.findUnique({
@@ -66,7 +72,9 @@ export class VinculoInstitucionService {
       if (!institucion) {
         throw new NotFoundException('La institución vinculada ya no existe.');
       }
-      const capacidades = capacidadesPlanInstitucional(institucion);
+      const capacidades = this.acceso
+        ? await this.acceso.obtenerCapacidadesInstitucion(institucion.id)
+        : capacidadesPlanInstitucional(institucion);
       if (!institutionOperational(institucion))
         return {
           estado: 'VERIFICACION_REQUERIDA',
@@ -89,6 +97,13 @@ export class VinculoInstitucionService {
           exportacionesHabilitadas: capacidades.exportacionesHabilitadas,
           planVencido: capacidades.planVencido,
           venceEn: capacidades.venceEn,
+          ...(esCapacidadLicenciada(capacidades)
+            ? {
+                origenPlan: capacidades.origen,
+                estadoLicencia: capacidades.estadoLicencia,
+                cuposDocentes: capacidades.cuposDocentes,
+              }
+            : {}),
           totalEstudiantes,
           totalGrupos,
           totalProfesores,
@@ -121,7 +136,7 @@ export class VinculoInstitucionService {
       }),
       this.prisma.invitacionInstitucion.findMany({
         where: {
-          correo: usuario.correo.trim().toLowerCase(),
+          correo: usuario.correo?.trim().toLowerCase() ?? { in: [] },
           estado: 'PENDIENTE',
         },
         orderBy: { fechaCreacion: 'desc' },

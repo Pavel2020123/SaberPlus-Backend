@@ -117,7 +117,24 @@ describe('revalidación de lecturas privadas P3-A', () => {
             ClaseEstudiante: {
               some: {
                 usuarioId: 'student',
-                aceptacionExplicita: true,
+                OR: [
+                  {
+                    aceptacionExplicita: true,
+                    Usuario: { origenGestionadoLicencia: null },
+                  },
+                  {
+                    Usuario: {
+                      origenGestionadoLicencia: { institucionId: 'school' },
+                      asignacionesLicencia: {
+                        some: {
+                          institucionId: 'school',
+                          tipo: 'ESTUDIANTE',
+                          estado: 'ACTIVA',
+                        },
+                      },
+                    },
+                  },
+                ],
                 Clase: { institucionId: 'school' },
                 Usuario: { rol: 'ESTUDIANTE', institucionId: 'school' },
               },

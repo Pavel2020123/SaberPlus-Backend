@@ -9,6 +9,7 @@ describe('GrupoService', () => {
     findMany: jest.fn(),
     findUnique: jest.fn(),
     create: jest.fn(),
+    update: jest.fn(),
   };
   const claseProfesor = { create: jest.fn() };
   const auditoriaInstitucion = { create: jest.fn() };
@@ -17,10 +18,12 @@ describe('GrupoService', () => {
     clase,
     claseProfesor,
     auditoriaInstitucion,
+    $queryRaw: jest.fn().mockResolvedValue([]),
     $transaction: jest.fn(),
   } as unknown as PrismaService;
   const acceso = {
     obtenerMembresiaGestionable: jest.fn(),
+    obtenerGrupoGestionable: jest.fn(),
     verificarCupoGrupos,
   } as unknown as InstitucionAccesoService;
   const service = new GrupoService(prisma, acceso);
@@ -70,6 +73,20 @@ describe('GrupoService', () => {
       service.crearGrupoEnMiInstitucion('teacher-1', 'Once A', 'ONCE'),
     ).rejects.toBeInstanceOf(ForbiddenException);
     expect(clase.create).not.toHaveBeenCalled();
+  });
+  it('un profesor asignado no renombra un grupo reservado a administración', async () => {
+    (acceso.obtenerGrupoGestionable as jest.Mock).mockResolvedValue({
+      membresia: {
+        id: 'membership-1',
+        institucionId: 'institution-1',
+        rol: 'PROFESOR',
+      },
+      grupo: { id: 'class-1' },
+    });
+    await expect(
+      service.actualizarGrupo('teacher-1', 'class-1', 'Otro nombre'),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(clase.update).not.toHaveBeenCalled();
   });
 
   it('el propietario crea el grupo y queda asignado en una transacción', async () => {

@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>SaberPlus · Revisión de privacidad</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/managed-accounts.css" />
+    <link rel="stylesheet" href="/privacy.css" />
+    <script src="/config.js" defer></script>
+    <script type="module" src="/privacy-app.mjs"></script>
+  </head>
+  <body>
+    <a class="skip" href="#main">Ir al contenido</a>
+    <header class="topbar">
+      <a class="brand" href="/">SaberPlus</a
+      ><button id="privacy-logout" class="quiet" hidden>Cerrar sesión</button>
+    </header>
+    <main id="main" class="accounts-shell" tabindex="-1">
+      <p class="eyebrow">SABERPLUS ADMIN · REVISIÓN CONTROLADA</p>
+      <h1>Privacidad con decisiones conscientes</h1>
+      <p class="lead">
+        La baja conserva el historial. La supresión es una acción distinta,
+        explícita e irreversible, sin borrado automático.
+      </p>
+      <section id="privacy-login" class="accounts-card">
+        <h2>Acceso a la revisión</h2>
+        <p>
+          Solo SaberPlus ADMIN. El propietario solicita revisiones desde el
+          portal institucional; no ejecuta eliminaciones.
+        </p>
+        <form id="privacy-login-form" class="accounts-stack">
+          <label for="privacy-user">Usuario de acceso</label
+          ><input
+            id="privacy-user"
+            type="text"
+            autocomplete="username"
+            required
+            maxlength="254"
+          />
+          <label for="privacy-password">Contraseña</label
+          ><input
+            id="privacy-password"
+            type="password"
+            autocomplete="current-password"
+            required
+            maxlength="72"
+          />
+          <button class="primary" type="submit">Entrar a revisión</button>
+        </form>
+        <p>
+          Las pruebas locales usan únicamente cuentas desechables. No
+          introduzcas datos reales.
+        </p>
+      </section>
+      <p id="privacy-status" role="status" tabindex="-1"></p>
+      <div id="privacy-work"></div>
+    </main>
+  </body>
+</html>

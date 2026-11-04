@@ -2,6 +2,7 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import {
@@ -63,10 +64,17 @@ export class AdminService {
         'No puedes eliminar tu propia cuenta de administrador.',
       );
     }
-    return this.prisma.usuario.delete({
-      where: { id: usuarioId },
-      select: { id: true, nombre: true, correo: true },
+    const actor = await this.prisma.usuario.findUnique({
+      where: { id: solicitanteId },
+      select: { rol: true },
     });
+    if (actor?.rol !== 'ADMIN')
+      throw new ForbiddenException(
+        'Solo SaberPlus ADMIN puede revisar una supresión.',
+      );
+    throw new BadRequestException(
+      'La eliminación directa está deshabilitada. Tramita una solicitud de supresión revisada por SaberPlus ADMIN; retirar un cupo conserva la cuenta y su historial.',
+    );
   }
 
   async crearInstitucionDesdeLead(datos: {

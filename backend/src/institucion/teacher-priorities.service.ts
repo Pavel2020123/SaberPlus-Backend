@@ -98,7 +98,28 @@ export class TeacherPrioritiesService {
     // Una cuenta desvinculada no recupera grupos antiguos por un JOIN residual.
     return {
       ...(studentId && { usuarioId: studentId }),
-      aceptacionExplicita: true,
+      OR: [
+        {
+          aceptacionExplicita: true,
+          Usuario: { origenGestionadoLicencia: null },
+        },
+        {
+          Usuario: {
+            origenGestionadoLicencia: {
+              institucionId:
+                institutionId ?? '00000000-0000-0000-0000-000000000000',
+            },
+            asignacionesLicencia: {
+              some: {
+                institucionId:
+                  institutionId ?? '00000000-0000-0000-0000-000000000000',
+                tipo: 'ESTUDIANTE',
+                estado: 'ACTIVA',
+              },
+            },
+          },
+        },
+      ],
       Clase: {
         institucionId: institutionId ?? '00000000-0000-0000-0000-000000000000',
       },
@@ -380,7 +401,17 @@ export class TeacherPrioritiesService {
       ) evidencia
       WHERE ce."claseId" = ${priority.claseId}::uuid
         AND ce."usuarioId" IN (${Prisma.join(studentIds.map((id) => Prisma.sql`${id}::uuid`))})
-        AND ce."aceptacionExplicita" = true AND u.rol = 'ESTUDIANTE'
+        AND (
+          (ce."aceptacionExplicita" = true AND NOT EXISTS (
+            SELECT 1 FROM "OrigenGestionadoInstitucional" o WHERE o."usuarioId" = u.id
+          )) OR (
+            EXISTS (SELECT 1 FROM "OrigenGestionadoInstitucional" o
+              WHERE o."usuarioId" = u.id AND o."institucionId" = c."institucionId")
+            AND EXISTS (SELECT 1 FROM "AsignacionLicenciaInstitucional" a
+              WHERE a."usuarioId" = u.id AND a."institucionId" = c."institucionId"
+                AND a.tipo = 'ESTUDIANTE' AND a.estado = 'ACTIVA')
+          )
+        ) AND u.rol = 'ESTUDIANTE'
     `);
     return new Map(rows.map((r) => [r.usuarioId, r.cantidad]));
   }
@@ -455,13 +486,9 @@ export class TeacherPrioritiesService {
     // Revalidar también alumnos, no solo docente, después de la consulta privada.
     const stillEnrolled = await this.prisma.claseEstudiante.findMany({
       where: {
+        ...this.enrollmentWhere(currentAccess.grupo.institucionId),
         claseId: groupId,
         usuarioId: { in: result.estudiantes.map((s) => s.id) },
-        aceptacionExplicita: true,
-        Usuario: {
-          rol: 'ESTUDIANTE',
-          institucionId: currentAccess.grupo.institucionId,
-        },
       },
       select: { usuarioId: true },
     });

@@ -79,6 +79,17 @@ export class GrupoService {
 
     return this.prisma.$transaction(
       async (tx) => {
+        await tx.$queryRaw`SELECT id FROM "Institucion" WHERE id = ${membresia.institucionId}::uuid FOR SHARE`;
+        const vigente =
+          await this.institucionAcceso.obtenerMembresiaGestionable(
+            usuarioId,
+            tx,
+          );
+        if (vigente.institucionId !== membresia.institucionId)
+          throw new ForbiddenException(
+            'Tu institución cambió. Recarga la vista.',
+          );
+        this.exigirAdministrador(vigente.rol);
         await this.institucionAcceso.verificarCupoGrupos(
           membresia.institucionId,
           tx,
@@ -114,24 +125,34 @@ export class GrupoService {
       usuarioId,
       claseId,
     );
+    this.exigirAdministrador(acceso.membresia.rol);
     const nombreLimpio = nombre?.trim();
     if (nombre !== undefined && !nombreLimpio) {
       throw new BadRequestException('El nombre del grupo es obligatorio.');
     }
-    const grupo = await this.prisma.clase.update({
-      where: { id: claseId },
-      data: { ...(nombreLimpio !== undefined && { nombre: nombreLimpio }) },
-      select: { id: true, nombre: true, grado: true },
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "Institucion" WHERE id = ${acceso.membresia.institucionId}::uuid FOR SHARE`;
+      const vigente = await this.institucionAcceso.obtenerGrupoGestionable(
+        usuarioId,
+        claseId,
+        tx,
+      );
+      this.exigirAdministrador(vigente.membresia.rol);
+      const grupo = await tx.clase.update({
+        where: { id: claseId },
+        data: { ...(nombreLimpio !== undefined && { nombre: nombreLimpio }) },
+        select: { id: true, nombre: true, grado: true },
+      });
+      await tx.auditoriaInstitucion.create({
+        data: {
+          institucionId: acceso.membresia.institucionId,
+          actorId: usuarioId,
+          accion: 'GRUPO_ACTUALIZADO',
+          detalle: { grupoId: grupo.id, nombre: grupo.nombre },
+        },
+      });
+      return grupo;
     });
-    await this.prisma.auditoriaInstitucion.create({
-      data: {
-        institucionId: acceso.membresia.institucionId,
-        actorId: usuarioId,
-        accion: 'GRUPO_ACTUALIZADO',
-        detalle: { grupoId: grupo.id, nombre: grupo.nombre },
-      },
-    });
-    return grupo;
   }
 
   async eliminarGrupo(usuarioId: string, claseId: string) {
@@ -155,25 +176,38 @@ export class GrupoService {
   }
 
   async asignarProfesor(usuarioId: string, claseId: string, miembroId: string) {
-    const acceso = await this.institucionAcceso.obtenerGrupoGestionable(
-      usuarioId,
-      claseId,
-    );
-    this.exigirAdministrador(acceso.membresia.rol);
-    const objetivo = await this.prisma.miembroInstitucion.findFirst({
-      where: { id: miembroId, institucionId: acceso.membresia.institucionId },
-      select: { id: true, usuarioId: true },
-    });
-    if (!objetivo) {
-      throw new NotFoundException('El profesor no pertenece a la institución.');
-    }
-    await this.prisma.$transaction([
-      this.prisma.claseProfesor.upsert({
+    return this.prisma.$transaction(async (tx) => {
+      const inicial = await this.institucionAcceso.obtenerGrupoGestionable(
+        usuarioId,
+        claseId,
+        tx,
+      );
+      await tx.$queryRaw`SELECT id FROM "Institucion" WHERE id = ${inicial.membresia.institucionId}::uuid FOR SHARE`;
+      const acceso = await this.institucionAcceso.obtenerGrupoGestionable(
+        usuarioId,
+        claseId,
+        tx,
+      );
+      this.exigirAdministrador(acceso.membresia.rol);
+      const objetivo = await tx.miembroInstitucion.findFirst({
+        where: { id: miembroId, institucionId: acceso.membresia.institucionId },
+        select: { id: true, usuarioId: true },
+      });
+      if (!objetivo)
+        throw new NotFoundException(
+          'El profesor no pertenece a la institución.',
+        );
+      // Reuses current identity and licensed-seat checks; residual membership is not authority.
+      await this.institucionAcceso.obtenerMembresiaGestionable(
+        objetivo.usuarioId,
+        tx,
+      );
+      await tx.claseProfesor.upsert({
         where: { claseId_miembroId: { claseId, miembroId } },
         create: { claseId, miembroId },
         update: {},
-      }),
-      this.prisma.auditoriaInstitucion.create({
+      });
+      await tx.auditoriaInstitucion.create({
         data: {
           institucionId: acceso.membresia.institucionId,
           actorId: usuarioId,
@@ -181,9 +215,9 @@ export class GrupoService {
           accion: 'PROFESOR_ASIGNADO_GRUPO',
           detalle: { grupoId: claseId },
         },
-      }),
-    ]);
-    return { asignado: true };
+      });
+      return { asignado: true };
+    });
   }
 
   async quitarProfesor(usuarioId: string, claseId: string, miembroId: string) {

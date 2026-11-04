@@ -4,11 +4,15 @@ import {
   ExecutionContext,
   ForbiddenException,
   UnauthorizedException,
+  Optional,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Reflector } from '@nestjs/core';
 import { AuthenticatedRequest, JwtPayload } from './auth.types';
 import { PrismaService } from '../prisma/prisma.service';
+import { LicenciaAccesoService } from '../institucion/licencia-acceso.service';
+import { politicaHttpLicencia } from '../institucion/licencia-http.policy';
+import { exigirVersionSesion } from './session-version.policy';
 import {
   INITIAL_PASSWORD_ACCESS,
   requireChangedInitialPassword,
@@ -21,6 +25,7 @@ export class JwtGuard implements CanActivate {
     private jwtService: JwtService,
     private prisma: PrismaService,
     private reflector: Reflector = new Reflector(),
+    @Optional() private readonly licencia?: LicenciaAccesoService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -44,14 +49,17 @@ export class JwtGuard implements CanActivate {
           rol: true,
           institucionId: true,
           debeCambiarContrasena: true,
+          versionSesion: true,
         },
       });
       if (!usuario?.rol) {
         throw new UnauthorizedException('La sesión ya no es válida.');
       }
       cambioInicialPendiente = usuario.debeCambiarContrasena === true;
+      exigirVersionSesion(usuario.versionSesion, payload.versionSesion);
       request.usuario = {
         sub: payload.sub,
+        versionSesion: usuario.versionSesion,
         correo: usuario.correo,
         nombre: usuario.nombre,
         rol: usuario.rol,
@@ -70,6 +78,14 @@ export class JwtGuard implements CanActivate {
     ) {
       requireChangedInitialPassword(cambioInicialPendiente);
     }
+    if (
+      this.licencia &&
+      politicaHttpLicencia(
+        context.getClass().name,
+        context.getHandler().name,
+      ) === 'NUEVO'
+    )
+      await this.licencia.exigirPractica(request.usuario.sub);
     return true;
   }
 
@@ -112,6 +128,7 @@ export class AdminGuard implements CanActivate {
         rol: true,
         institucionId: true,
         debeCambiarContrasena: true,
+        versionSesion: true,
       },
     });
     if (!usuario) {
@@ -120,6 +137,7 @@ export class AdminGuard implements CanActivate {
     if (usuario.rol !== 'ADMIN') {
       throw new ForbiddenException('No tienes permiso de administrador.');
     }
+    exigirVersionSesion(usuario.versionSesion, payload.versionSesion);
     requireChangedInitialPassword(usuario.debeCambiarContrasena);
 
     request.usuario = {
@@ -127,6 +145,7 @@ export class AdminGuard implements CanActivate {
       correo: usuario.correo,
       nombre: usuario.nombre,
       rol: 'ADMIN',
+      versionSesion: usuario.versionSesion,
       institucionId: usuario.institucionId ?? undefined,
     };
     return true;

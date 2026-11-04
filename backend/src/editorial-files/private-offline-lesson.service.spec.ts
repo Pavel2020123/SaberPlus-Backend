@@ -1,5 +1,6 @@
 import {
   ConflictException,
+  ForbiddenException,
   NotFoundException,
   ServiceUnavailableException,
   UnauthorizedException,
@@ -8,6 +9,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { EditorialFileService } from './editorial-file.service';
 import { PrivateOfflineLessonService } from './private-offline-lesson.service';
 import { sha256 } from './editorial-image';
+import { LicenciaAccesoService } from '../institucion/licencia-acceso.service';
 
 describe('PrivateOfflineLessonService', () => {
   const id = 'a6ec3648-24ee-47d0-91f8-e59b2b68b9ab';
@@ -27,6 +29,7 @@ describe('PrivateOfflineLessonService', () => {
   const prisma = {
     subtema,
     usuario,
+    origenGestionadoInstitucional: { findUnique: jest.fn() },
     $queryRaw: clock,
   } as unknown as PrismaService;
   const service = new PrivateOfflineLessonService(
@@ -70,6 +73,81 @@ describe('PrivateOfflineLessonService', () => {
     expect(result.snapshot.image?.sha256).toBe(sha256(bytes));
     expect(result.contextDigest).toBe(sha256(JSON.stringify(result.snapshot)));
     expect(files.publishedContent.mock.calls).toEqual([[id], [id]]);
+  });
+  it('uses the license deadline without extending the private TTL', async () => {
+    const limitarOffline = jest
+      .fn()
+      .mockResolvedValue(new Date('2026-11-01T01:00:00Z'));
+    const licensed = new PrivateOfflineLessonService(
+      prisma,
+      files as unknown as EditorialFileService,
+      { limitarOffline } as unknown as LicenciaAccesoService,
+    );
+    const result = await licensed.validate('owner', 'lesson', nonce);
+    expect(result.expiresAt).toBe('2026-11-01T01:00:00.000Z');
+    expect(limitarOffline).toHaveBeenCalledWith(
+      'owner',
+      new Date('2026-11-01T00:00:00Z'),
+      new Date('2026-11-04T00:00:00Z'),
+    );
+  });
+  it('permite origen gestionado explícito sin fingir correo verificado', async () => {
+    usuario.findUnique.mockResolvedValue({
+      id: 'owner',
+      correoVerificado: false,
+      debeCambiarContrasena: false,
+      institucionId: 'institution',
+    });
+    (
+      prisma.origenGestionadoInstitucional.findUnique as jest.Mock
+    ).mockResolvedValue({ institucionId: 'institution' });
+    const exigirPractica = jest.fn().mockResolvedValue({});
+    const limitarOffline = jest
+      .fn()
+      .mockResolvedValue(new Date('2026-11-01T01:00:00Z'));
+    const licensed = new PrivateOfflineLessonService(
+      prisma,
+      files as unknown as EditorialFileService,
+      { exigirPractica, limitarOffline } as unknown as LicenciaAccesoService,
+    );
+    await expect(
+      licensed.validate('owner', 'lesson', nonce),
+    ).resolves.toMatchObject({ expiresAt: '2026-11-01T01:00:00.000Z' });
+    expect(exigirPractica).toHaveBeenCalledTimes(2);
+  });
+  it('una FK institucional sin origen gestionado no sustituye verificación real', async () => {
+    usuario.findUnique.mockResolvedValue({
+      id: 'owner',
+      correoVerificado: false,
+      debeCambiarContrasena: false,
+      institucionId: 'institution',
+    });
+    (
+      prisma.origenGestionadoInstitucional.findUnique as jest.Mock
+    ).mockResolvedValue(null);
+    const licensed = new PrivateOfflineLessonService(
+      prisma,
+      files as unknown as EditorialFileService,
+      {} as LicenciaAccesoService,
+    );
+    await expect(
+      licensed.validate('owner', 'lesson', nonce),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+    expect(files.publishedContent).not.toHaveBeenCalled();
+  });
+  it('does not issue a grant when license revalidation is denied', async () => {
+    const licensed = new PrivateOfflineLessonService(
+      prisma,
+      files as unknown as EditorialFileService,
+      {
+        limitarOffline: jest
+          .fn()
+          .mockRejectedValue(new ForbiddenException('Suspended')),
+      } as unknown as LicenciaAccesoService,
+    );
+    await expect(
+      licensed.validate('owner', 'lesson', nonce),
+    ).rejects.toBeInstanceOf(ForbiddenException);
   });
   it('stays disabled in production despite opt-in', async () => {
     process.env.NODE_ENV = 'production';

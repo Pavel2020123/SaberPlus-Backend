@@ -28,8 +28,37 @@ describe('private TUG presence reconstruction (not settlement)', () => {
     kind,
     atUs: String(origin + offset),
   });
-  const load = (events: any[], offset = 30000001n) =>
+  const load = (events: unknown[], offset = 30000001n) =>
     replayTugPresence(['A', 'B'], connections, events, String(origin + offset));
+  it.each([null, [], {}, { ...connections[0], authUs: 123 }])(
+    'rejects malformed connection data %p',
+    (connection) => {
+      expect(() =>
+        replayTugPresence(['A', 'B'], [connection], [], String(origin)),
+      ).toThrow(/TUG_REPLAY_PRESENCE_(ROW|CONNECTION_DATA)/);
+    },
+  );
+  it.each([null, [], {}, { ...event(1, 'CONNECTED', 0n), atUs: 123 }])(
+    'rejects malformed event data %p',
+    (entry) => {
+      expect(() => load([entry])).toThrow(
+        /TUG_REPLAY_PRESENCE_(ROW|EVENT_DATA)/,
+      );
+    },
+  );
+  it('preserves original event objects and additional immutable hash fields', () => {
+    const events = [
+      event(1, 'CONNECTED', 0n),
+      event(2, 'DISCONNECTED', 1n),
+      event(3, 'GRACE', 1n),
+    ].map((entry) => ({
+      ...entry,
+      immutableMetadata: { fixture: 'canonical' },
+    }));
+    const history = load(events);
+    expect(history.events).toEqual(events);
+    expect(history.events[0]).toBe(events[0]);
+  });
   it('requires the confirmed last disconnect and preserves exact grace microseconds', () => {
     const p = load([
       event(1, 'CONNECTED', 0n),

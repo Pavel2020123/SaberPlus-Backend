@@ -104,7 +104,23 @@ try {
   const editorialTriviaMigration = 'prisma/migrations/20261024180000_editorial_trivia_local_snapshots/migration.sql';
   const editorialTugMigration = 'prisma/migrations/20261024200000_editorial_tug_snapshot_access/migration.sql';
   const editorialBattleMigration = 'prisma/migrations/20261024220000_editorial_battle_snapshots/migration.sql';
+  // LIC-1: explicit additive migration only in this newly owned disposable DB.
+  const licenseMigration = 'prisma/migrations/20261102180000_institution_license_contracts/migration.sql';
   const actualPaths = [...new Set([...paths, territoryMigration, profileMigration, logoMigration, studentRequestsMigration, studentCodesMigration, questionReportsMigration, editorialFilesMigration, editorialLinksMigration, editorialOptionsMigration, tugLocalMigration, tugImagesMigration, tugPauseMigration, editorialHistoryMigration, editorialSnapshotMigration, editorialTriviaMigration, editorialTugMigration, editorialBattleMigration])].sort();
+  if (!actualPaths.includes(licenseMigration)) actualPaths.push(licenseMigration);
+  const balanceMigration = 'prisma/migrations/20261102200000_institution_personal_balance/migration.sql';
+  if (!actualPaths.includes(balanceMigration)) actualPaths.push(balanceMigration);
+  const identityMigration = 'prisma/migrations/20261102220000_managed_account_identity/migration.sql';
+  if (!actualPaths.includes(identityMigration)) actualPaths.push(identityMigration);
+  const suffixMigration = 'prisma/migrations/20261102223000_institution_alias_suffix/migration.sql';
+  if (!actualPaths.includes(suffixMigration)) actualPaths.push(suffixMigration);
+  const temporaryMigration = 'prisma/migrations/20261102230000_managed_temporary_single_login/migration.sql';
+  if (!actualPaths.includes(temporaryMigration)) actualPaths.push(temporaryMigration);
+  const lifecycleMigration = 'prisma/migrations/20261103170000_account_lifecycle_review/migration.sql';
+  if (!actualPaths.includes(lifecycleMigration)) actualPaths.push(lifecycleMigration);
+  const privacyMigration = 'prisma/migrations/20261103180000_reviewed_privacy_scope/migration.sql';
+  if (!actualPaths.includes(privacyMigration)) actualPaths.push(privacyMigration);
+  actualPaths.sort();
   for (const path of actualPaths) {
     const dest = join(directory, path.replace(/^prisma\//, ''));
     await mkdir(dirname(dest), { recursive: true });

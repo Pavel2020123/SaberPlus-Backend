@@ -42,6 +42,7 @@ export async function canReadTriviaSnapshotImage(
   db: Database,
   id: string,
   owner: string,
+  onlyHistory = false,
 ) {
   const path = editorialImagePath(id.toLowerCase());
   const queries = sources.map(({ column, modes, minimum, evidence }) => {
@@ -71,7 +72,7 @@ export async function canReadTriviaSnapshotImage(
         AND (
           -- La pregunta actual sigue accesible durante un segundo intento/pausa,
           -- pero no después del cierre/plazo global ni por un contador inventado.
-          (s.estado = 'ACTIVO' AND s."venceEn" > timezone('UTC',clock_timestamp())
+          (NOT ${onlyHistory} AND s.estado = 'ACTIVO' AND s."venceEn" > timezone('UTC',clock_timestamp())
             AND s."indiceActual" = q.position - 1 AND s."preguntaActualId" = q.item->>'preguntaId'
             AND NOT EXISTS (SELECT 1 FROM jsonb_array_elements(${questions}) WITH ORDINALITY previous(item, position)
               WHERE previous.position < q.position AND NOT EXISTS (SELECT 1 FROM "TriviaRushRespuesta" r

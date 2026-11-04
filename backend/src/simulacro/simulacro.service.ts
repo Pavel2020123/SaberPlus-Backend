@@ -3,8 +3,10 @@ import {
   GoneException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { LicenciaAccesoService } from '../institucion/licencia-acceso.service';
 import { AreaIcfes, Dificultad, OrigenRespuesta, Prisma } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
 import { EditorialFileRuntime } from '../editorial-files/editorial-file-runtime';
@@ -60,9 +62,27 @@ export interface DetalleRevision {
 
 @Injectable()
 export class SimulacroService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    @Optional() private readonly licencia?: LicenciaAccesoService,
+  ) {}
 
   private readonly duracionIntentoMs = 2 * 60 * 60 * 1000;
+
+  private confirmarIntento(
+    usuarioId: string,
+    intentoId: string,
+    trabajo: (tx: Prisma.TransactionClient) => Promise<void>,
+  ) {
+    return this.licencia
+      ? this.licencia.confirmarIntento(
+          usuarioId,
+          'SIMULACRO',
+          intentoId,
+          trabajo,
+        )
+      : this.prisma.$transaction(trabajo);
+  }
 
   private async crearIntento(
     usuarioId: string,
@@ -70,6 +90,7 @@ export class SimulacroService {
     preguntaIds: string[],
     area?: AreaIcfes,
   ) {
+    await this.licencia?.exigirPractica(usuarioId);
     return this.prisma.intentoSimulacro.create({
       data: {
         usuarioId,
@@ -102,6 +123,7 @@ export class SimulacroService {
         preguntaIds: true,
         area: true,
         expira: true,
+        fechaCreacion: true,
         consumidoEn: true,
       },
     });
@@ -109,6 +131,19 @@ export class SimulacroService {
       throw new BadRequestException(
         'Este intento no existe, ya fue calificado o expiró.',
       );
+    }
+    if (this.licencia) {
+      if (
+        [OrigenRespuesta.SIMULACRO, OrigenRespuesta.PERSONALIZADO].includes(
+          origen as 'SIMULACRO' | 'PERSONALIZADO',
+        )
+      )
+        await this.licencia.exigirEntrega(
+          usuarioId,
+          intento.fechaCreacion,
+          intento.expira,
+        );
+      else await this.licencia.exigirPractica(usuarioId);
     }
     if (area && intento.area !== area) {
       throw new BadRequestException('El intento no corresponde a esa área.');
@@ -414,7 +449,7 @@ export class SimulacroService {
 
     // Guardar resultado en la BD para estadísticas futuras
     if (usuarioId) {
-      await this.prisma.$transaction(async (tx) => {
+      await this.confirmarIntento(usuarioId, intentoId, async (tx) => {
         await this.consumirIntento(tx, usuarioId, intentoId);
         await tx.resultadoSimulacro.create({
           data: {
@@ -706,7 +741,7 @@ export class SimulacroService {
       });
 
       if (resultados.length > 0) {
-        await this.prisma.$transaction(async (tx) => {
+        await this.confirmarIntento(usuarioId, intentoId, async (tx) => {
           await this.consumirIntento(tx, usuarioId, intentoId);
           await tx.resultadoSimulacro.createMany({ data: resultados });
           await tx.historialRespuesta.createMany({ data: historial });

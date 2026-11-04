@@ -5,6 +5,7 @@ import {
   Injectable,
   NotFoundException,
   ServiceUnavailableException,
+  Optional,
 } from '@nestjs/common';
 import {
   ArchivoEditorial,
@@ -13,6 +14,7 @@ import {
 } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../prisma/prisma.service';
+import { LicenciaAccesoService } from '../institucion/licencia-acceso.service';
 import {
   canReadBattleSnapshotImage,
   hasBattleSnapshotImageReference,
@@ -47,6 +49,7 @@ export class EditorialFileService {
     private readonly prisma: PrismaService,
     private readonly store: EditorialFileStore,
     private readonly runtime: EditorialFileRuntime,
+    @Optional() private readonly licencia?: LicenciaAccesoService,
   ) {}
 
   private metadata(row: EditorialFileRow) {
@@ -339,6 +342,14 @@ export class EditorialFileService {
     });
     if (!row || row.revocacion || row.estado !== 'DISPONIBLE')
       throw new NotFoundException('El archivo no está disponible.');
+    const onlyHistory =
+      actorId && this.licencia
+        ? await this.licencia.soloHistorico(actorId)
+        : false;
+    const graceAccess =
+      onlyHistory && actorId && this.licencia
+        ? await this.licencia.imagenIntentoVigente(actorId, id)
+        : false;
     const publishedQuestion = {
       estadoContenido: 'PUBLICADO' as const,
       subtema: {
@@ -350,57 +361,81 @@ export class EditorialFileService {
     // ProgresoTema, un ID en IntentoSimulacro o el caso actual de un historial
     // no acreditan la imagen original. Lo histórico requiere H1 o una copia
     // exacta de los adaptadores inferiores; nunca reconstruirlo desde el banco.
-    const accessible = await this.prisma.archivoEditorial.findFirst({
-      where: {
-        id,
-        estado: 'DISPONIBLE',
-        revocacion: null,
-        OR: [
-          {
-            lecciones: {
-              some: {
-                estadoContenido: 'PUBLICADO',
-                tema: { estadoContenido: 'PUBLICADO' },
-              },
-            },
-          },
-          { preguntas: { some: publishedQuestion } },
-          { opciones: { some: { pregunta: publishedQuestion } } },
-          ...(actorId && this.runtime.historyEnabled()
-            ? [
+    const accessible =
+      !onlyHistory || this.runtime.historyEnabled()
+        ? await this.prisma.archivoEditorial.findFirst({
+            where: {
+              id,
+              ...(onlyHistory
+                ? {
+                    imagenesHistoricas: {
+                      some: {
+                        usuarioId: actorId,
+                        sha256: row.sha256,
+                        historial: { usuarioId: actorId },
+                      },
+                    },
+                  }
+                : {}),
+              estado: 'DISPONIBLE',
+              revocacion: null,
+              OR: [
                 {
-                  imagenesHistoricas: {
+                  lecciones: {
                     some: {
-                      usuarioId: actorId,
-                      sha256: row.sha256,
-                      historial: { usuarioId: actorId },
+                      estadoContenido: 'PUBLICADO',
+                      tema: { estadoContenido: 'PUBLICADO' },
                     },
                   },
                 },
-              ]
-            : []),
-          {
-            casos: {
-              some: {
-                estadoContenido: 'PUBLICADO',
-                preguntas: { some: publishedQuestion },
-              },
+                { preguntas: { some: publishedQuestion } },
+                { opciones: { some: { pregunta: publishedQuestion } } },
+                ...(actorId && this.runtime.historyEnabled()
+                  ? [
+                      {
+                        imagenesHistoricas: {
+                          some: {
+                            usuarioId: actorId,
+                            sha256: row.sha256,
+                            historial: { usuarioId: actorId },
+                          },
+                        },
+                      },
+                    ]
+                  : []),
+                {
+                  casos: {
+                    some: {
+                      estadoContenido: 'PUBLICADO',
+                      preguntas: { some: publishedQuestion },
+                    },
+                  },
+                },
+              ],
             },
-          },
-        ],
-      },
-      select: { id: true },
-    });
+            select: { id: true },
+          })
+        : null;
     const snapshotAccess =
       !accessible && actorId && this.runtime.snapshotsEnabled()
-        ? await canReadSoloSnapshotImage(this.prisma, row.id, actorId)
+        ? await canReadSoloSnapshotImage(
+            this.prisma,
+            row.id,
+            actorId,
+            onlyHistory,
+          )
         : false;
     const triviaAccess =
       !accessible &&
       !snapshotAccess &&
       actorId &&
       this.runtime.triviaSnapshotsEnabled()
-        ? await canReadTriviaSnapshotImage(this.prisma, row.id, actorId)
+        ? await canReadTriviaSnapshotImage(
+            this.prisma,
+            row.id,
+            actorId,
+            onlyHistory,
+          )
         : false;
     const tugAccess =
       !accessible &&
@@ -417,14 +452,20 @@ export class EditorialFileService {
       !tugAccess &&
       actorId &&
       this.runtime.battleSnapshotsEnabled()
-        ? await canReadBattleSnapshotImage(this.prisma, row.id, actorId)
+        ? await canReadBattleSnapshotImage(
+            this.prisma,
+            row.id,
+            actorId,
+            onlyHistory,
+          )
         : false;
     if (
       !accessible &&
       !snapshotAccess &&
       !triviaAccess &&
       !tugAccess &&
-      !battleAccess
+      !battleAccess &&
+      !graceAccess
     )
       throw new NotFoundException('El archivo no está disponible.');
     return this.content(id);

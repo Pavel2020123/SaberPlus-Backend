@@ -77,6 +77,16 @@ describe('Certificados de áreas y curso', () => {
 
   it('filtra publicaciones de padres y subtemas y progreso de la cuenta autenticada', async () => {
     await service.listar('usuario-1');
+    const expectedSelection: unknown = expect.objectContaining({
+      progresotemas: {
+        where: {
+          usuarioId: 'usuario-1',
+          completado: true,
+          porcentaje: { gte: 100 },
+        },
+        select: { id: true },
+      },
+    });
     expect(subtema.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
@@ -86,16 +96,7 @@ describe('Certificados de áreas y curso', () => {
             {},
           ],
         },
-        select: expect.objectContaining({
-          progresotemas: {
-            where: {
-              usuarioId: 'usuario-1',
-              completado: true,
-              porcentaje: { gte: 100 },
-            },
-            select: { id: true },
-          },
-        }),
+        select: expectedSelection,
       }),
     );
   });

@@ -39,6 +39,7 @@ export async function canReadSoloSnapshotImage(
   db: Database,
   id: string,
   actorId: string,
+  onlyHistory = false,
 ) {
   const path = editorialImagePath(id.toLowerCase());
   const queries = sources.map(
@@ -61,7 +62,7 @@ export async function canReadSoloSnapshotImage(
           THEN q.item->'question'->'respuestas' ELSE '[]'::jsonb END) option
         WHERE option->>'id' = q.item->>'correctAnswerId')
       AND (q.position <= jsonb_array_length(${answers})
-        OR (q.position = jsonb_array_length(${answers}) + 1
+        OR (NOT ${onlyHistory} AND q.position = jsonb_array_length(${answers}) + 1
           AND s."estado" = 'ACTIVO' AND s."venceEn" > CURRENT_TIMESTAMP))
       AND (q.item->'question'->>'imagenUrl' = ${path}
         OR q.item->'question'->'caso'->>'imagenUrl' = ${path}

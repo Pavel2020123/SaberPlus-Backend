@@ -1,4 +1,5 @@
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication, Type, ValidationPipe } from '@nestjs/common';
+import { Server } from 'node:http';
 import { Test } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
 import * as request from 'supertest';
@@ -8,8 +9,12 @@ import { InstitucionController } from './institucion.controller';
 import { ArchivoAlmacenamientoService } from './archivo-almacenamiento.service';
 
 const sharp = sharpModule as unknown as typeof import('sharp').default;
+function isHttpServer(value: unknown): value is Server {
+  return value instanceof Server;
+}
 describe('rutas HTTP reales del logo con guardas y multipart', () => {
   let app: INestApplication, image: Buffer;
+  let server: Server;
   const id = 'a6ec3648-24ee-47d0-91f8-e59b2b68b9ab';
   const auth = { Authorization: 'Bearer fixture' };
   const db = {
@@ -21,10 +26,17 @@ describe('rutas HTTP reales del logo con guardas y multipart', () => {
     $transaction: jest.fn(),
   };
   beforeAll(async () => {
-    const dependencies = Reflect.getMetadata(
+    const metadata: unknown = Reflect.getMetadata(
       'design:paramtypes',
       InstitucionController,
-    ) as Array<new (...args: any[]) => unknown>;
+    );
+    if (!Array.isArray(metadata))
+      throw new Error('Missing controller dependency metadata');
+    const dependencies = metadata.map((value: unknown) => {
+      if (typeof value !== 'function')
+        throw new Error('Invalid dependency constructor');
+      return value as Type<unknown>;
+    });
     const module = await Test.createTestingModule({
       controllers: [InstitucionController],
       providers: [
@@ -49,6 +61,10 @@ describe('rutas HTTP reales del logo con guardas y multipart', () => {
       }),
     );
     await app.init();
+    const httpServer: unknown = app.getHttpServer();
+    if (!isHttpServer(httpServer))
+      throw new Error('Expected a real HTTP server');
+    server = httpServer;
     image = await sharp({
       create: { width: 32, height: 32, channels: 3, background: 'blue' },
     })
@@ -75,10 +91,12 @@ describe('rutas HTTP reales del logo con guardas y multipart', () => {
       estadoVerificacion: 'APROBADA',
     });
     db.institucion.updateMany.mockResolvedValue({ count: 1 });
-    db.$transaction.mockImplementation((fn) => fn(db));
+    db.$transaction.mockImplementation(
+      (fn: (tx: typeof db) => Promise<unknown>) => fn(db),
+    );
   });
   it('401 anónimo antes de procesar archivo', async () => {
-    await request(app.getHttpServer())
+    await request(server)
       .post('/instituciones/me/logo')
       .field('revision', '0')
       .attach('logo', image, 'x.png')
@@ -90,13 +108,13 @@ describe('rutas HTTP reales del logo con guardas y multipart', () => {
       rol: 'ADMINISTRADOR',
       institucionId: id,
     });
-    await request(app.getHttpServer())
+    await request(server)
       .post('/instituciones/me/logo')
       .set(auth)
       .field('revision', '0')
       .attach('logo', image, 'x.png')
       .expect(403);
-    await request(app.getHttpServer())
+    await request(server)
       .delete('/instituciones/me/logo')
       .set(auth)
       .send({ revision: 0 })
@@ -104,7 +122,7 @@ describe('rutas HTTP reales del logo con guardas y multipart', () => {
     expect(db.institucionLogo.upsert).not.toHaveBeenCalled();
   });
   it('publica multipart y devuelve solo URL y revisión', async () => {
-    const res = await request(app.getHttpServer())
+    const res = await request(server)
       .post('/instituciones/me/logo')
       .set(auth)
       .field('revision', '0')
@@ -116,20 +134,20 @@ describe('rutas HTTP reales del logo con guardas y multipart', () => {
     });
   });
   it('archivo grande, campos extra y archivo ausente se rechazan', async () => {
-    await request(app.getHttpServer())
+    await request(server)
       .post('/instituciones/me/logo')
       .set(auth)
       .field('revision', '0')
       .attach('logo', Buffer.alloc(3 * 1024 * 1024 + 1), 'x.png')
       .expect(413);
-    await request(app.getHttpServer())
+    await request(server)
       .post('/instituciones/me/logo')
       .set(auth)
       .field('revision', '0')
       .field('institucionId', id)
       .attach('logo', image, 'x.png')
       .expect(400);
-    await request(app.getHttpServer())
+    await request(server)
       .post('/instituciones/me/logo')
       .set(auth)
       .field('revision', '0')
@@ -137,12 +155,12 @@ describe('rutas HTTP reales del logo con guardas y multipart', () => {
     expect(db.institucionLogo.upsert).not.toHaveBeenCalled();
   });
   it('revisión ausente y MIME falso no llegan a guardar', async () => {
-    await request(app.getHttpServer())
+    await request(server)
       .post('/instituciones/me/logo')
       .set(auth)
       .attach('logo', image, 'x.png')
       .expect(400);
-    await request(app.getHttpServer())
+    await request(server)
       .post('/instituciones/me/logo')
       .set(auth)
       .field('revision', '0')
@@ -155,7 +173,7 @@ describe('rutas HTTP reales del logo con guardas y multipart', () => {
   });
   it('409 conserva logo cuando otra sesión cambió el perfil', async () => {
     db.institucion.updateMany.mockResolvedValue({ count: 0 });
-    await request(app.getHttpServer())
+    await request(server)
       .delete('/instituciones/me/logo')
       .set(auth)
       .send({ revision: 0 })

@@ -1,9 +1,66 @@
 import { requireEvidence } from './competitive.rules';
 
-type Row = Record<string, any>;
-const check = (ok: unknown, code: string) =>
+interface PresenceConnection {
+  id: string;
+  matchId: string;
+  userId: string;
+  connectedUs: string;
+  authUs: string | null;
+  state: string;
+  lastUs: string;
+  leaseUs: string;
+  closedUs: string | null;
+}
+interface PresenceEvent {
+  id: string;
+  matchId: string;
+  userId: string;
+  connectionId: string | null;
+  kind: string;
+  atUs: string;
+}
+interface ConnectionState {
+  state: 'OPEN' | 'CLOSED' | 'UNKNOWN' | 'RETIRED';
+  last: bigint;
+  auth: string | null;
+  closed?: bigint;
+}
+function check(ok: unknown, code: string): asserts ok {
   requireEvidence(ok, `TUG_REPLAY_PRESENCE_${code}`);
-const us = (v: string) => {
+}
+function record(value: unknown): Record<string, unknown> {
+  check(
+    value !== null && typeof value === 'object' && !Array.isArray(value),
+    'ROW',
+  );
+  return value as Record<string, unknown>;
+}
+function isConnection(value: unknown): value is PresenceConnection {
+  const row = record(value);
+  return (
+    [
+      'id',
+      'matchId',
+      'userId',
+      'connectedUs',
+      'state',
+      'lastUs',
+      'leaseUs',
+    ].every((field) => typeof row[field] === 'string') &&
+    (row.authUs === null || typeof row.authUs === 'string') &&
+    (row.closedUs === null || typeof row.closedUs === 'string')
+  );
+}
+function isEvent(value: unknown): value is PresenceEvent {
+  const row = record(value);
+  return (
+    ['id', 'matchId', 'userId', 'kind', 'atUs'].every(
+      (field) => typeof row[field] === 'string',
+    ) &&
+    (row.connectionId === null || typeof row.connectionId === 'string')
+  );
+}
+const us = (v: unknown) => {
   check(typeof v === 'string' && /^\d+$/.test(v), 'TIME');
   return BigInt(v);
 };
@@ -13,14 +70,24 @@ const us = (v: string) => {
  * grace. No inference from the aggregate, socket absence or sporting winner. */
 export function replayTugPresence(
   participants: string[],
-  connections: Row[],
-  events: Row[],
+  rawConnections: unknown[],
+  rawEvents: unknown[],
   terminalUs: string,
   activeRoundStartUs?: string,
   activation?: { atUs: string; presenceId: string },
 ) {
   const terminal = us(terminalUs);
-  const states = new Map<string, Row>();
+  // Keep the original objects, including additional immutable fields used in
+  // canonical evidence hashes. Validate their shape rather than asserting JSON.
+  const connections = rawConnections.map((value) => {
+    check(isConnection(value), 'CONNECTION_DATA');
+    return value;
+  });
+  const events = rawEvents.map((value) => {
+    check(isEvent(value), 'EVENT_DATA');
+    return value;
+  });
+  const states = new Map<string, ConnectionState>();
   const graces: {
     userId: string;
     start: bigint;
@@ -154,7 +221,7 @@ export function replayTugPresence(
       'CONNECTION_SUMMARY',
     );
   }
-  function lease(c: Row): bigint {
+  function lease(c: ConnectionState): bigint {
     const end = c.last + 45000000n;
     return c.auth === null ? end : end < us(c.auth) ? end : us(c.auth);
   }
@@ -178,14 +245,14 @@ export function replayTugPresence(
       const end = us(last.atUs) + 45000000n;
       if (at < end && (c.authUs === null || at < us(c.authUs)))
         return {
-          connectionId: c.id as string,
-          eventId: last.id as string,
-          authenticatedUs: last.atUs as string,
+          connectionId: c.id,
+          eventId: last.id,
+          authenticatedUs: last.atUs,
           leaseUntilUs: (c.authUs === null || end < us(c.authUs)
             ? end
             : us(c.authUs)
           ).toString(),
-          authUntilUs: c.authUs as string | null,
+          authUntilUs: c.authUs,
         };
     }
     return null;

@@ -1,4 +1,5 @@
 import { Transform } from 'class-transformer';
+import { readCompetitiveOptIn } from '../common/competitive-opt-in';
 import {
   Body,
   Controller,
@@ -27,7 +28,7 @@ import { SummitService } from './summit.service';
 export class CreateSummitDto {
   @IsOptional()
   @IsBoolean()
-  @Transform(({ obj }) => obj.competitive)
+  @Transform(readCompetitiveOptIn)
   competitive?: boolean;
   @IsEnum(AreaIcfes) area!: AreaIcfes;
   @IsOptional() @IsEnum(Dificultad) dificultad?: Dificultad;

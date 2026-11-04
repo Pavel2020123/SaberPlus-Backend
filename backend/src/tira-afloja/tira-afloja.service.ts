@@ -779,9 +779,13 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
             JSON.stringify({
               event: 'TUG_RECOVERY_PENDING',
               partidaId: id,
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
               code: error?.code ?? 'RECOVERY_ERROR',
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
               sqlState: error?.meta?.code ?? null,
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
               transactionError:
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
                 error?.code === 'P2028' ? error?.meta?.error : undefined,
               reason: 'Durable work retained; verify schema/database',
             }),
@@ -1084,14 +1088,22 @@ export class TiraAflojaService implements OnModuleInit, OnModuleDestroy {
         JSON.stringify({
           event: 'TUG_VISIBILITY_PENDING',
           partidaId,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
           code: error?.code ?? 'WITNESS_ERROR',
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
           sqlState: error?.meta?.code ?? null,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           detail:
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             typeof error?.meta?.message === 'string'
-              ? error.meta.message
+              ? // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+                error.meta.message
               : null,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           reason:
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             error?.message === 'TUG_WITNESS_DATABASE_MISMATCH'
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
               ? error.message
               : 'Independent witness failed; certificate remains absent',
         }),

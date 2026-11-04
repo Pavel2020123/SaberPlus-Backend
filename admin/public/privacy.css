@@ -1,0 +1,38 @@
+.privacy-counts {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px 16px;
+  max-width: 680px;
+}
+.privacy-counts dt {
+  overflow-wrap: anywhere;
+  text-transform: capitalize;
+}
+.privacy-counts dd {
+  margin: 0;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.privacy-danger {
+  border-top: 2px solid #9b2434;
+  margin-top: 28px;
+  padding-top: 20px;
+}
+.privacy-execute {
+  color: white;
+  background: #9b2434;
+}
+.accounts-shell input,
+.accounts-shell textarea {
+  border-color: #738894;
+}
+.accounts-shell button {
+  min-height: 46px;
+}
+.accounts-shell h3,
+.accounts-shell p {
+  overflow-wrap: anywhere;
+}
+.lifecycle-view .group-card {
+  margin-bottom: 16px;
+}

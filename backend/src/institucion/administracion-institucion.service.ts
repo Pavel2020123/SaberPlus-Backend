@@ -5,17 +5,23 @@ import {
   Injectable,
   NotFoundException,
   UnauthorizedException,
+  Optional,
 } from '@nestjs/common';
 import { Prisma, RolMembresiaInstitucion } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { requireInstitutionOperational } from './institution-approval.policy';
+import { LicenciaInstitucionalService } from './licencia-institucional.service';
+import { randomUUID } from 'node:crypto';
 
 type RolGestionable = 'ADMINISTRADOR' | 'PROFESOR';
 type DecisionSolicitud = 'APROBAR' | 'RECHAZAR';
 
 @Injectable()
 export class AdministracionInstitucionService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly licencia?: LicenciaInstitucionalService,
+  ) {}
 
   async obtenerPanel(usuarioId: string) {
     const actor = await this.obtenerActorAdministrador(usuarioId);
@@ -489,6 +495,15 @@ export class AdministracionInstitucionService {
         'Un administrador solo puede retirar profesores.',
       );
     }
+    if (await this.licencia?.esControlada(actor.institucionId)) {
+      await this.licencia.retirar(
+        usuarioId,
+        actor.institucionId,
+        randomUUID(),
+        miembro.usuarioId,
+      );
+      return { retirado: true };
+    }
     await this.prisma.$transaction([
       this.prisma.usuario.update({
         where: { id: miembro.usuarioId },
@@ -533,6 +548,14 @@ export class AdministracionInstitucionService {
     if (miembro.usuarioId === usuarioId || miembro.rol === 'PROPIETARIO') {
       throw new BadRequestException('Selecciona otro miembro del equipo.');
     }
+
+    if (await this.licencia?.esControlada(actor.institucionId))
+      return this.licencia.transferirPropiedad(
+        usuarioId,
+        actor.institucionId,
+        miembroId,
+        codigoConfirmacion,
+      );
 
     await this.prisma.$transaction([
       this.prisma.miembroInstitucion.update({
@@ -588,6 +611,10 @@ export class AdministracionInstitucionService {
         'Solo una cuenta de profesor puede usar invitaciones.',
       );
     }
+    if (!usuario.correo)
+      throw new ForbiddenException(
+        'Las invitaciones personales requieren un correo real.',
+      );
     return { ...usuario, correo: usuario.correo.trim().toLowerCase() };
   }
 

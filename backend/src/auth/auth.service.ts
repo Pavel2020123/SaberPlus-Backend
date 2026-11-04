@@ -1,10 +1,12 @@
 import {
   Injectable,
+  Optional,
   BadRequestException,
   UnauthorizedException,
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { BCRYPT_SALT_ROUNDS } from '../common/constants';
@@ -19,6 +21,8 @@ import {
 } from './recuperacion.util';
 import { MailService } from '../mail/mail.service';
 import { ReferidosService } from '../referidos/referidos.service';
+import { SaldoPersonalInstitucionalService } from '../institucion/saldo-personal-institucional.service';
+import { LicenciaAccesoService } from '../institucion/licencia-acceso.service';
 
 @Injectable()
 export class AuthService {
@@ -27,6 +31,8 @@ export class AuthService {
     private jwtService: JwtService,
     private mailService: MailService,
     private referidosService: ReferidosService,
+    @Optional() private saldoPersonal?: SaldoPersonalInstitucionalService,
+    @Optional() private licenciaAcceso?: LicenciaAccesoService,
   ) {}
 
   // ─── REGISTRO ───────────────────────────────────────────────
@@ -80,26 +86,37 @@ export class AuthService {
           )
         : null;
 
-    const nuevoUsuario = await this.prisma.usuario.create({
-      data: {
-        nombre: nombre.trim(),
-        correo: correoNormalizado,
-        contrasenaHash: contrasenaEncriptada,
-        rol,
-        correoVerificado: false,
-        tokenVerificacion,
-        tokenVerificacionExpira,
-        codigoReferido: referido?.codigoNuevo ?? null,
-        referidoRecibido: referido?.referidorId
-          ? {
-              create: {
-                referidorId: referido.referidorId,
-                codigoUsado: referido.codigoUsado,
-              },
-            }
-          : undefined,
-      },
-    });
+    const nuevoUsuario = await this.prisma.usuario
+      .create({
+        data: {
+          nombre: nombre.trim(),
+          correo: correoNormalizado,
+          contrasenaHash: contrasenaEncriptada,
+          rol,
+          correoVerificado: false,
+          tokenVerificacion,
+          tokenVerificacionExpira,
+          codigoReferido: referido?.codigoNuevo ?? null,
+          referidoRecibido: referido?.referidorId
+            ? {
+                create: {
+                  referidorId: referido.referidorId,
+                  codigoUsado: referido.codigoUsado,
+                },
+              }
+            : undefined,
+        },
+      })
+      .catch((error: unknown) => {
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2002'
+        )
+          throw new BadRequestException(
+            'El identificador de acceso ya está en uso.',
+          );
+        throw error;
+      });
 
     await this.mailService.enviarVerificacionCorreo(
       correoNormalizado,
@@ -276,9 +293,13 @@ export class AuthService {
   async login(correo: string, contrasena: string) {
     const correoNormalizado = correo.trim().toLowerCase();
     // 1. Buscar el usuario por correo
-    const usuario = await this.prisma.usuario.findUnique({
-      where: { correo: correoNormalizado },
-    });
+    const usuario =
+      (await this.prisma.usuario.findUnique({
+        where: { correo: correoNormalizado },
+      })) ??
+      (await this.prisma.usuario.findUnique({
+        where: { identificadorInstitucional: correoNormalizado },
+      }));
 
     if (!usuario) {
       throw new UnauthorizedException('Correo o contraseña incorrectos');
@@ -294,9 +315,34 @@ export class AuthService {
       throw new UnauthorizedException('Correo o contraseña incorrectos');
     }
 
+    let versionSesion = usuario.versionSesion ?? 0;
+    if (usuario.identificadorInstitucional && usuario.debeCambiarContrasena) {
+      // The predicate is rechecked after bcrypt. Only one concurrent login may
+      // consume this temporary credential; reset or password change wins safely.
+      const consumida = await this.prisma.usuario.updateMany({
+        where: {
+          id: usuario.id,
+          contrasenaHash: usuario.contrasenaHash,
+          versionSesion,
+          debeCambiarContrasena: true,
+          temporalConsumidaEn: null,
+        },
+        data: {
+          temporalConsumidaEn: new Date(),
+          versionSesion: { increment: 1 },
+        },
+      });
+      if (consumida.count !== 1)
+        throw new UnauthorizedException(
+          'Usuario o contraseña incorrectos. Si ya usaste tu clave temporal, solicita otra a tu institución.',
+        );
+      versionSesion++;
+    }
+
     // 3. Crear el JWT con la info del usuario (el "payload")
     const payload = {
       sub: usuario.id, // "sub" = subject, estándar JWT
+      versionSesion,
       correo: usuario.correo,
       rol: usuario.rol,
       nombre: usuario.nombre,
@@ -314,11 +360,13 @@ export class AuthService {
         xpTotal: usuario.xpTotal,
         institucionId: usuario.institucionId,
         debeCambiarContrasena: usuario.debeCambiarContrasena,
+        identificadorInstitucional: usuario.identificadorInstitucional ?? null,
       },
     };
   }
   // ─── OBTENER PERFIL ─────────────────────────────────────────
   async obtenerPerfil(usuarioId: string) {
+    await this.saldoPersonal?.reanudarSiPersonal(usuarioId);
     const usuario = await this.prisma.usuario.findUnique({
       where: { id: usuarioId },
       select: {
@@ -332,6 +380,7 @@ export class AuthService {
         descripcion: true,
         institucionId: true,
         fechaVencimientoPlan: true,
+        identificadorInstitucional: true,
         correoVerificado: true,
         debeCambiarContrasena: true,
       },
@@ -347,6 +396,9 @@ export class AuthService {
         correo: usuario.correo,
         rol: usuario.rol,
         debeCambiarContrasena: true,
+        ...(usuario.identificadorInstitucional
+          ? { identificadorInstitucional: usuario.identificadorInstitucional }
+          : {}),
       };
     }
 
@@ -357,6 +409,9 @@ export class AuthService {
       planVencido: false,
       // Igual, pero para el aviso de "confirma tu correo".
       requiereVerificacionCorreo: requiereVerificacionCorreo(usuario),
+      accesoInstitucional: this.licenciaAcceso
+        ? await this.licenciaAcceso.resumenPropio(usuarioId)
+        : null,
     };
   }
 
@@ -389,7 +444,12 @@ export class AuthService {
   async cambiarContrasenaInicial(usuarioId: string, nuevaContrasena: string) {
     const usuario = await this.prisma.usuario.findUnique({
       where: { id: usuarioId },
-      select: { debeCambiarContrasena: true, contrasenaHash: true },
+      select: {
+        debeCambiarContrasena: true,
+        contrasenaHash: true,
+        identificadorInstitucional: true,
+        versionSesion: true,
+      },
     });
     if (!usuario) throw new UnauthorizedException('Usuario no encontrado.');
     if (usuario.debeCambiarContrasena !== true) {
@@ -413,6 +473,9 @@ export class AuthService {
         debeCambiarContrasena: false,
         tokenRecuperacion: null,
         tokenRecuperacionExpira: null,
+        ...(usuario.identificadorInstitucional
+          ? { versionSesion: { increment: 1 } }
+          : {}),
       },
     });
     if (actualizada.count !== 1) {
@@ -421,6 +484,15 @@ export class AuthService {
       );
     }
 
+    if (usuario.identificadorInstitucional) {
+      return {
+        mensaje: 'Contraseña actualizada.',
+        accessToken: await this.jwtService.signAsync({
+          sub: usuarioId,
+          versionSesion: usuario.versionSesion + 1,
+        }),
+      };
+    }
     return { mensaje: 'Contraseña actualizada.' };
   }
 }

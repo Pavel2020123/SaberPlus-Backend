@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { ValidationPipe } from '@nestjs/common';
+import { Type, ValidationPipe } from '@nestjs/common';
 import { GUARDS_METADATA } from '@nestjs/common/constants';
 import { EmailVerificadoGuard } from '../auth/email-verificado.guard';
 import { JwtGuard } from '../auth/jwt.guard';
@@ -11,12 +11,17 @@ describe('Guardian HTTP boundary', () => {
     whitelist: true,
     forbidNonWhitelisted: true,
   });
-  const parameters = Reflect.getMetadata(
+  const parameters: unknown = Reflect.getMetadata(
     'design:paramtypes',
     GuardianController.prototype,
     'answer',
   );
-  const answerType = parameters[2];
+  if (!Array.isArray(parameters))
+    throw new Error('Missing controller DTO metadata');
+  const answerConstructor: unknown = parameters[2];
+  if (typeof answerConstructor !== 'function')
+    throw new Error('Missing answer DTO constructor');
+  const answerType = answerConstructor as Type<object>;
   const valid = {
     preguntaId: 'q1',
     respuestaId: 'a1',

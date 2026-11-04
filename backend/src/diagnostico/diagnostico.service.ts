@@ -3,6 +3,7 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import {
   AreaIcfes,
@@ -12,6 +13,7 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { preguntaPublicadaWhere } from '../common/contenido-publicado';
+import { LicenciaAccesoService } from '../institucion/licencia-acceso.service';
 
 const AREAS_DIAGNOSTICO: AreaIcfes[] = [
   AreaIcfes.LECTURA_CRITICA,
@@ -69,7 +71,24 @@ interface RespuestaEstudiante {
 
 @Injectable()
 export class DiagnosticoService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly licencia?: LicenciaAccesoService,
+  ) {}
+
+  private conflictoUnico(error: unknown, campos: string[]): boolean {
+    if (
+      !(error instanceof Prisma.PrismaClientKnownRequestError) ||
+      error.code !== 'P2002'
+    )
+      return false;
+    const target = error.meta?.target;
+    return (
+      Array.isArray(target) &&
+      target.length === campos.length &&
+      campos.every((campo) => target.includes(campo))
+    );
+  }
 
   private mezclar<T>(elementos: T[]): T[] {
     const copia = [...elementos];
@@ -158,6 +177,8 @@ export class DiagnosticoService {
     if (!diagnostico) return { estado: 'NO_INICIADO' as const };
     if (diagnostico.completadoEn) return this.construirResultado(diagnostico);
 
+    await this.licencia?.exigirEntrega(usuarioId, diagnostico.iniciadoEn, null);
+
     const preguntaIds = this.extraerPreguntaIds(diagnostico.preguntaIds);
     const preguntas = await this.obtenerPreguntasPublicas(preguntaIds);
     if (preguntas.length !== preguntaIds.length) {
@@ -177,6 +198,7 @@ export class DiagnosticoService {
 
   async iniciar(usuarioId: string) {
     await this.validarEstudiante(usuarioId);
+    await this.licencia?.exigirPractica(usuarioId);
     const existente = await this.prisma.diagnosticoInicial.findUnique({
       where: { usuarioId },
       select: { id: true },
@@ -204,13 +226,24 @@ export class DiagnosticoService {
     ).flat();
     const preguntaIds = seleccionadas.map((pregunta) => pregunta.id);
 
-    await this.prisma.diagnosticoInicial.create({
-      data: {
-        usuarioId,
-        preguntaIds,
-        totalPreguntas: preguntaIds.length,
-      },
-    });
+    try {
+      await this.prisma.diagnosticoInicial.create({
+        data: {
+          usuarioId,
+          preguntaIds,
+          totalPreguntas: preguntaIds.length,
+        },
+      });
+    } catch (error) {
+      // Another start can win after the initial lookup. Return its saved
+      // question set, never the independently sampled losing set.
+      if (!this.conflictoUnico(error, ['usuarioId'])) throw error;
+      const guardado = await this.prisma.diagnosticoInicial.findUnique({
+        where: { usuarioId },
+        select: { id: true },
+      });
+      if (!guardado) throw error;
+    }
 
     return this.obtenerEstado(usuarioId);
   }
@@ -225,6 +258,8 @@ export class DiagnosticoService {
       throw new BadRequestException('Primero debes iniciar el diagnóstico.');
     }
     if (diagnostico.completadoEn) return this.construirResultado(diagnostico);
+
+    await this.licencia?.exigirEntrega(usuarioId, diagnostico.iniciadoEn, null);
 
     const preguntaIds = this.extraerPreguntaIds(diagnostico.preguntaIds);
     const respuestasPorPregunta = new Map(
@@ -318,21 +353,44 @@ export class DiagnosticoService {
       }),
     );
 
-    await this.prisma.$transaction([
-      this.prisma.diagnosticoResultadoArea.createMany({
-        data: resultadosPorArea,
-      }),
-      this.prisma.diagnosticoInicial.update({
-        where: { id: diagnostico.id },
-        data: {
-          completadoEn: new Date(),
-          respuestasCorrectas,
-          porcentaje,
-          nivel: this.nivelPara(porcentaje),
-        },
-      }),
-      this.prisma.historialRespuesta.createMany({ data: historial }),
-    ]);
+    try {
+      const operaciones = (tx: Prisma.TransactionClient) => [
+        tx.diagnosticoResultadoArea.createMany({
+          data: resultadosPorArea,
+        }),
+        tx.diagnosticoInicial.update({
+          where: { id: diagnostico.id },
+          data: {
+            completadoEn: new Date(),
+            respuestasCorrectas,
+            porcentaje,
+            nivel: this.nivelPara(porcentaje),
+          },
+        }),
+        tx.historialRespuesta.createMany({ data: historial }),
+      ];
+      if (this.licencia)
+        await this.licencia.confirmarIntento(
+          usuarioId,
+          'DIAGNOSTICO',
+          diagnostico.id,
+          async (tx) => {
+            for (const operacion of operaciones(tx)) await operacion;
+          },
+        );
+      else await this.prisma.$transaction(operaciones(this.prisma));
+    } catch (error) {
+      // The unique per-area result is the durable concurrency barrier. Its
+      // transaction also commits completion and history atomically. Only
+      // recover this exact collision after observing that same completed row.
+      if (!this.conflictoUnico(error, ['diagnosticoId', 'area'])) throw error;
+      const guardado = await this.prisma.diagnosticoInicial.findUnique({
+        where: { usuarioId },
+        select: { id: true, completadoEn: true },
+      });
+      if (guardado?.id !== diagnostico.id || !guardado.completadoEn)
+        throw error;
+    }
 
     return this.obtenerEstado(usuarioId);
   }

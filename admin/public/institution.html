@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <title>Tu institución · SaberPlus</title>
+    <link rel="stylesheet" href="/institution.css" />
+    <link rel="stylesheet" href="/privacy.css" />
+    <link rel="stylesheet" href="/managed-accounts.css" />
+    <script src="/config.js" defer></script>
+    <script src="/institution-app.mjs" type="module"></script>
+  </head>
+  <body>
+    <a class="skip" href="#main">Ir al contenido</a>
+    <div id="login-view" class="login-layout">
+      <section class="login-story" aria-labelledby="welcome-title">
+        <a class="brand" href="/institucion"
+          >SaberPlus<span>ESPACIO INSTITUCIONAL</span></a
+        >
+        <p class="eyebrow">Acompañar también es enseñar</p>
+        <h1 id="welcome-title">
+          Cada estudiante.<br />Un camino por descubrir.
+        </h1>
+        <p>
+          Tu comunidad, su aprendizaje y las próximas decisiones. Todo en un
+          mismo lugar.
+        </p>
+        <div class="story-note">
+          <span class="story-mark" aria-hidden="true">S+</span>
+          <p>Menos tiempo entre pantallas.<br />Más tiempo para acompañar.</p>
+        </div>
+        <p class="story-footer">Grupos · Seguimiento · Prioridades</p>
+      </section>
+      <main id="main" class="login-card" tabindex="-1">
+        <p class="eyebrow">Bienvenido de nuevo</p>
+        <h2>Entra a tu institución</h2>
+        <p>
+          Usa la misma cuenta de propietario o docente que tienes en SaberPlus.
+        </p>
+        <form id="portal-login">
+          <label for="portal-user">Correo o usuario de acceso</label>
+          <input
+            id="portal-user"
+            type="text"
+            inputmode="email"
+            autocomplete="username"
+            required
+            maxlength="254"
+          />
+          <label for="portal-password">Contraseña</label>
+          <input
+            id="portal-password"
+            type="password"
+            autocomplete="current-password"
+            required
+          />
+          <button
+            type="button"
+            id="password-toggle"
+            class="text-button"
+            aria-controls="portal-password"
+            aria-pressed="false"
+          >
+            Mostrar contraseña
+          </button>
+          <button type="submit" class="primary">Entrar a mi institución</button>
+        </form>
+        <p id="login-status" role="status" tabindex="-1"></p>
+        <p class="fine">
+          ¿Olvidaste tu clave? Usa la recuperación de SaberPlus. Si tu usuario
+          es institucional y no tiene buzón, solicita ayuda a tu responsable.
+        </p>
+      </main>
+    </div>
+    <div id="portal-view" class="portal-layout" hidden>
+      <aside class="sidebar">
+        <a class="brand" href="/institucion"
+          >SaberPlus<span>ESPACIO INSTITUCIONAL</span></a
+        >
+        <div class="institution-label">
+          <span class="eyebrow">Tu comunidad</span
+          ><strong id="institution-name"></strong><span id="member-role"></span>
+        </div>
+        <nav aria-label="Secciones de la institución">
+          <button data-view="inicio" aria-current="page">Vista general</button>
+          <button data-view="grupos">Mis grupos</button>
+          <button data-view="docentes" id="portal-teachers-nav" hidden>
+            Docentes
+          </button>
+          <button data-view="seguimiento">Seguimiento</button>
+          <button data-view="prioridades">Prioridades</button>
+          <button data-view="cuentas">Cuentas y accesos</button>
+          <button data-view="bajas" id="portal-lifecycle-nav" hidden>
+            Bajas y continuidad
+          </button>
+        </nav>
+        <div class="sidebar-foot">
+          <p>Un paso a la vez.<br />Un futuro con más posibilidades.</p>
+          <button id="portal-logout" class="secondary">Cerrar sesión</button>
+        </div>
+      </aside>
+      <main id="portal-main" tabindex="-1">
+        <header class="topbar">
+          <p id="portal-breadcrumb">Institución / Vista general</p>
+          <span id="profile-name"></span
+          ><button id="portal-refresh" class="secondary">
+            Actualizar estado
+          </button>
+        </header>
+        <div id="portal-status" role="status" tabindex="-1"></div>
+        <section id="portal-content" aria-busy="false"></section>
+      </main>
+    </div>
+  </body>
+</html>

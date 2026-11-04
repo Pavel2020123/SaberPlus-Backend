@@ -4,14 +4,22 @@ import {
   BadRequestException,
   ForbiddenException,
   NotFoundException,
+  ConflictException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { capacidadesPlanInstitucional } from './institucion-plan.util';
+import { capacidadesLicenciaInstitucional } from './licencia-capacidades.policy';
 
 type ClienteLimites = Pick<
   Prisma.TransactionClient,
-  'institucion' | 'clase' | 'usuario'
+  | 'institucion'
+  | 'clase'
+  | 'usuario'
+  | 'controlLicenciaInstitucional'
+  | 'asignacionLicenciaInstitucional'
+  | 'periodoContratoInstitucional'
+  | '$queryRaw'
 >;
 
 // Servicio compartido pequeño: agrupa la lógica que necesitan casi todos
@@ -57,6 +65,37 @@ export class InstitucionAccesoService {
         'No tienes una membresía docente en una institución.',
       );
     }
+    const actor = await cliente.usuario.findUnique({
+      where: { id: usuarioId },
+      select: { rol: true, institucionId: true },
+    });
+    if (
+      !actor ||
+      !['PROFESOR', 'ADMIN'].includes(actor.rol) ||
+      actor.institucionId !== membresia.institucionId
+    ) {
+      throw new ForbiddenException(
+        'La membresía ya no corresponde a tu cuenta.',
+      );
+    }
+    if (
+      membresia.rol !== 'PROPIETARIO' &&
+      (await cliente.controlLicenciaInstitucional.findUnique({
+        where: { institucionId: membresia.institucionId },
+      })) &&
+      !(await cliente.asignacionLicenciaInstitucional.findFirst({
+        where: {
+          institucionId: membresia.institucionId,
+          usuarioId,
+          tipo: 'DOCENTE',
+          estado: 'ACTIVA',
+        },
+      }))
+    ) {
+      throw new ForbiddenException(
+        'El docente ya no tiene un cupo institucional activo.',
+      );
+    }
     return membresia;
   }
 
@@ -97,6 +136,44 @@ export class InstitucionAccesoService {
     cliente: ClienteLimites = this.prisma,
   ) {
     void grado;
+    const control = await cliente.controlLicenciaInstitucional.findUnique({
+      where: { institucionId },
+    });
+    if (control) {
+      // Legacy import/join routes cannot allocate new seats outside LIC-1.
+      if (!estudianteId || cantidadNueva !== 1)
+        throw new ConflictException(
+          'Gestiona los cupos desde la licencia institucional.',
+        );
+      const [clock] = await cliente.$queryRaw<
+        { ahora: Date }[]
+      >`SELECT clock_timestamp() AS ahora`;
+      const asignacion =
+        await cliente.asignacionLicenciaInstitucional.findFirst({
+          where: {
+            institucionId,
+            usuarioId: estudianteId,
+            tipo: 'ESTUDIANTE',
+            estado: 'ACTIVA',
+          },
+        });
+      const periodo = await cliente.periodoContratoInstitucional.findFirst({
+        where: {
+          institucionId,
+          inicio: { lte: clock.ahora },
+          fin: { gt: clock.ahora },
+        },
+      });
+      const vinculado = await cliente.usuario.findFirst({
+        where: { id: estudianteId, institucionId, rol: 'ESTUDIANTE' },
+        select: { id: true },
+      });
+      if (control.suspendida || !periodo || !asignacion || !vinculado)
+        throw new ForbiddenException(
+          'Se requiere una asignación aceptada y licencia activa.',
+        );
+      return;
+    }
     const capacidades = await this.obtenerCapacidadesInstitucion(
       institucionId,
       cliente,
@@ -142,6 +219,13 @@ export class InstitucionAccesoService {
       institucionId,
       cliente,
     );
+    if (
+      'estadoLicencia' in capacidades &&
+      capacidades.estadoLicencia !== 'ACTIVA'
+    )
+      throw new ForbiddenException(
+        'Se requiere licencia activa para crear grupos.',
+      );
     const limite = capacidades.limiteGrupos;
     if (limite === null) return;
     const totalGrupos = await cliente.clase.count({ where: { institucionId } });
@@ -166,6 +250,34 @@ export class InstitucionAccesoService {
       },
     });
     if (!institucion) throw new NotFoundException('Institución no encontrada.');
+    const control = await cliente.controlLicenciaInstitucional.findUnique({
+      where: { institucionId },
+    });
+    if (control) {
+      const [clock] = await cliente.$queryRaw<
+        { ahora: Date }[]
+      >`SELECT clock_timestamp() AS ahora`;
+      const vigente = await cliente.periodoContratoInstitucional.findFirst({
+        where: {
+          institucionId,
+          inicio: { lte: clock.ahora },
+          fin: { gt: clock.ahora },
+        },
+      });
+      const periodo =
+        vigente ??
+        (await cliente.periodoContratoInstitucional.findFirst({
+          where: { institucionId },
+          orderBy: { inicio: 'desc' },
+        }));
+      return capacidadesLicenciaInstitucional(
+        institucionId,
+        periodo ? { ...periodo, suspendida: control.suspendida } : null,
+        control.suspendida,
+        institucion.limiteGrupos,
+        clock.ahora,
+      );
+    }
     return capacidadesPlanInstitucional(institucion);
   }
 }

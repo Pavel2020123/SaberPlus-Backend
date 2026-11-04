@@ -31,7 +31,7 @@ export class ReferidosService {
       throw new BadRequestException('El código de referido no es válido.');
     }
 
-    if (referidor.correo.toLowerCase() === correoNuevo.toLowerCase()) {
+    if (referidor.correo?.toLowerCase() === correoNuevo.toLowerCase()) {
       throw new BadRequestException(
         'No puedes usar tu propio código de referido.',
       );

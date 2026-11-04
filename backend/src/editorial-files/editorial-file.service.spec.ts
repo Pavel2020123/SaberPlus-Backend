@@ -10,6 +10,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { UploadEditorialFileDto } from './editorial-file.dto';
 import { EditorialFileRuntime } from './editorial-file-runtime';
 import { EditorialFileService } from './editorial-file.service';
+import { LicenciaAccesoService } from '../institucion/licencia-acceso.service';
 
 const sharp = sharpModule as unknown as typeof import('sharp').default;
 describe('recibos, integridad y ciclo de archivos editoriales', () => {
@@ -385,5 +386,38 @@ describe('recibos, integridad y ciclo de archivos editoriales', () => {
       NotFoundException,
     );
     expect(store.read).not.toHaveBeenCalled();
+  });
+  it('a suspended license cannot use mere publication to read unrelated content', async () => {
+    const uploaded = await service.upload(actor, dto, image);
+    const limited = new EditorialFileService(
+      db as unknown as PrismaService,
+      store,
+      runtime as unknown as EditorialFileRuntime,
+      {
+        soloHistorico: jest.fn().mockResolvedValue(true),
+        imagenIntentoVigente: jest.fn().mockResolvedValue(false),
+      } as unknown as LicenciaAccesoService,
+    );
+    await expect(
+      limited.publishedContent(uploaded.id, actor),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(store.read).not.toHaveBeenCalled();
+  });
+  it('allows an exact owned-attempt image during its validated grace', async () => {
+    const uploaded = await service.upload(actor, dto, image);
+    const imagenIntentoVigente = jest.fn().mockResolvedValue(true);
+    const limited = new EditorialFileService(
+      db as unknown as PrismaService,
+      store,
+      runtime as unknown as EditorialFileRuntime,
+      {
+        soloHistorico: jest.fn().mockResolvedValue(true),
+        imagenIntentoVigente,
+      } as unknown as LicenciaAccesoService,
+    );
+    await expect(limited.publishedContent(uploaded.id, actor)).resolves.toEqual(
+      await store.read(uploaded.id),
+    );
+    expect(imagenIntentoVigente).toHaveBeenCalledWith(actor, uploaded.id);
   });
 });

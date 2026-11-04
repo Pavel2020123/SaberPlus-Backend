@@ -134,6 +134,88 @@ async function assign(f) {
     data: { creadoEn: new Date(Date.now() - 3600000) },
   });
 }
+
+test('LIC3 gestionada sin aceptación personal requiere origen y cupo activo para lista y conteo', async () => {
+  const f = await fixture();
+  const priority = await assign(f);
+  await db.claseEstudiante.update({
+    where: {
+      usuarioId_claseId: { usuarioId: f.student.id, claseId: f.group.id },
+    },
+    data: { aceptacionExplicita: false },
+  });
+  assert.equal(
+    (await service.listForStudent(f.student.id, 1)).prioridades.length,
+    0,
+  );
+  await db.controlLicenciaInstitucional.create({
+    data: { institucionId: f.school.id },
+  });
+  await db.periodoContratoInstitucional.create({ data: {
+    id: randomUUID(), institucionId: f.school.id,
+    inicio: new Date(Date.now() - 86400000), fin: new Date(Date.now() + 86400000),
+    meses: 6, cuposEstudiantes: 1, cuposDocentes: 1, referenciaAcuerdo: 'Synthetic LIC3',
+  } });
+  await db.origenGestionadoInstitucional.create({
+    data: { usuarioId: f.student.id, institucionId: f.school.id },
+  });
+  assert.equal(
+    (await service.listForStudent(f.student.id, 1)).prioridades.length,
+    0,
+  );
+  const seat = await db.asignacionLicenciaInstitucional.create({
+    data: {
+      id: randomUUID(),
+      usuarioId: f.student.id,
+      institucionId: f.school.id,
+      tipo: 'ESTUDIANTE',
+      estado: 'ACTIVA',
+      aceptadaEn: new Date(),
+    },
+  });
+  for (const q of f.questions.slice(0, 5))
+    await answer(f, q, new Date(Date.now() - 1000));
+  assert.equal(
+    (await service.listForStudent(f.student.id, 1)).prioridades[0]
+      .preguntasPracticadas,
+    5,
+  );
+  assert.equal(
+    (await service.report(f.teacher.id, f.group.id, priority.id, 1))
+      .estudiantes[0].cumplida,
+    true,
+  );
+  assert.equal(
+    (
+      await db.claseEstudiante.findUniqueOrThrow({
+        where: {
+          usuarioId_claseId: { usuarioId: f.student.id, claseId: f.group.id },
+        },
+      })
+    ).aceptacionExplicita,
+    false,
+  );
+  await db.asignacionLicenciaInstitucional.update({
+    where: { id: seat.id },
+    data: { estado: 'RETIRADA', retiradaEn: new Date() },
+  });
+  // Una aceptación antigua no permite saltarse la revocación de una gestionada.
+  await db.claseEstudiante.update({
+    where: {
+      usuarioId_claseId: { usuarioId: f.student.id, claseId: f.group.id },
+    },
+    data: { aceptacionExplicita: true },
+  });
+  assert.equal(
+    (await service.listForStudent(f.student.id, 1)).prioridades.length,
+    0,
+  );
+  assert.equal(
+    (await service.report(f.teacher.id, f.group.id, priority.id, 1)).estudiantes
+      .length,
+    0,
+  );
+});
 async function answer(f, question, date, extra = {}) {
   return db.historialRespuesta.create({
     data: {

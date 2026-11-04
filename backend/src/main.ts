@@ -6,20 +6,36 @@ import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import * as bodyParser from 'body-parser';
 import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
+import createRateLimit, { Options } from 'express-rate-limit';
 import { loadRuntimeEnvironment } from './config/runtime-environment';
+import { JwtService } from '@nestjs/jwt';
+import { PrismaService } from './prisma/prisma.service';
+import { boundedLoginQueue } from './security/login-admission-queue';
+import {
+  networkKey,
+  sharedNetworkLimitConfig,
+  sharedNetworkLimiters,
+  trustedProxyNetworks,
+} from './security/shared-network-limits';
+
+// Sensitive endpoints retain their original budgets, with IPv6 aggregation too.
+const rateLimit = (options: Partial<Options>) =>
+  createRateLimit({
+    ...options,
+    keyGenerator: (request) => networkKey(request.ip),
+  });
 
 async function bootstrap() {
   const runtime = loadRuntimeEnvironment();
+  const proxyNetworks = trustedProxyNetworks(process.env);
+  const quotaConfig = sharedNetworkLimitConfig(process.env);
 
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const esProduccion = runtime.isProduction;
 
   // CORS habilitado solo para los orígenes web declarados. Los clientes
   // Android/iOS no dependen de CORS, pero usan los mismos endpoints HTTPS.
-  if (process.env.TRUST_PROXY === 'true') {
-    app.set('trust proxy', 1);
-  }
+  app.set('trust proxy', proxyNetworks);
   app.enableCors({
     origin: runtime.allowedOrigins,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
@@ -71,27 +87,27 @@ async function bootstrap() {
 
   // La interfaz autenticada consulta varios recursos en paralelo. El límite
   // global protege la API sin bloquear la navegación normal del usuario.
-  const limiteGlobalConfigurado = Number.parseInt(
-    process.env.RATE_LIMIT_MAX ?? (esProduccion ? '1000' : '5000'),
-    10,
+  const quotaJwt = app.get(JwtService);
+  const quotaDb = app.get(PrismaService);
+  app.use(
+    ...sharedNetworkLimiters(
+      {
+        verify: (token) =>
+          quotaJwt.verifyAsync(token, {
+            algorithms: ['HS256'],
+            ignoreExpiration: false,
+          }),
+        currentUserId: async (id) =>
+          (
+            await quotaDb.usuario.findUnique({
+              where: { id },
+              select: { id: true },
+            })
+          )?.id ?? null,
+      },
+      quotaConfig,
+    ),
   );
-  const globalLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max:
-      Number.isFinite(limiteGlobalConfigurado) && limiteGlobalConfigurado > 0
-        ? limiteGlobalConfigurado
-        : 1000,
-    standardHeaders: true,
-    legacyHeaders: false,
-    skip: (request) => request.path.startsWith('/uploads/'),
-    message: {
-      statusCode: 429,
-      error: 'Too Many Requests',
-      message:
-        'Has realizado demasiadas solicitudes. Espera un momento e inténtalo nuevamente.',
-    },
-  });
-  app.use(globalLimiter);
 
   // Endpoints sensibles con límites más estrictos
   const authLoginLimiter = rateLimit({
@@ -107,7 +123,7 @@ async function bootstrap() {
         'Demasiados intentos de inicio de sesión. Espera unos minutos antes de volver a intentarlo.',
     },
   });
-  app.use('/auth/login', authLoginLimiter);
+  app.use('/auth/login', boundedLoginQueue(), authLoginLimiter);
   app.use(
     '/instituciones/codigo-estudiantes',
     rateLimit({
