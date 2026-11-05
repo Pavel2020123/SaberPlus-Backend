@@ -1,5 +1,22 @@
 # C5 — Archivos y recursos persistentes
 
+## Ruta vigente — 4 de noviembre de 2026
+
+El estado consolidado del incremento privado y sus pruebas está en
+[C5_CIERRE_PENDIENTES_2026_11_03.md](C5_CIERRE_PENDIENTES_2026_11_03.md).
+La [matriz de requisitos/evidencias](C5_MATRIZ_CIERRE_LOCAL.md) distingue
+lo verificado de las puertas todavía pendientes.
+La operación local de respaldo/restauración se describe en
+[C5_OPERACION_PRIVADA_LOCAL.md](C5_OPERACION_PRIVADA_LOCAL.md).
+C5 está cerrado en el alcance local autorizado de la matriz; no hay despliegue remoto.
+Los checkpoints fechados inferiores son antecedentes y no deben utilizarse
+para reiniciar bloques ya verificados ni para declarar el cierre global.
+
+**3/nov, continuación global vigente:** [estado y alcance conciliados](C5_CIERRE_PENDIENTES_2026_11_03.md).
+Supabase editorial/recuperación y PDF/offline ya tienen cierre local previo a LIC.
+Objetivo actual: fotos propias privadas, adjuntos institucionales privados y cierre
+operativo restante; no rehacer esos incrementos por las órdenes históricas de abajo.
+
 **Continuación24/oct: [H2B4 y H2 cerradas en backend local](C5_H2B4_FUENTES_MUTABLES.md).**
 92/92 SQL/HTTP,78 migraciones temporales,178 unitarias editoriales. No se crea
 versionado ficticio de lecciones/casos. Sigue preparar H3 y sus4 guiones humanos;

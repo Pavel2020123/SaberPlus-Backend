@@ -1,5 +1,29 @@
 # LIC-4 — Inventario de dependencias y rutas de baja
 
+**Registro técnico de respaldo C5, 4/nov:**
+El trabajador de borrado local ya se integró bajo opt-in técnico, con copia y
+clave reales verificadas tras supresión. No confirma borrado si falla el disco
+o no coincide `vaultId`; conserva el recibo pendiente. Esta actualización
+prevalece sobre el pendiente del párrafo siguiente; sigue recuperación/operador.
+`RespaldoArchivoPrivado.archivo` añade Restrict sobre el archivo ya revisado;
+no contiene clave, bytes ni identidad adicional. La retirada del archivo,
+incluida la supresión LIC-4, marca transaccionalmente la obligación de borrar
+la copia. El recibo no puede eliminarse ni volver a estado inicial. No añade
+permisos para ADMIN sobre fotos en la app. El trabajador de borrado de esa
+copia y el servicio de operador todavía deben conectarse; `eliminadoEn=NULL`
+significa pendiente, no borrado físico confirmado. Migración ensayada solo
+en PostgreSQL temporal propio, no en instalaciones existentes/remotas.
+
+**Extensión C5 privada, 3/nov:** `ArchivoPrivado.propietario` y
+`FotoPrivadaPerfil.usuario` añaden relaciones Restrict. La revisión cuenta archivos,
+copias aún no retiradas físicamente y revisión de foto dentro de su huella. El
+trigger de la migración `20261103200000_private_files` retira lógicamente los
+archivos y elimina el puntero al suprimir la cuenta; rechaza recreación posterior.
+Los bytes quedan como obligación durable de limpieza hasta confirmar su retirada.
+No confundir retirada lógica con borrado físico: el cierre operativo C5 de esa
+cola sigue pendiente. Prueba local por el flujo real solicitar/revisar/ejecutar,
+incluido rechazo de una revisión obsoleta tras cambiar la foto.
+
 Inspección de código y `prisma/schema.prisma`, 3/nov/2026, con implementación y
 verificaciones locales posteriores. Las decisiones aprobadas y evidencias están
 en [LIC-4](LIC_4_BAJAS_Y_RETENCION.md). Solo fixtures propios desechables;
