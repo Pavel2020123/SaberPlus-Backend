@@ -25,6 +25,13 @@ const privateOfflineLocal = process.env.SABERPLUS_C5_PRIVATE_OFFLINE_LOCAL;
 if (privateOfflineLocal !== undefined && !['true', 'false'].includes(privateOfflineLocal)) {
   throw new Error('SABERPLUS_C5_PRIVATE_OFFLINE_LOCAL must be true or false.');
 }
+const privateFilesLocal = process.env.SABERPLUS_C5_PRIVATE_FILES_LOCAL;
+if (privateFilesLocal !== undefined && !['true', 'false'].includes(privateFilesLocal))
+  throw new Error('SABERPLUS_C5_PRIVATE_FILES_LOCAL must be true or false.');
+const apiPortText = process.env.SABERPLUS_LOCAL_API_PORT ?? '43187';
+if (!/^\d{4,5}$/.test(apiPortText) || Number(apiPortText) < 1024 || Number(apiPortText) > 65535)
+  throw new Error('Explicit local API port required.');
+const apiPort = Number(apiPortText);
 const backend = fileURLToPath(new URL('../', import.meta.url));
 const require = createRequire(join(backend, 'package.json'));
 const execute = promisify(execFile);
@@ -41,6 +48,8 @@ const env = Object.fromEntries(Object.entries(process.env).filter(([key]) =>
   /^(PATH|SystemRoot|WINDIR|TEMP|TMP|USERPROFILE|LOCALAPPDATA|APPDATA|COMSPEC|PATHEXT|DOCKER_CONTEXT|NODE_OPTIONS)$/i.test(key)));
 Object.assign(env, { POSTGRES_USER: user, POSTGRES_PASSWORD: password, POSTGRES_DB: 'postgres',
   NODE_ENV: 'test', SMTP_HOST: '127.0.0.1', SMTP_PORT: '1',
+  SABERPLUS_LOCAL_API_PORT: String(apiPort),
+  PRIVATE_FILES_LOCAL_ENABLED: String(privateFilesLocal === 'true'),
   EDITORIAL_PUBLICATION_ENABLED: 'true', // Only this freshly owned local API.
   EDITORIAL_FILES_LOCAL_ENABLED: 'true', // C5: private files only in this owned test environment.
   EDITORIAL_PRIVATE_OFFLINE_LOCAL_ENABLED: String(privateOfflineLocal === 'true'),
@@ -120,6 +129,12 @@ try {
   if (!actualPaths.includes(lifecycleMigration)) actualPaths.push(lifecycleMigration);
   const privacyMigration = 'prisma/migrations/20261103180000_reviewed_privacy_scope/migration.sql';
   if (!actualPaths.includes(privacyMigration)) actualPaths.push(privacyMigration);
+  const privateFilesMigration = 'prisma/migrations/20261103200000_private_files/migration.sql';
+  if (!actualPaths.includes(privateFilesMigration)) actualPaths.push(privateFilesMigration);
+  const evidenceResolutionMigration = 'prisma/migrations/20261104100000_private_evidence_resolution/migration.sql';
+  if (!actualPaths.includes(evidenceResolutionMigration)) actualPaths.push(evidenceResolutionMigration);
+  const privateBackupMigration = 'prisma/migrations/20261104200000_private_backup_registry/migration.sql';
+  if (!actualPaths.includes(privateBackupMigration)) actualPaths.push(privateBackupMigration);
   actualPaths.sort();
   for (const path of actualPaths) {
     const dest = join(directory, path.replace(/^prisma\//, ''));
@@ -188,6 +203,27 @@ try {
     CONTENT_BASE_URL: 'http://127.0.0.1:43187', AUTH_E2E_API_BASE_URL: 'http://127.0.0.1:43187',
     AUTH_E2E_EMAIL: accounts.student.correo, AUTH_E2E_PASSWORD: loginPassword,
     LOCAL_RANKING_SEASON: String(event.temporada), LOCAL_RANKING_ENABLED: 'true' };
+  config.API_BASE_URL = `http://127.0.0.1:${apiPort}`;
+  config.CONTENT_BASE_URL = config.API_BASE_URL;
+  config.AUTH_E2E_API_BASE_URL = config.API_BASE_URL;
+  if (privateFilesLocal === 'true') {
+    config.PRIVATE_PROFILE_PHOTO_ENABLED = 'true';
+    const request = await db.solicitudAltaInstitucion.create({ data: {
+      solicitanteId: accounts.teacher.id, nombre: 'C5 private HTTP fixture',
+      nombreNormalizado: `c5 private http ${nonce}`, ciudad: 'Local', ciudadNormalizada: 'local',
+      correoInstitucional: 'fixture@example.invalid', contacto: 'Synthetic fixture',
+      evidencia: 'Synthetic verification document fixture; no real personal data.',
+    } });
+    await writeFile(join(directory, 'private-files-http.json'), JSON.stringify({
+      C5_PRIVATE_FILES_HTTP_ENABLED: 'true',
+      C5_PRIVATE_FILES_TEST_OWNER: 'saberplus-c5-private-files-http-v1',
+      C5_PRIVATE_FILES_TEST_API: config.API_BASE_URL,
+      C5_PRIVATE_FILES_TEACHER_EMAIL: accounts.teacher.correo,
+      C5_PRIVATE_FILES_STUDENT_EMAIL: accounts.student.correo,
+      C5_PRIVATE_FILES_PASSWORD: loginPassword,
+      C5_PRIVATE_FILES_REQUEST_ID: request.id,
+    }), { mode: 0o600 });
+  }
   await writeFile(join(directory, 'flutter-private.json'), JSON.stringify(config), { mode: 0o600 });
   console.log(JSON.stringify({ phase: 'local-ranking-ready', directory, migrations: actualPaths.length,
     pendingTerritoryMigration: !paths.includes(territoryMigration),
@@ -198,6 +234,7 @@ try {
     pendingQuestionReportsMigration: !paths.includes(questionReportsMigration),
     api: config.API_BASE_URL, syntheticFixtures: true, optionImagesLocal: optionImagesLocal === 'true',
     historyImagesLocal: historyImagesLocal === 'true', privateOfflineLocal: privateOfflineLocal === 'true',
+    privateFilesLocal: privateFilesLocal === 'true',
     ownPosition: 51, totalParticipants: 61 }));
   console.log('Local control.json actions: correct, solo-on, solo-off, stop. No HTTP mutation route.');
   let corrected = false;

@@ -5,11 +5,30 @@
   --line: #dce4e7;
   --accent: #153f4b;
   --wash: #f4f7f7;
+  --surface: #fff;
   font-family: Inter, "Segoe UI", Arial, sans-serif;
   font-size: 16px;
   color: var(--ink);
   background: #f3f7f8;
 }
+.private-evidence {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: clamp(16px, 3vw, 24px);
+  margin-block: 24px;
+  background: var(--surface);
+  overflow-wrap: anywhere;
+}
+.private-evidence-header { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 16px; }
+.private-evidence-header h4 { margin: 0; }
+.private-evidence p { max-width: 75ch; }
+.private-evidence-badge { border-radius: 24px; padding: 6px 12px; background: var(--wash); font-size: .875rem; }
+.private-evidence-notice { border-left: 4px solid var(--muted); padding: 12px 16px; background: var(--wash); }
+.private-evidence-list { display: grid; gap: 16px; margin-block: 16px; }
+.private-evidence-file { border: 1px solid var(--line); border-radius: 12px; padding: 16px; min-width: 0; }
+.private-evidence-file h5 { font-size: 1rem; margin: 0 0 8px; }
+.private-evidence-file button { max-width: 100%; white-space: normal; }
+.private-evidence-download { display: inline-flex; align-items: center; min-height: 44px; padding-block: 8px; color: var(--ink); font-weight: 600; text-underline-offset: 4px; }
 .review-actions {
   display: flex;
   flex-wrap: wrap;

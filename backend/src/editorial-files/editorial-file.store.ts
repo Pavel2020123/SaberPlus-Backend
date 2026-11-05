@@ -49,7 +49,8 @@ export class LocalEditorialFileStore extends EditorialFileStore {
         await link(temporary, target);
       } catch (error) {
         if (!hasCode(error, 'EEXIST')) throw error;
-        const existing = await readFile(target);
+        // Respect a specialized provider's bounded read during replay as well.
+        const existing = await this.read(id);
         if (!existing.equals(bytes))
           throw new ConflictException(
             'El archivo preparado tiene otro contenido.',

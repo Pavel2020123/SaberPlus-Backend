@@ -68,6 +68,7 @@ async function main(storage) {
     EDITORIAL_PUBLICATION_ENABLED: 'true',
   });
   if (storage) env.EDITORIAL_FILES_SUPABASE_TEST_CONFIG = JSON.stringify(storage.config);
+  if (storage) env.PRIVATE_FILES_SUPABASE_TEST_CONFIG = JSON.stringify(storage.privateConfig);
   let context,
     url = '',
     created = false,
@@ -195,6 +196,9 @@ async function main(storage) {
     if (!committed.length)
       throw new Error('Cadena versionada de migraciones requerida.');
     const pending = [
+      'prisma/migrations/20261104200000_private_backup_registry/migration.sql',
+      'prisma/migrations/20261104100000_private_evidence_resolution/migration.sql',
+      'prisma/migrations/20261103200000_private_files/migration.sql',
       'prisma/migrations/20261102230000_managed_temporary_single_login/migration.sql',
       'prisma/migrations/20261102180000_institution_license_contracts/migration.sql',
       'prisma/migrations/20261102200000_institution_personal_balance/migration.sql',
@@ -258,16 +262,24 @@ async function main(storage) {
           '--test',
           '--test-concurrency=1',
           '--test-reporter=spec',
+          ...(process.env.SABERPLUS_C5_PRIVATE_FILES_ONLY === 'true'
+            ? ['--test-name-pattern=^C5 private SQL:']
+            : process.env.SABERPLUS_C5_STORAGE_ONLY === 'true'
+              ? ['--test-name-pattern=^C5-D real Storage'] : []),
           'test/editorial-files-postgres.test.cjs',
         ],
         backend,
-        240000,
+        // Real Storage adds operator CLI processes to the historical/game suite.
+        storage ? 360000 : 240000,
       );
       process.stdout.write(redact(result.stdout));
       process.stderr.write(redact(result.stderr));
     } catch (error) {
       process.stdout.write(redact(error.stdout || ''));
       process.stderr.write(redact(error.stderr || ''));
+      console.error(JSON.stringify({ phase: 'c5-test-process-failed',
+        terminated: error.killed === true, signal: error.signal ?? null,
+        code: typeof error.code === 'number' ? error.code : null }));
       throw new Error('Falló el ensayo integrado de C5.');
     }
   } catch (error) {
@@ -310,6 +322,10 @@ if (
 ) {
   const realStorage = process.env.SABERPLUS_C5_REAL_STORAGE_TEST;
   if (realStorage !== undefined && !['true', 'false'].includes(realStorage)) throw new Error('Invalid local Storage opt-in');
+  const storageOnly = process.env.SABERPLUS_C5_STORAGE_ONLY;
+  if (storageOnly !== undefined && !['true', 'false'].includes(storageOnly)) throw new Error('Invalid local Storage selection');
+  if (storageOnly === 'true' && (realStorage !== 'true' || process.env.SABERPLUS_C5_PRIVATE_FILES_ONLY === 'true'))
+    throw new Error('Storage-only requires real local Storage and no conflicting selection');
   const executeTests = realStorage === 'true'
     ? import('./test_editorial_supabase.mjs').then(({ withOwnedSupabase }) => withOwnedSupabase(main))
     : main();

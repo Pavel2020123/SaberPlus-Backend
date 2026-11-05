@@ -441,6 +441,22 @@ export class SupresionCuentaService {
 
   private async counts(tx: Tx, usuarioId: string) {
     const extra = {
+      archivosPrivados: await tx.archivoPrivado.count({
+        where: { propietarioId: usuarioId },
+      }),
+      archivosPrivadosPorRetirar: await tx.archivoPrivado.count({
+        where: {
+          propietarioId: usuarioId,
+          bytesRetiradosEn: null,
+        },
+      }),
+      revisionFotoPrivada:
+        (
+          await tx.fotoPrivadaPerfil.findUnique({
+            where: { usuarioId },
+            select: { revision: true },
+          })
+        )?.revision ?? 0,
       borradoresSimulacro: await tx.intentoSimulacro.count({
         where: { usuarioId },
       }),

@@ -349,6 +349,8 @@ model Usuario {
   tokenRecuperacionExpira   DateTime?                     @db.Timestamp(6)
   institucionId             String?                       @db.Uuid
   fotoPerfil                String?
+  fotoPrivada               FotoPrivadaPerfil?
+  archivosPrivados          ArchivoPrivado[]
   descripcion               String?
   tutorialEstudianteVersion Int                           @default(0)
   tutorialProfesorVersion   Int                           @default(0)
@@ -621,6 +623,8 @@ enum EstadoAltaInstitucion {
 }
 
 model SolicitudAltaInstitucion {
+  resolucionesEvidencia ResolucionEvidenciaInstitucional[]
+  adjuntosPrivados ArchivoPrivado[]
   departamentoCodigo String? @db.VarChar(2)
   municipioCodigo String? @db.VarChar(5)
   territorioVersion String? @db.VarChar(64)
@@ -646,6 +650,65 @@ model SolicitudAltaInstitucion {
 
   @@index([estado, actualizadoEn])
   @@index([nombreNormalizado, ciudadNormalizada])
+}
+
+// C5 private files are not editorial assets and never inherit publication rights.
+model ResolucionEvidenciaInstitucional {
+  solicitudId String @db.Uuid
+  solicitud SolicitudAltaInstitucion @relation(fields: [solicitudId], references: [id], onDelete: Restrict)
+  revision Int
+  estado String @db.VarChar(16)
+  resueltaEn DateTime @db.Timestamptz(3)
+  venceEn DateTime @db.Timestamptz(3)
+
+  @@id([solicitudId, revision])
+  @@index([venceEn])
+}
+
+model ArchivoPrivado {
+  id String @id @db.Uuid
+  propietarioId String @db.Uuid
+  propietario Usuario @relation(fields: [propietarioId], references: [id], onDelete: Restrict)
+  operacionId String @db.Uuid
+  proposito String @db.VarChar(32)
+  estado String @default("PREPARADO") @db.VarChar(16)
+  revisionEsperada Int
+  solicitudId String? @db.Uuid
+  solicitud SolicitudAltaInstitucion? @relation(fields: [solicitudId], references: [id], onDelete: Restrict)
+  mime String @db.VarChar(32)
+  bytes Int
+  sha256 String @db.VarChar(64)
+  creadoEn DateTime @default(now()) @db.Timestamptz(3)
+  actualizadoEn DateTime @default(now()) @updatedAt @db.Timestamptz(3)
+  retiradoEn DateTime? @db.Timestamptz(3)
+  bytesRetiradosEn DateTime? @db.Timestamptz(3)
+  fotoActual FotoPrivadaPerfil?
+  respaldo RespaldoArchivoPrivado?
+
+  @@unique([propietarioId, operacionId])
+  @@index([propietarioId, proposito, estado])
+  @@index([solicitudId, estado])
+  @@index([estado, bytesRetiradosEn])
+}
+
+// C5 operator metadata only: neither encrypted bytes nor keys are stored here.
+model RespaldoArchivoPrivado {
+  archivoId String @id @db.Uuid
+  vaultId String @db.Uuid
+  archivo ArchivoPrivado @relation(fields: [archivoId], references: [id], onDelete: Restrict)
+  creadoEn DateTime @default(now()) @db.Timestamptz(3)
+  retiradoEn DateTime? @db.Timestamptz(3)
+  eliminadoEn DateTime? @db.Timestamptz(3)
+
+  @@index([retiradoEn, eliminadoEn, archivoId])
+}
+
+model FotoPrivadaPerfil {
+  usuarioId String @id @db.Uuid
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Restrict)
+  archivoId String? @unique @db.Uuid
+  archivo ArchivoPrivado? @relation(fields: [archivoId], references: [id], onDelete: Restrict)
+  revision Int @default(0)
 }
 
 enum RolMembresiaInstitucion {

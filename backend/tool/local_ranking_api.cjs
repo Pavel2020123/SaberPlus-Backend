@@ -13,7 +13,10 @@ const { applyLocalCompetitiveControl } = require('./local_competitive_control.cj
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true,
     transform: true, transformOptions: { enableImplicitConversion: true } }));
   app.enableCors({ origin: 'http://127.0.0.1:4173' });
-  await app.listen(43187, '127.0.0.1');
+  const portText = process.env.SABERPLUS_LOCAL_API_PORT ?? '43187';
+  if (!/^\d{4,5}$/.test(portText) || Number(portText) < 1024 || Number(portText) > 65535)
+    throw new Error('Invalid local API port');
+  await app.listen(Number(portText), '127.0.0.1');
   process.send?.({ ready: true });
   process.on('message', async message => {
     if (message === 'stop') { await app.close(); process.exit(0); }

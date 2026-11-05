@@ -421,6 +421,13 @@ export class AuthService {
     descripcion?: string,
     fotoPerfil?: string,
   ) {
+    if (
+      fotoPerfil !== undefined &&
+      process.env.PRIVATE_FILES_LOCAL_ENABLED === 'true'
+    )
+      throw new BadRequestException(
+        'Gestiona tu foto desde el apartado privado de tu cuenta.',
+      );
     const usuario = await this.prisma.usuario.update({
       where: { id: usuarioId },
       data: {

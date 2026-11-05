@@ -1,5 +1,21 @@
 # Panel administrativo de SaberPlus
 
+**4/nov — C5, documentos privados de verificación (solo ensayo local):**
+El detalle ADMIN de una solicitud puede listar sus adjuntos y preparar una
+descarga autenticada explícita, sin incrustar PDF, imágenes remotas ni contenido
+HTML. Advierte que el PDF no tiene análisis antivirus y que una copia descargada
+no puede revocarse a distancia. Cerrar, actualizar, cambiar de detalle o cerrar
+sesión elimina los enlaces blob y descarta respuestas tardías. La API verifica
+identidad, ámbito y vencimiento antes/después de leer los bytes.
+
+Opt-in: `PRIVATE_FILES_PANEL_LOCAL_ENABLED=true` al iniciar `node server.mjs`, con
+`API_BASE_URL` loopback real y backend con `PRIVATE_FILES_LOCAL_ENABLED=true` y
+las87 migraciones locales de C5. Apagado por defecto; no permitido con demo o API
+remota. No habilitarlo contra una base vieja para fingir que hay adjuntos.
+No cambia la evidencia académica del estudiante ni permite a ADMIN subir/retirar.
+La carga del solicitante en Flutter sigue pendiente. Estado/evidencias vigentes:
+[continuación global C5](../backend/docs/C5_CIERRE_PENDIENTES_2026_11_03.md).
+
 **25/oct — H3, preparación integrada aprobada:** nueva sección **Control de
 imágenes**. Permite consultar la referencia de una imagen, confirmar su revocación
 por seguridad/derechos y recuperar el mismo recibo si se pierde la respuesta.

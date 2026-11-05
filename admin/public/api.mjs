@@ -1,4 +1,5 @@
 import { lessonFields } from "./lesson-fields.mjs";
+import { evidenceBlob, evidenceList, evidencePath, evidenceReceipt } from './private-evidence-fields.mjs';
 import { fileUuid, fileMetadata, fileReceipt, fileReference, revocationFields, revocationReceipt } from "./editorial-file-fields.mjs";
 import { mapId, mapChange, mapDetail } from "./learning-map-fields.mjs";
 import { questionFields, caseFields } from "./question-fields.mjs";
@@ -52,6 +53,7 @@ export class CatalogApi {
       timeoutMs = 60000,
       simple = false,
       demo = false,
+      privateFiles = false,
     } = {},
   ) {
     this.base = base;
@@ -60,9 +62,23 @@ export class CatalogApi {
     this.timeoutMs = timeoutMs;
     this.simple = simple;
     this.demo = demo;
+    this.privateFiles = privateFiles === true && !demo;
   }
   get authenticated() {
     return this.#token !== null;
+  }
+  async institutionVerificationFiles(request) {
+    if (!this.privateFiles) throw new PanelError('Los adjuntos privados no están habilitados en este panel.');
+    return evidenceList(await this.#protected(evidencePath(request)), request);
+  }
+  async institutionVerificationFileContent(request, file) {
+    if (!this.privateFiles) throw new PanelError('Los adjuntos privados no están habilitados en este panel.');
+    const metadata = evidenceReceipt(file, request);
+    if (!metadata.disponible) throw new PanelError('Este adjunto ya no está disponible.');
+    const blob = await this.#protected(evidencePath(request, metadata.id), { responseType: 'evidence' });
+    if (blob.size !== metadata.bytes || blob.type !== metadata.mime)
+      throw new PanelError('El adjunto cambió. Actualiza la solicitud antes de descargar.');
+    return blob;
   }
   async uploadEditorialFile(file, metadata, operationId) {
     if (this.demo) throw new PanelError("La demostración no guarda archivos. Usa el panel conectado a la API local.");
@@ -692,7 +708,7 @@ export class CatalogApi {
         credentials: "omit",
         cache: "no-store",
         headers: {
-          Accept: responseType === "image" ? "image/webp" : "application/json",
+          Accept: responseType === 'evidence' ? 'application/pdf,image/webp' : responseType === "image" ? "image/webp" : "application/json",
           ...(body && !(body instanceof FormData) ? { "Content-Type": "application/json" } : {}),
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
@@ -732,11 +748,11 @@ export class CatalogApi {
           }
         }
         if ([401, 403].includes(response.status) && this.#token &&
-            (response.status === 401 || (!path.startsWith('/instituciones/') && !path.startsWith('/cuentas/supresion')))) {
+            (response.status === 401 || (!path.startsWith('/instituciones/') && !path.startsWith('/cuentas/supresion') && !path.startsWith('/cuenta/archivos/evidencias/')))) {
           this.logout();
           this.onSessionExpired();
         }
-        if (path.startsWith('/instituciones/') || path.startsWith('/cuentas/supresion')) {
+        if (path.startsWith('/instituciones/') || path.startsWith('/cuentas/supresion') || path.startsWith('/cuenta/archivos/evidencias/')) {
           const defaults = {
             400: 'Revisa los datos de esta solicitud institucional.',
             401: 'Tu sesión terminó. Ingresa nuevamente.',
@@ -796,7 +812,9 @@ export class CatalogApi {
         );
       }
       let data;
-      if (responseType === "image") {
+      if (responseType === 'evidence') {
+        data = await evidenceBlob(response);
+      } else if (responseType === "image") {
         if (!/^image\/webp(?:;|$)/i.test(response.headers.get("Content-Type") ?? ""))
           throw new PanelError("La respuesta no contiene una imagen válida.");
         data = await response.blob();

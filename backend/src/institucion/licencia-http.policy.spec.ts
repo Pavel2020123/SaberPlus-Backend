@@ -8,6 +8,17 @@ import { politicaHttpLicencia } from './licencia-http.policy';
 
 describe('institutional HTTP enforcement', () => {
   it.each([
+    ['InstitutionEvidenceController', 'list', 'CONSULTA'],
+    ['InstitutionEvidenceController', 'content', 'CONSULTA'],
+    ['InstitutionEvidenceController', 'remove', 'CONSULTA'],
+    ['InstitutionEvidenceController', 'operation', 'CONSULTA'],
+    ['InstitutionEvidenceController', 'upload', 'NUEVO'],
+    ['ProfilePhotoController', 'cancel', 'CONSULTA'],
+    ['ProfilePhotoController', 'own', 'CONSULTA'],
+    ['ProfilePhotoController', 'content', 'CONSULTA'],
+    ['ProfilePhotoController', 'remove', 'CONSULTA'],
+    ['ProfilePhotoController', 'operation', 'CONSULTA'],
+    ['ProfilePhotoController', 'upload', 'NUEVO'],
     ['AuthController', 'obtenerPerfil', 'CONSULTA'],
     ['SimulacroController', 'historialRespuestas', 'CONSULTA'],
     ['SimulacroController', 'calificar', 'INTENTO'],

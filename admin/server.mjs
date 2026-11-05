@@ -5,6 +5,8 @@ import { resolve } from "node:path";
 import { createDemoApi } from "./demo-api.mjs";
 
 const assets = new Map([
+  ['/private-evidence-fields.mjs', ['private-evidence-fields.mjs', 'text/javascript; charset=utf-8']],
+  ['/institution-evidence.mjs', ['institution-evidence.mjs', 'text/javascript; charset=utf-8']],
   ['/institucion', ['institution.html', 'text/html; charset=utf-8']],
   ['/institution.css', ['institution.css', 'text/css; charset=utf-8']],
   ['/institution-app.mjs', ['institution-app.mjs', 'text/javascript; charset=utf-8']],
@@ -86,8 +88,11 @@ export function validateApiBase(value) {
 export function createAdminServer({
   apiBase = "http://localhost:3000",
   demo = false,
+  privateFiles = false,
 } = {}) {
   const base = demo ? "/api" : validateApiBase(apiBase);
+  if (privateFiles === true && (demo || !['localhost', '127.0.0.1'].includes(new URL(base).hostname)))
+    throw new Error('Los adjuntos privados del panel solo se habilitan con API local real.');
   const demoApi = demo ? createDemoApi() : null;
   const server = createServer(async (req, res) => {
     res.setHeader("Cache-Control", "no-store");
@@ -117,7 +122,7 @@ export function createAdminServer({
         res.end(
           req.method === "HEAD"
             ? ""
-            : `globalThis.SABERPLUS_CONFIG = Object.freeze(${JSON.stringify({ apiBase: base, demo })});`,
+            : `globalThis.SABERPLUS_CONFIG = Object.freeze(${JSON.stringify({ apiBase: base, demo, privateFiles: privateFiles === true })});`,
         );
         return;
       }
@@ -147,7 +152,8 @@ if (
   const host = demo ? "127.0.0.1" : process.env.ADMIN_HOST || "127.0.0.1";
   if (!Number.isInteger(port) || port < 1 || port > 65535)
     throw new Error("ADMIN_PORT no es válido.");
-  const server = createAdminServer({ apiBase: process.env.API_BASE_URL, demo });
+  const server = createAdminServer({ apiBase: process.env.API_BASE_URL, demo,
+    privateFiles: process.env.PRIVATE_FILES_PANEL_LOCAL_ENABLED === 'true' });
   server.listen(port, host, () => {
     console.log(
       `SaberPlus: http://${host}:${port} (${demo ? "DEMO editorial aislada" : "API real; editorial ADMIN e institución por permisos"})`,

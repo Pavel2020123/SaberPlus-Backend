@@ -20,12 +20,36 @@ const record = (value: unknown): value is Record<string, unknown> =>
 export class SupabaseEditorialFileStore extends EditorialFileStore {
   private readonly base: URL;
   private readonly config: EditorialSupabaseConfig;
+  private readonly layout: Readonly<{
+    prefix: string;
+    extension: string;
+    mime: string;
+    limit: number;
+  }>;
 
   constructor(
     config: EditorialSupabaseConfig,
     private readonly request: typeof fetch = fetch,
+    purpose: 'editorial' | 'private' = 'editorial',
   ) {
     super();
+    // Fixed server-side namespaces: never accept a path/MIME/limit from a client.
+    if (!['editorial', 'private'].includes(purpose)) throw unavailable();
+    this.layout = Object.freeze(
+      purpose === 'editorial'
+        ? {
+            prefix: 'editorial/v1',
+            extension: 'webp',
+            mime: 'image/webp',
+            limit: EDITORIAL_OUTPUT_LIMIT,
+          }
+        : {
+            prefix: 'private/v1',
+            extension: 'bin',
+            mime: 'application/octet-stream',
+            limit: 5 * 1024 * 1024,
+          },
+    );
     try {
       const url = new URL(config.url);
       if (
@@ -57,7 +81,7 @@ export class SupabaseEditorialFileStore extends EditorialFileStore {
       )
     )
       throw unavailable();
-    return `${this.config.bucket}/editorial/v1/${id.toLowerCase()}.webp`;
+    return `${this.config.bucket}/${this.layout.prefix}/${id.toLowerCase()}.${this.layout.extension}`;
   }
 
   private async call(path: string, init: RequestInit = {}) {
@@ -133,27 +157,26 @@ export class SupabaseEditorialFileStore extends EditorialFileStore {
     const response = await this.call(`object/authenticated/${path}`);
     if (
       response.status !== 200 ||
-      response.headers.get('content-type')?.split(';')[0] !== 'image/webp'
+      response.headers.get('content-type')?.split(';')[0] !== this.layout.mime
     ) {
       await response.body?.cancel();
       throw unavailable();
     }
-    const bytes = await this.bytes(response, EDITORIAL_OUTPUT_LIMIT);
+    const bytes = await this.bytes(response, this.layout.limit);
     if (!bytes.length) throw unavailable();
     return bytes;
   }
 
   async put(id: string, input: Buffer) {
     const path = this.object(id);
-    if (!input.length || input.length > EDITORIAL_OUTPUT_LIMIT)
-      throw unavailable();
+    if (!input.length || input.length > this.layout.limit) throw unavailable();
     // Do not let caller mutations change an in-flight upload/comparison.
     const bytes = Buffer.from(input);
     await this.privateBucket();
     const response = await this.call(`object/${path}`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'image/webp',
+        'Content-Type': this.layout.mime,
         'x-upsert': 'false',
         'cache-control': 'no-store',
       },

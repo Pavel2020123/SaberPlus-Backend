@@ -89,6 +89,14 @@ test('LIC-1 SQL onlyHistory: battle preserves answered media without disclosing 
 
 async function server(options = {}) {
   let builder = Test.createTestingModule({
+    controllers: options.evidenceReview ? [
+      require('../src/institucion/institution-approval.controller').InstitutionApprovalController,
+      require('../src/institucion/institution-territory.controller').InstitutionTerritoryController,
+    ] : [],
+    providers: options.evidenceReview ? [
+      require('../src/institucion/institution-approval.service').InstitutionApprovalService,
+      require('../src/institucion/institution-territory.service').InstitutionTerritoryService,
+    ] : [],
     imports: [
       PrismaModule,
       JwtModule.register({
@@ -98,6 +106,7 @@ async function server(options = {}) {
         verifyOptions: { algorithms: ['HS256'] },
       }),
       EditorialFileModule,
+      require('../src/private-files/private-file.module').PrivateFileModule,
       ...(options.consumers
         ? [
             require('../src/simulacro/simulacro.module').SimulacroModule,
@@ -121,7 +130,9 @@ async function server(options = {}) {
     ],
   })
     .overrideProvider(EDITORIAL_FILE_ROOT)
-    .useValue(root);
+    .useValue(root)
+    .overrideProvider(require('../src/private-files/private-file.store').PRIVATE_FILE_STORE)
+    .useValue(options.privateStore ?? new LocalEditorialFileStore(join(root, 'private-fixtures')));
   if (options.panel)
     builder = builder
       .overrideProvider(require('../src/mail/mail.service').MailService)
@@ -242,6 +253,14 @@ async function resource(extra = {}) {
   return { admin, token, metadata, file: response.data };
 }
 const sqlState = (code) => (error) => error?.meta?.code === code;
+
+// Uses ONLY this suite's validated disposable database, user factory and directory.
+require('./private-files-postgres.cjs').registerPrivateFileTests(() => ({
+  db, root, image, user, base, tokenFor, call, server,
+}));
+require('./institution-evidence-postgres.cjs').registerInstitutionEvidenceTests(() => ({
+  db, root, image, user, base, tokenFor, call, panelFixture,
+}));
 
 before(async () => {
   if (!process.env.EDITORIAL_FILES_TEST_OWNER)

@@ -1,6 +1,15 @@
 // Server handler identity, never URL/query/body or JWT claims supplied by clients.
 // Unclassified authenticated handlers require an active entitlement by default.
 const historial: Record<string, readonly string[]> = {
+  InstitutionEvidenceController: ['list', 'operation', 'content', 'remove'],
+  ProfilePhotoController: [
+    'own',
+    'operation',
+    'content',
+    'remove',
+    'retryRemoval',
+    'cancel',
+  ],
   // Each method authorizes its actor transactionally; creation still checks active LIC-1.
   ManagedAccountController: [
     'contexto',

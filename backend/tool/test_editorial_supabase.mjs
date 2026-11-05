@@ -32,7 +32,7 @@ export async function withOwnedSupabase(action) {
     AUTH_JWT_ALGORITHM: 'HS256', DB_INSTALL_ROLES: 'true',
     STORAGE_BACKEND: 'file', FILE_STORAGE_BACKEND_PATH: '/var/lib/storage',
     TENANT_ID: 'c5-local', REGION: 'local', GLOBAL_S3_BUCKET: 'c5-local',
-    FILE_SIZE_LIMIT: String(2 * 1024 * 1024), UPLOAD_FILE_SIZE_LIMIT: String(2 * 1024 * 1024),
+    FILE_SIZE_LIMIT: String(5 * 1024 * 1024), UPLOAD_FILE_SIZE_LIMIT: String(5 * 1024 * 1024),
     ENABLE_IMAGE_TRANSFORMATION: 'false', IMAGE_TRANSFORMATION_ENABLED: 'false',
     POSTGREST_URL: 'http://127.0.0.1:1', NODE_ENV: 'test',
   });
@@ -91,9 +91,17 @@ export async function withOwnedSupabase(action) {
     const bucket = `editorial-${nonce}`;
     const created = await fetch(`${url}/bucket`, { method: 'POST', headers: { Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ id: bucket, name: bucket, public: false, file_size_limit: 2 * 1024 * 1024, allowed_mime_types: ['image/webp'] }), signal: AbortSignal.timeout(10000) });
     assert.equal(created.status, 200);
+    const privateBucket = `private-${nonce}`;
+    const privateCreated = await fetch(`${url}/bucket`, {
+      method: 'POST', headers: { Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: privateBucket, name: privateBucket, public: false,
+        file_size_limit: 5 * 1024 * 1024, allowed_mime_types: ['application/octet-stream'] }),
+      signal: AbortSignal.timeout(10000),
+    });
+    assert.equal(privateCreated.status, 200);
     console.log(JSON.stringify({ phase: 'c5-owned-storage-ready', image, loopback: true, privateBucket: true }));
     stage = 'test';
-    return await action({ config: { url, bucket, serviceKey }, anonKey, restart: async () => {
+    return await action({ config: { url, bucket, serviceKey }, privateConfig: { url, bucket: privateBucket, serviceKey }, anonKey, restart: async () => {
       await owned('container', name); await docker('restart', name);
       const current = (await docker('port', name, '5000/tcp')).stdout.trim();
       assert.match(current, /^127\.0\.0\.1:\d+$/);
@@ -123,7 +131,7 @@ async function main() {
   require('ts-node/register/transpile-only');
   const { SupabaseEditorialFileStore } = require('./src/editorial-files/supabase-editorial-file.store');
   const sharp = require('sharp');
-  await withOwnedSupabase(async ({ config, anonKey, restart }) => {
+  await withOwnedSupabase(async ({ config, privateConfig, anonKey, restart }) => {
     const checkpoint = (step) => console.log(JSON.stringify({ phase: 'c5-storage-check', step }));
     let store = new SupabaseEditorialFileStore(config);
     const id = randomUUID();
@@ -137,17 +145,35 @@ async function main() {
     assert.ok(anonymous.status >= 400);
     checkpoint('public'); const publicRead = await fetch(`${config.url}/object/public/${config.bucket}/editorial/v1/${id}.webp`);
     assert.ok(publicRead.status >= 400);
+    // Opaque private bytes use their own bucket and cannot be read as editorial assets.
+    let privateStore = new SupabaseEditorialFileStore(privateConfig, fetch, 'private');
+    const privateBytes = Buffer.from('%PDF-1.7\nsynthetic untrusted envelope\n%%EOF');
+    await privateStore.put(id, privateBytes);
+    assert.deepEqual(await privateStore.read(id), privateBytes);
+    assert.deepEqual(await store.read(id), bytes);
+    await Promise.all(Array.from({ length: 4 }, () => privateStore.put(id, privateBytes)));
+    await assert.rejects(privateStore.put(id, Buffer.from('different private bytes')));
+    const privatePath = `${privateConfig.bucket}/private/v1/${id}.bin`;
+    const anonPrivate = await fetch(`${privateConfig.url}/object/authenticated/${privatePath}`, { headers: { Authorization: `Bearer ${anonKey}` } });
+    assert.ok(anonPrivate.status >= 400);
+    const publicPrivate = await fetch(`${privateConfig.url}/object/public/${privatePath}`);
+    assert.ok(publicPrivate.status >= 400);
     checkpoint('restart'); const restartedUrl = await restart();
     store = new SupabaseEditorialFileStore({ ...config, url: restartedUrl });
+    privateStore = new SupabaseEditorialFileStore({ ...privateConfig, url: restartedUrl }, fetch, 'private');
     let restored = false;
     for (let i = 0; i < 80; i++) {
       try { assert.deepEqual(await store.read(id), bytes); restored = true; break; }
       catch { await new Promise((ok) => setTimeout(ok, 300)); }
     }
     assert.ok(restored);
+    assert.deepEqual(await privateStore.read(id), privateBytes);
+    await privateStore.remove(id); await privateStore.remove(id);
+    await assert.rejects(privateStore.read(id));
     checkpoint('remove'); await store.remove(id); await store.remove(id);
     await assert.rejects(store.read(id));
     console.log(JSON.stringify({ phase: 'c5-real-storage-contract-passed', persistedAcrossRestart: true, concurrentReplay: true, noOverwrite: true, anonymousDenied: true, publicDenied: true, repeatedDelete: true }));
+    console.log(JSON.stringify({ phase: 'c5-private-real-storage-contract-passed', separateBucket: true, opaqueBytes: true, persistedAcrossRestart: true, concurrentReplay: true, anonymousDenied: true, publicDenied: true, repeatedDelete: true }));
   });
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main().catch((error) => {

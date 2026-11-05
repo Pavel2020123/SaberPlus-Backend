@@ -336,6 +336,14 @@ export class InstitutionApprovalService {
 
   async review(actorId: string, id: string, dto: ReviewInstitutionDto) {
     return this.transaction(async (tx) => {
+      // Private attachments and LIC-4 purge lock the applicant before the
+      // request. Keep the same ordering before review can update either row.
+      const identity = await tx.solicitudAltaInstitucion.findUnique({
+        where: { id },
+        select: { solicitanteId: true },
+      });
+      if (identity?.solicitanteId)
+        await tx.$queryRaw`SELECT id FROM "Usuario" WHERE id=${identity.solicitanteId}::uuid FOR UPDATE`;
       const actor = await tx.usuario.findUnique({
         where: { id: actorId },
         select: { rol: true, institucionId: true },

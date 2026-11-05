@@ -1,4 +1,5 @@
 import { InstitutionTerritoryEditor } from "./institution-territory.mjs";
+import { InstitutionEvidence } from './institution-evidence.mjs';
 const labels = {
   PENDIENTE: "Pendiente",
   REQUIERE_INFORMACION: "Requiere información",
@@ -39,6 +40,7 @@ export class InstitutionApproval {
     this.state = "PENDIENTE";
   }
   close() {
+    this.attachments?.close();
     this.version++;
     this.host.hidden = true;
     this.host.replaceChildren();
@@ -90,6 +92,7 @@ export class InstitutionApproval {
     await this.load();
   }
   async load() {
+    this.attachments?.close();
     const version = ++this.version;
     this.detail.replaceChildren();
     this.list.replaceChildren();
@@ -132,6 +135,7 @@ export class InstitutionApproval {
     }
   }
   async inspect(id) {
+    this.attachments?.close();
     const version = ++this.version;
     this.detail.replaceChildren();
     this.status.textContent = "Consultando evidencia…";
@@ -194,6 +198,13 @@ export class InstitutionApproval {
           );
       }
       this.detail.append(history);
+      if (this.api.privateFiles === true && !this.demo) {
+        const host = node('section');
+        this.detail.append(host);
+        this.attachments = new InstitutionEvidence({ api: this.api, host, request: row,
+          current: () => version === this.version });
+        void this.attachments.open();
+      }
       if (actions[row.estado].length) this.reviewForm(row, version);
       heading.focus();
     } catch (error) {
