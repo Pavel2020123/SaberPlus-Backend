@@ -8,6 +8,9 @@ export async function purgarDatosPropios(
   ahora: Date,
 ) {
   const where = { usuarioId };
+  // Delete the owned parent so OV-1's existing cascade also removes completed
+  // responses and their snapshot without weakening immutable-result guards.
+  await tx.intentoVocacional.deleteMany({ where });
   // Remove private learning and solo-game material, never shared matches or ledgers.
   await tx.eventoRepasoDiferido.deleteMany({ where });
   await tx.repasoDiferido.deleteMany({ where });

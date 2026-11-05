@@ -99,6 +99,10 @@ async function server(options = {}) {
     ] : [],
     imports: [
       PrismaModule,
+      ...(options.vocational ? [
+        require('../src/institucion/licencia-acceso.module').LicenciaAccesoModule,
+        require('../src/orientacion-vocacional/orientacion-vocacional.module').OrientacionVocacionalModule,
+      ] : []),
       JwtModule.register({
         global: true,
         secret: process.env.JWT_SECRET,
@@ -255,6 +259,7 @@ async function resource(extra = {}) {
 const sqlState = (code) => (error) => error?.meta?.code === code;
 
 // Uses ONLY this suite's validated disposable database, user factory and directory.
+require('./ov1-lic-postgres.cjs').registerOv1LicTests(() => ({ db, user, server, call, tokenFor }));
 require('./private-files-postgres.cjs').registerPrivateFileTests(() => ({
   db, root, image, user, base, tokenFor, call, server,
 }));

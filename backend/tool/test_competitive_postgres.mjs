@@ -206,6 +206,7 @@ async function main() {
     const candidates = [territoryMigration,migration,presenceMigration,competitiveTriviaMigration,tugMigration,
       'prisma/migrations/20261104100000_private_evidence_resolution/migration.sql',
       'prisma/migrations/20261104200000_private_backup_registry/migration.sql',
+      'prisma/migrations/20261014120000_vocational_orientation_v1/migration.sql',
       'prisma/migrations/20261103200000_private_files/migration.sql',
       'prisma/migrations/20261102230000_managed_temporary_single_login/migration.sql',
       'prisma/migrations/20261102180000_institution_license_contracts/migration.sql',

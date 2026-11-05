@@ -135,6 +135,8 @@ try {
   if (!actualPaths.includes(evidenceResolutionMigration)) actualPaths.push(evidenceResolutionMigration);
   const privateBackupMigration = 'prisma/migrations/20261104200000_private_backup_registry/migration.sql';
   if (!actualPaths.includes(privateBackupMigration)) actualPaths.push(privateBackupMigration);
+  const vocationalMigration = 'prisma/migrations/20261014120000_vocational_orientation_v1/migration.sql';
+  if (!actualPaths.includes(vocationalMigration)) actualPaths.push(vocationalMigration);
   actualPaths.sort();
   for (const path of actualPaths) {
     const dest = join(directory, path.replace(/^prisma\//, ''));

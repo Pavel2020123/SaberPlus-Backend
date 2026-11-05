@@ -1,6 +1,12 @@
 // Server handler identity, never URL/query/body or JWT claims supplied by clients.
 // Unclassified authenticated handlers require an active entitlement by default.
 const historial: Record<string, readonly string[]> = {
+  OrientacionVocacionalController: [
+    'actual',
+    'historial',
+    'obtener',
+    'eliminar',
+  ],
   InstitutionEvidenceController: ['list', 'operation', 'content', 'remove'],
   ProfilePhotoController: [
     'own',

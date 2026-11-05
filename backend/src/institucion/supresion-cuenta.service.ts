@@ -246,6 +246,7 @@ export class SupresionCuentaService {
           request.version,
           user,
           counts,
+          await this.vocationalFingerprint(tx, user.id),
         );
         return {
           ...request,
@@ -315,7 +316,15 @@ export class SupresionCuentaService {
               'No se permite suprimir esta responsabilidad administrativa.',
             );
           const counts = await this.counts(tx, user.id);
-          if (this.fingerprint(id, version, user, counts) !== huellaRevision)
+          if (
+            this.fingerprint(
+              id,
+              version,
+              user,
+              counts,
+              await this.vocationalFingerprint(tx, user.id),
+            ) !== huellaRevision
+          )
             throw new ConflictException(
               'Los datos cambiaron desde la revisión. Revisa nuevamente antes de ejecutar.',
             );
@@ -420,6 +429,7 @@ export class SupresionCuentaService {
       institucionId: string | null;
     },
     counts: Record<string, number>,
+    vocationalFingerprint: string,
   ) {
     return createHash('sha256')
       .update(
@@ -434,13 +444,41 @@ export class SupresionCuentaService {
             user.institucionId,
           ],
           counts,
+          vocationalFingerprint,
         }),
       )
       .digest('hex');
   }
 
+  private async vocationalFingerprint(tx: Tx, usuarioId: string) {
+    const rows = await tx.intentoVocacional.findMany({
+      where: { usuarioId },
+      orderBy: { id: 'asc' },
+      select: {
+        id: true,
+        rulesVersion: true,
+        estado: true,
+        actualizadoEn: true,
+        resultado: true,
+        respuestas: {
+          orderBy: { preguntaId: 'asc' },
+          select: { preguntaId: true, valor: true },
+        },
+      },
+    });
+    // Counts alone cannot detect editing one answer or replacing a final result.
+    // This digest stays server-side; review responses never expose interests.
+    return createHash('sha256').update(JSON.stringify(rows)).digest('hex');
+  }
+
   private async counts(tx: Tx, usuarioId: string) {
     const extra = {
+      intentosVocacionales: await tx.intentoVocacional.count({
+        where: { usuarioId },
+      }),
+      respuestasVocacionales: await tx.respuestaVocacional.count({
+        where: { intento: { usuarioId } },
+      }),
       archivosPrivados: await tx.archivoPrivado.count({
         where: { propietarioId: usuarioId },
       }),

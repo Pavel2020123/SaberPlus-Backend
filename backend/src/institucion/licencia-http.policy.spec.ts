@@ -8,6 +8,14 @@ import { politicaHttpLicencia } from './licencia-http.policy';
 
 describe('institutional HTTP enforcement', () => {
   it.each([
+    ['OrientacionVocacionalController', 'actual', 'CONSULTA'],
+    ['OrientacionVocacionalController', 'historial', 'CONSULTA'],
+    ['OrientacionVocacionalController', 'obtener', 'CONSULTA'],
+    ['OrientacionVocacionalController', 'eliminar', 'CONSULTA'],
+    ['OrientacionVocacionalController', 'cuestionario', 'NUEVO'],
+    ['OrientacionVocacionalController', 'iniciar', 'NUEVO'],
+    ['OrientacionVocacionalController', 'guardar', 'NUEVO'],
+    ['OrientacionVocacionalController', 'finalizar', 'NUEVO'],
     ['InstitutionEvidenceController', 'list', 'CONSULTA'],
     ['InstitutionEvidenceController', 'content', 'CONSULTA'],
     ['InstitutionEvidenceController', 'remove', 'CONSULTA'],
@@ -77,6 +85,9 @@ describe('institutional HTTP enforcement', () => {
     for (const [c, m] of [
       ['SimulacroController', 'historial'],
       ['DiagnosticoController', 'finalizar'],
+      ['OrientacionVocacionalController', 'historial'],
+      ['OrientacionVocacionalController', 'obtener'],
+      ['OrientacionVocacionalController', 'eliminar'],
     ]) {
       const f = fixture(c, m);
       await expect(f.guard.canActivate(f.context)).resolves.toBe(true);

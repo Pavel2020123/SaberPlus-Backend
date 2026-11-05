@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { OrientacionVocacionalModule } from './orientacion-vocacional/orientacion-vocacional.module';
 import { PrivateFileModule } from './private-files/private-file.module';
 import { LicenciaAccesoModule } from './institucion/licencia-acceso.module';
 import { EditorialFileModule } from './editorial-files/editorial-file.module';
@@ -34,6 +35,7 @@ import { RetiredGamesController } from './common/retired-games.controller';
 
 @Module({
   imports: [
+    OrientacionVocacionalModule,
     PrivateFileModule,
     LicenciaAccesoModule,
     EditorialFileModule,
